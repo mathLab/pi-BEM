@@ -12,12 +12,12 @@
 
 using namespace dealii;
 
-typedef gsl_matrix double;
+
 
 class MultipoleExpansion
 {
 public: 
-	static gsl_matrix* A_n_m;
+	static FullMatrix<double> A_n_m;
 	
 private:
 
@@ -54,12 +54,12 @@ public:
 		inline dealii::Point<3> GetCenter() const
 			{return this->center;}
 		
-		inline gsl_matrix * GetA_n_m() const		
+		inline FullMatrix<double> & GetA_n_m() const		
 		    {return this->A_n_m;}
 				
-	    	static gsl_matrix * A_n_m_Matrix(unsigned int dim)
+	    	static FullMatrix<double> A_n_m_Matrix(unsigned int dim)
 	    		{
-	    		gsl_matrix* A_n_m = gsl_matrix_calloc(dim+1,dim+1);
+	    		FullMatrix<double> A_n_m(dim+1,dim+1);
 	    		for (unsigned int n = 0; n < dim+1 ; n++)
 	    			
 	    			{	
@@ -75,7 +75,7 @@ public:
 	    					for(int ii = n+m; ii > 0; ii-- )
 	    						f2 *= (ii);
 
-	    					*gsl_matrix_ptr (A_n_m, n, m) = pow(-1.,double(n))/sqrt(f1*f2); 
+	    					A_n_m(n,m) = pow(-1.,double(n))/sqrt(f1*f2); 
 	    					}   
 	    			}
 	    		return A_n_m;

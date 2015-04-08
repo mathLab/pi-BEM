@@ -62,7 +62,6 @@
 #include "bem_problem.h"
 #include "bem_fma.h"
 #include "boundary_conditions.h"
-#include "boat_surface.h"
 #include "computational_domain.h"
 
 using namespace dealii;

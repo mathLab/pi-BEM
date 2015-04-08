@@ -111,10 +111,10 @@ void LocalExpansion::Add(const LocalExpansion *parent) // translation of local e
 
 {
 		unsigned int p = this->p;
-		dealii::Point<3> blockRelPos = parent->GetCenter() - this->center;
-		double rho = sqrt(blockRelPos.square());
-		double cos_alpha_ = blockRelPos(2)/rho;
-		double beta = atan2(blockRelPos(1),blockRelPos(0));
+		dealii::Tensor<1,3> blockRelPos = parent->GetCenter() - this->center;
+		double rho = blockRelPos.norm();
+		double cos_alpha_ = blockRelPos[2]/rho;
+		double beta = atan2(blockRelPos[1],blockRelPos[0]);
 		
 		std::complex <double> imUnit = std::complex <double>(0.,1.);
 		
@@ -160,10 +160,10 @@ void LocalExpansion::Add(const MultipoleExpansion *multipole) // multipole conve
 
 {
 
-		dealii::Point<3> blockRelPos = multipole->GetCenter() - this->center;
-		double rho = sqrt(blockRelPos.square());
-		double cos_alpha_ = blockRelPos(2)/rho;
-		double beta = atan2(blockRelPos(1),blockRelPos(0));
+  dealii::Tensor<1,3> blockRelPos = multipole->GetCenter() - this->center;
+		double rho = blockRelPos.norm();
+		double cos_alpha_ = blockRelPos[2]/rho;
+		double beta = atan2(blockRelPos[1],blockRelPos[0]);
 		
 		std::complex <double> imUnit = std::complex <double> (0.,1.);
 
@@ -205,10 +205,10 @@ double LocalExpansion::Evaluate(const dealii::Point<3> evalPoint)
 
 		unsigned int p = this->p;	
 		std::complex <double> fieldValue = std::complex <double>(0.,0.);
-		dealii::Point<3> blockRelPos = evalPoint - this->center;
-		double rho = sqrt(blockRelPos.square());
-		double cos_alpha_ = blockRelPos(2)/rho;
-		double beta = atan2(blockRelPos(1),blockRelPos(0));
+		dealii::Tensor<1,3> blockRelPos = evalPoint - this->center;
+		double rho = blockRelPos.norm();
+		double cos_alpha_ = blockRelPos[2]/rho;
+		double beta = atan2(blockRelPos[1],blockRelPos[0]);
 
 		double P_n_m;
 		for (int n = 0; n < int(p) + 1 ; n++)

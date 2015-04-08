@@ -5,11 +5,6 @@
 #include<deal.II/base/exceptions.h>
 #include<deal.II/base/parameter_handler.h>
 
-// For time integration. 
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_odeiv.h>
-
 #include "ode_argument.h"
 
 using namespace std;

@@ -13,6 +13,7 @@ RCP<Time> MeshTime = TimeMonitor::getNewTimer("Mesh Time");
 RCP<Time> OutputTime = TimeMonitor::getNewTimer("Output Time");
 RCP<Time> SolveTime = TimeMonitor::getNewTimer("Solve Time");
 
+using namespace std;
 
 template <int dim>
 Driver<dim>::Driver(int argc, char **argv) :

@@ -96,10 +96,10 @@ for (int n = 0; n < int(this->p)+1 ; n++)
 void MultipoleExpansion::Add(const double strength, const dealii::Point<3> point)
 
 {
-		dealii::Point<3> pointRelPos = point - this->center;
-		double rho = sqrt(pointRelPos.square());
-		double cos_alpha_ = pointRelPos(2)/rho;
-		double beta = atan2(pointRelPos(1),pointRelPos(0));
+  dealii::Tensor<1,3> pointRelPos = point - this->center;
+		double rho = pointRelPos.norm();
+		double cos_alpha_ = pointRelPos[2]/rho;
+		double beta = atan2(pointRelPos[1],pointRelPos[0]);
 		
  		double P_n_m;	
  		for (int n = 0; n < int(this->p) + 1 ; n++)
@@ -119,14 +119,14 @@ void MultipoleExpansion::Add(const double strength, const dealii::Point<3> point
 void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3> point, const dealii::Point<3> normal)
 
 {
-		dealii::Point<3> pointRelPos = point - this->center;
-		dealii::Point<3> normVersor = normal/sqrt(normal.square());
-		double rho = sqrt(pointRelPos.square());
+  dealii::Tensor<1,3> pointRelPos = point - this->center;
+  dealii::Point<3> normVersor = normal/normal.norm();
+		double rho = pointRelPos.norm();
 		double dRhodN = (pointRelPos/rho)*normVersor;
-		double beta = atan2(pointRelPos(1),pointRelPos(0));
- 		double dBetadN = (dealii::Point<3>( -pointRelPos(1), pointRelPos(0), 0.)/(pow(pointRelPos(0),2.)+pow(pointRelPos(1),2.)))*normVersor;
+		double beta = atan2(pointRelPos[1],pointRelPos[0]);
+ 		double dBetadN = (dealii::Point<3>( -pointRelPos[1], pointRelPos[0], 0.)/(pow(pointRelPos[0],2.)+pow(pointRelPos[1],2.)))*normVersor;
 
-		double cos_alpha_ = pointRelPos(2)/rho;
+		double cos_alpha_ = pointRelPos[2]/rho;
 		double dAlphadN = (dealii::Point<3>( cos_alpha_*cos(beta),cos_alpha_*sin(beta),-sqrt(1.-pow(cos_alpha_,2.)))/rho) * normVersor;								        
  		
  		
@@ -153,10 +153,10 @@ void MultipoleExpansion::Add(const MultipoleExpansion *child) //translation of a
 
 {
 		FullMatrix<double> &A_n_m = this->GetA_n_m();
-		dealii::Point<3> blockRelPos = child->center - this->center;
-		double rho = sqrt(blockRelPos.square());
-		double cos_alpha_ = blockRelPos(2)/rho;
-		double beta = atan2(blockRelPos(1),blockRelPos(0));
+		dealii::Tensor<1,3> blockRelPos = child->center - this->center;
+		double rho = blockRelPos.norm();
+		double cos_alpha_ = blockRelPos[2]/rho;
+		double beta = atan2(blockRelPos[1],blockRelPos[0]);
 
 		std::complex <double> imUnit(0.,1.);
 		
@@ -204,10 +204,10 @@ double MultipoleExpansion::Evaluate(const dealii::Point<3> evalPoint)
 {
 
 		std::complex <double> fieldValue(0.,0.);
-		dealii::Point<3> blockRelPos = evalPoint - this->center;
-		double rho = sqrt(blockRelPos.square());
-		double cos_alpha_ = blockRelPos(2)/rho;
-		double beta = atan2(blockRelPos(1),blockRelPos(0));
+		dealii::Tensor<1,3> blockRelPos = evalPoint - this->center;
+		double rho = blockRelPos.norm();
+		double cos_alpha_ = blockRelPos[2]/rho;
+		double beta = atan2(blockRelPos[1],blockRelPos[0]);
 		
 		double P_n_m;
 

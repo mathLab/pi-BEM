@@ -73,7 +73,7 @@ namespace LaplaceKernel
   }
   
     template <int dim>
-  void kernels(const Point<dim> &R, Point<dim> &D, double &d)
+    void kernels(const Tensor<1, dim> &R, Tensor<1,dim> &D, double &d)
   {
     double r = R.norm();
     double r2 = r*r;

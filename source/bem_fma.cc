@@ -407,7 +407,7 @@ std::cout<<"Computing direct integrals..."<<std::endl;
 	                for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
 		            {
 			    // here we compute the distance R between the node and the quad point
-		            const Point<dim> R = comp_dom.quadPoints[cell][*pos] - support_points[nodeIndex];
+			    const Tensor<1, dim> R = comp_dom.quadPoints[cell][*pos] - support_points[nodeIndex];
                             LaplaceKernel::kernels(R, D, s);
 			    
 			    // and here are the integrals for each of the degrees of freedom of the cell: note
@@ -477,7 +477,7 @@ std::cout<<"Computing direct integrals..."<<std::endl;
 			
 	                for (unsigned int q=0; q<singular_quadrature->size(); ++q)
 	                    {
-		            const Point<dim> R = singular_q_points[q] - support_points[nodeIndex];
+			      const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
                             LaplaceKernel::kernels(R, D, s);        
 		            for (unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j)
 			        {
@@ -595,7 +595,7 @@ std::cout<<"Computing direct integrals..."<<std::endl;
 	                for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
 		            {
 			    // here we compute the distance R between the node and the quad point
-		            const Point<dim> R = comp_dom.quadPoints[cell][*pos] - support_points[nodeIndex];
+			      const Tensor<1,dim> R = comp_dom.quadPoints[cell][*pos] - support_points[nodeIndex];
                             LaplaceKernel::kernels(R, D, s);
 		            
 			    // and here are the integrals for each of the degrees of freedom of the cell: note

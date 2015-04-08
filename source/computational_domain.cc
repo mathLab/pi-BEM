@@ -1340,7 +1340,7 @@ for (unsigned int level = 2; level < num_octree_levels + 1;  level++)
 		Point<dim> Center1;
 		for (unsigned int iii = 0; iii < dim; iii++)
 		     Center1(iii) = delta1/2.;
-		Point<dim> PMax1 = 2*Center1;     
+		Point<dim> PMax1 = 2.*Center1;     
 		PMax1 += PMin1;
 		Center1 += PMin1;
 		unsigned int parentId = block1->GetParentId();
@@ -1359,7 +1359,7 @@ for (unsigned int level = 2; level < num_octree_levels + 1;  level++)
 		                Point<dim> Center2;
 		                for (unsigned int iii = 0; iii < dim; iii++)
 		                    Center2(iii) = delta2/2.;
-		                Point<dim> PMax2 = 2*Center2;     
+		                Point<dim> PMax2 = 2.*Center2;     
 		                PMax2 += PMin2;
 		                Center2 += PMin2;
 				
@@ -1435,7 +1435,7 @@ for (unsigned int level = 2; level < num_octree_levels + 1;  level++)
 		                Point<dim> Center2;
 		                for (unsigned int iii = 0; iii < dim; iii++)
 		                    Center2(iii) = delta2/2.;
-		                Point<dim> PMax2 = 2*Center2;     
+		                Point<dim> PMax2 = 2.*Center2;     
 		                PMax2 += PMin2;
 		                Center2 += PMin2;
 				
@@ -1533,7 +1533,7 @@ for (unsigned int level = 2; level < num_octree_levels + 1;  level++)
 		                		Point<dim> Center2;
 		                		for (unsigned int iii = 0; iii < dim; iii++)
 		                    		    Center2(iii) = delta2/2.;
-		                		Point<dim> PMax2 = 2*Center2;     
+		                		Point<dim> PMax2 = 2.*Center2;     
 		                		PMax2 += PMin2;
 		                		Center2 += PMin2;
 						

@@ -305,7 +305,7 @@ void BEMProblem<dim>::assemble_system()
 	    {
 	      for(unsigned int q=0; q<n_q_points; ++q)
 		{
-		  const Point<dim> R = q_points[q] - support_points[i];
+		  const Tensor<1,dim> R = q_points[q] - support_points[i];
                   LaplaceKernel::kernels(R, D, s);
     
 		  for (unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j)
@@ -566,7 +566,7 @@ void BEMProblem<dim>::assemble_system()
                            
 	    for(unsigned int q=0; q<singular_quadrature->size(); ++q)
 	      { 
-		const Point<dim> R = singular_q_points[q] - support_points[i];
+		const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
                 LaplaceKernel::kernels(R, D, s);   
                 		       
 		for(unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j) {
@@ -1470,7 +1470,7 @@ void BEMProblem<dim>::assemble_preconditioner()
        
        for (unsigned int q=0; q<vector_n_q_points; ++q)
          {
-         Point<dim> gradient = phi_surf_grads[q];
+	   Tensor<1,dim> gradient = phi_surf_grads[q];
 	 for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
 	   {
 	     comp_i = comp_dom.gradient_fe.system_to_component_index(i).first;
@@ -1485,7 +1485,7 @@ void BEMProblem<dim>::assemble_preconditioner()
 		   }
 	       }
 	   local_gradients_rhs(i) += (vector_fe_v.shape_value(i, q)) *
-                                    gradient(comp_i) * vector_fe_v.JxW(q);
+                                    gradient[comp_i] * vector_fe_v.JxW(q);
 	   }
          }
        vector_cell->get_dof_indices (vector_local_dof_indices);

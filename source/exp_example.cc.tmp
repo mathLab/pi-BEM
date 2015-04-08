@@ -1,0 +1,227 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <fstream>
+
+#include <base/point.h>
+#include "multipole_expansion.h"
+#include "local_expansion.h"
+
+
+
+
+int main()
+{
+
+
+unsigned int p = 4;
+unsigned int multipoleOrder = p;
+
+AssLegFunction* assLegFunction = new AssLegFunction;
+
+
+// metto 7 cariche in 7 punti dello spazio ed
+// assegno un'intensità a ciascuna carica
+
+std::vector <dealii::Point<3> > puntiCariche;
+puntiCariche.resize(8);
+std::vector <double> forzeCariche; 
+forzeCariche.resize(8);
+puntiCariche.at(0) = dealii::Point<3>(10.25, 10.25, 10.25);
+puntiCariche.at(1) = dealii::Point<3>(10.75, 10.25, 10.25);
+puntiCariche.at(2) = dealii::Point<3>(10.25, 10.75, 10.75);
+puntiCariche.at(3) = dealii::Point<3>(10.25, 10.75, 10.75);
+puntiCariche.at(4) = dealii::Point<3>(10.75, 10.25, 10.75);
+puntiCariche.at(5) = dealii::Point<3>(10.75, 10.75, 10.25);
+puntiCariche.at(6) = dealii::Point<3>(10.75, 10.75, 10.75);
+forzeCariche.at(0) = 1.;
+forzeCariche.at(1) = 2.;
+forzeCariche.at(2) = 3.;
+forzeCariche.at(3) = 4.;
+forzeCariche.at(4) = 5.;
+forzeCariche.at(5) = 6.;
+forzeCariche.at(6) = 7.;
+
+
+// creo un punto di valutazione "lontano" dalle cariche 
+std::vector <dealii::Point<3> > puntiValutazione;
+puntiValutazione.resize(1);
+puntiValutazione.at(0) = dealii::Point<3>(10.25,10.75,-9.75);
+
+
+// creo i centri di due espansioni multipolo,
+// vicini alle cariche 
+dealii::Point<3> center_a1 = dealii::Point<3>(10.5,10.5,10.5);
+dealii::Point<3> center_a2 = dealii::Point<3>(11.,11.,11.);
+
+// creo i centri di due espansioni multipolo,
+// vicini al punto di valutazione
+dealii::Point<3> center_A1 = dealii::Point<3>(11.,11.,-9.);
+dealii::Point<3> center_A2 = dealii::Point<3>(10.5,10.5,-9.5);
+
+
+// costruisco una prima espansione multipolo centrata in a1
+MultipoleExpansion multipolo_a1(multipoleOrder,center_a1, assLegFunction);
+
+//introduco nell'espansione multipolo i contributi delle cariche
+for (unsigned int i = 0; i < puntiCariche.size(); i++)
+	{
+	multipolo_a1.Add(forzeCariche.at(i), puntiCariche.at(i));
+	}
+
+// costruisco una nuova espansione multipolo centrata in a2	
+MultipoleExpansion multipolo_a2(multipoleOrder,center_a2, assLegFunction);
+
+// introduco nella nuova espansione multipolo i contributi delle
+// cariche, tramite la traslazione del centro della precedente espansione
+// multipolo da a1 a a2
+multipolo_a2.Add(&multipolo_a1);
+
+// costruisco un'espansione locale centrata in A1
+LocalExpansion espansione_A1(multipoleOrder,center_A1, assLegFunction);
+
+// introduco nell'espansione locale i contributi delle
+// cariche, tramite conversione dell'espansione a2 in espansione locale
+espansione_A1.Add(&multipolo_a2);
+
+// costruisco una nuova espansione locale centrata in A2 
+LocalExpansion espansione_A2(multipoleOrder,center_A2, assLegFunction);
+
+// introduco nella nuova espansione locale i contributi delle
+// cariche, tramite la traslazione del centro della precedente espansione
+// locale da A1 a A2
+espansione_A2.Add(&espansione_A1);
+
+// per valutare il potenziale posso utilizzare un'espansione multipolo (qui a2)
+double multipoleExpFieldValue = multipolo_a2.Evaluate(puntiValutazione.at(0));
+
+// oppure posso utilizzare un'espansione locale (qui A2)
+double localExpFieldValue = espansione_A2.Evaluate(puntiValutazione.at(0));
+
+
+//calcolo diretto del potenziale
+double directFieldValue = 0.;
+
+for (unsigned int i = 0; i < puntiCariche.size(); i++)
+	{
+	directFieldValue += forzeCariche.at(i)/(puntiCariche.at(i)-puntiValutazione.at(0)).norm();
+	}
+
+
+std::cout<<std::endl;
+std::cout<<"Test sul funzionamento dei multipoli 1:"<<std::endl;
+std::cout<<std::endl;
+std::cout<<"MultipoleExpansionFieldValue  "<<multipoleExpFieldValue<<std::endl;
+std::cout<<"LocalExpansionFieldValue:  "<<localExpFieldValue<<std::endl;
+std::cout<<"directFieldValue:  "<<directFieldValue<<std::endl;
+std::cout<<std::endl;
+std::cout<<"Multipole Evaluation Relative Error:"<<(directFieldValue-multipoleExpFieldValue)/directFieldValue<<std::endl;
+std::cout<<"Local Expansion Evaluation Relative Error:"<<(directFieldValue-localExpFieldValue)/directFieldValue<<std::endl;
+std::cout<<std::endl;
+std::cout<<std::endl;
+std::cout<<std::endl;
+
+
+// metto 7 dipoli in 7 punti dello spazio ed
+// assegno un'intensità a ciascuna carica
+
+puntiCariche.at(0) = dealii::Point<3>(10., 10.  , 10.25);
+puntiCariche.at(1) = dealii::Point<3>(10., 10.25, 10.25);
+puntiCariche.at(2) = dealii::Point<3>(10., 10.5 , 10.75);
+puntiCariche.at(3) = dealii::Point<3>(10., 10.75, 10.75);
+puntiCariche.at(4) = dealii::Point<3>(10., 10.25, 10.75);
+puntiCariche.at(5) = dealii::Point<3>(10., 10.75, 10.25);
+puntiCariche.at(6) = dealii::Point<3>(10., 10.75, 10.5 );
+forzeCariche.at(0) = 1.;
+forzeCariche.at(1) = 2.;
+forzeCariche.at(2) = 3.;
+forzeCariche.at(3) = 4.;
+forzeCariche.at(4) = 5.;
+forzeCariche.at(5) = 6.;
+forzeCariche.at(6) = 7.;
+
+
+//creo un punto di valutazione "lontano" dalle cariche 
+puntiValutazione.at(0) = dealii::Point<3>(10.25,10.75,-9.75);
+
+
+// creo i centri di due espansioni multipolo,
+// vicini alle cariche 
+dealii::Point<3> center_b1 = dealii::Point<3>(10.5,10.5,10.5);
+dealii::Point<3> center_b2 = dealii::Point<3>(11.,11.,11.);
+
+// creo i centri di due espansioni multipolo,
+// vicini al punto di valutazione
+dealii::Point<3> center_B1 = dealii::Point<3>(11.,11.,-9.);
+dealii::Point<3> center_B2 = dealii::Point<3>(10.5,10.5,-9.5);
+
+
+// costruisco una prima espansione multipolo centrata in b1
+MultipoleExpansion multipolo_b1(multipoleOrder,center_b1, assLegFunction);
+
+// introduco nell'espansione multipolo i contributi delle cariche,
+// ma questa volta utilizzo il campo di dipolo anziché quello
+// di una singola carica. Il campo vettoriale risultante viene poi proiettato
+// nella direzione (1,0,0), specificata tramite il terzo argomento del membro
+// AddNormDer
+for (unsigned int i = 0; i < puntiCariche.size(); i++)
+	{
+	multipolo_b1.AddNormDer(forzeCariche.at(i), puntiCariche.at(i),dealii::Point<3>(1.,0.,0.));
+	}
+
+// costruisco una nuova espansione multipolo centrata in b2	
+MultipoleExpansion multipolo_b2(multipoleOrder,center_b2, assLegFunction);
+
+// introduco nella nuova espansione multipolo i contributi delle
+// cariche, tramite la traslazione del centro della precedente espansione
+// multipolo da b1 a b2
+multipolo_b2.Add(&multipolo_b1);
+
+// costruisco un'espansione locale centrata in B1
+LocalExpansion espansione_B1(multipoleOrder,center_B1, assLegFunction);
+
+// introduco nell'espansione locale i contributi delle
+// cariche, tramite conversione dell'espansione b2 in espansione locale
+espansione_B1.Add(&multipolo_b2);
+
+// costruisco una nuova espansione locale centrata in B2 
+LocalExpansion espansione_B2(multipoleOrder,center_B2, assLegFunction);
+
+// introduco nella nuova espansione locale i contributi delle
+// cariche, tramite la traslazione del centro della precedente espansione
+// locale da B1 a B2
+espansione_B2.Add(&espansione_B1);
+
+// per valutare il potenziale posso utilizzare un'espansione multipolo (qui b2)
+multipoleExpFieldValue = multipolo_b2.Evaluate(puntiValutazione.at(0));
+
+// oppure posso utilizzare un'espansione locale (qui B2)
+localExpFieldValue = espansione_B2.Evaluate(puntiValutazione.at(0));
+
+
+//calcolo diretto del potenziale
+directFieldValue = 0.;
+
+for (unsigned int i = 0; i < puntiCariche.size(); i++)
+	{
+	directFieldValue += -forzeCariche.at(i)/pow((puntiCariche.at(i)-puntiValutazione.at(0)).norm(),3.)*((puntiCariche.at(i)-puntiValutazione.at(0))*dealii::Point<3>(1.,0.,0.));
+	}
+
+std::cout<<std::endl;
+std::cout<<"Test sul funzionamento dei multipoli 2:"<<std::endl;
+std::cout<<std::endl;
+std::cout<<"MultipoleExpansionFieldValue  "<<multipoleExpFieldValue<<std::endl;
+std::cout<<"LocalExpansionFieldValue:  "<<localExpFieldValue<<std::endl;
+std::cout<<"directFieldValue:  "<<directFieldValue<<std::endl;
+std::cout<<std::endl;
+std::cout<<"Multipole Evaluation Relative Error:"<<(directFieldValue-multipoleExpFieldValue)/directFieldValue<<std::endl;
+std::cout<<"Local Expansion Evaluation Relative Error:"<<(directFieldValue-localExpFieldValue)/directFieldValue<<std::endl;
+std::cout<<std::endl;
+std::cout<<std::endl;
+std::cout<<std::endl;
+
+
+
+}
+

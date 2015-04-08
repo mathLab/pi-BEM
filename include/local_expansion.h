@@ -57,9 +57,9 @@ public:
 		inline FullMatrix<double> &GetA_n_m() const 		
 		    {return this->A_n_m;}	
 		
-	    static FullMatrix<double> & A_n_m_Matrix(unsigned int dimension)
+	    static FullMatrix<double> A_n_m_Matrix(unsigned int dimension)
 	    	{
-	    	A_n_m.reinit(dimension+1,dimension+1);
+	    	FullMatrix<double> A_n_m(dimension+1,dimension+1);
 	    	for (unsigned int n = 0; n < dimension+1 ; n++)
 	    			
 	    			{	
@@ -82,7 +82,7 @@ public:
 	    	}
 
 	    static  std::vector <std::vector <std::vector <std::map <int,double > > > >
-	    mExp_to_lExp_Coeff_Build(A_n_m(n,m), unsigned int p)
+	    mExp_to_lExp_Coeff_Build(FullMatrix<double> &A_n_m, unsigned int p)
 	    	{
 	    	
 		std::complex <double> imUnit = std::complex <double> (0.,1.);
@@ -95,7 +95,7 @@ public:
 				for (int nn = 0; nn < int(p)+1 ; nn++) {
 					for (int mm = -1*nn; mm < nn+1 ; mm++) {
                                                 
-						double realFact = (*gsl_matrix_ptr(A_n_m,nn,abs(mm))) / (*gsl_matrix_ptr(A_n_m,n+nn,abs(m-mm))) * (*gsl_matrix_ptr(A_n_m,n,abs(m)));
+						double realFact = A_n_m(nn,abs(mm)) / A_n_m(n+nn,abs(m-mm)) * A_n_m(n,abs(m));
 						realFact *= (pow(imUnit, double(abs(m-mm)-abs(m)-abs(mm)))).real()/pow(-1.,nn);
 						realCoeff[n][m][nn][mm] = realFact;
                                                 	
@@ -112,7 +112,7 @@ public:
 	    	}
 
 	    static  std::vector <std::vector <std::map <int,std::map <int,double > > > >
-	    lExp_to_lExp_Coeff_Build(gsl_matrix * A_n_m, unsigned int p)
+	    lExp_to_lExp_Coeff_Build(FullMatrix<double> &A_n_m, unsigned int p)
 	    	{
 	    	
 		std::complex <double> imUnit = std::complex <double> (0.,1.);
@@ -124,7 +124,7 @@ public:
 				for (int nn = n; nn < int(p)+1 ; nn++) {
 					for (int mm = -1*nn; mm < nn+1 ; mm++) {
                                                 
-						double realFact = (*gsl_matrix_ptr(A_n_m,nn-n,abs(mm-m))) / (*gsl_matrix_ptr(A_n_m,nn,abs(mm))) * (*gsl_matrix_ptr(A_n_m,n,abs(m)));
+						double realFact = A_n_m(nn-n,abs(mm-m)) / A_n_m(nn,abs(mm)) * A_n_m(n,abs(m));
 						realFact *= (pow(imUnit, double(abs(mm)-abs(mm-m)-abs(m)))).real()*pow(-1.,nn+n);
 						realCoeff[n][m][nn][mm] = realFact;
                                                 	

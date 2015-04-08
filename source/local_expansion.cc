@@ -1,13 +1,12 @@
 #include <iostream>
-#include <gsl/gsl_sf_legendre.h>
 #include <math.h>
-#include <gsl/gsl_math.h>
+
 
 
 #include "local_expansion.h"
+#define GSL_SIGN(x) (x<0 ? -1: (x>0 ? 1: 0))
 
-
-gsl_matrix* LocalExpansion::A_n_m = LocalExpansion::A_n_m_Matrix(20);
+FullMatrix<double> LocalExpansion::A_n_m = LocalExpansion::A_n_m_Matrix(20);
 
 std::vector <std::vector <std::vector <std::map <int,double> > > >
             LocalExpansion::mExp_to_lExp_Coeff = LocalExpansion::mExp_to_lExp_Coeff_Build(LocalExpansion::A_n_m, 10);
@@ -22,6 +21,8 @@ LocalExpansion::LocalExpansion()
 this->p = 0;
 this->center = Point<3>(0,0,0);
 this->assLegFunction = NULL;
+
+
 
 L_n_m.resize(this->p+1);
 
@@ -109,7 +110,6 @@ for (unsigned int m = 0; m < this->p+1 ; m++) {
 void LocalExpansion::Add(const LocalExpansion *parent) // translation of local expansion
 
 {
-		gsl_matrix *A_n_m = this->GetA_n_m();
 		unsigned int p = this->p;
 		dealii::Point<3> blockRelPos = parent->GetCenter() - this->center;
 		double rho = sqrt(blockRelPos.square());
@@ -159,7 +159,7 @@ void LocalExpansion::Add(const LocalExpansion *parent) // translation of local e
 void LocalExpansion::Add(const MultipoleExpansion *multipole) // multipole conversion into local expansion, and addition to the rest
 
 {
-		gsl_matrix *A_n_m = this->GetA_n_m();
+
 		dealii::Point<3> blockRelPos = multipole->GetCenter() - this->center;
 		double rho = sqrt(blockRelPos.square());
 		double cos_alpha_ = blockRelPos(2)/rho;

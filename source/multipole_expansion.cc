@@ -1,11 +1,11 @@
 #include <iostream>
-#include <gsl/gsl_math.h>
 
 #include "multipole_expansion.h"
 #include<deal.II/base/point.h>
 
+#define GSL_SIGN(x) (x<0 ? -1: (x>0 ? 1: 0))
 
-gsl_matrix* MultipoleExpansion::A_n_m = MultipoleExpansion::A_n_m_Matrix(20);
+FullMatrix<double> MultipoleExpansion::A_n_m = MultipoleExpansion::A_n_m_Matrix(20);
 
 MultipoleExpansion::MultipoleExpansion()
 
@@ -152,7 +152,7 @@ void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3
 void MultipoleExpansion::Add(const MultipoleExpansion *child) //translation of a multipole to its parent center
 
 {
-		gsl_matrix *A_n_m = this->GetA_n_m();
+		FullMatrix<double> &A_n_m = this->GetA_n_m();
 		dealii::Point<3> blockRelPos = child->center - this->center;
 		double rho = sqrt(blockRelPos.square());
 		double cos_alpha_ = blockRelPos(2)/rho;
@@ -180,7 +180,7 @@ void MultipoleExpansion::Add(const MultipoleExpansion *child) //translation of a
 							{
 							std::complex <double> a = std::complex<double>((child->GetM_n_m(abs(n-nn),abs(m-mm))).real(),GSL_SIGN(m-mm)*(child->GetM_n_m(abs(n-nn),abs(m-mm))).imag());
 							P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn,abs(mm),cos_alpha_);
-							double realFact = P_nn_mm * pow(rho,double(nn)) * (*gsl_matrix_ptr(A_n_m,abs(nn),abs(mm))) * (*gsl_matrix_ptr(A_n_m,abs(n-nn),abs(m-mm))) / (*gsl_matrix_ptr(A_n_m,abs(n),abs(m)));
+							double realFact = P_nn_mm * pow(rho,double(nn)) * A_n_m(abs(nn),abs(mm)) * A_n_m(abs(n-nn),abs(m-mm)) / A_n_m(abs(n),abs(m));
 							realFact *= (pow(imUnit, double(abs(m)-abs(mm)-abs(m-mm)))).real();
 							z += realFact*(a*exp(std::complex <double>(0.,-mm*beta)));
 

@@ -13,10 +13,10 @@
 //
 //----------------------------  step-34.cc  ---------------------------
 
-// This class contains all the methods
-// of the Fast Multipole Algorithm
-// applied to the Boundary Element
-// Method
+				 // This class contains all the methods
+				 // of the Fast Multipole Algorithm
+				 // applied to the Boundary Element
+				 // Method
 
 
 
@@ -45,174 +45,179 @@
 
 using namespace dealii;
 
-template <int dim>
+template <int dim, Type >
 class BEMFMA
 {
-public:
-  // Just renaming the cell iterator type
+  public:
+				 // Just renaming the cell iterator type
 
-  typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
+    typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
-  // Contructor: needs a reference to a
-  // the ComputationalDomain class,
-  // containnig geometry of the problem,
-  // quadrature methods and octree
-  // partitioning methods
+				 // Contructor: needs a reference to a
+				 // the ComputationalDomain class,
+				 // containnig geometry of the problem,
+				 // quadrature methods and octree
+				 // partitioning methods
 
-  BEMFMA(ComputationalDomain<dim> &comp_dom);
+    BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
+					 const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping,
+					 const ConstraintMatrix &input_cm = ConstraintMatrix());
 
-  // Parameters declaration
+				 // Parameters declaration
 
-  void declare_parameters(ParameterHandler &prm);
+    void declare_parameters(ParameterHandler &prm);
 
-  // Parametersparsing from input file
+				 // Parameter parsing from input file
 
-  void parse_parameters(ParameterHandler &prm);
+    void parse_parameters(ParameterHandler &prm);
 
-  // Method computing the parts of the
-  // BEM system matrices in which the
-  // integrals have to be performed
-  // directly
+				 // Method computing the parts of the
+				 // BEM system matrices in which the
+				 // integrals have to be performed
+				 // directly
 
-  void direct_integrals();
+    void direct_integrals();
 
-  // Method computing the multipole
-  // expansion containing the integrals
-  // values for each bottom level block.
-  //  It is called once for each
-  // GMRES solved.
+				 // Method computing the multipole
+				 // expansion containing the integrals
+				 // values for each bottom level block.
+				 //  It is called once for each
+				 // GMRES solved.
 
-  void multipole_integrals();
+    void multipole_integrals();
 
-  // Ascending phase of the FMA method.
-  // Multipole expansions are genarated
-  //  at the bottom level blocks, and then
-  // translated to their parent blocks up
-  // to the highest level. It is
-  // called once per GMRES iteration.
+                                 // Ascending phase of the FMA method.
+				 // Multipole expansions are genarated
+				 //  at the bottom level blocks, and then
+				 // translated to their parent blocks up
+				 // to the highest level. It is
+				 // called once per GMRES iteration.
 
-  void generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const;
+    void generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const;
 
-  // Descending phase of the FMA method. Local
-  // Expansions are obtained for each block
-  // starting from the top level and down
-  // to the bottom ones, where they are used
-  // to approximete the values of the
-  // integrals, i.e. the BEM matrix-vector
-  // product values
+                                 // Descending phase of the FMA method. Local
+				 // Expansions are obtained for each block
+				 // starting from the top level and down
+				 // to the bottom ones, where they are used
+				 // to approximete the values of the
+				 // integrals, i.e. the BEM matrix-vector
+				 // product values
 
-  void multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
-                                    TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
+    void multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+		                            TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
 
-  // Method for the assembling of the
-  // sparse preconitioning matrix for FMA
+                                 // Method for the assembling of the
+				 // sparse preconitioning matrix for FMA
 
-  TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
+    TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
-private:
+    private:
 
-  // Reference to the ComputationalDomain
-  // class
+                                 // Reference to the ComputationalDomain
+				 // class
 
-  ComputationalDomain<dim> &comp_dom;
+    //ComputationalDomain<dim> &comp_dom;
+		DoFHandler<dim-1,dim> fma_dh;
+		Mapping<dim-1,dim> fma_mapping;
+		ConstraintMatrix fma_cm;
+                                 // Truncation order for the multipole
+				 // and local expansion series: it is
+				 // read from the parameters input file.
 
-  // Truncation order for the multipole
-  // and local expansion series: it is
-  // read from the parameters input file.
+    unsigned int trunc_order;
 
-  unsigned int trunc_order;
+                                 // Sparsity pattern for the
+				 // initial preconditioning matrix
+                                 // (no constraints applied)
 
-  // Sparsity pattern for the
-  // initial preconditioning matrix
-  // (no constraints applied)
+    TrilinosWrappers::SparsityPattern init_prec_sparsity_pattern;
 
-  TrilinosWrappers::SparsityPattern init_prec_sparsity_pattern;
+                                 // Sparsity pattern for the
+				 // final preconditioning matrix
+                                 // (constraints applied)
 
-  // Sparsity pattern for the
-  // final preconditioning matrix
-  // (constraints applied)
+    TrilinosWrappers::SparsityPattern final_prec_sparsity_pattern;
 
-  TrilinosWrappers::SparsityPattern final_prec_sparsity_pattern;
+    // Sparse Neumann matrix containing
+		// only direct integrals contributions
+    TrilinosWrappers::SparseMatrix prec_neumann_matrix;
+    //SparseMatrix<double> prec_neumann_matrix;
 
-  // Sparse Neumann matrix containing
-  // only direct integrals contributions
-  TrilinosWrappers::SparseMatrix prec_neumann_matrix;
-  //SparseMatrix<double> prec_neumann_matrix;
+                                 // Sparse Dirichlet matrix containing
+				 // only direct integrals contributions
 
-  // Sparse Dirichlet matrix containing
-  // only direct integrals contributions
+    TrilinosWrappers::SparseMatrix prec_dirichlet_matrix;
+    //SparseMatrix<double> prec_dirichlet_matrix;
 
-  TrilinosWrappers::SparseMatrix prec_dirichlet_matrix;
-  //SparseMatrix<double> prec_dirichlet_matrix;
+                                 // Initial sparse preconditioning matrix (without constraints)
 
-  // Initial sparse preconditioning matrix (without constraints)
+    TrilinosWrappers::SparseMatrix init_preconditioner;
 
-  TrilinosWrappers::SparseMatrix init_preconditioner;
+                                 // Final sparse preconditioning matrix (with constraints)
 
-  // Final sparse preconditioning matrix (with constraints)
+    TrilinosWrappers::SparseMatrix final_preconditioner;
 
-  TrilinosWrappers::SparseMatrix final_preconditioner;
+                                 // Structures where the Dirichlet
+				 // matrix multipole
+				 // integrals are stored: for each cell
+				 // there are as many multipole
+				 // expansions as the lowest level
+				 // blocks in which element's quad
+				 // points lie.
 
-  // Structures where the Dirichlet
-  // matrix multipole
-  // integrals are stored: for each cell
-  // there are as many multipole
-  // expansions as the lowest level
-  // blocks in which element's quad
-  // points lie.
+    mutable std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer1;
 
-  mutable std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer1;
-
-  // Structures where the Neumann
-  // matrix multipole
-  // integrals are stored: for each cell
-  // there are as many multipole
-  // expansions as the lowest level
-  // blocks in which element's quad
-  // points lie.
+                                 // Structures where the Neumann
+				 // matrix multipole
+				 // integrals are stored: for each cell
+				 // there are as many multipole
+				 // expansions as the lowest level
+				 // blocks in which element's quad
+				 // points lie.
 
 
-  mutable std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer2;
+    mutable std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer2;
 
-  // Vector storing the Dirichlet
-  // integrals multipole expansions
-  // for each block
+                                 // Vector storing the Dirichlet
+				 // integrals multipole expansions
+				 // for each block
 
-  mutable std::vector <MultipoleExpansion > blockMultipoleExpansionsKer1;
+    mutable std::vector <MultipoleExpansion > blockMultipoleExpansionsKer1;
 
-  // Vector storing the Neumann
-  // integrals multipole expansions
-  // for each block
+                                 // Vector storing the Neumann
+				 // integrals multipole expansions
+				 // for each block
 
-  mutable std::vector <MultipoleExpansion > blockMultipoleExpansionsKer2;
+    mutable std::vector <MultipoleExpansion > blockMultipoleExpansionsKer2;
 
-  // Vector storing the Dirichlet
-  // integrals local expansions
-  // for each block
+                                 // Vector storing the Dirichlet
+				 // integrals local expansions
+				 // for each block
 
-  mutable std::vector <LocalExpansion > blockLocalExpansionsKer1;
+    mutable std::vector <LocalExpansion > blockLocalExpansionsKer1;
 
-  // Vector storing the Neumann
-  // integrals local expansions
-  // for each block
+                                 // Vector storing the Neumann
+				 // integrals local expansions
+				 // for each block
 
-  mutable std::vector <LocalExpansion > blockLocalExpansionsKer2;
+    mutable std::vector <LocalExpansion > blockLocalExpansionsKer2;
 
-  // Associated Legendre functions class
+                                 // Associated Legendre functions class
 
-  AssLegFunction assLegFunction;
+    AssLegFunction assLegFunction;
 
-  // the preconditioner to be passed to bem_problem
+                                 // the preconditioner to be passed to bem_problem
+																// contributi diretti del multipolo, assembla la parte
+																// diretta in una vera matrice.
+    TrilinosWrappers::PreconditionILU preconditioner;
 
-  TrilinosWrappers::PreconditionILU preconditioner;
+                                 // mpi related variables
 
-  // mpi related variables
+    MPI_Comm mpi_communicator;
 
-  MPI_Comm mpi_communicator;
+    unsigned int n_mpi_processes;
 
-  unsigned int n_mpi_processes;
-
-  unsigned int this_mpi_process;
+    unsigned int this_mpi_process;
 
 
 

@@ -20,9 +20,13 @@
 
 
 template <int dim>
-BEMFMA<dim>::BEMFMA(ComputationalDomain<dim> &comp_dom)
+BEMFMA<dim>::BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
+										const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping,
+										const ConstraintMatrix &input_cm = ConstraintMatrix())
   :
-  comp_dom(comp_dom),
+		fma_dh(input_dh),
+		fma_mapping(input_mapping),
+		fma_cm(input_fma),
   mpi_communicator (MPI_COMM_WORLD),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
@@ -74,12 +78,14 @@ void BEMFMA<dim>::direct_integrals()
 
 
   std::vector<QGaussOneOverR<2> > sing_quadratures_3d;
+	// TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
   for (unsigned int i=0; i<comp_dom.fe.dofs_per_cell; ++i)
     sing_quadratures_3d.push_back
-    (QGaussOneOverR<2>(comp_dom.singular_quadrature_order,
+		// TO BE CHANGE USING THE PARSED SINGULAR QUADRATURE AND TELLES
+      (QTelles<2>(comp_dom.singular_quadrature_order,
                        comp_dom.fe.get_unit_support_points()[i], true));
   // number of dofs per cell
-
+	// TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
   const unsigned int dofs_per_cell = comp_dom.fe.dofs_per_cell;
 
   // vector containing the ids of the dofs
@@ -92,7 +98,7 @@ void BEMFMA<dim>::direct_integrals()
   // vector to store parts of rows of neumann
   // and dirichlet matrix obtained in local
   // operations
-
+	// TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
   Vector<double>      local_neumann_matrix_row_i(comp_dom.fe.dofs_per_cell);
   Vector<double>      local_dirichlet_matrix_row_i(comp_dom.fe.dofs_per_cell);
 
@@ -104,8 +110,8 @@ void BEMFMA<dim>::direct_integrals()
   // of support points which will be
   // used in the local integrations:
 
-  std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>(*comp_dom.mapping, comp_dom.dh, support_points);
+  std::vector<Point<dim> > support_points(fma_dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim-1, dim>(*comp_dom.mapping, fma_dh, support_points);
 
 
   // After doing so, we can start the
@@ -120,8 +126,8 @@ void BEMFMA<dim>::direct_integrals()
 
 
   cell_it
-  cell = comp_dom.dh.begin_active(),
-  endc = comp_dom.dh.end();
+  cell = fma_dh.begin_active(),
+  endc = fma_dh.end();
 
   // first, we (re)initialize the
   // preconditioning matricies by
@@ -144,8 +150,9 @@ void BEMFMA<dim>::direct_integrals()
   // elements ij of the precondition
   // matrix
 
-  init_prec_sparsity_pattern.reinit(comp_dom.dh.n_dofs(),comp_dom.dh.n_dofs(),125*comp_dom.fe.dofs_per_cell);
+  init_prec_sparsity_pattern.reinit(fma_dh.n_dofs(),fma_dh.n_dofs(),125*comp_dom.fe.dofs_per_cell);
 
+	// ALL THE LIST TO BE MOVED INSIDE BEM_FMA
   for (unsigned int kk = 0; kk < comp_dom.childlessList.size(); kk++)
 
     {
@@ -298,8 +305,8 @@ void BEMFMA<dim>::direct_integrals()
   // pattern just computed
 
   init_prec_sparsity_pattern.compress();
-  double filling_percentage = double(init_prec_sparsity_pattern.n_nonzero_elements())/double(comp_dom.dh.n_dofs()*comp_dom.dh.n_dofs())*100.;
-  std::cout<<init_prec_sparsity_pattern.n_nonzero_elements()<<" Nonzeros out of "<<comp_dom.dh.n_dofs()*comp_dom.dh.n_dofs()<<":  "<<filling_percentage<<"%"<<std::endl;
+  double filling_percentage = double(init_prec_sparsity_pattern.n_nonzero_elements())/double(fma_dh.n_dofs()*fma_dh.n_dofs())*100.;
+  std::cout<<init_prec_sparsity_pattern.n_nonzero_elements()<<" Nonzeros out of "<<fma_dh.n_dofs()*fma_dh.n_dofs()<<":  "<<filling_percentage<<"%"<<std::endl;
 
   prec_neumann_matrix.reinit(init_prec_sparsity_pattern);
   prec_dirichlet_matrix.reinit(init_prec_sparsity_pattern);
@@ -407,6 +414,8 @@ void BEMFMA<dim>::direct_integrals()
                       for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
                         {
                           // here we compute the distance R between the node and the quad point
+
+					//MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
                           const Tensor<1, dim> R = comp_dom.quadPoints[cell][*pos] - support_points[nodeIndex];
                           LaplaceKernel::kernels(R, D, s);
 
@@ -434,6 +443,8 @@ void BEMFMA<dim>::direct_integrals()
                       // here the quadrature points of the cell will be IGNORED,
                       // and the singular quadrature points are instead used.
                       // the 3d and 2d quadrature rules are different
+
+			// QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
                       Assert(singular_index != numbers::invalid_unsigned_int,
                              ExcInternalError());
 
@@ -442,7 +453,7 @@ void BEMFMA<dim>::direct_integrals()
                         = (dim == 2
                            ?
                            dynamic_cast<Quadrature<dim-1>*>(
-                             new QGaussLogR<1>(comp_dom.singular_quadrature_order,
+		                new QTelles<1>(comp_dom.singular_quadrature_order,
                                                Point<1>((double)singular_index),
                                                1./cell->measure(), true))
                            :
@@ -886,9 +897,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   blockLocalExpansionsKer2.resize(comp_dom.num_blocks);
 
   // we declare some familiar variables that will be useful in the method
-  std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
+    std::vector<Point<dim> > support_points(fma_dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping,
-                                                    comp_dom.dh, support_points);
+                                                  fma_dh, support_points);
   std::vector<unsigned int> local_dof_indices(comp_dom.fe.dofs_per_cell);
   double delta;
 
@@ -1055,9 +1066,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     } // end loop over childless blocks
 
   /*////////this is for a check//////////////////////
-  for (unsigned int i = 0; i < comp_dom.dh.n_dofs(); i++)
+for (unsigned int i = 0; i < fma_dh.n_dofs(); i++)
       {
-      for (cell_it cell = comp_dom.dh.begin_active(); cell != comp_dom.dh.end(); ++cell)
+    for (cell_it cell = fma_dh.begin_active(); cell != fma_dh.end(); ++cell)
           {
     std::cout<<i<<" "<<cell<<" "<<comp_dom.integralCheck[i][cell]<<std::endl;
     comp_dom.integralCheck[i][cell] = 0;
@@ -1083,9 +1094,9 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*comp_dom.fe.dofs_per_cell);
-  //final_prec_sparsity_pattern.reinit(comp_dom.dh.n_dofs(),comp_dom.dh.n_dofs(),125*comp_dom.fe.dofs_per_cell);
+  //final_prec_sparsity_pattern.reinit(fma_dh.n_dofs(),fma_dh.n_dofs(),125*comp_dom.fe.dofs_per_cell);
 
-  for (unsigned int i=0; i < comp_dom.dh.n_dofs(); i++)
+  for (unsigned int i=0; i < fma_dh.n_dofs(); i++)
     {
       if (c.is_constrained(i))
         {
@@ -1101,7 +1112,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
         {
           //cout<<i<<"  (nc): ";
           // other nodes entries are taken from the unconstrained preconditioner matrix
-          for (unsigned int j=0; j<comp_dom.dh.n_dofs(); ++j)
+         for (unsigned int j=0; j<fma_dh.n_dofs(); ++j)
             {
               if (init_prec_sparsity_pattern.exists(i,j))
                 {
@@ -1119,7 +1130,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
 
   // now we assemble the final preconditioner matrix: the loop works
   // exactly like the previous one
-  for (unsigned int i=0; i < comp_dom.dh.n_dofs(); i++)
+  for (unsigned int i=0; i < fma_dh.n_dofs(); i++)
     if (c.is_constrained(i))
       {
         final_preconditioner.set(i,i,1);
@@ -1135,7 +1146,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
     else
       {
         // other nodes entries are taken from the unconstrained preconditioner matrix
-        for (unsigned int j=0; j<comp_dom.dh.n_dofs(); ++j)
+         for (unsigned int j=0; j<fma_dh.n_dofs(); ++j)
           {
             if (init_prec_sparsity_pattern.exists(i,j))
               {
@@ -1147,7 +1158,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // finally, we have to add the alpha values on the diagonal, whenever dealing with a
   // neumann (in such nodes the potential phi is an unknown) and non constrained node
 
-  for (unsigned int i=0; i < comp_dom.dh.n_dofs(); i++)
+  for (unsigned int i=0; i < fma_dh.n_dofs(); i++)
     if (comp_dom.surface_nodes(i) == 0 && !c.is_constrained(i))
       final_preconditioner.add(i,i,alpha(i));
 

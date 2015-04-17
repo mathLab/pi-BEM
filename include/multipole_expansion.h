@@ -6,28 +6,30 @@
 #include <vector>
 #include <complex>
 
-#include<deal.II/base/point.h>
+#include <base/point.h>
 
 #include "ass_leg_function.h"
 
 using namespace dealii;
 
 
-
 class MultipoleExpansion
 {
 public: 
-	static FullMatrix<double> A_n_m;
+	        static FullMatrix<double> A_n_m;
+
+                mutable bool is_zero;
 	
 private:
 
 		mutable unsigned int p;
 		
-		mutable std::vector <std::vector <std::complex<double> > > M_n_m;
-		
 		mutable dealii::Point<3> center;
 		
 		mutable const AssLegFunction *assLegFunction;
+
+                mutable std::complex <double> * _M_n_m;
+
 		
 
 public:
@@ -35,6 +37,8 @@ public:
 	        MultipoleExpansion();
 		
 		MultipoleExpansion(const unsigned int order,const  dealii::Point<3> center,const AssLegFunction *assLegFunction);
+
+                MultipoleExpansion(const MultipoleExpansion &other);
 
 		~MultipoleExpansion();
 
@@ -47,15 +51,27 @@ public:
 		void AddNormDer(const double strength, const dealii::Point<3> point, const dealii::Point<3> normal);
 		
 		double Evaluate(const dealii::Point<3> evalPoint);
-		
-		inline std::complex <double> GetM_n_m(const unsigned int n, const int m) const
-			{return this->M_n_m.at(n).at(m);}
 			
 		inline dealii::Point<3> GetCenter() const
 			{return this->center;}
 		
-		inline FullMatrix<double> & GetA_n_m() const		
+		inline FullMatrix<double> &GetA_n_m() const		
 		    {return this->A_n_m;}
+
+                inline std::complex <double> *GetCoeffs() const 		
+		    {return this->_M_n_m;}
+
+                inline std::complex <double> GetCoeff(unsigned int n, unsigned int m) const 		
+		    {return this->_M_n_m[(n)*(n+1)/2+m];}                
+
+                void SetCoeff(unsigned int n, unsigned int m, std::complex <double> value) const 		
+		    {this->_M_n_m[(n)*(n+1)/2+m] = value;} 
+
+                void AddToCoeff(unsigned int n, unsigned int m, std::complex <double> value) const 		
+		    {this->_M_n_m[(n)*(n+1)/2+m] += value;} 
+
+                MultipoleExpansion& operator=( const MultipoleExpansion& other );
+
 				
 	    	static FullMatrix<double> A_n_m_Matrix(unsigned int dim)
 	    		{
@@ -78,6 +94,7 @@ public:
 	    					A_n_m(n,m) = pow(-1.,double(n))/sqrt(f1*f2); 
 	    					}   
 	    			}
+                        
 	    		return A_n_m;
 	    		}
 

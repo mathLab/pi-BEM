@@ -45,7 +45,7 @@
 
 using namespace dealii;
 
-template <int dim, Type >
+template <int dim>//, Type V>
 class BEMFMA
 {
   public:
@@ -60,7 +60,8 @@ class BEMFMA
 				 // partitioning methods
 
     BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
-					 const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping,
+           const std::vector<std::set<unsigned int> > &db_in,
+      		 const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping,
 					 const ConstraintMatrix &input_cm = ConstraintMatrix());
 
 				 // Parameters declaration
@@ -106,6 +107,13 @@ class BEMFMA
     void multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
 		                            TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
 
+
+                                // this methods creates the adaptive
+        // octree partitioning of the domain,
+        // needed by the FMA algorithm
+
+        void generate_octree_blocking();
+
                                  // Method for the assembling of the
 				 // sparse preconitioning matrix for FMA
 
@@ -116,10 +124,10 @@ class BEMFMA
                                  // Reference to the ComputationalDomain
 				 // class
 
-    //ComputationalDomain<dim> &comp_dom;
 		DoFHandler<dim-1,dim> fma_dh;
 		Mapping<dim-1,dim> fma_mapping;
 		ConstraintMatrix fma_cm;
+    FiniteElement<dim-1,dim> fma_fe;
                                  // Truncation order for the multipole
 				 // and local expansion series: it is
 				 // read from the parameters input file.
@@ -218,6 +226,120 @@ class BEMFMA
     unsigned int n_mpi_processes;
 
     unsigned int this_mpi_process;
+
+    unsigned int singular_quadrature_order;
+
+
+    				     // number of levels of the octree
+    				     // partitioning
+
+        unsigned int num_octree_levels;
+
+                                         // here are declared dome structures which
+    				     // will be created in the framework of the
+    				     // octree partitioning of the mesh, and
+    				     // will be used in the FMA
+
+    				     // a map associating each DoF with the cells
+    				     // it belongs to
+
+        std::map<unsigned int, std::vector<cell_it> > dof_to_elems;
+
+    				     // a map associating each gradient DoF
+    				     // with the cells it belongs to
+
+        std::map<unsigned int, std::vector<cell_it> > gradient_dof_to_elems;
+
+    				     // a vector associating each gradient DoF
+    				     // with the component it represents
+
+        std::vector<unsigned int > gradient_dof_components;
+
+    				     // a map associating each DoF to the
+    				     // block it belongs to
+    				     // for each level
+
+        std::map<unsigned int, std::vector<unsigned int> > dof_to_block;
+
+    				     // a map associating each quad point to the
+    				     // block it belongs to for
+    				     // each level
+
+        std::map<cell_it, std::vector<std::vector <unsigned int> > > quad_point_to_block;
+
+    				     // a map associating each cell with a std::set
+    				     // containing the surrounding
+    				     // cells
+
+        std::map <cell_it, std::set <cell_it> > elem_to_surr_elems;
+
+                                         // a vector to store all OctreeBlocks
+    				     // in which the geometry is divided
+
+        mutable std::vector<OctreeBlock<dim> *> blocks;
+
+                                         // the total blocks number
+
+        unsigned int num_blocks;
+
+                                         // the indices in the blocks vector, at which
+    				     // each of the levels start or end
+
+        std::vector <unsigned int> endLevel;
+        std::vector <unsigned int> startLevel;
+
+                                         // a list of the indices of all the childless
+    				     // blocks
+
+        std::vector <unsigned int> childlessList;
+
+                                         // a list of the number of parent blocks
+    				     // for each level
+        std::vector <unsigned int> numParent;
+
+    				     // a std::vector containing the list of
+    				     // parent blocks for each level
+
+        std::vector <std::vector<unsigned int> > parentList;
+
+    				     // a std::map of std::vectors containing the
+    				     // list of quadrature points
+
+        std::map <cell_it, std::vector <Point <dim> > > quadPoints;
+
+    				     // a std::map of std::vectors containing the
+    				     // list of normals at quadrature points
+
+        std::map <cell_it, std::vector <Point <dim> > > quadNormals;
+
+    				     // a std::map of std::vectors containing the
+    				     // list of shape function values at
+    				     // quadrature points
+
+        std::map <cell_it, std::vector <std::vector<double> > > quadShapeFunValues;
+
+    				     // a std::map of std::vectors containing the
+    				     // list of JxW values at
+    				     // quadrature points
+
+        std::map <cell_it, std::vector <double > > quadJxW;
+
+                                         // a std::vector containing std::vectors with
+    				     // the IDs of blocks with at least one dof,
+    				     // for each level
+
+        std::vector< std::vector<unsigned int> > dofs_filled_blocks;
+
+                                         // a std::vector containing std::vectors with
+    				     // the IDs of blocks with at least one
+    				     // quad point, for each level
+
+        std::vector< std::vector<unsigned int> > quad_points_filled_blocks;
+
+        ConditionalOStream pcout;
+        // This should be erased by the usage of the constraint matrix.
+        std::vector <std::set<unsigned int> >   double_nodes_set;
+
 
 
 

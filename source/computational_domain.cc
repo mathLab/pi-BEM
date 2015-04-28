@@ -490,7 +490,7 @@ pcout<<"Generating double nodes set..."<<std::endl;
   boat_keel_nodes.clear();  
   
    
-   for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+   for (; cell!=endc; ++cell,++gradient_cell)
     {
     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
     

@@ -42,22 +42,22 @@ private:
 public:
 		LocalExpansion();
 		
-		LocalExpansion(const unsigned int order, const  dealii::Point<3> center, const AssLegFunction *assLegFunction);
+		LocalExpansion(const unsigned int order, const  dealii::Point<3> &center, const AssLegFunction *assLegFunction);
 
                 LocalExpansion(const LocalExpansion &other);
 		
 		~LocalExpansion();
 
-		void Add(const std::vector <double> real, const std::vector <double> imag);
+		void Add(const std::vector <double> &real, const std::vector <double> &imag);
 		
 		
-		void Add(const LocalExpansion *parent);
+		void Add(const LocalExpansion &parent);
 		
-		void Add(const MultipoleExpansion *multipole);
+		void Add(const MultipoleExpansion &multipole);
 		
-		double Evaluate(const dealii::Point<3> evalPoint);
+		double Evaluate(const dealii::Point<3> &evalPoint);
 		
-		inline dealii::Point<3> GetCenter() const
+		inline dealii::Point<3> &GetCenter() const
 			{return this->center;}
 		
 		inline FullMatrix<double> GetA_n_m() const 		
@@ -69,13 +69,13 @@ public:
                 inline std::complex <double> *GetCoeffs() const 		
 		    {return this->_L_n_m;}
 
-                inline std::complex <double> GetCoeff(unsigned int n, unsigned int m) const 		
+                inline std::complex <double> &GetCoeff(unsigned int n, unsigned int m) const 		
 		    {return this->_L_n_m[(n)*(n+1)/2+m];}                
 
-                void SetCoeff(unsigned int n, unsigned int m, std::complex <double> value) const 		
+                void SetCoeff(unsigned int n, unsigned int m, std::complex <double> &value) const 		
 		    {this->_L_n_m[(n)*(n+1)/2+m] = value;} 
 
-                void AddToCoeff(unsigned int n, unsigned int m, std::complex <double> value) const 		
+                void AddToCoeff(unsigned int n, unsigned int m, std::complex <double> &value) const 		
 		    {this->_L_n_m[(n)*(n+1)/2+m] += value;} 
 
                 LocalExpansion& operator=( const LocalExpansion& other );

@@ -802,12 +802,6 @@ for (unsigned int kk = 0; kk < comp_dom.childlessList.size(); kk++)
 	 unsigned int blockId = comp_dom.childlessList[kk];
 	 OctreeBlock<dim>* block = comp_dom.blocks[blockId];
 	 
-         delta = comp_dom.blocks[blockId]->GetDelta();
-         Point<dim> deltaHalf;
-         for (unsigned int i=0; i<dim;i++)
-	     deltaHalf(i) = delta/2.;
-         Point<dim> blockCenter = comp_dom.blocks[blockId]->GetPMin()+deltaHalf;
-	 
         std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList(); 
 	 
 	// we loop on the cells of the quad points in the block: remember that for each cell with a node in the
@@ -827,8 +821,8 @@ for (unsigned int kk = 0; kk < comp_dom.childlessList.size(); kk++)
 	    
  	    for (unsigned int jj=0; jj < comp_dom.fe.dofs_per_cell; ++jj)
 		{
-		blockMultipoleExpansionsKer2.at(blockId).Add(&elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(local_dof_indices[jj]));
-		blockMultipoleExpansionsKer1.at(blockId).Add(&elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(local_dof_indices[jj]));
+		blockMultipoleExpansionsKer2.at(blockId).Add(elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(local_dof_indices[jj]));
+		blockMultipoleExpansionsKer1.at(blockId).Add(elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(local_dof_indices[jj]));
 		}	 	
 	    } //end loop ond block elements	
 	}	// end loop on childless blocks
@@ -854,8 +848,8 @@ for (unsigned int level = comp_dom.num_octree_levels; level > 0; level--)
 		{
 		unsigned int parentId = comp_dom.blocks[kk]->GetParentId();
 		
-		blockMultipoleExpansionsKer1.at(parentId).Add(&blockMultipoleExpansionsKer1.at(kk));
-	 	blockMultipoleExpansionsKer2.at(parentId).Add(&blockMultipoleExpansionsKer2.at(kk));
+		blockMultipoleExpansionsKer1.at(parentId).Add(blockMultipoleExpansionsKer1.at(kk));
+	 	blockMultipoleExpansionsKer2.at(parentId).Add(blockMultipoleExpansionsKer2.at(kk));
 	 	
 		} // end loop over blocks of a level
 			
@@ -951,8 +945,8 @@ std::cout<<"Computing multipole matrix-vector products... "<<std::endl;
 		// block: this operation requires a local expansion translation, implemented
 		// in a specific LocalExpansion class member
 		
-		blockLocalExpansionsKer1[jj].Add(&blockLocalExpansionsKer1[block1Parent]);
-		blockLocalExpansionsKer2[jj].Add(&blockLocalExpansionsKer2[block1Parent]);
+		blockLocalExpansionsKer1[jj].Add(blockLocalExpansionsKer1[block1Parent]);
+		blockLocalExpansionsKer2[jj].Add(blockLocalExpansionsKer2[block1Parent]);
                 
 		// for each block, loop over all sublevels in his NN list (this is because if a 
 		// block remains childless BEFORE the last level, at this point we need to compute
@@ -977,8 +971,8 @@ std::cout<<"Computing multipole matrix-vector products... "<<std::endl;
 				{
 				//std::cout<<"NonIntListPart2 Blocks: "<<*pos1<<" ";
 				unsigned int block2Id = *pos1;
-				blockLocalExpansionsKer1[jj].Add(&blockMultipoleExpansionsKer1[block2Id]);
-				blockLocalExpansionsKer2[jj].Add(&blockMultipoleExpansionsKer2[block2Id]);	
+				blockLocalExpansionsKer1[jj].Add(blockMultipoleExpansionsKer1[block2Id]);
+				blockLocalExpansionsKer2[jj].Add(blockMultipoleExpansionsKer2[block2Id]);	
 			        
 				/*////////this is for a check///////////////////////
 				OctreeBlock<dim>* block2 = comp_dom.blocks[block2Id];

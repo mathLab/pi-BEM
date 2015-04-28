@@ -19,7 +19,7 @@ this->is_zero = true;
 }
 
 
-MultipoleExpansion::MultipoleExpansion(const unsigned int order, const dealii::Point<3> center, const AssLegFunction *assLegFunction)
+MultipoleExpansion::MultipoleExpansion(const unsigned int order, const dealii::Point<3> &center, const AssLegFunction *assLegFunction)
 
 {
 	
@@ -63,10 +63,10 @@ if (_M_n_m != NULL)
 delete [] _M_n_m;
 }
 
-void MultipoleExpansion::Add(const MultipoleExpansion *multipole,const double sol)
+void MultipoleExpansion::Add(const MultipoleExpansion &multipole,const double sol)
 
 {
-if (multipole->is_zero || sol==0)
+if (multipole.is_zero || sol==0)
    {
    }
 else
@@ -74,12 +74,15 @@ else
    this->is_zero = false;
    for (int n = 0; n < int(this->p)+1 ; n++)
        for (int m = 0; m < n + 1 ; m++)
-           this->AddToCoeff(n,m,multipole->GetCoeff(n,m)*sol);
+           {
+           std::complex <double> a = multipole.GetCoeff(n,m)*sol;
+           this->AddToCoeff(n,m,a);
+           }
    }
 
 }
 
-void MultipoleExpansion::Add(const double strength, const dealii::Point<3> point)
+void MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
 
 {
 
@@ -100,15 +103,16 @@ else
        for (int m = 0; m < n + 1 ; m++)
            {
            P_n_m = this->assLegFunction->GetAssLegFunSph(n,abs(m),cos_alpha_);
-           double realFact = P_n_m * pow(rho,double(n)) * strength; 
-           this->AddToCoeff(n,m,exp(std::complex<double>(0.,-m*beta))*realFact);
+           double realFact = P_n_m * pow(rho,double(n)) * strength;
+           std::complex <double> a = exp(std::complex<double>(0.,-m*beta))*realFact;
+           this->AddToCoeff(n,m,a);
            }
        }
    }
 
 }
 
-void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3> point, const dealii::Point<3> normal)
+void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3> &point, const dealii::Point<3> &normal)
 
 {
 if (strength == 0)
@@ -137,10 +141,12 @@ else
            {
            P_n_m =  this->assLegFunction->GetAssLegFunSph(n,abs(m),cos_alpha_);
            dP_n_m_sin = this->assLegFunction->GetAssLegFunSphDeriv(n,abs(m),cos_alpha_)*sqrt(1-pow(cos_alpha_,2.));
-           std::complex <double> eim = exp(std::complex <double>(0.,-double(m)*beta));	
-           std::complex <double> z = std::complex <double> (double(n)*pow(rho,double(n)-1.)*P_n_m*dRhodN -
-                                     pow(rho,double(n))*dP_n_m_sin*dAlphadN, -double(m)*pow(rho,double(n))*P_n_m*dBetadN);
-           this->AddToCoeff(n,m,strength*z*eim);
+           std::complex <double> z = exp(std::complex <double>(0.,-double(m)*beta));	
+           z *= std::complex <double> (double(n)*pow(rho,double(n)-1.)*P_n_m*dRhodN -
+                 pow(rho,double(n))*dP_n_m_sin*dAlphadN, -double(m)*pow(rho,double(n))*P_n_m*dBetadN);
+           z*=strength;
+           
+           this->AddToCoeff(n,m,z);
            }
        }
    }
@@ -148,18 +154,18 @@ else
 }
 
 
-void MultipoleExpansion::Add(const MultipoleExpansion *child) //translation of a multipole to its parent center
+void MultipoleExpansion::Add(const MultipoleExpansion &child) //translation of a multipole to its parent center
 
 {
-if (child->is_zero)
+if (child.is_zero)
    {
-   this->is_zero = this->is_zero & child->is_zero;
+   this->is_zero = this->is_zero & child.is_zero;
    }
 else
    {
    this->is_zero = false;
    FullMatrix<double> &A_n_m = this->GetA_n_m();
-   dealii::Point<3> blockRelPos = child->center + (-1.0*this->center);
+   dealii::Point<3> blockRelPos = child.center + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));
@@ -182,8 +188,8 @@ else
                       }
                    else
                       {
-                      std::complex <double> a = std::complex<double>((child->GetCoeff(abs(n-nn),abs(m-mm))).real(),GSL_SIGN(m-mm)*
-                                                (child->GetCoeff(abs(n-nn),abs(m-mm))).imag());
+                      std::complex <double> a = std::complex<double>((child.GetCoeff(abs(n-nn),abs(m-mm))).real(),GSL_SIGN(m-mm)*
+                                                (child.GetCoeff(abs(n-nn),abs(m-mm))).imag());
                       P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn,abs(mm),cos_alpha_);
                       double realFact = P_nn_mm * pow(rho,double(nn)) * A_n_m(abs(nn),abs(mm)) *
                                         A_n_m(abs(n-nn),abs(m-mm)) / A_n_m(abs(n),abs(m));
@@ -199,7 +205,7 @@ else
 }
 
 
-double MultipoleExpansion::Evaluate(const dealii::Point<3> evalPoint)
+double MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
 
 {
 std::complex <double> fieldValue(0.,0.);

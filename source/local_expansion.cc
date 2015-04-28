@@ -26,7 +26,7 @@ this->is_zero = true;
 }
 
 
-LocalExpansion::LocalExpansion(const unsigned int order, const dealii::Point<3> center, const AssLegFunction *assLegFunction)
+LocalExpansion::LocalExpansion(const unsigned int order, const dealii::Point<3> &center, const AssLegFunction *assLegFunction)
 
 {
 
@@ -74,7 +74,7 @@ return *this;
 
 
 
-void LocalExpansion::Add(const std::vector <double> real, const std::vector <double> imag)
+void LocalExpansion::Add(const std::vector <double> &real, const std::vector <double> &imag)
 
 {
 
@@ -84,9 +84,11 @@ for (unsigned int m = 0; m < this->p+1 ; m++)
     {
     for (unsigned int n = m; n < this->p + 1 ; n++)
         {
-        sum += norm(std::complex <double>(real.at(count),imag.at(count)));
-        this->AddToCoeff(n,n+m,std::complex <double>(real.at(count),imag.at(count)));
-        this->AddToCoeff(n,n-m,this->GetCoeff(n,n+m)+std::complex <double>(real.at(count),-1*imag.at(count)));
+        std::complex <double> a(real.at(count),imag.at(count));
+        sum += norm(a);
+        this->AddToCoeff(n,n+m,a);
+        a=std::conj(a);
+        this->AddToCoeff(n,n-m,a);
         count++;
 }
     }
@@ -98,21 +100,19 @@ if (sum > 1e-20)
 
 
 
-void LocalExpansion::Add(const LocalExpansion *parent) // translation of local expansion
+void LocalExpansion::Add(const LocalExpansion &parent) // translation of local expansion
 
 {
-if (parent->is_zero)
+if (parent.is_zero)
    {
    }
 else
    {
    unsigned int p = this->p;
-   dealii::Point<3> blockRelPos = parent->GetCenter() + (-1.0*this->center);
+   dealii::Point<3> blockRelPos = parent.GetCenter() + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));
-
-   std::complex <double> imUnit = std::complex <double>(0.,1.);
 
    double P_nn_mm;
 
@@ -131,8 +131,8 @@ else
                       }
                    else
                       {
-                      std::complex <double> a = std::complex <double>(parent->GetCoeff(abs(nn),abs(mm)).real(),
-                                                                      GSL_SIGN(mm)*parent->GetCoeff(abs(nn),abs(mm)).imag());
+                      std::complex <double> a = std::complex <double>(parent.GetCoeff(abs(nn),abs(mm)).real(),
+                                                                      GSL_SIGN(mm)*parent.GetCoeff(abs(nn),abs(mm)).imag());
                       P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn-n,abs(mm-m),cos_alpha_);
                       double realFact = P_nn_mm * rhoFact * lExp_to_lExp_Coeff[n][m][nn][mm];
                       z += a*std::complex<double>(cos((mm-m)*beta),sin((mm-m)*beta))*realFact;
@@ -148,23 +148,21 @@ else
 }
 
 
-void LocalExpansion::Add(const MultipoleExpansion *multipole) // multipole conversion into local expansion, and addition to the rest
+void LocalExpansion::Add(const MultipoleExpansion &multipole) // multipole conversion into local expansion, and addition to the rest
 
 {
 //static unsigned int call_count=0;
             
-if (multipole->is_zero)
+if (multipole.is_zero)
    {
    }
 else
    {
-   //cout<<call_count<<" "<<std::setprecision(25)<<multipole->GetCoeff(0,0)<<endl;   
-   dealii::Point<3> blockRelPos = multipole->GetCenter() + (-1.0*this->center);
+   //cout<<call_count<<" "<<std::setprecision(25)<<multipole.GetCoeff(0,0)<<endl;   
+   dealii::Point<3> blockRelPos = multipole.GetCenter() + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));
-
-   std::complex <double> imUnit = std::complex <double> (0.,1.);
 
    double P_nn_mm;  
    std::complex <double> a;  
@@ -179,7 +177,7 @@ else
                double rhoFact = pow(rho,double(-n-nn-1));
                for (int mm = -1*nn; mm < 0 ; mm++)
                    {
-                   a = multipole->GetCoeff(nn,abs(mm));
+                   a = multipole.GetCoeff(nn,abs(mm));
                    a = std::complex <double>(a.real(),-a.imag());
                    P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn+n,abs(mm-m),cos_alpha_);
                    realFact = P_nn_mm * rhoFact * mExp_to_lExp_Coeff.get(n,m,nn,mm);
@@ -187,7 +185,7 @@ else
                    }
                for (int mm = 0; mm < nn+1 ; mm++)
                    {
-                   a = multipole->GetCoeff(nn,abs(mm));
+                   a = multipole.GetCoeff(nn,abs(mm));
                    P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn+n,abs(mm-m),cos_alpha_);
                    double realFact = P_nn_mm * rhoFact * mExp_to_lExp_Coeff.get(n,m,nn,mm);
                    z += a*std::complex <double>(cos((mm-m)*beta),sin((mm-m)*beta))*realFact;
@@ -203,7 +201,7 @@ else
 }
 
 
-double LocalExpansion::Evaluate(const dealii::Point<3> evalPoint)
+double LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
 {
 std::complex <double> fieldValue = std::complex <double>(0.,0.);
 if (this->is_zero)

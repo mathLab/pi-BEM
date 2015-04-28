@@ -523,12 +523,12 @@
     }   
     
     
-    double AssLegFunction::P_0_0 (const double x) const
+    double AssLegFunction::P_0_0 (const double /*x*/) const
     {
 	return(1);
     }
 
-    double AssLegFunction::P_0_0_Deriv (const double x) const
+    double AssLegFunction::P_0_0_Deriv (const double /*x*/) const
     {
 	return(0);
     }
@@ -538,7 +538,7 @@
 	return(x);
     }
 
-    double AssLegFunction::P_1_0_Deriv (const double x) const
+    double AssLegFunction::P_1_0_Deriv (const double /*x*/) const
     {
 	return(1);
     }

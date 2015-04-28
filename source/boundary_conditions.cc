@@ -193,7 +193,6 @@ void BoundaryConditions<dim>:: solve_problem() {
   wind.set_time(0);   
 
   const unsigned int n_dofs =  comp_dom.dh.n_dofs();
-  const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association 	(comp_dom.dh,dofs_domain_association);
   this_cpu_set.set_size(n_dofs);
@@ -226,14 +225,13 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
     comp_dom.compute_normals();
 
     const unsigned int n_dofs =  comp_dom.dh.n_dofs();
-    const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
 
     phi.reinit(this_cpu_set,mpi_communicator);
     dphi_dn.reinit(this_cpu_set,mpi_communicator);
     tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
 	   
-    std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
+    std::vector<Point<dim> > support_points(n_dofs);
     DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping, comp_dom.dh, support_points);
 
     cell_it

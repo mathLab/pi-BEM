@@ -76,7 +76,7 @@ template <int dim>
 void BEMProblem<dim>::reinit()
 {
   const unsigned int n_dofs =  comp_dom.dh.n_dofs();
-  const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
+  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
   //this_cpu_set = DoFTools::dof_indices_with_subdomain_association(comp_dom.dh,this_mpi_process);
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association 	(comp_dom.dh,dofs_domain_association);
@@ -683,7 +683,7 @@ void BEMProblem<dim>::compute_alpha()
   //alpha.print(pcout);
   //for (unsigned int i=0; i<alpha.size(); ++i)
   //    {
-  //    cout<<std::setprecision(10)<<alpha(i)<<endl;
+  //    cout<<std::setprecision(20)<<alpha(i)<<endl;
   //    }
 
 }
@@ -698,8 +698,6 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
 
   TrilinosWrappers::MPI::Vector matrVectProdN;
   TrilinosWrappers::MPI::Vector matrVectProdD;
-
-  const unsigned int n_dofs =  comp_dom.dh.n_dofs();
   
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
   matrVectProdD.reinit(this_cpu_set,mpi_communicator);
@@ -751,8 +749,7 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
   static TrilinosWrappers::MPI::Vector matrVectProdN;
   static TrilinosWrappers::MPI::Vector matrVectProdD;
 
-  const unsigned int n_dofs =  comp_dom.dh.n_dofs();
-  const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
+  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
   IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();
 
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
@@ -785,104 +782,7 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
      }   
 
 
-  //for (unsigned int i=0; i<alpha.size(); ++i)
-  //    {
-  //    cout<<std::setprecision(10)<<dst(i)<<endl;
-  //    }
 
-
-     
-/*  
-  // here we correct the right hand side so as to account for the presence of double and
-  // triple dofs
-  
-  // we start looping on the dofs   
-  for (unsigned int i=0; i <src.size(); i++)
-      {
-      // in the next line we compute the "first" among the set of double nodes: this node
-      // is the first dirichlet node in the set, and if no dirichlet node is there, we get the
-      // first neumann node
-       
-      std::set<unsigned int> doubles = comp_dom.double_nodes_set[i];
-      unsigned int firstOfDoubles = *doubles.begin();
-      for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
-          {
-          if (surface_nodes(*it) == 1)
-             {
-             firstOfDoubles = *it;
-             break;
-             }
-          }
-      
-      // for each set of double nodes, we will perform the correction only once, and precisely
-      // when the current node is the first of the set
-      if (i == firstOfDoubles)
-	 {
-	 // the vector entry corresponding to the first node of the set does not need modification,
-	 // thus we erase ti form the set
-	 doubles.erase(i);
-	 
-	 // if the current (first) node is a dirichlet node, for all its neumann doubles we will
-	 // impose that the potential is equal to that of the first node: this means that in the
-	 // rhs we will put the potential value of the first node (which is prescribed by bc) 
-	 if (surface_nodes(i) == 1)
-	    {
-	    for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
-	        {
-		if (surface_nodes(*it) == 1)
-		   {
-		   
-		   }
-		else
-		   {
-	           dst(*it) = phi(i)/alpha(i);
-		   }
-	        }
-	    }
-	    
-	 // if the current (first) node is a neumann node, for all its doubles we will impose that
-	 // the potential is equal to that of the first node: this means that in the rhs we will
-	 // put 0  	    
-	 if (surface_nodes(i) == 0)
-	    {
-	    for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
-	        {
-	        dst(*it) = 0;
-	        }
-	    }
-	   
-	   
-	 }    
-      }
-    
-    
-  //*/  
-/*    for (unsigned int i=0; i <src.size(); i++)
-     {
-     if (comp_dom.double_nodes_set[i].size() > 1 && surface_nodes(i) == 0)
-        {
-	std::set<unsigned int> doubles = comp_dom.double_nodes_set[i];
-	doubles.erase(i);
-	unsigned int doubleSurIndex = 0;
-	double a = 0;
-        for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
-	    {
-	    if (surface_nodes(*it) == 1)
-	        {
-		doubleSurIndex = *it;
-		a += surface_nodes(*it);
-		}
-	    }
-	if (a > 0)
-	    dst(i) = phi(doubleSurIndex)/alpha(doubleSurIndex);
-	else
-	    {
-	    std::set<unsigned int>::iterator it = doubles.begin();
-	    if ( i > *it)
-	       dst(i) = 0;
-	    }
-        }
-     }//*/
 
 }
 
@@ -1314,7 +1214,7 @@ void BEMProblem<dim>::assemble_preconditioner()
    std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
 
             
-   for (; cell!=endc,vector_cell!=vector_endc; ++cell,++vector_cell)
+   for (; cell!=endc; ++cell,++vector_cell)
      {
        Assert(cell->index() == vector_cell->index(), ExcInternalError());
 
@@ -1462,7 +1362,7 @@ void BEMProblem<dim>::assemble_preconditioner()
    std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
 
             
-   for (; cell!=endc,vector_cell!=vector_endc; ++cell,++vector_cell)
+   for (; cell!=endc; ++cell,++vector_cell)
      {
        Assert(cell->index() == vector_cell->index(), ExcInternalError());
 
@@ -1470,7 +1370,6 @@ void BEMProblem<dim>::assemble_preconditioner()
        vector_fe_v.reinit (vector_cell);
        local_gradients_matrix = 0;
        local_gradients_rhs = 0;
-       const std::vector<Point<dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
        fe_v.get_function_gradients(phi, phi_surf_grads);
        unsigned int comp_i, comp_j;
 

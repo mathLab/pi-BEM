@@ -384,7 +384,7 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 
   if(mapping == NULL)
     mapping = new MappingQEulerian<dim-1, Vector<double>, dim>
-	      (gradient_fe.degree, map_points, gradient_dh);
+	      (gradient_fe.degree, gradient_dh, map_points);
 
   //Vector<double> map_points_old(map_points);
   //soltrans.refine_interpolate(map_points_old, map_points);
@@ -527,7 +527,7 @@ pcout<<"Generating double nodes set..."<<std::endl;
   gradient_cell = gradient_dh.begin_active();
   cell = dh.begin_active();
   
-  for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  for (; cell!=endc; ++cell,++gradient_cell)
       {
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
   
@@ -559,7 +559,7 @@ pcout<<"Generating double nodes set..."<<std::endl;
   gradient_cell = gradient_dh.begin_active();
   cell = dh.begin_active();
   
-  for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  for (; cell!=endc; ++cell,++gradient_cell)
       {
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
   
@@ -587,7 +587,7 @@ pcout<<"Generating double nodes set..."<<std::endl;
   gradient_cell = gradient_dh.begin_active();
   cell = dh.begin_active();
   
-  for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  for (; cell!=endc; ++cell,++gradient_cell)
       {
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
 

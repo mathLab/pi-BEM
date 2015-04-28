@@ -15,6 +15,16 @@ Take a look at
 https://www.dealii.org/developer/developers/testsuite.html for more
 information on how to create tests and add categories of tests.
 
+Notice to developers
+====================
+
+Before making a pull request, please make sure you run the script
+
+    ./scripts/indent
+
+from the base directory of this project, to ensure that no random 
+white space changes are inserted in the repository.
+
 Licence
 =======
 

@@ -1,0 +1,62 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+    echo "Usage:
+$0 regexp
+
+Will check the generated output with the expected output using
+cwdiff, and give you the opportunity to accept new results.
+"
+    exit 0
+fi
+
+FILE=`ctest -N | grep $1 | head -n 1 | awk '{print $NF}'`
+
+if [ -z "$FILE" ]; then
+    echo "Using $1, I could not find any corresponding test..."
+    exit
+fi
+
+echo Processing file $FILE:
+SRC=`grep SOURCE_DIR CMakeCache.txt | awk -F"=" '{print $2}'`
+CMP=$SRC/${FILE/debug/output}
+CMP=${CMP/release/output}
+
+if [ ! -f $FILE/output ]; then
+    echo "File $FILE/output does not exist. Some other problem occurred."
+    echo "Running ctest in verbose mode:"
+    ctest -V -R $FILE
+    exit
+fi
+
+if [ ! -f $CMP ]; then
+    prompt="Please select a file to compare to:"
+    PS3="$prompt "
+    options=(`ls ${CMP/output/}*output`)
+    select opt in "${options[@]}" "Quit" ; do
+	if (( REPLY == 1 + ${#options[@]} )) ; then
+	    exit
+
+	elif (( REPLY > 0 && REPLY <= ${#options[@]} )) ; then
+	    echo  "Comparing with $opt:"
+	    CMP=$opt
+	    break
+	else
+	    echo "Invalid option. Try another one."
+	fi
+    done
+fi
+
+cwdiff ${FILE}/output $CMP
+
+PS3="Accept new version ($FILE)?"
+select opt in "Yes" "No"; do
+    if ((REPLY == 1)) ; then
+	echo "You said yes. Very well."
+	cp ${FILE}/output $CMP
+	exit
+    else
+	echo "You said no. :( "
+	exit
+    fi
+done

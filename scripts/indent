@@ -1,0 +1,39 @@
+#!/bin/bash
+## ---------------------------------------------------------------------
+##
+## Copyright (C) 2012 - 2013, 2015 by the deal.II authors
+##
+## This file is part of the deal.II library.
+##
+## The deal.II library is free software; you can use it, redistribute
+## it, and/or modify it under the terms of the GNU Lesser General
+## Public License as published by the Free Software Foundation; either
+## version 2.1 of the License, or (at your option) any later version.
+## The full text of the license can be found in the file LICENSE at
+## the top level of the deal.II distribution.
+##
+## ---------------------------------------------------------------------
+
+if test ! -d source -o ! -d include -o ! -d tests ; then
+  echo "*** This script must be run from the top-level directory of Parallel BEM."
+  exit
+fi
+
+if test ! -f scripts/astyle.rc ; then
+  echo "*** No style file scripts/astyle.rc found."
+  exit
+fi
+
+
+# loop over all directories in which we may have source files;
+# collect a list of files and then spawn a parallel process to
+# indent all of them
+echo "--- Indenting all header and source files"
+for dir in source include tests; do
+files=`find $dir | egrep '\.(cc|h)$'` ;
+    if test -n "$files" ; then
+	(astyle --options=scripts/astyle.rc $files ) &
+    fi
+done
+
+wait

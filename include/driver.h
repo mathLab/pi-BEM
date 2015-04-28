@@ -51,8 +51,8 @@
 #include<deal.II/numerics/vector_tools.h>
 #include<deal.II/numerics/solution_transfer.h>
 
-				 // And here are a few C++ standard header
-				 // files that we will need:
+// And here are a few C++ standard header
+// files that we will need:
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -71,38 +71,38 @@ using namespace dealii;
 
 
 template <int dim>
-class Driver 
+class Driver
 {
-  public:
-   
-   Driver(int argc, char **argv);
-   
-   ~Driver();
+public:
 
-   void run();
-    
-   void DeclareParameters(); 
+  Driver(int argc, char **argv);
 
-   void ParseParameters(); 
-   
-   private:
-   
-   ConditionalOStream pcout;
+  ~Driver();
 
-   ComputationalDomain<dim> computational_domain;
-   
-   BEMFMA<dim> fma;
+  void run();
 
-   BEMProblem<dim> bem_problem;
-   
-   BoundaryConditions<dim> boundary_conditions;
-   
-   ParameterHandler prm;
+  void DeclareParameters();
 
-   MPI_Comm mpi_communicator;
+  void ParseParameters();
 
-   const unsigned int n_mpi_processes;
-   const unsigned int this_mpi_process;
+private:
+
+  ConditionalOStream pcout;
+
+  ComputationalDomain<dim> computational_domain;
+
+  BEMFMA<dim> fma;
+
+  BEMProblem<dim> bem_problem;
+
+  BoundaryConditions<dim> boundary_conditions;
+
+  ParameterHandler prm;
+
+  MPI_Comm mpi_communicator;
+
+  const unsigned int n_mpi_processes;
+  const unsigned int this_mpi_process;
 };
 
 #endif

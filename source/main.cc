@@ -1,8 +1,8 @@
 //----------------------------  step-34.cc  ---------------------------
 //    $Id: step-34.cc 18734 2009-04-25 13:36:48Z heltai $
-//    Version: $Name$ 
+//    Version: $Name$
 //
-//    Copyright (C) 2009, 2010 by the deal.II authors 
+//    Copyright (C) 2009, 2010 by the deal.II authors
 //
 //    This file is subject to QPL and may not be  distributed
 //    without copyright and license information. Please refer
@@ -23,9 +23,9 @@ int main (int argc, char *argv[])
 
       Driver<3> driver(argc, argv);
 
-      
+
       driver.run();
-    
+
     }
   catch (std::exception &exc)
     {
@@ -37,10 +37,10 @@ int main (int argc, char *argv[])
                 << "Aborting!" << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
-      
+
       return 1;
     }
-  catch (...) 
+  catch (...)
     {
       std::cerr << std::endl << std::endl
                 << "----------------------------------------------------"

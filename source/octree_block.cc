@@ -3,255 +3,307 @@
 template <int dim>
 OctreeBlock<dim>::OctreeBlock()
 {
-this->parentId = 0;
-this->level = 0;
-for (int i=0; i<dim; i++)
-   this->pMin(i) = 0.0;
-this->delta = 0;
-this->nodesId.resize(0);
-this->numChildren = 0;
-this->nearNeigh.resize(1);
-this->intList.resize(1);
-this->nonIntList.resize(1);
+  this->parentId = 0;
+  this->level = 0;
+  for (int i=0; i<dim; i++)
+    this->pMin(i) = 0.0;
+  this->delta = 0;
+  this->nodesId.resize(0);
+  this->numChildren = 0;
+  this->nearNeigh.resize(1);
+  this->intList.resize(1);
+  this->nonIntList.resize(1);
 }
 
 
 template <int dim>
 OctreeBlock<dim>::OctreeBlock(unsigned int level, unsigned int parent, Point<dim> pMin, double delta)
 {
-this->parentId = parent;
-this->level = level;
-this->pMin = pMin;
-this->delta = delta;
-this->nodesId.resize(0);
-this->numChildren = 0;
-this->nearNeigh.resize(1);
-this->intList.resize(1);
-this->nonIntList.resize(1);
+  this->parentId = parent;
+  this->level = level;
+  this->pMin = pMin;
+  this->delta = delta;
+  this->nodesId.resize(0);
+  this->numChildren = 0;
+  this->nearNeigh.resize(1);
+  this->intList.resize(1);
+  this->nonIntList.resize(1);
 }
 
 
 template <int dim>
 OctreeBlock<dim>::OctreeBlock(const OctreeBlock<dim> &other)
 {
-this->parentId = other.parentId;
-this->level = other.level;
-this->pMin = other.pMin;
-this->delta = other.delta;
-for (unsigned int i=0; i < other.nodesId.size(); i++)
-     this->nodesId.push_back(other.nodesId[i]);
-this->quadPointsId = other.quadPointsId;
-this->numChildren = other.numChildren;
-for (unsigned int i=0; i < this->numChildren; i++)
+  this->parentId = other.parentId;
+  this->level = other.level;
+  this->pMin = other.pMin;
+  this->delta = other.delta;
+  for (unsigned int i=0; i < other.nodesId.size(); i++)
+    this->nodesId.push_back(other.nodesId[i]);
+  this->quadPointsId = other.quadPointsId;
+  this->numChildren = other.numChildren;
+  for (unsigned int i=0; i < this->numChildren; i++)
     this->childrenId[i] = other.childrenId[i];
-this->nearNeigh = other.nearNeigh;
-this->intList = other.intList;
-this->nonIntList = other.nonIntList;
+  this->nearNeigh = other.nearNeigh;
+  this->intList = other.intList;
+  this->nonIntList = other.nonIntList;
 }
 
 
 template <int dim>
-        OctreeBlock<dim>::~OctreeBlock()
+OctreeBlock<dim>::~OctreeBlock()
 {
-this->nearNeigh.clear();
-this->intList.clear();
-this->nonIntList.clear();
-this->nodesId.clear();
-this->quadPointsId.clear();
+  this->nearNeigh.clear();
+  this->intList.clear();
+  this->nonIntList.clear();
+  this->nodesId.clear();
+  this->quadPointsId.clear();
 }
 
 
 template <int dim>
 void OctreeBlock<dim>::CopyContent(const OctreeBlock<dim> *other)
 {
-this->parentId = other->parentId;
-this->level = other->level;
-this->pMin = other->pMin;
-this->delta = other->delta;
-for (unsigned int i=0; i < other->nodesId.size(); i++)
-     this->nodesId.push_back(other->nodesId[i]);
-this->quadPointsId = other->quadPointsId;
-this->numChildren = other->numChildren;
-for (unsigned int i=0; i < this->numChildren; i++)
+  this->parentId = other->parentId;
+  this->level = other->level;
+  this->pMin = other->pMin;
+  this->delta = other->delta;
+  for (unsigned int i=0; i < other->nodesId.size(); i++)
+    this->nodesId.push_back(other->nodesId[i]);
+  this->quadPointsId = other->quadPointsId;
+  this->numChildren = other->numChildren;
+  for (unsigned int i=0; i < this->numChildren; i++)
     this->childrenId[i] = other->childrenId[i];
-this->nearNeigh = other->nearNeigh;
-this->intList = other->intList;
-this->nonIntList = other->nonIntList;
+  this->nearNeigh = other->nearNeigh;
+  this->intList = other->intList;
+  this->nonIntList = other->nonIntList;
 }
 
 
 template <int dim>
 void OctreeBlock<dim>::AddNode(unsigned int nodeId)
 {
-this->nodesId.push_back(nodeId);
+  this->nodesId.push_back(nodeId);
 }
 
 
 template <int dim>
 void OctreeBlock<dim>::AddQuadPoint(cell_it elemPointer, unsigned int quadPointId)
 {
-this->quadPointsId[elemPointer].push_back(quadPointId);
+  this->quadPointsId[elemPointer].push_back(quadPointId);
 }
 
-  
+
 template <int dim>
 inline std::vector <unsigned int> OctreeBlock<dim>::GetBlockNodeList() const
 {
-    return  this->nodesId;
+  return  this->nodesId;
 }
 
 
 template <int dim>
 inline void OctreeBlock<dim>::DelNodeList()
 {
-    this->nodesId.clear();
+  this->nodesId.clear();
 }
 
 
 template <int dim>
 inline std::map <typename DoFHandler<dim-1,dim>::active_cell_iterator, std::vector<unsigned int> >
-                                      OctreeBlock<dim>::GetBlockQuadPointsList() const
+OctreeBlock<dim>::GetBlockQuadPointsList() const
 {
-    return  this->quadPointsId;
+  return  this->quadPointsId;
 }
 
 
 template <int dim>
 inline void OctreeBlock<dim>::DelQuadPointsList()
 {
-    this->quadPointsId.clear();
+  this->quadPointsId.clear();
 }
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetBlockNodesNum() const
-{return  this->nodesId.size();}
+{
+  return  this->nodesId.size();
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetBlockChildrenNum() const
-{return  this->numChildren;}
+{
+  return  this->numChildren;
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetParentId() const
-{return this->parentId;}
+{
+  return this->parentId;
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::AddChild(unsigned int childId)
-{this->childrenId[numChildren] = childId;
- this->numChildren +=1;}
+{
+  this->childrenId[numChildren] = childId;
+  this->numChildren +=1;
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetChildId(unsigned int idInList) const
-{return this->childrenId[idInList];}
+{
+  return this->childrenId[idInList];
+}
 
 
 template <int dim>
 inline Point<dim> OctreeBlock<dim>::GetPMin() const
-{return this->pMin;}
+{
+  return this->pMin;
+}
 
 
 template <int dim>
 inline double OctreeBlock<dim>::GetDelta() const
-{return this->delta;}
+{
+  return this->delta;
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::AddNearNeigh(unsigned int sublevel, const unsigned int nnBlockId)
-{(this->nearNeigh.at(sublevel)).insert(nnBlockId);}
+{
+  (this->nearNeigh.at(sublevel)).insert(nnBlockId);
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::NumNearNeigh(unsigned int sublevel) const
-{return (this->nearNeigh.at(sublevel)).size();}
+{
+  return (this->nearNeigh.at(sublevel)).size();
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::NumNearNeighLevels() const
-{return this->nearNeigh.size();}
+{
+  return this->nearNeigh.size();
+}
 
 
 template <int dim>
 inline std::set <unsigned int> OctreeBlock<dim>::GetNearNeighs(unsigned int sublevel) const
-{return this->nearNeigh.at(sublevel);}
+{
+  return this->nearNeigh.at(sublevel);
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::AddBlockToIntList(unsigned int sublevel, const unsigned int intListBlockId)
-{(this->intList.at(sublevel)).insert(intListBlockId);}
+{
+  (this->intList.at(sublevel)).insert(intListBlockId);
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::NumIntList(unsigned int sublevel) const
-{return (this->intList.at(sublevel)).size();}
+{
+  return (this->intList.at(sublevel)).size();
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::NumIntListLevels() const
-{return this->intList.size();}
+{
+  return this->intList.size();
+}
 
 
 template <int dim>
 inline std::set <unsigned int> OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
-{return this->intList.at(sublevel);}
+{
+  return this->intList.at(sublevel);
+}
 
 
 template <int dim>
 inline std::vector<std::set <unsigned int> > OctreeBlock<dim>::GetIntList() const
-{return this->intList;}
+{
+  return this->intList;
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::AddBlockToNonIntList(unsigned int sublevel, const unsigned int intListBlockId)
-{(this->nonIntList.at(sublevel)).insert(intListBlockId);}
+{
+  (this->nonIntList.at(sublevel)).insert(intListBlockId);
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::NumNonIntList(unsigned int sublevel) const
-{return (this->nonIntList.at(sublevel)).size();}
+{
+  return (this->nonIntList.at(sublevel)).size();
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::NumNonIntListLevels() const
-{return this->nonIntList.size();}
+{
+  return this->nonIntList.size();
+}
 
 
 template <int dim>
 inline std::set <unsigned int> OctreeBlock<dim>::GetNonIntList(unsigned int sublevel) const
-{return this->nonIntList.at(sublevel);}
+{
+  return this->nonIntList.at(sublevel);
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::SetNearNeighSize(unsigned int sublevels)
-{this->nearNeigh.resize(sublevels);}
+{
+  this->nearNeigh.resize(sublevels);
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::SetIntListSize(unsigned int sublevels)
-{this->intList.resize(sublevels);}
+{
+  this->intList.resize(sublevels);
+}
 
 
 template <int dim>
 inline void OctreeBlock<dim>::SetNonIntListSize(unsigned int sublevels)
-{this->nonIntList.resize(sublevels);}
+{
+  this->nonIntList.resize(sublevels);
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetNearNeighSize() const
-{return this->nearNeigh.size();}
+{
+  return this->nearNeigh.size();
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetIntListSize() const
-{return this->intList.size();}
+{
+  return this->intList.size();
+}
 
 
 template <int dim>
 inline unsigned int OctreeBlock<dim>::GetNonIntListSize() const
-{return this->nonIntList.size();}
+{
+  return this->nonIntList.size();
+}
 
 
 template class OctreeBlock<3>;

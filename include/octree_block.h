@@ -39,8 +39,8 @@
 #include<deal.II/numerics/vector_tools.h>
 #include<deal.II/numerics/solution_transfer.h>
 
-				 // And here are a few C++ standard header
-				 // files that we will need:
+// And here are a few C++ standard header
+// files that we will need:
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -55,112 +55,112 @@ template <int dim>
 class OctreeBlock
 {
 
-	public :
-	
-	        typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it; 
-		
-		
-	private :	
-		
-		unsigned int level;
+public :
 
-		unsigned int parentId;
+  typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
-		unsigned int numChildren;
 
-		unsigned int childrenId[8];
-		
-		std::vector <std::set <unsigned int> > nearNeigh;
-		
-		std::vector <std::set <unsigned int> > intList;
-		
-		std::vector <std::set <unsigned int> > nonIntList;
-		
-		Point<dim> pMin;
-		
-		double delta;
-		
-		std::vector <unsigned int> nodesId;
-		
-		std::map <cell_it, std::vector<unsigned int> > quadPointsId;
-		
-	
-public: 
+private :
 
-        OctreeBlock();
+  unsigned int level;
 
-	OctreeBlock(unsigned int level, unsigned int parent, Point<dim> pMin, double delta);
-	
-        OctreeBlock(const OctreeBlock<dim> &other);
-	
-	~OctreeBlock();
-	
-	void CopyContent(const  OctreeBlock *other);
-	
-        void AddNode(unsigned int nodeId);
+  unsigned int parentId;
 
-        void AddQuadPoint(cell_it elemPointer, unsigned int quadPointId);
-	
-	std::vector <unsigned int> GetBlockNodeList() const;
-	
-	void DelNodeList();
+  unsigned int numChildren;
 
-        std::map <cell_it, std::vector<unsigned int> > GetBlockQuadPointsList() const;
-	
-	void DelQuadPointsList();
+  unsigned int childrenId[8];
 
-	unsigned int GetBlockNodesNum() const;
-	
-	unsigned int GetBlockChildrenNum() const;
-	
-	unsigned int GetParentId() const;
-		
-	void AddChild(unsigned int childId);
-	
-	unsigned int GetChildId(unsigned int idInList) const;
-		
-	Point<dim> GetPMin() const;
-		
-	double GetDelta() const;
-		
-	void AddNearNeigh(unsigned int sublevel, const unsigned int nnBlockId);
-		
-	unsigned int NumNearNeigh(unsigned int sublevel) const;
-		
-	unsigned int NumNearNeighLevels() const;
-		
-	std::set <unsigned int> GetNearNeighs(unsigned int sublevel) const;
-		
-	void AddBlockToIntList(unsigned int sublevel, const unsigned int intListBlockId);
-		
-	unsigned int NumIntList(unsigned int sublevel) const;
-		
-	unsigned int NumIntListLevels() const;
-		
-	std::set <unsigned int> GetIntList(unsigned int sublevel) const;
+  std::vector <std::set <unsigned int> > nearNeigh;
 
-        std::vector<std::set <unsigned int> > GetIntList() const;
-		
-	void AddBlockToNonIntList(unsigned int sublevel, const unsigned int intListBlockId);
-		
-	unsigned int NumNonIntList(unsigned int sublevel) const;
-		
-	unsigned int NumNonIntListLevels() const;
-		
-	std::set <unsigned int> GetNonIntList(unsigned int sublevel) const;
+  std::vector <std::set <unsigned int> > intList;
 
-	void SetNearNeighSize(unsigned int sublevels);
+  std::vector <std::set <unsigned int> > nonIntList;
 
-	void SetIntListSize(unsigned int sublevels);
+  Point<dim> pMin;
 
-	void SetNonIntListSize(unsigned int sublevels);
-	
-	unsigned int GetNearNeighSize() const;
+  double delta;
 
-	unsigned int GetIntListSize() const;
+  std::vector <unsigned int> nodesId;
 
-	unsigned int GetNonIntListSize() const;
-	
+  std::map <cell_it, std::vector<unsigned int> > quadPointsId;
+
+
+public:
+
+  OctreeBlock();
+
+  OctreeBlock(unsigned int level, unsigned int parent, Point<dim> pMin, double delta);
+
+  OctreeBlock(const OctreeBlock<dim> &other);
+
+  ~OctreeBlock();
+
+  void CopyContent(const  OctreeBlock *other);
+
+  void AddNode(unsigned int nodeId);
+
+  void AddQuadPoint(cell_it elemPointer, unsigned int quadPointId);
+
+  std::vector <unsigned int> GetBlockNodeList() const;
+
+  void DelNodeList();
+
+  std::map <cell_it, std::vector<unsigned int> > GetBlockQuadPointsList() const;
+
+  void DelQuadPointsList();
+
+  unsigned int GetBlockNodesNum() const;
+
+  unsigned int GetBlockChildrenNum() const;
+
+  unsigned int GetParentId() const;
+
+  void AddChild(unsigned int childId);
+
+  unsigned int GetChildId(unsigned int idInList) const;
+
+  Point<dim> GetPMin() const;
+
+  double GetDelta() const;
+
+  void AddNearNeigh(unsigned int sublevel, const unsigned int nnBlockId);
+
+  unsigned int NumNearNeigh(unsigned int sublevel) const;
+
+  unsigned int NumNearNeighLevels() const;
+
+  std::set <unsigned int> GetNearNeighs(unsigned int sublevel) const;
+
+  void AddBlockToIntList(unsigned int sublevel, const unsigned int intListBlockId);
+
+  unsigned int NumIntList(unsigned int sublevel) const;
+
+  unsigned int NumIntListLevels() const;
+
+  std::set <unsigned int> GetIntList(unsigned int sublevel) const;
+
+  std::vector<std::set <unsigned int> > GetIntList() const;
+
+  void AddBlockToNonIntList(unsigned int sublevel, const unsigned int intListBlockId);
+
+  unsigned int NumNonIntList(unsigned int sublevel) const;
+
+  unsigned int NumNonIntListLevels() const;
+
+  std::set <unsigned int> GetNonIntList(unsigned int sublevel) const;
+
+  void SetNearNeighSize(unsigned int sublevels);
+
+  void SetIntListSize(unsigned int sublevels);
+
+  void SetNonIntListSize(unsigned int sublevels);
+
+  unsigned int GetNearNeighSize() const;
+
+  unsigned int GetIntListSize() const;
+
+  unsigned int GetNonIntListSize() const;
+
 };
 
 

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------
 //
-//    Copyright (C) 2014 by the deal.II authors 
+//    Copyright (C) 2014 by the deal.II authors
 //
 //    This file is subject to LGPL and may not be distributed
 //    without copyright and license information. Please refer
@@ -15,9 +15,9 @@
 #include "tests.h"
 #include "template_class.h"
 
-int main () 
+int main ()
 {
-    initlog();
-    TemplateClass<2> tc;
-    deallog << 0 << std::endl;
+  initlog();
+  TemplateClass<2> tc;
+  deallog << 0 << std::endl;
 }

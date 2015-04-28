@@ -41,32 +41,32 @@ template <class VECTOR> class ConstrainedMatrixBlock;
  * @author Luca Heltai 2011
  */
 
-template<class VEC, class MATRIX> 
-class ConstrainedOperator 
+template<class VEC, class MATRIX>
+class ConstrainedOperator
 {
-  public:
-    ConstrainedOperator(const MATRIX &m,
-			const ConstraintMatrix &c,
-                        MPI_Comm comm = MPI_COMM_WORLD) :
-		    constraints(c),
-		    matrix(m),
-                    mpi_communicator (MPI_COMM_WORLD),
-                    n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
-                    this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
-      {}
-    
-    
-    
-    void vmult(VEC& dst, const VEC &src) const;
+public:
+  ConstrainedOperator(const MATRIX &m,
+                      const ConstraintMatrix &c,
+                      MPI_Comm comm = MPI_COMM_WORLD) :
+    constraints(c),
+    matrix(m),
+    mpi_communicator (MPI_COMM_WORLD),
+    n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
+    this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
+  {}
 
-    void distribute_rhs(VEC &rhs) const;
-    
-  private:
-    const ConstraintMatrix &constraints;
-    const MATRIX &matrix;
-    MPI_Comm mpi_communicator;
-    unsigned int n_mpi_processes;
-    unsigned int this_mpi_process;
+
+
+  void vmult(VEC &dst, const VEC &src) const;
+
+  void distribute_rhs(VEC &rhs) const;
+
+private:
+  const ConstraintMatrix &constraints;
+  const MATRIX &matrix;
+  MPI_Comm mpi_communicator;
+  unsigned int n_mpi_processes;
+  unsigned int this_mpi_process;
 };
 
 /*@}*/
@@ -76,8 +76,8 @@ class ConstrainedOperator
 //--------------------------------Iterators--------------------------------------//
 
 
-template<class VEC, class MATRIX> 
-void ConstrainedOperator<VEC,MATRIX>::vmult(VEC& dst, const VEC &src) const
+template<class VEC, class MATRIX>
+void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
 {
 
   Vector<double> loc_src(src.size());
@@ -90,17 +90,17 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC& dst, const VEC &src) const
 
   matrix.vmult(dst, src);
 
-          
-  for(unsigned int i=0; i<dst.size(); ++i)
-    if( (constraints.is_constrained(i)) &&
-        (src.locally_owned_elements().is_element(i)) ) 
+
+  for (unsigned int i=0; i<dst.size(); ++i)
+    if ( (constraints.is_constrained(i)) &&
+         (src.locally_owned_elements().is_element(i)) )
       {
-	dst(i) = src(i);
-	const std::vector< std::pair < unsigned int, double > >
-	  * entries = constraints.get_constraint_entries (i);
-	for(unsigned int j=0; j< entries->size(); ++j)
-	  dst(i) -= (*entries)[j].second *
-		    loc_src((*entries)[j].first);
+        dst(i) = src(i);
+        const std::vector< std::pair < unsigned int, double > >
+        *entries = constraints.get_constraint_entries (i);
+        for (unsigned int j=0; j< entries->size(); ++j)
+          dst(i) -= (*entries)[j].second *
+                    loc_src((*entries)[j].first);
       }
 
   //std::cout<<"out vector "<<std::endl;
@@ -112,12 +112,12 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC& dst, const VEC &src) const
 
 }
 
-template<class VEC, class MATRIX> 
+template<class VEC, class MATRIX>
 void ConstrainedOperator<VEC,MATRIX>::distribute_rhs(VEC &rhs) const
 {
-  for(unsigned int i=0; i<rhs.size(); ++i)
-    if( (constraints.is_constrained(i)) &&
-        (rhs.locally_owned_elements().is_element(i)) )
+  for (unsigned int i=0; i<rhs.size(); ++i)
+    if ( (constraints.is_constrained(i)) &&
+         (rhs.locally_owned_elements().is_element(i)) )
       rhs(i) = constraints.get_inhomogeneity(i);
 }
 

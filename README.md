@@ -25,6 +25,9 @@ Before making a pull request, please make sure you run the script
 from the base directory of this project, to ensure that no random 
 white space changes are inserted in the repository.
 
+The script requires Artistic Style Version 2.04 (astyle) to work 
+properly.
+
 Licence
 =======
 

@@ -1,8 +1,8 @@
 //----------------------------  step-34.cc  ---------------------------
 //    $Id: step-34.cc 18734 2009-04-25 13:36:48Z heltai $
-//    Version: $Name$ 
+//    Version: $Name$
 //
-//    Copyright (C) 2009 by the deal.II authors 
+//    Copyright (C) 2009 by the deal.II authors
 //
 //    This file is subject to QPL and may not be  distributed
 //    without copyright and license information. Please refer
@@ -14,15 +14,15 @@
 //----------------------------  step-34.cc  ---------------------------
 
 
-				 // @sect3{Include files}
+// @sect3{Include files}
 
-				 // The program starts with including a bunch
-				 // of include files that we will use in the
-				 // various parts of the program. Most of them
-				 // have been discussed in previous tutorials
-				 // already:
+// The program starts with including a bunch
+// of include files that we will use in the
+// various parts of the program. Most of them
+// have been discussed in previous tutorials
+// already:
 #ifndef boundary_conditions_h
-#define boundary_conditions_h				 
+#define boundary_conditions_h
 #include<deal.II/base/smartpointer.h>
 #include<deal.II/base/convergence_table.h>
 #include<deal.II/base/quadrature_lib.h>
@@ -61,8 +61,8 @@
 #include<deal.II/numerics/vector_tools.h>
 #include<deal.II/numerics/solution_transfer.h>
 
-				 // And here are a few C++ standard header
-				 // files that we will need:
+// And here are a few C++ standard header
+// files that we will need:
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -78,57 +78,59 @@ class BoundaryConditions
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem) :
-       wind(dim), comp_dom(comp_dom), bem(bem),
-                mpi_communicator (MPI_COMM_WORLD),
-                n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
-                this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
-      {dofs_number = 0,
-       output_frequency = 1;}
-        
-  
+    wind(dim), comp_dom(comp_dom), bem(bem),
+    mpi_communicator (MPI_COMM_WORLD),
+    n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
+    this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
+  {
+    dofs_number = 0,
+    output_frequency = 1;
+  }
+
+
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-  
+
   void declare_parameters(ParameterHandler &prm);
-  
+
   void parse_parameters(ParameterHandler &prm);
-  
+
   void prepare_bem_vectors();
 
   void solve_problem();
 
   void output_results(const std::string) const;
-  
+
   void compute_errors();
-  
+
   std::string output_file_name;
 
-private:  
-  
+private:
+
   Functions::ParsedFunction<dim> wind;
-  
+
   Functions::ParsedFunction<dim> potential;
-  
+
   std::string node_displacement_type;
-  
+
   SolverControl solver_control;
 
   ComputationalDomain<dim> &comp_dom;
 
   BEMProblem<dim> &bem;
-    
+
   unsigned int dofs_number;
-  
+
   unsigned int output_frequency;
-  
+
   TrilinosWrappers::MPI::Vector        tmp_rhs;
   TrilinosWrappers::MPI::Vector        phi;
   TrilinosWrappers::MPI::Vector        dphi_dn;
-    
+
   MPI_Comm mpi_communicator;
 
   unsigned int n_mpi_processes;
 
-  unsigned int this_mpi_process;  
+  unsigned int this_mpi_process;
 
   IndexSet this_cpu_set;
 };

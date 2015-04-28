@@ -6,7 +6,7 @@
 #include <vector>
 
 
-#include <lac/full_matrix.h>
+#include <deal.II/lac/full_matrix.h>
 
 #include "multipole_expansion.h"
 #include "ass_leg_function.h"

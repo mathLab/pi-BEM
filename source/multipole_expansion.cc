@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "multipole_expansion.h"
-#include <base/point.h>
+#include <deal.II/base/point.h>
 
 #define GSL_SIGN(x) (x<0 ? -1: (x>0 ? 1: 0))
 
@@ -90,7 +90,7 @@ else
    {
    this->is_zero = false;
    
-   dealii::Point<3> pointRelPos = point - this->center;
+   dealii::Point<3> pointRelPos = point + (-1.0*this->center);
    double rho = sqrt(pointRelPos.square());
    double cos_alpha_ = pointRelPos(2)/rho;
    double beta = atan2(pointRelPos(1),pointRelPos(0));
@@ -118,7 +118,7 @@ else
    {
    this->is_zero = false;
    
-   dealii::Point<3> pointRelPos = point - this->center;
+   dealii::Point<3> pointRelPos = point + (-1.0*this->center);
    dealii::Point<3> normVersor = normal/sqrt(normal.square());
    double rho = sqrt(pointRelPos.square());
    double dRhodN = (pointRelPos/rho)*normVersor;
@@ -159,7 +159,7 @@ else
    {
    this->is_zero = false;
    FullMatrix<double> &A_n_m = this->GetA_n_m();
-   dealii::Point<3> blockRelPos = child->center - this->center;
+   dealii::Point<3> blockRelPos = child->center + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));
@@ -208,7 +208,7 @@ if (this->is_zero)
    }
 else
    {
-   dealii::Point<3> blockRelPos = evalPoint - this->center;
+   dealii::Point<3> blockRelPos = evalPoint + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));

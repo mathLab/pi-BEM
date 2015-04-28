@@ -914,6 +914,9 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
    //for (unsigned int i = 0; i < alpha.size(); i++)
    //    if (this_cpu_set.is_element(i))
    //       pcout<<i<<" ("<<this_mpi_process<<")  "<<alpha(i)<<std::endl;
+
+
+
             
    compute_rhs(system_rhs, tmp_rhs);
 
@@ -947,6 +950,9 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
     //pcout<<"];"<<std::endl; 
 
 
+
+
+///////////////////////////////////
 /*
   std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping, comp_dom.dh, support_points);
@@ -960,7 +966,9 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
        if (this_cpu_set.is_element(i))
           pcout<<i<<" ("<<this_mpi_process<<")  "<<sol(i)<<std::endl;
 */
-   
+////////////////////////////////// 
+
+  
   for (unsigned int i=0; i <surface_nodes.size(); i++)
       {
       if (this_cpu_set.is_element(i))
@@ -975,6 +983,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
             }
          }
       }
+
 
       //for (unsigned int i=0;i<comp_dom.dh.n_dofs();++i)
       // cout<<i<<" "<<tmp_rhs(i)<<" "<<dphi_dn(i)<<" "<<phi(i)<<" "<<surface_nodes(i)<<endl;

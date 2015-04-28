@@ -6,7 +6,7 @@
 #include <vector>
 #include <complex>
 
-#include <base/point.h>
+#include <deal.II/base/point.h>
 
 #include "ass_leg_function.h"
 

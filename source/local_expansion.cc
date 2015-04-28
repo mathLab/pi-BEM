@@ -107,7 +107,7 @@ if (parent->is_zero)
 else
    {
    unsigned int p = this->p;
-   dealii::Point<3> blockRelPos = parent->GetCenter() - this->center;
+   dealii::Point<3> blockRelPos = parent->GetCenter() + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));
@@ -159,7 +159,7 @@ if (multipole->is_zero)
 else
    {
    //cout<<call_count<<" "<<std::setprecision(25)<<multipole->GetCoeff(0,0)<<endl;   
-   dealii::Point<3> blockRelPos = multipole->GetCenter() - this->center;
+   dealii::Point<3> blockRelPos = multipole->GetCenter() + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));
@@ -213,7 +213,7 @@ else
    {
 
    unsigned int p = this->p;
-   dealii::Point<3> blockRelPos = evalPoint - this->center;
+   dealii::Point<3> blockRelPos = evalPoint + (-1.0*this->center);
    double rho = sqrt(blockRelPos.square());
    double cos_alpha_ = blockRelPos(2)/rho;
    double beta = atan2(blockRelPos(1),blockRelPos(0));

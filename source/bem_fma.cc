@@ -22,6 +22,7 @@
 template <int dim>
 BEMFMA<dim>::BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
                     const std::vector<std::set<unsigned int> > &db_in,
+                    const Vector<double> &input_sn,
                     const Mapping<dim-1,dim> &input_mapping,
                     const ConstraintMatrix &input_cm)
   :
@@ -34,13 +35,32 @@ BEMFMA<dim>::BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
     double_nodes_set(db_in),
+    surface_nodes(input_sn),
     pcout(std::cout)
+
 {}
 
 
 template <int dim>
+BEMFMA<dim>::~BEMFMA()
+{
+
+  if (blocks.size() > 0)
+     {
+     for (unsigned int ii = 0; ii < num_blocks;  ii++)
+          delete blocks[ii];
+     }
+
+}
+
+template <int dim>
 void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
 {
+    prm.enter_subsection("Octree Params");
+    {
+      prm.declare_entry("Number of Octree Levels", "1", Patterns::Integer());
+    }
+    prm.leave_subsection();// to be moved
 
   prm.enter_subsection("FMA Params");
   {
@@ -53,6 +73,11 @@ void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
 template <int dim>
 void BEMFMA<dim>::parse_parameters (ParameterHandler &prm)
 {
+    prm.enter_subsection("Octree Params");
+    {
+      num_octree_levels = prm.get_integer("Number of Octree Levels");
+    }
+    prm.leave_subsection();
 
   prm.enter_subsection("FMA Params");
   {
@@ -88,7 +113,7 @@ void BEMFMA<dim>::direct_integrals()
     sing_quadratures_3d.push_back
 		// TO BE CHANGE USING THE PARSED SINGULAR QUADRATURE AND TELLES
         (QTelles<dim-1>(singular_quadrature_order,
-                        fma_fe.get_unit_support_points()[i], true));
+                        fma_fe.get_unit_support_points()[i]));
   // number of dofs per cell
 	// TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
     const unsigned int dofs_per_cell = fma_fe.dofs_per_cell;
@@ -459,8 +484,7 @@ void BEMFMA<dim>::direct_integrals()
                            ?
                            dynamic_cast<Quadrature<dim-1>*>(
                                    new QTelles<1>( singular_quadrature_order,
-                                               Point<1>((double)singular_index),
-                                               1./cell->measure(), true))
+                                                   Point<1>((double)singular_index)))
                            :
                            (dim == 3
                             ?
@@ -1181,7 +1205,197 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   return preconditioner;
 }
 
+template <int dim>
+void BEMFMA<dim>::compute_geometry_cache()
+{
+  pcout<<"Generating geometry cache..."<<std::endl;
 
+  				 // @sect5{ComputationalDomain::generate_double_nodes_set}
+
+  				 // The following is the function
+  				 // which creates a set containing
+  				 // the double nodes.
+
+
+  FESystem<dim-1,dim> gradient_fe(fma_fe, dim);
+  DoFHandler<dim-1, dim> gradient_dh(fma_dh.get_tria());
+
+    double tol = 1e-8;
+    std::vector<Point<dim> > support_points(fma_dh.n_dofs());
+
+    DoFTools::map_dofs_to_support_points<dim-1, dim>( fma_mapping,
+  						    fma_dh, support_points);
+
+    for (unsigned int i=0; i<fma_dh.n_dofs(); ++i)
+        {
+        for (unsigned int j=0; j<fma_dh.n_dofs(); ++j)
+  	  {
+  	  //pcout<<"i "<<i<<" ("<<support_points[i]<<")  j "<<j<<" ("<<support_points[j]<<")  distance "<<support_points[i].distance(support_points[j])<<std::endl;
+  	  }
+
+        }
+                                   // for the gradient dofs finding coupled
+                                   // dofs is a little bit difficult, as the
+                                   // gradient is a vectorial function: usually
+                                   // in such case the dofs are numbered
+                                   // so that for each support point dim
+                                   // consecutive dofs represent each component
+                                   // of the vector field: in this case
+                                   // (and only in this case) the following
+                                   // piece of code works
+
+
+    cell_it
+    gradient_cell = gradient_dh.begin_active(),
+    gradient_endc = gradient_dh.end();
+
+    cell_it
+    cell = fma_dh.begin_active(),
+    endc = fma_dh.end();
+
+    std::vector<unsigned int> dofs(fma_fe.dofs_per_cell);
+    std::vector<unsigned int> gradient_dofs(fma_fe.dofs_per_cell);
+      // mappa che associa ad ogni dof le celle cui esso appartiene
+    dof_to_elems.clear();
+
+    // mappa che associa ad ogni gradient dof le celle cui esso appartiene
+    gradient_dof_to_elems.clear();
+
+    // vettore che associa ad ogni gradient dof la sua componente
+    gradient_dof_components.clear();
+    gradient_dof_components.resize(gradient_dh.n_dofs());
+
+    // mappa che associa ad ogni cella un set contenente le celle circostanti
+    elem_to_surr_elems.clear();
+
+
+
+     for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+      {
+      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
+
+      cell->get_dof_indices(dofs);
+      for(unsigned int j=0; j<fma_fe.dofs_per_cell; ++j)
+          {
+  	 dof_to_elems[dofs[j]].push_back(cell);
+  	}
+      gradient_cell->get_dof_indices(gradient_dofs);
+      for(unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
+          {
+  	 gradient_dof_to_elems[gradient_dofs[j]].push_back(gradient_cell);
+  	 gradient_dof_components[gradient_dofs[j]] = gradient_fe.system_to_component_index(j).first;
+  	}
+      }
+
+    // qui viene creata la mappa dei elmenti che circondano ciascun elemento
+    for (cell = fma_dh.begin_active(); cell != endc; ++cell)
+      {
+      cell->get_dof_indices(dofs);
+      for(unsigned int j=0; j<fma_fe.dofs_per_cell; ++j)
+          {
+  	std::set <unsigned int> duplicates = double_nodes_set[dofs[j]];
+  	for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+  	    {
+  	    std::vector<cell_it>
+  	    dof_cell_list =  dof_to_elems[*pos];
+  	    for (unsigned int k=0; k<dof_cell_list.size(); ++k)
+                   elem_to_surr_elems[cell].insert(dof_cell_list[k]);
+  	    }
+  	}
+      }
+
+    // gradient_cell = gradient_dh.begin_active();
+    // cell = fma_dh.begin_active();
+    //
+    // for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+    //     {
+    //     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
+    //
+    //     if (cell->material_id() == wall_sur_ID1 ||
+    //         cell->material_id() == wall_sur_ID2 ||
+    //         cell->material_id() == wall_sur_ID3)
+  	//  {
+    //        // This is a free surface node.
+    //        gradient_cell->get_dof_indices(gradient_dofs);
+    //        for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
+    //            {
+  	//      std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
+  	//      for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+  	//          {
+  	//          cell_it duplicate_cell =  gradient_dof_to_elems[*pos][0];
+  	// 	 if (duplicate_cell->material_id() == free_sur_ID1 ||
+    //                    duplicate_cell->material_id() == free_sur_ID2 ||
+    //                    duplicate_cell->material_id() == free_sur_ID3)
+  	// 	    {
+  	// 	    free_surf_and_boat_nodes.insert(gradient_dofs[j]);
+  	// 	    }
+    //
+  	//          }
+  	//      }
+    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
+    //        }
+    //     }
+    //
+    // gradient_cell = gradient_dh.begin_active();
+    // cell = fma_dh.begin_active();
+    //
+    // for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+    //     {
+    //     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
+    //
+    //     if (gradient_cell->material_id() == wall_sur_ID1)
+  	//  {
+    //        gradient_cell->get_dof_indices(gradient_dofs);
+    //        for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
+    //            {
+  	//      std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
+  	//      for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+  	//          {
+  	//          cell_it duplicate_cell =  gradient_dof_to_elems[*pos][0];
+  	// 	 if (
+    //                    duplicate_cell->material_id() == wall_sur_ID2 ||
+    //                    duplicate_cell->material_id() == wall_sur_ID3)
+  	// 	    {
+  	// 	    boat_keel_nodes.insert(gradient_dofs[j]);
+  	// 	    }
+    //
+  	//          }
+  	//      }
+    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
+    //        }
+    //     }
+    // gradient_cell = gradient_dh.begin_active();
+    // cell = fma_dh.begin_active();
+    //
+    // for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+    //     {
+    //     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
+    //
+    //     if (gradient_cell->material_id() == wall_sur_ID2)
+  	//  {
+    //        // This is a free surface node.
+    //        gradient_cell->get_dof_indices(gradient_dofs);
+    //        for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
+    //            {
+  	//      std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
+  	//      for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+  	//          {
+  	//          cell_it duplicate_cell =  gradient_dof_to_elems[*pos][0];
+  	// 	 if (duplicate_cell->material_id() == wall_sur_ID3)
+  	// 	    {
+  	// 	    boat_keel_nodes.insert(gradient_dofs[j]);
+  	// 	    }
+    //
+  	//          }
+  	//      }
+    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
+    //        }
+    //     }
+
+
+  pcout<<"...done"<<std::endl;
+
+}
 template <int dim>
 void BEMFMA<dim>::generate_octree_blocking()
 {
@@ -1196,10 +1410,10 @@ void BEMFMA<dim>::generate_octree_blocking()
 
 
     std::vector<Point<dim> > support_points(fma_dh.n_dofs());
-    DoFTools::map_dofs_to_support_points<dim-1, dim>( *fma_mapping,
+    DoFTools::map_dofs_to_support_points<dim-1, dim>( fma_mapping,
             fma_dh, support_points);
 
-    FEValues<dim-1,dim> fe_v(*fma_mapping,fma_fe, *quadrature,
+    FEValues<dim-1,dim> fe_v(fma_mapping,fma_fe, *quadrature,
                              update_values |
                              update_cell_normal_vectors |
                              update_quadrature_points |
@@ -2311,15 +2525,15 @@ void BEMFMA<dim>::generate_octree_blocking()
 //        delete blocks[ii];
 //   }
 
-    integralCheck.clear();
-    for (unsigned int i = 0; i < fma_dh.n_dofs(); i++)
-    {
-        for (cell_it cell = fma_dh.begin_active(); cell != endc; ++cell)
-        {
-            //pcout<<i<<" "<<cell<<" "<<integralCheck[i][cell]<<std::endl;
-            integralCheck[i][cell] = 0;
-        }
-    }
+//    integralCheck.clear();
+    // for (unsigned int i = 0; i < fma_dh.n_dofs(); i++)
+    // {
+    //     for (cell_it cell = fma_dh.begin_active(); cell != endc; ++cell)
+    //     {
+    //         //pcout<<i<<" "<<cell<<" "<<integralCheck[i][cell]<<std::endl;
+    //         integralCheck[i][cell] = 0;
+    //     }
+    // }
 
 
 

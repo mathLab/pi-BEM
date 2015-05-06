@@ -61,10 +61,15 @@ class BEMFMA
 
     BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
            const std::vector<std::set<unsigned int> > &db_in,
+           const Vector<double> &input_sn,
       		 const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping,
 					 const ConstraintMatrix &input_cm = ConstraintMatrix());
-
+    ~BEMFMA();
 				 // Parameters declaration
+
+    // void set_double_nodes(const Vector<double> &input_db);
+    //
+    // void set_surface_nodes(const Vector<double> &input_sn);
 
     void declare_parameters(ParameterHandler &prm);
 
@@ -114,6 +119,8 @@ class BEMFMA
 
         void generate_octree_blocking();
 
+        void compute_geometry_cache();
+
                                  // Method for the assembling of the
 				 // sparse preconitioning matrix for FMA
 
@@ -124,10 +131,10 @@ class BEMFMA
                                  // Reference to the ComputationalDomain
 				 // class
 
-		DoFHandler<dim-1,dim> fma_dh;
-		Mapping<dim-1,dim> fma_mapping;
-		ConstraintMatrix fma_cm;
-    FiniteElement<dim-1,dim> fma_fe;
+		const DoFHandler<dim-1,dim> &fma_dh;
+		const Mapping<dim-1,dim> &fma_mapping;
+		const ConstraintMatrix &fma_cm;
+    const FiniteElement<dim-1,dim> &fma_fe;
                                  // Truncation order for the multipole
 				 // and local expansion series: it is
 				 // read from the parameters input file.
@@ -341,7 +348,9 @@ class BEMFMA
         std::vector <std::set<unsigned int> >   double_nodes_set;
 
 
-
+        // TO BE ERASED!
+        std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
+        Vector<double> surface_nodes;
 
 };
 

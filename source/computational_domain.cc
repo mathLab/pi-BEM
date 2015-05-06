@@ -70,11 +70,6 @@ ComputationalDomain<dim>::ComputationalDomain(const unsigned int fe_degree,
 template <int dim>
 ComputationalDomain<dim>::~ComputationalDomain()
 {
-  if (blocks.size() > 0)
-    {
-      for (unsigned int ii = 0; ii < num_blocks;  ii++)
-        delete blocks[ii];
-    }
   if (mapping != NULL)
     {
       delete mapping;
@@ -112,11 +107,6 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Octree Params");
-  {
-    prm.declare_entry("Number of Octree Levels", "1", Patterns::Integer());
-  }
-  prm.leave_subsection();// to be moved
 
 }
 
@@ -146,11 +136,6 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Octree Params");
-  {
-    num_octree_levels = prm.get_integer("Number of Octree Levels");
-  }
-  prm.leave_subsection();
 
 }
 
@@ -611,17 +596,17 @@ void ComputationalDomain<dim>::generate_double_nodes_set()
   std::vector<unsigned int> dofs(fe.dofs_per_cell);
   std::vector<unsigned int> gradient_dofs(gradient_fe.dofs_per_cell);
   // mappa che associa ad ogni dof le celle cui esso appartiene
-  dof_to_elems.clear();
+  //fma.dof_to_elems.clear();
 
   // mappa che associa ad ogni gradient dof le celle cui esso appartiene
-  gradient_dof_to_elems.clear();
+  //fma.gradient_dof_to_elems.clear();
 
   // vettore che associa ad ogni gradient dof la sua componente
-  gradient_dof_components.clear();
-  gradient_dof_components.resize(gradient_dh.n_dofs());
+  //fma.gradient_dof_components.clear();
+  //fma.gradient_dof_components.resize(gradient_dh.n_dofs());
 
   // mappa che associa ad ogni cella un set contenente le celle circostanti
-  elem_to_surr_elems.clear();
+  //fma.elem_to_surr_elems.clear();
 
   // set che raccoglie i nodi della free surface che stanno sulla barca
   free_surf_and_boat_nodes.clear();
@@ -637,13 +622,13 @@ void ComputationalDomain<dim>::generate_double_nodes_set()
       cell->get_dof_indices(dofs);
       for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
         {
-          dof_to_elems[dofs[j]].push_back(cell);
+	//fma.dof_to_elems[dofs[j]].push_back(cell);
         }
       gradient_cell->get_dof_indices(gradient_dofs);
       for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
         {
-          gradient_dof_to_elems[gradient_dofs[j]].push_back(gradient_cell);
-          gradient_dof_components[gradient_dofs[j]] = gradient_fe.system_to_component_index(j).first;
+	//fma.gradient_dof_to_elems[gradient_dofs[j]].push_back(gradient_cell);
+	//fma.gradient_dof_components[gradient_dofs[j]] = gradient_fe.system_to_component_index(j).first;
         }
     }
 
@@ -654,13 +639,14 @@ void ComputationalDomain<dim>::generate_double_nodes_set()
       for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
         {
           std::set <unsigned int> duplicates = double_nodes_set[dofs[j]];
-          for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-            {
-              std::vector<cell_it>
-              dof_cell_list = dof_to_elems[*pos];
-              for (unsigned int k=0; k<dof_cell_list.size(); ++k)
-                elem_to_surr_elems[cell].insert(dof_cell_list[k]);
-            }
+	// TO BE FIXED !!!
+	// for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+	//     {
+	//     std::vector<cell_it>
+	//     dof_cell_list = //fma.dof_to_elems[*pos];
+	//     //for (unsigned int k=0; k<dof_cell_list.size(); ++k)
+  //               //fma.elem_to_surr_elems[cell].insert(dof_cell_list[k]);
+	//     }
         }
     }
 
@@ -680,17 +666,18 @@ void ComputationalDomain<dim>::generate_double_nodes_set()
           for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
             {
               std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
-              for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-                {
-                  cell_it duplicate_cell = gradient_dof_to_elems[*pos][0];
-                  if (duplicate_cell->material_id() == free_sur_ID1 ||
-                      duplicate_cell->material_id() == free_sur_ID2 ||
-                      duplicate_cell->material_id() == free_sur_ID3)
-                    {
-                      free_surf_and_boat_nodes.insert(gradient_dofs[j]);
-                    }
-
-                }
+			// TO BE FIXED !!!
+	  //    for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+	  //        {
+	  //        //cell_it duplicate_cell = //fma.gradient_dof_to_elems[*pos][0];
+		//  if (duplicate_cell->material_id() == free_sur_ID1 ||
+    //                  duplicate_cell->material_id() == free_sur_ID2 ||
+    //                  duplicate_cell->material_id() == free_sur_ID3)
+		//     {
+		//     free_surf_and_boat_nodes.insert(gradient_dofs[j]);
+		//     }
+		//
+	  //        }
             }
           //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
         }
@@ -709,17 +696,18 @@ void ComputationalDomain<dim>::generate_double_nodes_set()
           for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
             {
               std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
-              for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-                {
-                  cell_it duplicate_cell = gradient_dof_to_elems[*pos][0];
-                  if (
-                    duplicate_cell->material_id() == wall_sur_ID2 ||
-                    duplicate_cell->material_id() == wall_sur_ID3)
-                    {
-                      boat_keel_nodes.insert(gradient_dofs[j]);
-                    }
-
-                }
+			// TO BE FIXED !!!
+	  //    for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+	  //        {
+	  //        //cell_it duplicate_cell = //fma.gradient_dof_to_elems[*pos][0];
+		//  if (
+    //                  duplicate_cell->material_id() == wall_sur_ID2 ||
+    //                  duplicate_cell->material_id() == wall_sur_ID3)
+		//     {
+		//     boat_keel_nodes.insert(gradient_dofs[j]);
+		//     }
+		//
+	  //        }
             }
           //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
         }
@@ -738,15 +726,16 @@ void ComputationalDomain<dim>::generate_double_nodes_set()
           for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
             {
               std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
-              for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-                {
-                  cell_it duplicate_cell = gradient_dof_to_elems[*pos][0];
-                  if (duplicate_cell->material_id() == wall_sur_ID3)
-                    {
-                      boat_keel_nodes.insert(gradient_dofs[j]);
-                    }
-
-                }
+			// TO BE FIXED !!!
+	  //    for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+	  //        {
+	  //        //cell_it duplicate_cell = //fma.gradient_dof_to_elems[*pos][0];
+		// //  if (duplicate_cell->material_id() == wall_sur_ID3)
+		// //     {
+		// //     boat_keel_nodes.insert(gradient_dofs[j]);
+		// //     }
+		//
+	  //        }
             }
           //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
         }

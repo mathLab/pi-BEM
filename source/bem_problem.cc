@@ -72,6 +72,7 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
   pcout.set_condition(this_mpi_process == 0);
 }
 
+
 template <int dim>
 void BEMProblem<dim>::reinit()
 {
@@ -922,7 +923,7 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
     }
   else
     {
-      comp_dom.generate_octree_blocking();
+     fma.generate_octree_blocking();
       fma.direct_integrals();
       fma.multipole_integrals();
     }

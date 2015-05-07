@@ -110,4 +110,4 @@ void Driver<dim>::ParseParameters()
   fma.parse_parameters(prm);
 }
 
-template class Driver<3>;
+//template class Driver<3>;

@@ -17,7 +17,7 @@
 
 #include "../include/bem_fma.h"
 #include "../include/laplace_kernel.h"
-
+#include "utilities.h"
 
 template <int dim>
 BEMFMA<dim>::BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
@@ -35,7 +35,7 @@ BEMFMA<dim>::BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
     double_nodes_set(db_in),
-    surface_nodes(input_sn),
+    dirichlet_nodes(input_sn),
     pcout(std::cout)
 
 {}
@@ -1124,7 +1124,7 @@ for (unsigned int i = 0; i < fma_dh.n_dofs(); i++)
 // class, along with the constraint matrix of the bem problem
 
 template <int dim>
-TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c)
+TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
 {
 
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
@@ -1184,6 +1184,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
         // other nodes entries are taken from the unconstrained preconditioner matrix
          for (unsigned int j=0; j<fma_dh.n_dofs(); ++j)
           {
+                // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
             if (init_prec_sparsity_pattern.exists(i,j))
               {
                 final_preconditioner.set(i,j,init_preconditioner(i,j));
@@ -1195,7 +1196,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // neumann (in such nodes the potential phi is an unknown) and non constrained node
 
   for (unsigned int i=0; i < fma_dh.n_dofs(); i++)
-        if ( surface_nodes(i) == 0 && !c.is_constrained(i))
+        if ( dirichlet_nodes(i) == 0 && !c.is_constrained(i))
       final_preconditioner.add(i,i,alpha(i));
 
 
@@ -1332,7 +1333,7 @@ void BEMFMA<dim>::compute_geometry_cache()
     //
   	//          }
   	//      }
-    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
+    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
     //        }
     //     }
     //
@@ -1361,7 +1362,7 @@ void BEMFMA<dim>::compute_geometry_cache()
     //
   	//          }
   	//      }
-    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
+    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
     //        }
     //     }
     // gradient_cell = gradient_dh.begin_active();
@@ -1388,7 +1389,7 @@ void BEMFMA<dim>::compute_geometry_cache()
     //
   	//          }
   	//      }
-    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
+    //            //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
     //        }
     //     }
 
@@ -1413,6 +1414,8 @@ void BEMFMA<dim>::generate_octree_blocking()
     DoFTools::map_dofs_to_support_points<dim-1, dim>( fma_mapping,
             fma_dh, support_points);
 
+    // !!!TO BE CHANGED
+    quadrature = SP(new QGauss<dim-1>(4));
     FEValues<dim-1,dim> fe_v(fma_mapping,fma_fe, *quadrature,
                              update_values |
                              update_cell_normal_vectors |

@@ -759,6 +759,11 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
   //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
   IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();
 
+  const unsigned int n_dofs =  comp_dom.dh.n_dofs();
+  const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
+  IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();/// !!! OCCHIO CHE NON SERVE TUTTO
+
+
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
   matrVectProdD.reinit(this_cpu_set,mpi_communicator);
 
@@ -1432,4 +1437,4 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 }
 
 
-template class BEMProblem<3>;
+//template class BEMProblem<3>;

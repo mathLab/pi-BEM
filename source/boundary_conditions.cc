@@ -410,4 +410,4 @@ void BoundaryConditions<dim>::output_results(const std::string filename) const
 
 }
 
-template class BoundaryConditions<3>;
+//template class BoundaryConditions<3>;

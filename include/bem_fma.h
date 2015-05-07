@@ -69,7 +69,7 @@ class BEMFMA
 
     // void set_double_nodes(const Vector<double> &input_db);
     //
-    // void set_surface_nodes(const Vector<double> &input_sn);
+    // void set_dirichlet_nodes(const Vector<double> &input_sn);
 
     void declare_parameters(ParameterHandler &prm);
 
@@ -126,7 +126,8 @@ class BEMFMA
 
     TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
-    private:
+    // !! TO BE PUT PRIVATE AGAIN
+    //private:
 
                                  // Reference to the ComputationalDomain
 				 // class
@@ -350,7 +351,7 @@ class BEMFMA
 
         // TO BE ERASED!
         std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
-        Vector<double> surface_nodes;
+        Vector<double> dirichlet_nodes;
 
 };
 

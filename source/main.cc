@@ -904,6 +904,9 @@ namespace Step34
     compute_double_nodes_set();
     BEMFMA<dim> fma(dh, double_nodes_set, dirichlet_nodes);
     BEMOperator<dim> oppy(fma, mpi_communicator, this_cpu_set, this_mpi_process);
+    ParameterHandler dummy_prm;
+    fma.declare_parameters(dummy_prm);
+    fma.parse_parameters(dummy_prm);
     fma.generate_octree_blocking();
     fma.direct_integrals();
     fma.multipole_integrals();

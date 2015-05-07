@@ -58,9 +58,9 @@ void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
 {
     prm.enter_subsection("Octree Params");
     {
-      prm.declare_entry("Number of Octree Levels", "1", Patterns::Integer());
+      prm.declare_entry("Number of Octree Levels", "10", Patterns::Integer());
     }
-    prm.leave_subsection();// to be moved
+    prm.leave_subsection();
 
   prm.enter_subsection("FMA Params");
   {

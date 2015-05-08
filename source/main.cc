@@ -160,7 +160,7 @@ namespace Step34
     ones.add(-1.);
     zeros.reinit(this_cpu_set,mpi_communicator);
     dummy.reinit(this_cpu_set,mpi_communicator);
-
+    alpha.reinit(this_cpu_set,mpi_communicator);
 
     op_fma.generate_multipole_expansions(ones,zeros);
     op_fma.multipole_matr_vect_products(ones,zeros,alpha,dummy);
@@ -230,6 +230,7 @@ namespace Step34
     TrilinosWrappers::MPI::Vector dirichlet_nodes(this_cpu_set,mpi_communicator);
     TrilinosWrappers::MPI::Vector other_nodes(this_cpu_set,mpi_communicator);
 
+    std::cout<<op_fma.dirichlet_nodes.size()<<std::endl;
     dirichlet_nodes = op_fma.dirichlet_nodes;
     for( unsigned int i=0; i<op_fma.dirichlet_nodes.size(); ++i)
     {
@@ -493,7 +494,7 @@ namespace Step34
 
 
 
-    prm.declare_entry("Number of cycles", "4",
+    prm.declare_entry("Number of cycles", "2",
                       Patterns::Integer());
     prm.declare_entry("External refinement", "5",
                       Patterns::Integer());
@@ -634,6 +635,7 @@ namespace Step34
 
     std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
     DoFTools::get_subdomain_association 	(dh,dofs_domain_association);
+    this_cpu_set.clear();
     this_cpu_set.set_size(n_dofs);
 
     for (unsigned int i=0; i<n_dofs; ++i)
@@ -648,6 +650,7 @@ namespace Step34
     phi.reinit(this_cpu_set,mpi_communicator);
     dphi_dn.reinit(this_cpu_set,mpi_communicator);
     dirichlet_values.reinit(this_cpu_set,mpi_communicator);
+    dirichlet_nodes.reinit(this_cpu_set,mpi_communicator);
     neumann_values.reinit(this_cpu_set,mpi_communicator);
   }
 
@@ -902,6 +905,7 @@ namespace Step34
   void BEMProblem<dim>::solve_system()
   {
     compute_double_nodes_set();
+    compute_boundary_condition();
     BEMFMA<dim> fma(dh, double_nodes_set, dirichlet_nodes);
     BEMOperator<dim> oppy(fma, mpi_communicator, this_cpu_set, this_mpi_process);
     ParameterHandler dummy_prm;
@@ -910,19 +914,22 @@ namespace Step34
     fma.generate_octree_blocking();
     fma.direct_integrals();
     fma.multipole_integrals();
+    std::cout<<"setting alpha"<<std::endl;
     oppy.set_alpha();
+    std::cout<<"computing rhs"<<std::endl;
     oppy.compute_rhs(system_rhs, dirichlet_values, neumann_values);
+    std::cout<<"solving"<<std::endl;
     SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
     solver.solve (oppy, phi, system_rhs, PreconditionIdentity());
 
     for(unsigned int i=0; i<dh.n_dofs(); ++i)
     {
-      if(dirichlet_nodes[i]=1)
+      if(dirichlet_nodes[i]=0)
         dphi_dn[i] = neumann_values[i];
       else
       {
         dphi_dn[i] = phi[i];
-        phi[i] = dirichlet_values[i];
+        //phi[i] = dirichlet_values[i];
       }
     }
   }
@@ -936,6 +943,7 @@ namespace Step34
   template <int dim>
   void BEMProblem<dim>::compute_errors(const unsigned int cycle)
   {
+    std::cout<<"using sak to compute the errors"<<std::endl;
     eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
     eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
 
@@ -1218,6 +1226,7 @@ namespace Step34
 
     declare_parameters();
     parse_parameters();
+    ParameterAcceptor::initialize("parameters_foo.prm", "used_parameters_foo.prm");
     //read_parameters("parameters.prm");
 
     if (run_in_this_dimension == false)
@@ -1238,7 +1247,7 @@ namespace Step34
         compute_errors(cycle);
         output_results(cycle);
       }
-
+    std::cout<<"using sak to print the output"<<std::endl;
     eh.output_table(std::cout,0);
     eh.output_table(std::cout,1);
     tria.set_manifold(1);

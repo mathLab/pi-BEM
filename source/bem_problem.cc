@@ -757,7 +757,7 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
   static TrilinosWrappers::MPI::Vector matrVectProdD;
 
   //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
-  IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();
+  //  IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();
 
   const unsigned int n_dofs =  comp_dom.dh.n_dofs();
   const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);

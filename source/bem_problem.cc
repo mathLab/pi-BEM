@@ -928,7 +928,7 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
     }
   else
     {
-     fma.generate_octree_blocking();
+      fma.generate_octree_blocking();
       fma.direct_integrals();
       fma.multipole_integrals();
     }

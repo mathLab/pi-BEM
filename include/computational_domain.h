@@ -13,9 +13,9 @@
 //
 //----------------------------  step-34.cc  ---------------------------
 
-				 // We start with including a bunch
-				 // of include files: they might be more than
-				 // needed, we might want to check, some time
+// We start with including a bunch
+// of include files: they might be more than
+// needed, we might want to check, some time
 #ifndef computational_domain_h
 #define computational_domain_h
 
@@ -81,182 +81,182 @@ using namespace dealii;
 template <int dim>
 class ComputationalDomain
 {
-  public:
+public:
 
-                                      // constructor: since this is the
-				      // class containing all the geometry and
-				      // the base instruments needed by all the
-				      // other classes, it is created first and
-				      // the constructor does not need
-				      // arguments.
-				      // For the same reason, most of the class
-				      // attributes are public: we can leter
-				      // make them public end introduce suitable
-				      // Get and Set methods, if needed
+  // constructor: since this is the
+  // class containing all the geometry and
+  // the base instruments needed by all the
+  // other classes, it is created first and
+  // the constructor does not need
+  // arguments.
+  // For the same reason, most of the class
+  // attributes are public: we can leter
+  // make them public end introduce suitable
+  // Get and Set methods, if needed
 
-    ComputationalDomain(const unsigned int fe_degree = 1,
-	                const unsigned int mapping_degree = 1);
-
-
-    ~ComputationalDomain();
-
-                                      // method to declare the parameters
-				      // to be read from the parameters file
-
-    void declare_parameters(ParameterHandler &prm);
-
-                                      // method to parse the needed parameters
-				      // from the parameters file
-
-    void parse_parameters(ParameterHandler &prm);
-
-                                      // method to create initial mesh
-
-    void create_initial_mesh();
-                                      // alternative method to read initial mesh
-                                      // from file
-
-    void read_domain();
-
-                                      // method to refine the imported mesh
-				      // according to the level requested in
-				      // the parameters file
-
-    void refine_and_resize(const unsigned int refinement_level);
-
-                                      // in the imported mesh, the nodes on the
-				      // domain edges are doubled: this routine
-				      // creates a std::vector of std::set which
-				      // allows to relate each node to their
-				      // double(s)
-
-    void generate_double_nodes_set();
-
-                                      // this method is needed to
-				      // separate Dirichlet nodes from
-				      // Neumann nodes.
-
-    void compute_phi_nodes();
-                                      // computation of normals at collocation points (dofs)
-    void compute_normals();
-
-                                      // Here are the members of the class:
-				      // they are all public, as the upper level
-				      // classes (bem_problem, bem_fma,
-				      // free_surface) will all need to perform
-				      // operations based on the greometry (and
-				      // the tools to handle it) contained in
-				      // this class
-
-                                     // here are some basic classes needed by
-				     // the program: a triangulation, and the
-				     // FiniteElement and DoFHandler classes.
-                                     // A second DoF handler and FiniteElement
-                                     // must be created in order to compute
-                                     // the solution gradients, which are
-                                     // vectorial functions
-
-    //const unsigned int fe_degree;
-    //const unsigned int mapping_degree;
-
-    Triangulation<dim-1, dim>             tria;
-    FE_Q<dim-1,dim>                       fe;
-    DoFHandler<dim-1,dim>                 dh;
-    FESystem<dim-1,dim>                   gradient_fe;
-    DoFHandler<dim-1,dim>                 gradient_dh;
-
-                                     // these are the std::vectors of std::sets
-                                     // containing informations on multiple
-				     // nodes on the edges: one vector is
-				     // created for the points associated with
-				     // the degrees of freedom of the potential
-				     // function, and one is created for the
-				     // points associated with the degrees of
-				     // freedom of its gradient (a vector field)
-
-    std::vector <std::set<unsigned int> >   double_nodes_set;
-    std::vector <std::set<unsigned int> >   gradient_double_nodes_set;
-
-                                     // An Eulerian Mapping is created to deal
-				     // with the free surface and boat mesh
-				     // deformation
-
-    Vector<double> map_points;
-    //MappingQ<dim-1, dim>	mapping;
-    MappingQEulerian<dim-1, Vector<double>, dim> * mapping;
-
-                                     // here we are just renaming the cell
-				     // iterator
-
-    typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-
-                                     // the following vectors are needed to
-				     // treat Dirichlet and Neumann nodes
-				     // differently. Each component of the
-				     // first one is null if it corresponds
-				     // to a Dirichlet node, and zero if
-				     // it corresponds to a Neumann node.
-				     // The second vector has instead null
-				     // entries for Dirichlet nodes, and ones
-				     // for Neumann nodes
-
-    Vector<double> surface_nodes;
-    Vector<double> other_nodes;
-
-                                     // values to be imported from the
-				     // parameters file:
-
-				     // number of refining cycles
-
-    unsigned int n_cycles;
+  ComputationalDomain(const unsigned int fe_degree = 1,
+                      const unsigned int mapping_degree = 1);
 
 
- 				     // the number of standard quadrature points
-				     // and singular kernel quadrature to be
-				     // used
+  ~ComputationalDomain();
 
-    std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
-    unsigned int singular_quadrature_order;
+  // method to declare the parameters
+  // to be read from the parameters file
 
- 				     // the material ID numbers in the mesh
-				     // input file, for the free surface cells
-				     // and wall boundary (boat) cells
+  void declare_parameters(ParameterHandler &prm);
 
-    unsigned int free_sur_ID1;
-    unsigned int free_sur_ID2;
-    unsigned int free_sur_ID3;
-    unsigned int wall_sur_ID1;
-    unsigned int wall_sur_ID2;
-    unsigned int wall_sur_ID3;
-                                     // a std::set containing nodes of
-				     // free surface with doubles on the boat
-				     // needed to calculate their displacement
+  // method to parse the needed parameters
+  // from the parameters file
 
-    std::set<unsigned int> free_surf_and_boat_nodes;
+  void parse_parameters(ParameterHandler &prm);
 
-                                     // a std::set containing nodes of
-				     // the boat with doubles on the boat
-				     // needed to calculate the boat
-				     // surface smoothing
+  // method to create initial mesh
 
-     std::set<unsigned int> boat_keel_nodes;
+  void create_initial_mesh();
+  // alternative method to read initial mesh
+  // from file
 
-     MPI_Comm mpi_communicator;
+  void read_domain();
 
-     unsigned int n_mpi_processes;
+  // method to refine the imported mesh
+  // according to the level requested in
+  // the parameters file
 
-     unsigned int this_mpi_process;
+  void refine_and_resize(const unsigned int refinement_level);
 
-     ConditionalOStream pcout;
+  // in the imported mesh, the nodes on the
+  // domain edges are doubled: this routine
+  // creates a std::vector of std::set which
+  // allows to relate each node to their
+  // double(s)
 
-				     // vector of Point<dim> containing the node normals
+  void generate_double_nodes_set();
 
-    std::vector<Point<dim> > node_normals;
+  // this method is needed to
+  // separate Dirichlet nodes from
+  // Neumann nodes.
 
-    //______________________
-    //just for check: to be removed
+  void compute_phi_nodes();
+  // computation of normals at collocation points (dofs)
+  void compute_normals();
 
-    std::map <unsigned int, std::map<cell_it,unsigned int> > integralCheck;
+  // Here are the members of the class:
+  // they are all public, as the upper level
+  // classes (bem_problem, bem_fma,
+  // free_surface) will all need to perform
+  // operations based on the greometry (and
+  // the tools to handle it) contained in
+  // this class
+
+  // here are some basic classes needed by
+  // the program: a triangulation, and the
+  // FiniteElement and DoFHandler classes.
+  // A second DoF handler and FiniteElement
+  // must be created in order to compute
+  // the solution gradients, which are
+  // vectorial functions
+
+  //const unsigned int fe_degree;
+  //const unsigned int mapping_degree;
+
+  Triangulation<dim-1, dim>             tria;
+  FE_Q<dim-1,dim>                       fe;
+  DoFHandler<dim-1,dim>                 dh;
+  FESystem<dim-1,dim>                   gradient_fe;
+  DoFHandler<dim-1,dim>                 gradient_dh;
+
+  // these are the std::vectors of std::sets
+  // containing informations on multiple
+  // nodes on the edges: one vector is
+  // created for the points associated with
+  // the degrees of freedom of the potential
+  // function, and one is created for the
+  // points associated with the degrees of
+  // freedom of its gradient (a vector field)
+
+  std::vector <std::set<unsigned int> >   double_nodes_set;
+  std::vector <std::set<unsigned int> >   gradient_double_nodes_set;
+
+  // An Eulerian Mapping is created to deal
+  // with the free surface and boat mesh
+  // deformation
+
+  Vector<double> map_points;
+  //MappingQ<dim-1, dim>  mapping;
+  MappingQEulerian<dim-1, Vector<double>, dim> * mapping;
+
+  // here we are just renaming the cell
+  // iterator
+
+  typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
+
+  // the following vectors are needed to
+  // treat Dirichlet and Neumann nodes
+  // differently. Each component of the
+  // first one is null if it corresponds
+  // to a Dirichlet node, and zero if
+  // it corresponds to a Neumann node.
+  // The second vector has instead null
+  // entries for Dirichlet nodes, and ones
+  // for Neumann nodes
+
+  Vector<double> surface_nodes;
+  Vector<double> other_nodes;
+
+  // values to be imported from the
+  // parameters file:
+
+  // number of refining cycles
+
+  unsigned int n_cycles;
+
+
+  // the number of standard quadrature points
+  // and singular kernel quadrature to be
+  // used
+
+  std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
+  unsigned int singular_quadrature_order;
+
+  // the material ID numbers in the mesh
+  // input file, for the free surface cells
+  // and wall boundary (boat) cells
+
+  unsigned int free_sur_ID1;
+  unsigned int free_sur_ID2;
+  unsigned int free_sur_ID3;
+  unsigned int wall_sur_ID1;
+  unsigned int wall_sur_ID2;
+  unsigned int wall_sur_ID3;
+  // a std::set containing nodes of
+  // free surface with doubles on the boat
+  // needed to calculate their displacement
+
+  std::set<unsigned int> free_surf_and_boat_nodes;
+
+  // a std::set containing nodes of
+  // the boat with doubles on the boat
+  // needed to calculate the boat
+  // surface smoothing
+
+  std::set<unsigned int> boat_keel_nodes;
+
+  MPI_Comm mpi_communicator;
+
+  unsigned int n_mpi_processes;
+
+  unsigned int this_mpi_process;
+
+  ConditionalOStream pcout;
+
+  // vector of Point<dim> containing the node normals
+
+  std::vector<Point<dim> > node_normals;
+
+  //______________________
+  //just for check: to be removed
+
+  std::map <unsigned int, std::map<cell_it,unsigned int> > integralCheck;
 
 };
 

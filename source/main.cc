@@ -189,10 +189,10 @@ namespace Step34
     TrilinosWrappers::MPI::Vector other_nodes(this_cpu_set,mpi_communicator);
 
     dirichlet_nodes = op_fma.dirichlet_nodes;
-    for( unsigned int i=0; i<op_fma.dirichlet_nodes.size(); ++i)
-    {
-      other_nodes(i) = (double)(((int)dirichlet_nodes(i)+1)%2);
-    }
+    for ( unsigned int i=0; i<op_fma.dirichlet_nodes.size(); ++i)
+      {
+        other_nodes(i) = (double)(((int)dirichlet_nodes(i)+1)%2);
+      }
 
     serv_phi.scale(other_nodes);
     serv_dphi_dn.scale(dirichlet_nodes);
@@ -232,10 +232,10 @@ namespace Step34
 
     std::cout<<op_fma.dirichlet_nodes.size()<<std::endl;
     dirichlet_nodes = op_fma.dirichlet_nodes;
-    for( unsigned int i=0; i<op_fma.dirichlet_nodes.size(); ++i)
-    {
-      other_nodes(i) = (double)(((int)dirichlet_nodes(i)+1)%2);
-    }
+    for ( unsigned int i=0; i<op_fma.dirichlet_nodes.size(); ++i)
+      {
+        other_nodes(i) = (double)(((int)dirichlet_nodes(i)+1)%2);
+      }
 
     serv_phi.scale(other_nodes);
     serv_dphi_dn.scale(dirichlet_nodes);
@@ -482,9 +482,9 @@ namespace Step34
     n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
     eh("","u","L2, H1, Linfty")
-    {
-      // Only output on first processor.
-      pcout.set_condition(this_mpi_process == 0);
+  {
+    // Only output on first processor.
+    pcout.set_condition(this_mpi_process == 0);
   }
 
 
@@ -542,7 +542,7 @@ namespace Step34
     }
     prm.leave_subsection();
     prm.enter_subsection("Solver");
-      SolverControl::declare_parameters(prm);
+    SolverControl::declare_parameters(prm);
     prm.leave_subsection();
   }
 
@@ -634,14 +634,14 @@ namespace Step34
     const unsigned int n_dofs =  dh.n_dofs();
 
     std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
-    DoFTools::get_subdomain_association 	(dh,dofs_domain_association);
+    DoFTools::get_subdomain_association   (dh,dofs_domain_association);
     this_cpu_set.clear();
     this_cpu_set.set_size(n_dofs);
 
     for (unsigned int i=0; i<n_dofs; ++i)
-        if (dofs_domain_association[i] == this_mpi_process)
+      if (dofs_domain_association[i] == this_mpi_process)
         {
-           this_cpu_set.add_index(i);
+          this_cpu_set.add_index(i);
         }
     this_cpu_set.compress();
 
@@ -857,19 +857,19 @@ namespace Step34
   {
     std::vector<Point<dim> > support_points(dh.n_dofs());
     DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-    for(unsigned int i=0; i<dh.n_dofs(); ++i)
-    {
-      if(support_points[i][0] < 0)
-        dirichlet_nodes[i] = 1;
-      else
-        dirichlet_nodes[i] = 0;
+    for (unsigned int i=0; i<dh.n_dofs(); ++i)
+      {
+        if (support_points[i][0] < 0)
+          dirichlet_nodes[i] = 1;
+        else
+          dirichlet_nodes[i] = 0;
 
-      dirichlet_values(i)=exact_phi_solution.value(support_points[i]);
-      neumann_values(i)=exact_dphi_dn_solution.value(support_points[i]);
+        dirichlet_values(i)=exact_phi_solution.value(support_points[i]);
+        neumann_values(i)=exact_dphi_dn_solution.value(support_points[i]);
 
 
 
-    }
+      }
 
   }
 
@@ -882,19 +882,19 @@ namespace Step34
     std::vector<Point<dim> > support_points(dh.n_dofs());
 
     DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping,
-                  dh, support_points);
+                                                      dh, support_points);
 
     for (unsigned int i=0; i<dh.n_dofs(); ++i)
-    {
-      for (unsigned int j=0; j<dh.n_dofs(); ++j)
       {
-        if (support_points[i].distance(support_points[j]) < tol)
-        {
-          double_nodes_set[i].insert(j);
-        }
-      }
+        for (unsigned int j=0; j<dh.n_dofs(); ++j)
+          {
+            if (support_points[i].distance(support_points[j]) < tol)
+              {
+                double_nodes_set[i].insert(j);
+              }
+          }
 
-    }
+      }
 
 
   }
@@ -922,16 +922,16 @@ namespace Step34
     SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
     solver.solve (oppy, phi, system_rhs, PreconditionIdentity());
 
-    for(unsigned int i=0; i<dh.n_dofs(); ++i)
-    {
-      if(dirichlet_nodes[i]=0)
-        dphi_dn[i] = neumann_values[i];
-      else
+    for (unsigned int i=0; i<dh.n_dofs(); ++i)
       {
-        dphi_dn[i] = phi[i];
-        //phi[i] = dirichlet_values[i];
+        if (dirichlet_nodes[i]=0)
+          dphi_dn[i] = neumann_values[i];
+        else
+          {
+            dphi_dn[i] = phi[i];
+            //phi[i] = dirichlet_values[i];
+          }
       }
-    }
   }
 
 

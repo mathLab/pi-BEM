@@ -34,8 +34,8 @@ BEMFMA<dim>::BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
   mpi_communicator (MPI_COMM_WORLD),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
-  double_nodes_set(db_in),
-  dirichlet_nodes(input_sn),
+  double_nodes_set(db_in), //per quadratura singolare e octree generator
+  dirichlet_nodes(input_sn),//da passare al metodo che fa il precondizionatore
   pcout(std::cout)
 
 {}
@@ -64,7 +64,7 @@ void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.enter_subsection("FMA Params");
   {
-    prm.declare_entry("FMA Truncation Order", "3", Patterns::Integer());
+    prm.declare_entry("FMA Truncation Order", "4", Patterns::Integer());
   }
   prm.leave_subsection();
 

@@ -59,6 +59,7 @@
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
 
 #include <deal.II/base/conditional_ostream.h>
 
@@ -268,7 +269,7 @@ namespace MinFmm
   class BEMProblem : public ParameterAcceptor
   {
   public:
-    BEMProblem(const unsigned int fe_degree = 1);
+    BEMProblem(const unsigned int fe_degree = 1, bool fmm_method = true);
 
     void run();
 
@@ -285,6 +286,8 @@ namespace MinFmm
     void compute_boundary_condition();
 
     void compute_double_nodes_set();
+
+    void assemble_direct_system();
 
     void solve_system();
 
@@ -306,7 +309,6 @@ namespace MinFmm
     MappingQ<dim-1, dim>      mapping;
 
 
-    TrilinosWrappers::MPI::Vector        system_rhs;
     TrilinosWrappers::MPI::Vector              phi;
     TrilinosWrappers::MPI::Vector              dphi_dn;
 
@@ -354,7 +356,13 @@ namespace MinFmm
     TrilinosWrappers::MPI::Vector              dirichlet_values;
     TrilinosWrappers::MPI::Vector              neumann_values;
     std::vector <std::set<unsigned int> >   double_nodes_set;
+    // BEMFMA<dim> fma;
     ErrorHandler<2> eh;
+    TrilinosWrappers::SparseMatrix system_matrix;//(const size_type m, const size_type n, const unsigned int n_max_entries_per_row);
+    TrilinosWrappers::SparsityPattern tril_sp;
+    TrilinosWrappers::MPI::Vector              system_rhs;
+    TrilinosWrappers::MPI::Vector              system_alpha;
+    bool fmm_sol;
   };
 
 
@@ -374,7 +382,7 @@ namespace MinFmm
   // Functions::ParsedFunction::declare_parameters is static, and has no
   // knowledge of the number of components.
   template <int dim>
-  BEMProblem<dim>::BEMProblem(const unsigned int fe_degree)
+  BEMProblem<dim>::BEMProblem(const unsigned int fe_degree, bool fmm_method)
     :
     fe(fe_degree),
     dh(tria),
@@ -382,6 +390,7 @@ namespace MinFmm
     n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
     mpi_communicator (MPI_COMM_WORLD),
+    fmm_sol(fmm_method),
     pcout(std::cout),
     eh("","u","L2, H1, Linfty")
   {
@@ -418,14 +427,14 @@ namespace MinFmm
 
     prm.enter_subsection("Exact dPhi dn solution 2d");
     {
-      Functions::ParsedFunction<2>::declare_parameters(prm, 2);
+      Functions::ParsedFunction<2>::declare_parameters(prm);
       prm.set("Function expression", "x + y");
     }
     prm.leave_subsection();
 
     prm.enter_subsection("Exact dPhi dn solution 3d");
     {
-      Functions::ParsedFunction<3>::declare_parameters(prm, 3);
+      Functions::ParsedFunction<3>::declare_parameters(prm);
       prm.set("Function expression", "x + y + z");
     }
     prm.leave_subsection();
@@ -529,6 +538,7 @@ namespace MinFmm
   template <int dim>
   void BEMProblem<dim>::refine_and_resize()
   {
+    // BEMFMA(dh, double_nodes_set, dirichlet_nodes, mapping);
     tria.refine_global(1);
 
     dh.distribute_dofs(fe);
@@ -554,206 +564,222 @@ namespace MinFmm
     dirichlet_values.reinit(this_cpu_set,mpi_communicator);
     dirichlet_nodes.reinit(this_cpu_set,mpi_communicator);
     neumann_values.reinit(this_cpu_set,mpi_communicator);
+
+    tril_sp.reinit(this_cpu_set,this_cpu_set,mpi_communicator);
+    // full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
+    for (unsigned int i=0; i<n_dofs; ++i)
+      if (this_cpu_set.is_element(i))
+        {
+          for (unsigned int j=0; j<n_dofs; ++j)
+            tril_sp.add(i,j);
+        }
+    // full_sparsity_pattern.compress();
+    tril_sp.compress();
+    system_matrix.reinit(tril_sp);
+    system_rhs.reinit(this_cpu_set,mpi_communicator);
+    system_alpha.reinit(this_cpu_set,mpi_communicator);
+
+    // if(fma == NULL)
+    //   fma = new BEMFMA(dh, double_nodes_set, dirichlet_nodes, mapping);
+
   }
 
 
-  // @sect4{BEMProblem::assemble_system}
+  template <int dim>
+  void BEMProblem<dim>::assemble_direct_system()
+  {
 
-  // The following is the main function of this program, assembling the matrix
-  // that corresponds to the boundary integral equation.
-  // template <int dim>
-  // void BEMProblem<dim>::assemble_system()
-  // {
-  //
-  //   // First we initialize an FEValues object with the quadrature formula for
-  //   // the integration of the kernel in non singular cells. This quadrature is
-  //   // selected with the parameter file, and needs to be quite precise, since
-  //   // the functions we are integrating are not polynomial functions.
-  //   FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
-  //                            update_values |
-  //                            update_cell_normal_vectors |
-  //                            update_quadrature_points |
-  //                            update_JxW_values);
-  //
-  //   const unsigned int n_q_points = fe_v.n_quadrature_points;
-  //
-  //   std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
-  //
-  //   std::vector<TrilinosWrappers::MPI::Vector > cell_wind(n_q_points, TrilinosWrappers::MPI::Vector(dim) );
-  //   double normal_wind;
-  //
-  //   // Unlike in finite element methods, if we use a collocation boundary
-  //   // element method, then in each assembly loop we only assemble the
-  //   // information that refers to the coupling between one degree of freedom
-  //   // (the degree associated with support point $i$) and the current
-  //   // cell. This is done using a vector of fe.dofs_per_cell elements, which
-  //   // will then be distributed to the matrix in the global row $i$. The
-  //   // following object will hold this information:
-  //   TrilinosWrappers::MPI::Vector      local_matrix_row_i(fe.dofs_per_cell);
-  //
-  //   // The index $i$ runs on the collocation points, which are the support
-  //   // points of the $i$th basis function, while $j$ runs on inner integration
-  //   // points.
-  //
-  //   // We construct a vector of support points which will be used in the local
-  //   // integrations:
-  //   std::vector<Point<dim> > support_points(dh.n_dofs());
-  //   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-  //
-  //
-  //   // After doing so, we can start the integration loop over all cells, where
-  //   // we first initialize the FEValues object and get the values of
-  //   // $\mathbf{\tilde v}$ at the quadrature points (this vector field should
-  //   // be constant, but it doesn't hurt to be more general):
-  //   typename DoFHandler<dim-1,dim>::active_cell_iterator
-  //   cell = dh.begin_active(),
-  //   endc = dh.end();
-  //
-  //   for (cell = dh.begin_active(); cell != endc; ++cell)
-  //     {
-  //       fe_v.reinit(cell);
-  //       cell->get_dof_indices(local_dof_indices);
-  //
-  //       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
-  //       const std::vector<Point<dim> > &normals = fe_v.get_normal_vectors();
-  //       wind.vector_value_list(q_points, cell_wind);
-  //
-  //       // We then form the integral over the current cell for all degrees of
-  //       // freedom (note that this includes degrees of freedom not located on
-  //       // the current cell, a deviation from the usual finite element
-  //       // integrals). The integral that we need to perform is singular if one
-  //       // of the local degrees of freedom is the same as the support point
-  //       // $i$. A the beginning of the loop we therefore check whether this is
-  //       // the case, and we store which one is the singular index:
-  //       for (unsigned int i=0; i<dh.n_dofs() ; ++i)
-  //         {
-  //
-  //           local_matrix_row_i = 0;
-  //
-  //           bool is_singular = false;
-  //           unsigned int singular_index = numbers::invalid_unsigned_int;
-  //
-  //           for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
-  //             if (local_dof_indices[j] == i)
-  //               {
-  //                 singular_index = j;
-  //                 is_singular = true;
-  //                 break;
-  //               }
-  //
-  //           // We then perform the integral. If the index $i$ is not one of
-  //           // the local degrees of freedom, we simply have to add the single
-  //           // layer terms to the right hand side, and the double layer terms
-  //           // to the matrix:
-  //           if (is_singular == false)
-  //             {
-  //               for (unsigned int q=0; q<n_q_points; ++q)
-  //                 {
-  //                   normal_wind = 0;
-  //                   for (unsigned int d=0; d<dim; ++d)
-  //                     normal_wind += normals[q][d]*cell_wind[q](d);
-  //
-  //                   const Tensor<1,dim> R = q_points[q] - support_points[i];
-  //
-  //                   system_rhs(i) += ( LaplaceKernel::single_layer(R)   *
-  //                                      normal_wind                      *
-  //                                      fe_v.JxW(q) );
-  //
-  //                   for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
-  //
-  //                     local_matrix_row_i(j) -= ( ( LaplaceKernel::double_layer(R)     *
-  //                                                  normals[q] )            *
-  //                                                fe_v.shape_value(j,q)     *
-  //                                                fe_v.JxW(q)       );
-  //                 }
-  //             }
-  //           else
-  //             {
-  //               // Now we treat the more delicate case. If we are here, this
-  //               // means that the cell that runs on the $j$ index contains
-  //               // support_point[i]. In this case both the single and the
-  //               // double layer potential are singular, and they require
-  //               // special treatment.
-  //               //
-  //               // Whenever the integration is performed with the singularity
-  //               // inside the given cell, then a special quadrature formula is
-  //               // used that allows one to integrate arbitrary functions
-  //               // against a singular weight on the reference cell.
-  //               //
-  //               // The correct quadrature formula is selected by the
-  //               // get_singular_quadrature function, which is explained in
-  //               // detail below.
-  //               Assert(singular_index != numbers::invalid_unsigned_int,
-  //                      ExcInternalError());
-  //
-  //               const Quadrature<dim-1> & singular_quadrature =
-  //                 get_singular_quadrature(cell, singular_index);
-  //
-  //               FEValues<dim-1,dim> fe_v_singular (mapping, fe, singular_quadrature,
-  //                                                  update_jacobians |
-  //                                                  update_values |
-  //                                                  update_cell_normal_vectors |
-  //                                                  update_quadrature_points );
-  //
-  //               fe_v_singular.reinit(cell);
-  //
-  //               std::vector<TrilinosWrappers::MPI::Vector > singular_cell_wind( singular_quadrature.size(),
-  //                                                                TrilinosWrappers::MPI::Vector(dim) );
-  //
-  //               const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
-  //               const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
-  //
-  //               wind.vector_value_list(singular_q_points, singular_cell_wind);
-  //
-  //               for (unsigned int q=0; q<singular_quadrature.size(); ++q)
-  //                 {
-  //                   const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
-  //                   double normal_wind = 0;
-  //                   for (unsigned int d=0; d<dim; ++d)
-  //                     normal_wind += (singular_cell_wind[q](d)*
-  //                                     singular_normals[q][d]);
-  //
-  //                   system_rhs(i) += ( LaplaceKernel::single_layer(R) *
-  //                                      normal_wind                         *
-  //                                      fe_v_singular.JxW(q) );
-  //
-  //                   for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
-  //                     {
-  //                       local_matrix_row_i(j) -= (( LaplaceKernel::double_layer(R) *
-  //                                                   singular_normals[q])                *
-  //                                                 fe_v_singular.shape_value(j,q)        *
-  //                                                 fe_v_singular.JxW(q)       );
-  //                     }
-  //                 }
-  //             }
-  //
-  //           // Finally, we need to add the contributions of the current cell
-  //           // to the global matrix.
-  //           for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
-  //             system_matrix(i,local_dof_indices[j])
-  //             += local_matrix_row_i(j);
-  //         }
-  //     }
-  //
-  //   // The second part of the integral operator is the term
-  //   // $\alpha(\mathbf{x}_i) \phi_j(\mathbf{x}_i)$. Since we use a collocation
-  //   // scheme, $\phi_j(\mathbf{x}_i)=\delta_{ij}$ and the corresponding matrix
-  //   // is a diagonal one with entries equal to $\alpha(\mathbf{x}_i)$.
-  //
-  //   // One quick way to compute this diagonal matrix of the solid angles, is
-  //   // to use the Neumann matrix itself. It is enough to multiply the matrix
-  //   // with a vector of elements all equal to -1, to get the diagonal matrix
-  //   // of the alpha angles, or solid angles (see the formula in the
-  //   // introduction for this). The result is then added back onto the system
-  //   // matrix object to yield the final form of the matrix:
-  //   TrilinosWrappers::MPI::Vector ones(dh.n_dofs());
-  //   ones.add(-1.);
-  //
-  //   system_matrix.vmult(alpha, ones);
-  //   alpha.add(1);
-  //   for (unsigned int i = 0; i<dh.n_dofs(); ++i)
-  //     system_matrix(i,i) +=  alpha(i);
-  // }
+      FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
+                             update_values |
+                             update_cell_normal_vectors |
+                             update_quadrature_points |
+                             update_JxW_values);
+
+    const unsigned int n_q_points = fe_v.n_quadrature_points;
+
+    std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
+
+    std::vector<double> cell_dphi_dn(n_q_points);
+    std::vector<double> cell_phi(n_q_points);
+
+    Vector<double>      local_matrix_row_i(fe.dofs_per_cell);
+
+    std::vector<Point<dim> > support_points(dh.n_dofs());
+    DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+
+    typename DoFHandler<dim-1,dim>::active_cell_iterator
+    cell = dh.begin_active(),
+    endc = dh.end();
+
+    for (cell = dh.begin_active(); cell != endc; ++cell)
+      {
+        fe_v.reinit(cell);
+        cell->get_dof_indices(local_dof_indices);
+
+        const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
+        const std::vector<Point<dim> > &normals = fe_v.get_normal_vectors();
+        exact_phi_solution.value_list(q_points, cell_phi);
+        exact_dphi_dn_solution.value_list(q_points, cell_dphi_dn);
+        for (unsigned int i=0; i<dh.n_dofs() ; ++i)
+          {
+            local_matrix_row_i = 0;
+
+            bool is_singular = false;
+            unsigned int singular_index = numbers::invalid_unsigned_int;
+
+            for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+              if (local_dof_indices[j] == i)
+                {
+                  singular_index = j;
+                  is_singular = true;
+                  break;
+                }
+
+            if(dirichlet_nodes[i]==0)
+            {
+
+              if (is_singular == false)
+                {
+                  for (unsigned int q=0; q<n_q_points; ++q)
+                    {
+
+                      const Tensor<1,dim> R = q_points[q] - support_points[i];
+
+                      system_rhs(i) += ( LaplaceKernel::single_layer(R)   *
+                                         cell_dphi_dn[q]                      *
+                                         fe_v.JxW(q) );
+
+                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+
+                        local_matrix_row_i(j) -= ( ( LaplaceKernel::double_layer(R)     *
+                                                     normals[q] )            *
+                                                   fe_v.shape_value(j,q)     *
+                                                   fe_v.JxW(q)       );
+                    }
+                }
+              else
+                {
+                  Assert(singular_index != numbers::invalid_unsigned_int,
+                         ExcInternalError());
+
+                  const Quadrature<dim-1> & singular_quadrature =
+                    get_singular_quadrature(cell, singular_index);
+
+                  FEValues<dim-1,dim> fe_v_singular (mapping, fe, singular_quadrature,
+                                                     update_jacobians |
+                                                     update_values |
+                                                     update_cell_normal_vectors |
+                                                     update_quadrature_points );
+
+                  fe_v_singular.reinit(cell);
+
+                  std::vector<double> singular_cell_dphi_dn( singular_quadrature.size());
+
+                  const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                  const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
+
+                  exact_phi_solution.value_list(singular_q_points, singular_cell_dphi_dn);
+
+                  for (unsigned int q=0; q<singular_quadrature.size(); ++q)
+                    {
+                      const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
+
+                          system_rhs(i) += ( LaplaceKernel::single_layer(R)   *
+                                             singular_cell_dphi_dn[q]                      *
+                                             fe_v_singular.JxW(q) );
+
+                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+                        {
+                          local_matrix_row_i(j) -= (( LaplaceKernel::double_layer(R) *
+                                                      singular_normals[q])                *
+                                                    fe_v_singular.shape_value(j,q)        *
+                                                    fe_v_singular.JxW(q)       );
+                        }
+                    }
+                }
+
+              for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+                system_matrix.add(i,local_dof_indices[j],local_matrix_row_i(j));
+          }
+          else
+          {
+
+            if (is_singular == false)
+            {
+              for (unsigned int q=0; q<n_q_points; ++q)
+              {
+
+                const Tensor<1,dim> R = q_points[q] - support_points[i];
+
+                system_rhs(i) += ( ( LaplaceKernel::double_layer(R)     *
+                                      normals[q] )            *
+                                   cell_phi[q]              *
+                                   fe_v.JxW(q)       );
+
+                for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+                  local_matrix_row_i(j) -= ( LaplaceKernel::single_layer(R)   *
+                                             fe_v.shape_value(j,q)      *
+                                             fe_v.JxW(q) );
+              }
+            }
+            else
+            {
+                Assert(singular_index != numbers::invalid_unsigned_int,
+                                     ExcInternalError());
+
+                const Quadrature<dim-1> & singular_quadrature =
+                                get_singular_quadrature(cell, singular_index);
+
+                FEValues<dim-1,dim> fe_v_singular (mapping, fe, singular_quadrature,
+                                                   update_jacobians |
+                                                   update_values |
+                                                   update_cell_normal_vectors |
+                                                   update_quadrature_points );
+
+                fe_v_singular.reinit(cell);
+
+                std::vector<double> singular_cell_phi( singular_quadrature.size());
+
+                const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
+
+                exact_phi_solution.value_list(singular_q_points, singular_cell_phi);
+
+                for (unsigned int q=0; q<singular_quadrature.size(); ++q)
+                  {
+                    const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
+
+                        system_rhs(i) += (( LaplaceKernel::double_layer(R) *
+                                                                       singular_normals[q])                *
+                                                                     singular_cell_phi[q]        *
+                                                                     fe_v_singular.JxW(q)       );
+
+                    for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+                      {
+                        local_matrix_row_i(j) -= ( LaplaceKernel::single_layer(R)   *
+                                                   fe_v_singular.shape_value(j,q)        *
+                                                   fe_v_singular.JxW(q) );
+                      }
+                  }
+              }
+
+            for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+              system_matrix.add(i,local_dof_indices[j],local_matrix_row_i(j));
+
+
+          }
+        }
+      }
+
+    TrilinosWrappers::MPI::Vector ones(this_cpu_set, mpi_communicator);
+    ones.add(-1.);
+
+    system_matrix.vmult(system_alpha, ones);
+    system_alpha.add(1);
+    for (unsigned int i = 0; i<dh.n_dofs(); ++i)
+      system_matrix.add(i,i,system_alpha[i]);
+  }
+
   template <int dim>
   void BEMProblem<dim>::compute_boundary_condition()
   {
@@ -806,34 +832,54 @@ namespace MinFmm
   template <int dim>
   void BEMProblem<dim>::solve_system()
   {
-    compute_double_nodes_set();
-    compute_boundary_condition();
-    BEMFMA<dim> fma(dh, double_nodes_set, dirichlet_nodes);
-    BEMOperator<dim> oppy(fma, mpi_communicator, this_cpu_set, this_mpi_process);
-    ParameterHandler dummy_prm;
-    fma.declare_parameters(dummy_prm);
-    fma.parse_parameters(dummy_prm);
-    fma.generate_octree_blocking();
-    fma.direct_integrals();
-    fma.multipole_integrals();
-    std::cout<<"setting alpha"<<std::endl;
-    oppy.set_alpha();
-    std::cout<<"computing rhs"<<std::endl;
-    oppy.compute_rhs(system_rhs, dirichlet_values, neumann_values);
-    std::cout<<"solving"<<std::endl;
-    SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
-    solver.solve (oppy, phi, system_rhs, PreconditionIdentity());
+    if(fmm_sol)
+    {
+      compute_double_nodes_set();
+      compute_boundary_condition();
+      BEMFMA<dim> fma(dh, double_nodes_set, dirichlet_nodes, mapping);
+      BEMOperator<dim> oppy(fma, mpi_communicator, this_cpu_set, this_mpi_process);
+      ParameterHandler dummy_prm;
+      fma.declare_parameters(dummy_prm);
+      fma.parse_parameters(dummy_prm);
+      fma.generate_octree_blocking();
+      fma.direct_integrals();
+      fma.multipole_integrals();
+      std::cout<<"setting alpha"<<std::endl;
+      oppy.set_alpha();
+      std::cout<<"computing rhs"<<std::endl;
+      oppy.compute_rhs(system_rhs, dirichlet_values, neumann_values);
+      std::cout<<"solving"<<std::endl;
+      SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
+      solver.solve (oppy, phi, system_rhs, PreconditionIdentity());
 
-    for (unsigned int i=0; i<dh.n_dofs(); ++i)
-      {
-        if (dirichlet_nodes[i]=0)
-          dphi_dn[i] = neumann_values[i];
-        else
-          {
-            dphi_dn[i] = phi[i];
-            phi[i] = dirichlet_values[i];
-          }
-      }
+      for (unsigned int i=0; i<dh.n_dofs(); ++i)
+        {
+          if (dirichlet_nodes[i]=0)
+            dphi_dn[i] = neumann_values[i];
+          else
+            {
+              dphi_dn[i] = phi[i];
+              phi[i] = dirichlet_values[i];
+            }
+        }
+    }
+    else
+    {
+      SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
+      solver.solve (system_matrix, phi, system_rhs, PreconditionIdentity());
+      for (unsigned int i=0; i<dh.n_dofs(); ++i)
+        {
+          if (dirichlet_nodes[i]=0)
+            dphi_dn[i] = neumann_values[i];
+          else
+            {
+              dphi_dn[i] = phi[i];
+              phi[i] = dirichlet_values[i];
+            }
+        }
+
+
+    }
   }
 
 
@@ -907,7 +953,7 @@ namespace MinFmm
   //
   // The different quadrature rules are built inside the
   // get_singular_quadrature, which is specialized for dim=2 and dim=3, and
-  // they are retrieved inside the assemble_system function. The index given
+  // they are retrieved inside the assemble_direct_system function. The index given
   // as an argument is the index of the unit support point where the
   // singularity is located.
 
@@ -1067,14 +1113,20 @@ namespace MinFmm
     dataout.build_patches(mapping,
                           mapping.get_degree(),
                           DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+    std::string multipole_str;
 
+    if(fmm_sol)
+      multipole_str = "_fmm";
+    else
+      multipole_str = "_direct";
     std::string filename = ( Utilities::int_to_string(dim) +
                              "d_boundary_solution_" +
                              Utilities::int_to_string(cycle) +
-                             ".vtk" );
+                             multipole_str +
+                             ".vtu" );
     std::ofstream file(filename.c_str());
 
-    dataout.write_vtk(file);
+    dataout.write_vtu(file);
 
   }
 
@@ -1106,7 +1158,8 @@ namespace MinFmm
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
         refine_and_resize();
-        // assemble_system();
+        if(!fmm_sol)
+          assemble_direct_system();
         solve_system();
         compute_errors(cycle);
         output_results(cycle);
@@ -1139,8 +1192,10 @@ int main (int argc, char *argv[])
       // BEMProblem<2> laplace_problem_2d(degree, mapping_degree);
       // laplace_problem_2d.run();
 
-      BEMProblem<3> laplace_problem_3d(degree);
-      laplace_problem_3d.run();
+      // BEMProblem<3> laplace_problem_3d_fmm(degree, true);
+      // laplace_problem_3d_fmm.run();
+      BEMProblem<3> laplace_problem_3d_direct(degree, false);
+      laplace_problem_3d_direct.run();
     }
   catch (std::exception &exc)
     {

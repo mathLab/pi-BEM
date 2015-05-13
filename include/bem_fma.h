@@ -42,11 +42,12 @@
 #include <map>
 
 #include <mpi.h>
+#include "parameter_acceptor.h"
 
 using namespace dealii;
 
 template <int dim>//, Type V>
-class BEMFMA
+class BEMFMA : public ParameterAcceptor
 {
 public:
   // Just renaming the cell iterator type
@@ -71,11 +72,11 @@ public:
   //
   // void set_dirichlet_nodes(const Vector<double> &input_sn);
 
-  void declare_parameters(ParameterHandler &prm);
+  virtual void declare_parameters(ParameterHandler &prm);
 
   // Parameter parsing from input file
 
-  void parse_parameters(ParameterHandler &prm);
+  virtual void parse_parameters(ParameterHandler &prm);
 
   // Method computing the parts of the
   // BEM system matrices in which the

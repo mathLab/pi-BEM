@@ -43,6 +43,12 @@
 
 #include <mpi.h>
 #include "parameter_acceptor.h"
+#include "utilities.h"
+
+namespace MinFmm
+{
+  template <int dim> class BEMOperator;
+}
 
 using namespace dealii;
 
@@ -50,6 +56,13 @@ template <int dim>//, Type V>
 class BEMFMA : public ParameterAcceptor
 {
 public:
+
+  // Classs to be used in the tests, it can access everything inside bemfma
+  template<int fdim>
+  friend void test(MinFmm::BEMOperator<fdim> &);
+
+  friend class MinFmm::BEMOperator<dim>;
+
   // Just renaming the cell iterator type
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
@@ -60,17 +73,19 @@ public:
   // quadrature methods and octree
   // partitioning methods
 
-  BEMFMA(const DoFHandler<dim-1,dim> &input_dh,
-         const std::vector<std::set<unsigned int> > &db_in,
-         const Vector<double> &input_sn,
-         const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping,
-         const ConstraintMatrix &input_cm = ConstraintMatrix());
+  BEMFMA();
   ~BEMFMA();
   // Parameters declaration
 
   // void set_double_nodes(const Vector<double> &input_db);
   //
   // void set_dirichlet_nodes(const Vector<double> &input_sn);
+
+  void init_fma(const DoFHandler<dim-1,dim> &input_dh,
+                const std::vector<std::set<unsigned int> > &db_in,
+                const TrilinosWrappers::MPI::Vector &input_sn,
+                const ConstraintMatrix &input_cm,
+                const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping);
 
   virtual void declare_parameters(ParameterHandler &prm);
 
@@ -85,7 +100,7 @@ public:
 
   void direct_integrals();
 
-  // Method computing the multipole
+  /// Method computing the multipole
   // expansion containing the integrals
   // values for each bottom level block.
   //  It is called once for each
@@ -93,6 +108,7 @@ public:
 
   void multipole_integrals();
 
+  /// [TODO] TO BE MOVED INSIDE multipole_matr_vect_products
   // Ascending phase of the FMA method.
   // Multipole expansions are genarated
   //  at the bottom level blocks, and then
@@ -128,15 +144,22 @@ public:
   TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
   // !! TO BE PUT PRIVATE AGAIN
-  //private:
+private:
 
   // Reference to the ComputationalDomain
   // class
 
-  const DoFHandler<dim-1,dim> &fma_dh;
-  const Mapping<dim-1,dim> &fma_mapping;
-  const ConstraintMatrix &fma_cm;
-  const FiniteElement<dim-1,dim> &fma_fe;
+  // const DoFHandler<dim-1,dim> &fma_dh;
+  // const Mapping<dim-1,dim> &fma_mapping;
+  // const ConstraintMatrix &fma_cm;
+  // const FiniteElement<dim-1,dim> &fma_fe;
+
+  SmartPointer<const DoFHandler<dim-1,dim> >         fma_dh;
+  SmartPointer<const FiniteElement<dim-1,dim> >  fma_fe;
+  SmartPointer<const ConstraintMatrix >  fma_cm;
+  SmartPointer<const Mapping<dim-1,dim> >  fma_mapping;
+
+
   // Truncation order for the multipole
   // and local expansion series: it is
   // read from the parameters input file.
@@ -346,13 +369,13 @@ public:
   std::vector< std::vector<unsigned int> > quad_points_filled_blocks;
 
   ConditionalOStream pcout;
-  // This should be erased by the usage of the constraint matrix.
-  std::vector <std::set<unsigned int> >   double_nodes_set;
 
 
   // TO BE ERASED!
-  std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
-  Vector<double> dirichlet_nodes;
+  shared_ptr<Quadrature<dim-1> > quadrature;
+  SmartPointer<const TrilinosWrappers::MPI::Vector > dirichlet_nodes;
+  // This should be erased by the usage of the constraint matrix.
+  const std::vector <std::set<unsigned int> >   *double_nodes_set;
 
 };
 

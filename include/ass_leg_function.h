@@ -558,5 +558,3 @@ private:
 
 
 #endif /*ASSLEGFUNCTION_H_*/
-
-

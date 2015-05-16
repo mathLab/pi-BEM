@@ -45,9 +45,9 @@
 #include "parameter_acceptor.h"
 #include "utilities.h"
 
-namespace MinFmm
+namespace Operator
 {
-  template <int dim> class BEMOperator;
+  template <int dim> class MinBEMOperator;
 }
 
 using namespace dealii;
@@ -57,11 +57,11 @@ class BEMFMA : public ParameterAcceptor
 {
 public:
 
-  // Classs to be used in the tests, it can access everything inside bemfma
+  /// Function to be used in the tests, it can access everything inside bemfma
   template<int fdim>
-  friend void test(MinFmm::BEMOperator<fdim> &);
-
-  friend class MinFmm::BEMOperator<dim>;
+  friend void test(Operator::MinBEMOperator<fdim> &);
+  /// Class that implements a minimal operator
+  friend class Operator::MinBEMOperator<dim>;
 
   // Just renaming the cell iterator type
 

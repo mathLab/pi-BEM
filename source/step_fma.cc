@@ -144,11 +144,11 @@ void MinFmm::StepFMA<dim>::read_domain()
   switch (dim)
     {
     case 2:
-      in.open ("../coarse_circle.inp");
+      in.open ("../../../coarse_circle.inp");
       break;
 
     case 3:
-      in.open ("../coarse_sphere.inp");
+      in.open ("../../../coarse_sphere.inp");
       break;
 
     default:

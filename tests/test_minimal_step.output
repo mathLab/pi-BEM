@@ -1,0 +1,574 @@
+Generating octree blocking... 
+ Total nodes at level 1 of 10 are 26
+ Total quad points at level 1 of 10 are 384
+ Blocks at level 1 of 10 are 8
+ Total blocks at level 1 of 10 are 9
+
+ Total nodes at level 2 of 10 are 26
+ Total quad points at level 2 of 10 are 384
+ Blocks at level 2 of 10 are 49
+ Total blocks at level 2 of 10 are 58
+
+ Total nodes at level 3 of 10 are 26
+ Total quad points at level 3 of 10 are 384
+ Blocks at level 3 of 10 are 0
+ Total blocks at level 3 of 10 are 58
+
+ Total nodes at level 4 of 10 are 26
+ Total quad points at level 4 of 10 are 384
+ Blocks at level 4 of 10 are 0
+ Total blocks at level 4 of 10 are 58
+
+ Total nodes at level 5 of 10 are 26
+ Total quad points at level 5 of 10 are 384
+ Blocks at level 5 of 10 are 0
+ Total blocks at level 5 of 10 are 58
+
+ Total nodes at level 6 of 10 are 26
+ Total quad points at level 6 of 10 are 384
+ Blocks at level 6 of 10 are 0
+ Total blocks at level 6 of 10 are 58
+
+ Total nodes at level 7 of 10 are 26
+ Total quad points at level 7 of 10 are 384
+ Blocks at level 7 of 10 are 0
+ Total blocks at level 7 of 10 are 58
+
+ Total nodes at level 8 of 10 are 26
+ Total quad points at level 8 of 10 are 384
+ Blocks at level 8 of 10 are 0
+ Total blocks at level 8 of 10 are 58
+
+ Total nodes at level 9 of 10 are 26
+ Total quad points at level 9 of 10 are 384
+ Blocks at level 9 of 10 are 0
+ Total blocks at level 9 of 10 are 58
+
+ Total nodes at level 10 of 10 are 26
+ Total quad points at level 10 of 10 are 384
+ Blocks at level 10 of 10 are 0
+ Total blocks at level 10 of 10 are 58
+
+...done generating octree blocking
+Computing proximity lists for blocks
+Done computing proximity lists for blocks
+Computing direct integrals...
+400 Nonzeros out of 676:  59.1716%
+...done computing direct integrals
+Computing multipole integrals...
+...done computing multipole integrals
+setting alpha
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+computing rhs
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+solving
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+using sak to compute the errors
+Generating octree blocking... 
+ Total nodes at level 1 of 10 are 98
+ Total quad points at level 1 of 10 are 1536
+ Blocks at level 1 of 10 are 8
+ Total blocks at level 1 of 10 are 9
+
+ Total nodes at level 2 of 10 are 98
+ Total quad points at level 2 of 10 are 1536
+ Blocks at level 2 of 10 are 56
+ Total blocks at level 2 of 10 are 65
+
+ Total nodes at level 3 of 10 are 98
+ Total quad points at level 3 of 10 are 1536
+ Blocks at level 3 of 10 are 150
+ Total blocks at level 3 of 10 are 215
+
+ Total nodes at level 4 of 10 are 98
+ Total quad points at level 4 of 10 are 1536
+ Blocks at level 4 of 10 are 0
+ Total blocks at level 4 of 10 are 215
+
+ Total nodes at level 5 of 10 are 98
+ Total quad points at level 5 of 10 are 1536
+ Blocks at level 5 of 10 are 0
+ Total blocks at level 5 of 10 are 215
+
+ Total nodes at level 6 of 10 are 98
+ Total quad points at level 6 of 10 are 1536
+ Blocks at level 6 of 10 are 0
+ Total blocks at level 6 of 10 are 215
+
+ Total nodes at level 7 of 10 are 98
+ Total quad points at level 7 of 10 are 1536
+ Blocks at level 7 of 10 are 0
+ Total blocks at level 7 of 10 are 215
+
+ Total nodes at level 8 of 10 are 98
+ Total quad points at level 8 of 10 are 1536
+ Blocks at level 8 of 10 are 0
+ Total blocks at level 8 of 10 are 215
+
+ Total nodes at level 9 of 10 are 98
+ Total quad points at level 9 of 10 are 1536
+ Blocks at level 9 of 10 are 0
+ Total blocks at level 9 of 10 are 215
+
+ Total nodes at level 10 of 10 are 98
+ Total quad points at level 10 of 10 are 1536
+ Blocks at level 10 of 10 are 0
+ Total blocks at level 10 of 10 are 215
+
+...done generating octree blocking
+Computing proximity lists for blocks
+Done computing proximity lists for blocks
+Computing direct integrals...
+2771 Nonzeros out of 9604:  28.8526%
+...done computing direct integrals
+Computing multipole integrals...
+...done computing multipole integrals
+setting alpha
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+computing rhs
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+solving
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+Generating multipole expansions...
+processing level 10  of  10
+processing level 9  of  10
+processing level 8  of  10
+processing level 7  of  10
+processing level 6  of  10
+processing level 5  of  10
+processing level 4  of  10
+processing level 3  of  10
+processing level 2  of  10
+processing level 1  of  10
+...done generating multipole expansions
+Computing multipole matrix-vector products... 
+processing level 1  of  10
+processing level 2  of  10
+processing level 3  of  10
+processing level 4  of  10
+processing level 5  of  10
+processing level 6  of  10
+processing level 7  of  10
+processing level 8  of  10
+processing level 9  of  10
+processing level 10  of  10
+...done computing multipole matrix-vector products
+using sak to compute the errors
+using sak to print the output
+cells dofs    u_Linfty         u_L2           u_H1      
+   24   26 1.488e-04    - 4.944e-04    - 4.944e-04    - 
+   96   98 3.539e-05 2.07 1.234e-04 2.00 1.234e-04 2.00 
+cells dofs    u_Linfty         u_L2            u_H1       
+   24   26 2.220e-16    - 1.957e-16     - 1.107e-08     - 
+   96   98 2.220e-16 0.00 1.998e-16 -0.03 1.223e-08 -0.14 
+using sak to compute the errors
+using sak to compute the errors
+using sak to print the output
+cells dofs    u_Linfty          u_L2            u_H1       
+   24   26 1.042e+00     - 1.843e+00     - 3.390e+00     - 
+   96   98 1.124e+00 -0.11 2.142e+00 -0.22 3.769e+00 -0.15 
+cells dofs    u_Linfty         u_L2            u_H1       
+   24   26 2.220e-16    - 1.957e-16     - 1.107e-08     - 
+   96   98 2.220e-16 0.00 1.998e-16 -0.03 1.223e-08 -0.14 

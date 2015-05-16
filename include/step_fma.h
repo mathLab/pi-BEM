@@ -119,107 +119,107 @@ namespace MinFmm
 // external file, and with the splitting of the different tasks into
 // different modules. The same applies to boundary element methods, and we
 // won't comment too much on them, except on the differences.
-template <int dim>
-class StepFMA : public ParameterAcceptor
-{
-public:
-  StepFMA(const unsigned int fe_degree = 1, bool fmm_method = true);
+  template <int dim>
+  class StepFMA : public ParameterAcceptor
+  {
+  public:
+    StepFMA(const unsigned int fe_degree = 1, bool fmm_method = true);
 
-  void run();
+    void run();
 
-private:
+  private:
 
-  virtual void declare_parameters (ParameterHandler &prm);
+    virtual void declare_parameters (ParameterHandler &prm);
 
-  virtual void parse_parameters (ParameterHandler &prm);
+    virtual void parse_parameters (ParameterHandler &prm);
 
-  void read_domain();
+    void read_domain();
 
-  void refine_and_resize();
+    void refine_and_resize();
 
-  void compute_boundary_condition();
+    void compute_boundary_condition();
 
-  void compute_double_nodes_set();
+    void compute_double_nodes_set();
 
-  void assemble_direct_system();
+    void assemble_direct_system();
 
-  void solve_system();
+    void solve_system();
 
-  void compute_errors(const unsigned int cycle);
+    void compute_errors(const unsigned int cycle);
 
-  void output_results(const unsigned int cycle);
+    void output_results(const unsigned int cycle);
 
-  const Quadrature<dim-1> & get_singular_quadrature(
-    const typename DoFHandler<dim-1, dim>::active_cell_iterator &cell,
-    const unsigned int index) const;
+    const Quadrature<dim-1> & get_singular_quadrature(
+      const typename DoFHandler<dim-1, dim>::active_cell_iterator &cell,
+      const unsigned int index) const;
 
-  MPI_Comm mpi_communicator;
+    MPI_Comm mpi_communicator;
 
-  // shared_ptr<Triangulation<dim> >       tria;
-  // shared_ptr<FiniteElement<dim,dim> >   fe;
-  // shared_ptr<DoFHandler<dim> >          dh;
+    // shared_ptr<Triangulation<dim> >       tria;
+    // shared_ptr<FiniteElement<dim,dim> >   fe;
+    // shared_ptr<DoFHandler<dim> >          dh;
 
-  Triangulation<dim-1, dim>   tria;
-  FE_Q<dim-1,dim>             fe;
-  DoFHandler<dim-1,dim>       dh;
-  MappingQ<dim-1, dim>      mapping;
-
-
-  TrilinosWrappers::MPI::Vector              phi;
-  TrilinosWrappers::MPI::Vector              dphi_dn;
+    Triangulation<dim-1, dim>   tria;
+    FE_Q<dim-1,dim>             fe;
+    DoFHandler<dim-1,dim>       dh;
+    MappingQ<dim-1, dim>      mapping;
 
 
-  // The following variables are the ones that we fill through a parameter
-  // file.  The new objects that we use in this example are the
-  // Functions::ParsedFunction object and the QuadratureSelector object.
-  //
-  // The Functions::ParsedFunction class allows us to easily and quickly
-  // define new function objects via parameter files, with custom
-  // definitions which can be very complex (see the documentation of that
-  // class for all the available options).
-  //
-  // We will allocate the quadrature object using the QuadratureSelector
-  // class that allows us to generate quadrature formulas based on an
-  // identifying string and on the possible degree of the formula itself. We
-  // used this to allow custom selection of the quadrature formulas for the
-  // standard integration, and to define the order of the singular
-  // quadrature rule.
-  //
-  // We also define a couple of parameters which are used in case we wanted
-  // to extend the solution to the entire domain.
-
-  Functions::ParsedFunction<dim> exact_dphi_dn_solution;
-  Functions::ParsedFunction<dim> exact_phi_solution;
-
-  unsigned int singular_quadrature_order;
-  std_cxx11::shared_ptr<Quadrature<dim-1> > quadrature;
-
-  SolverControl solver_control;
-
-  unsigned int n_cycles;
-  unsigned int external_refinement;
+    TrilinosWrappers::MPI::Vector              phi;
+    TrilinosWrappers::MPI::Vector              dphi_dn;
 
 
-  unsigned int n_mpi_processes;
+    // The following variables are the ones that we fill through a parameter
+    // file.  The new objects that we use in this example are the
+    // Functions::ParsedFunction object and the QuadratureSelector object.
+    //
+    // The Functions::ParsedFunction class allows us to easily and quickly
+    // define new function objects via parameter files, with custom
+    // definitions which can be very complex (see the documentation of that
+    // class for all the available options).
+    //
+    // We will allocate the quadrature object using the QuadratureSelector
+    // class that allows us to generate quadrature formulas based on an
+    // identifying string and on the possible degree of the formula itself. We
+    // used this to allow custom selection of the quadrature formulas for the
+    // standard integration, and to define the order of the singular
+    // quadrature rule.
+    //
+    // We also define a couple of parameters which are used in case we wanted
+    // to extend the solution to the entire domain.
 
-  unsigned int this_mpi_process;
+    Functions::ParsedFunction<dim> exact_dphi_dn_solution;
+    Functions::ParsedFunction<dim> exact_phi_solution;
 
-  bool run_in_this_dimension;
-  bool extend_solution;
-  ConditionalOStream pcout;
-  IndexSet this_cpu_set;
-  TrilinosWrappers::MPI::Vector dirichlet_nodes;
-  TrilinosWrappers::MPI::Vector              dirichlet_values;
-  TrilinosWrappers::MPI::Vector              neumann_values;
-  std::vector <std::set<unsigned int> >   double_nodes_set;
-  ErrorHandler<2> eh;
-  TrilinosWrappers::SparseMatrix system_matrix;//(const size_type m, const size_type n, const unsigned int n_max_entries_per_row);
-  TrilinosWrappers::SparsityPattern tril_sp;
-  ConstraintMatrix constraints;
-  TrilinosWrappers::MPI::Vector              system_rhs;
-  TrilinosWrappers::MPI::Vector              system_alpha;
-  bool fmm_sol;
-  BEMFMA<dim> fma;
+    unsigned int singular_quadrature_order;
+    std_cxx11::shared_ptr<Quadrature<dim-1> > quadrature;
 
-};
+    SolverControl solver_control;
+
+    unsigned int n_cycles;
+    unsigned int external_refinement;
+
+
+    unsigned int n_mpi_processes;
+
+    unsigned int this_mpi_process;
+
+    bool run_in_this_dimension;
+    bool extend_solution;
+    ConditionalOStream pcout;
+    IndexSet this_cpu_set;
+    TrilinosWrappers::MPI::Vector dirichlet_nodes;
+    TrilinosWrappers::MPI::Vector              dirichlet_values;
+    TrilinosWrappers::MPI::Vector              neumann_values;
+    std::vector <std::set<unsigned int> >   double_nodes_set;
+    ErrorHandler<2> eh;
+    TrilinosWrappers::SparseMatrix system_matrix;//(const size_type m, const size_type n, const unsigned int n_max_entries_per_row);
+    TrilinosWrappers::SparsityPattern tril_sp;
+    ConstraintMatrix constraints;
+    TrilinosWrappers::MPI::Vector              system_rhs;
+    TrilinosWrappers::MPI::Vector              system_alpha;
+    bool fmm_sol;
+    BEMFMA<dim> fma;
+
+  };
 }

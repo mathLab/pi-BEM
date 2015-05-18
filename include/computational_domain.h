@@ -19,45 +19,45 @@
 #ifndef computational_domain_h
 #define computational_domain_h
 
-#include<deal.II/base/smartpointer.h>
-#include<deal.II/base/convergence_table.h>
-#include<deal.II/base/quadrature_lib.h>
-#include<deal.II/base/quadrature_selector.h>
-#include<deal.II/base/parsed_function.h>
-#include<deal.II/base/utilities.h>
+#include <deal.II/base/smartpointer.h>
+#include <deal.II/base/convergence_table.h>
+#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/quadrature_selector.h>
+#include <deal.II/base/parsed_function.h>
+#include <deal.II/base/utilities.h>
 #include <deal.II/base/conditional_ostream.h>
 
-#include<deal.II/lac/full_matrix.h>
-#include<deal.II/lac/sparse_matrix.h>
-#include<deal.II/lac/matrix_lib.h>
-#include<deal.II/lac/vector.h>
-#include<deal.II/lac/solver_control.h>
-#include<deal.II/lac/solver_gmres.h>
-#include<deal.II/lac/precondition.h>
-#include<deal.II/lac/compressed_sparsity_pattern.h>
-#include<deal.II/lac/sparse_direct.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/matrix_lib.h>
+#include <deal.II/lac/vector.h>
+#include <deal.II/lac/solver_control.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/sparse_direct.h>
 
-#include<deal.II/grid/tria.h>
-#include<deal.II/grid/tria_iterator.h>
-#include<deal.II/grid/tria_accessor.h>
-#include<deal.II/grid/grid_generator.h>
-#include<deal.II/grid/grid_in.h>
-#include<deal.II/grid/grid_out.h>
-#include<deal.II/grid/tria_boundary_lib.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_iterator.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/tria_boundary_lib.h>
 
-#include<deal.II/dofs/dof_handler.h>
-#include<deal.II/dofs/dof_accessor.h>
-#include<deal.II/dofs/dof_tools.h>
-#include<deal.II/dofs/dof_renumbering.h>
-#include<deal.II/fe/fe_q.h>
-#include<deal.II/fe/fe_values.h>
-#include<deal.II/fe/fe_system.h>
-#include<deal.II/fe/mapping_q_eulerian.h>
-#include<deal.II/fe/mapping_q.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_q_eulerian.h>
+#include <deal.II/fe/mapping_q.h>
 
-#include<deal.II/numerics/data_out.h>
-#include<deal.II/numerics/vector_tools.h>
-#include<deal.II/numerics/solution_transfer.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/solution_transfer.h>
 
 #include <mpi.h>
 
@@ -139,12 +139,6 @@ public:
   void compute_phi_nodes();
   // computation of normals at collocation points (dofs)
   void compute_normals();
-
-  // this methods creates the adaptive
-  // octree partitioning of the domain,
-  // needed by the FMA algorithm
-
-  void generate_octree_blocking();
 
   // Here are the members of the class:
   // they are all public, as the upper level
@@ -234,114 +228,6 @@ public:
   unsigned int wall_sur_ID1;
   unsigned int wall_sur_ID2;
   unsigned int wall_sur_ID3;
-
-  // number of levels of the octree
-  // partitioning
-
-  unsigned int num_octree_levels;
-
-  // here are declared dome structures which
-  // will be created in the framework of the
-  // octree partitioning of the mesh, and
-  // will be used in the FMA
-
-  // a map associating each DoF with the cells
-  // it belongs to
-
-  std::map<unsigned int, std::vector<cell_it> > dof_to_elems;
-
-  // a map associating each gradient DoF
-  // with the cells it belongs to
-
-  std::map<unsigned int, std::vector<cell_it> > gradient_dof_to_elems;
-
-  // a vector associating each gradient DoF
-  // with the component it represents
-
-  std::vector<unsigned int > gradient_dof_components;
-
-  // a map associating each DoF to the
-  // block it belongs to
-  // for each level
-
-  std::map<unsigned int, std::vector<unsigned int> > dof_to_block;
-
-  // a map associating each quad point to the
-  // block it belongs to for
-  // each level
-
-  std::map<cell_it, std::vector<std::vector <unsigned int> > > quad_point_to_block;
-
-  // a map associating each cell with a std::set
-  // containing the surrounding
-  // cells
-
-  std::map <cell_it, std::set <cell_it> > elem_to_surr_elems;
-
-  // a vector to store all OctreeBlocks
-  // in which the geometry is divided
-
-  mutable std::vector<OctreeBlock<dim> *> blocks;
-
-  // the total blocks number
-
-  unsigned int num_blocks;
-
-  // the indices in the blocks vector, at which
-  // each of the levels start or end
-
-  std::vector <unsigned int> endLevel;
-  std::vector <unsigned int> startLevel;
-
-  // a list of the indices of all the childless
-  // blocks
-
-  std::vector <unsigned int> childlessList;
-
-  // a list of the number of parent blocks
-  // for each level
-  std::vector <unsigned int> numParent;
-
-  // a std::vector containing the list of
-  // parent blocks for each level
-
-  std::vector <std::vector<unsigned int> > parentList;
-
-  // a std::map of std::vectors containing the
-  // list of quadrature points
-
-  std::map <cell_it, std::vector <Point <dim> > > quadPoints;
-
-  // a std::map of std::vectors containing the
-  // list of normals at quadrature points
-
-  std::map <cell_it, std::vector <Point <dim> > > quadNormals;
-
-  // a std::map of std::vectors containing the
-  // list of shape function values at
-  // quadrature points
-
-  std::map <cell_it, std::vector <std::vector<double> > > quadShapeFunValues;
-
-  // a std::map of std::vectors containing the
-  // list of JxW values at
-  // quadrature points
-
-  std::map <cell_it, std::vector <double > > quadJxW;
-
-  // a std::vector containing std::vectors with
-  // the IDs of blocks with at least one dof,
-  // for each level
-
-  std::vector< std::vector<unsigned int> > dofs_filled_blocks;
-
-  // a std::vector containing std::vectors with
-  // the IDs of blocks with at least one
-  // quad point, for each level
-
-  std::vector< std::vector<unsigned int> > quad_points_filled_blocks;
-
-
   // a std::set containing nodes of
   // free surface with doubles on the boat
   // needed to calculate their displacement

@@ -149,9 +149,7 @@ namespace MinFmm
 
     void output_results(const unsigned int cycle);
 
-    const Quadrature<dim-1> & get_singular_quadrature(
-      const typename DoFHandler<dim-1, dim>::active_cell_iterator &cell,
-      const unsigned int index) const;
+    const Quadrature<dim-1> & get_singular_quadrature(const unsigned int index) const;
 
     MPI_Comm mpi_communicator;
 

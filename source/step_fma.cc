@@ -55,7 +55,7 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("Quadrature type", "gauss",
                       Patterns::Selection(QuadratureSelector<(dim-1)>::get_quadrature_names()));
     prm.declare_entry("Quadrature order", "4", Patterns::Integer());
-    prm.declare_entry("Singular quadrature order", "5", Patterns::Integer());
+    prm.declare_entry("Singular quadrature order", "8", Patterns::Integer());
   }
   prm.leave_subsection();
 
@@ -69,7 +69,7 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
   prm.enter_subsection("Exact dPhi dn solution 3d");
   {
     Functions::ParsedFunction<3>::declare_parameters(prm);
-    prm.set("Function expression", "0.5*(x + y + z)");
+    prm.set("Function expression", "(x + y + z)");
   }
   prm.leave_subsection();
 
@@ -297,7 +297,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
                          ExcInternalError());
 
                   const Quadrature<dim-1> & singular_quadrature =
-                    get_singular_quadrature(cell, singular_index);
+                    get_singular_quadrature(singular_index);
 
                   FEValues<dim-1,dim> fe_v_singular (mapping, fe, singular_quadrature,
                                                      update_jacobians |
@@ -362,7 +362,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
                          ExcInternalError());
 
                   const Quadrature<dim-1> & singular_quadrature =
-                    get_singular_quadrature(cell, singular_index);
+                    get_singular_quadrature(singular_index);
 
                   FEValues<dim-1,dim> fe_v_singular (mapping, fe, singular_quadrature,
                                                      update_jacobians |
@@ -599,40 +599,55 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
 // as an argument is the index of the unit support point where the
 // singularity is located.
 
-template<>
-const Quadrature<2> &MinFmm::StepFMA<3>::get_singular_quadrature(
-  const DoFHandler<2,3>::active_cell_iterator &,
-  const unsigned int index) const
+template<int dim>
+const Quadrature<dim-1> & MinFmm::StepFMA<dim>::get_singular_quadrature(const unsigned int index) const
 {
-  Assert(index < fe.dofs_per_cell,
-         ExcIndexRange(0, fe.dofs_per_cell, index));
+    Assert(index < fe.dofs_per_cell,
+           ExcIndexRange(0, fe.dofs_per_cell, index));
 
-  static std::vector<QGaussOneOverR<2> > quadratures;
-  if (quadratures.size() == 0)
-    for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-      quadratures.push_back(QGaussOneOverR<2>(singular_quadrature_order,
-                                              fe.get_unit_support_points()[i],
-                                              true));
-  return quadratures[index];
+    //static std::vector<QGaussOneOverR<2> > quadratures;
+    static std::vector<QTelles<dim-1> > quadratures;
+    if (quadratures.size() == 0)
+        for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+            quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
+                                             fe.get_unit_support_points()[i]));
+
+    return quadratures[index];
 }
 
+//
+// template<>
+// const Quadrature<1> & MinFmm::StepFMA<2>::get_singular_quadrature(const unsigned int index) const
+// {
+//     Assert(index < fe.dofs_per_cell,
+//            ExcIndexRange(0, fe.dofs_per_cell, index));
+//
+//     static std::vector<QTelles<1> > quadratures;
+//     if (quadratures.size() == 0)
+//         for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+//             quadratures.push_back(QTelles<1>(singular_quadrature_order,
+//                                              fe.get_unit_support_points()[i]));
+//
+//     return quadratures[index];
+// }
 
-template<>
-const Quadrature<1> &MinFmm::StepFMA<2>::get_singular_quadrature(
-  const DoFHandler<1,2>::active_cell_iterator &cell,
-  const unsigned int index) const
-{
-  Assert(index < fe.dofs_per_cell,
-         ExcIndexRange(0, fe.dofs_per_cell, index));
-
-  static Quadrature<1> *q_pointer = NULL;
-  if (q_pointer) delete q_pointer;
-
-  q_pointer = new QGaussLogR<1>(singular_quadrature_order,
-                                fe.get_unit_support_points()[index],
-                                1./cell->measure(), true);
-  return (*q_pointer);
-}
+//
+// template<>
+// const Quadrature<1> &MinFmm::StepFMA<2>::get_singular_quadrature(
+//   const DoFHandler<1,2>::active_cell_iterator &cell,
+//   const unsigned int index) const
+// {
+//   Assert(index < fe.dofs_per_cell,
+//          ExcIndexRange(0, fe.dofs_per_cell, index));
+//
+//   static Quadrature<1> *q_pointer = NULL;
+//   if (q_pointer) delete q_pointer;
+//
+//   q_pointer = new QGaussLogR<1>(singular_quadrature_order,
+//                                 fe.get_unit_support_points()[index],
+//                                 1./cell->measure(), true);
+//   return (*q_pointer);
+// }
 
 
 

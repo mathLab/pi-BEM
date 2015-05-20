@@ -76,7 +76,7 @@ void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.enter_subsection("FMA Params");
   {
-    prm.declare_entry("FMA Truncation Order", "5", Patterns::Integer());
+    prm.declare_entry("FMA Truncation Order", "6", Patterns::Integer());
   }
   prm.leave_subsection();
 

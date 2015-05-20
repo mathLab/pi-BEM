@@ -168,7 +168,6 @@ void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  fma.declare_parameters(prm);
 }
 
 template <int dim>
@@ -192,7 +191,6 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  fma.parse_parameters(prm);
 
 
 }
@@ -949,7 +947,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
 
 
   compute_rhs(system_rhs, tmp_rhs);
- 
+
 
   compute_constraints(constraints, tmp_rhs);
   ConstrainedOperator<TrilinosWrappers::MPI::Vector, BEMProblem<dim> >
@@ -968,9 +966,9 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
     }
   else
     {
-      //TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
-      //solver.solve (cc, sol, system_rhs, fma_preconditioner);
-      solver.solve (cc, sol, system_rhs, PreconditionIdentity());
+      TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
+      solver.solve (cc, sol, system_rhs, fma_preconditioner);
+      // solver.solve (cc, sol, system_rhs, PreconditionIdentity());
     }
 
   //pcout<<"sol = [";
@@ -978,10 +976,10 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   //    pcout<<sol(i)<<"; ";
   //pcout<<"];"<<std::endl;
 
-    for (unsigned int i = 0; i < sol.size(); i++)
-      if (this_cpu_set.is_element(i))
-         pcout<<std::setprecision(20)<<sol(i)<<std::endl;
-   
+    // for (unsigned int i = 0; i < sol.size(); i++)
+    //   if (this_cpu_set.is_element(i))
+    //      pcout<<std::setprecision(20)<<sol(i)<<std::endl;
+
 
 
 
@@ -1575,7 +1573,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
    DoFTools::make_sparsity_pattern (gradient_dh, normals_sparsity_pattern, vector_constraints);
    normals_sparsity_pattern.compress();
    Vector<double> vector_normals_solution(gradient_dh.n_dofs());
-                                   
+
    SparseMatrix<double> vector_normals_matrix;
    Vector<double> vector_normals_rhs;
 
@@ -1585,7 +1583,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
 
    FEValues<dim-1,dim> gradient_fe_v(mapping, gradient_fe, *quadrature,
-			     update_values | update_cell_normal_vectors |  
+			     update_values | update_cell_normal_vectors |
 			     update_JxW_values);
 
    const unsigned int vector_n_q_points = gradient_fe_v.n_quadrature_points;
@@ -1598,7 +1596,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
    cell_it
    vector_cell = gradient_dh.begin_active(),
    vector_endc = gradient_dh.end();
-            
+
    for (; vector_cell!=vector_endc; ++vector_cell)
      {
        gradient_fe_v.reinit (vector_cell);
@@ -1606,7 +1604,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
        local_normals_rhs = 0;
        const std::vector<Point<dim> > &vector_node_normals = gradient_fe_v.get_normal_vectors();
        unsigned int comp_i, comp_j;
-       
+
        for (unsigned int q=0; q<vector_n_q_points; ++q)
 	 for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
 	   {
@@ -1614,7 +1612,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 	     for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
 	       {
 		 comp_j = gradient_fe.system_to_component_index(j).first;
-		 if (comp_i == comp_j) 
+		 if (comp_i == comp_j)
 		   {
 		     local_normals_matrix(i,j) += gradient_fe_v.shape_value(i,q)*
 						  gradient_fe_v.shape_value(j,q)*
@@ -1624,9 +1622,9 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 	   local_normals_rhs(i) += (gradient_fe_v.shape_value(i, q)) *
                                     vector_node_normals[q](comp_i) * gradient_fe_v.JxW(q);
 	   }
-        
+
        vector_cell->get_dof_indices (vector_local_dof_indices);
-       
+
        vector_constraints.distribute_local_to_global
        (local_normals_matrix,
 	local_normals_rhs,
@@ -1643,9 +1641,9 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
    vector_constraints.distribute(vector_normals_solution);
 
    node_normals.resize(dh.n_dofs());
- 
+
    for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
-       { 
+       {
        for (unsigned int d=0; d<dim; d++)
            node_normals[i](d) = vector_normals_solution(3*i+d);
        node_normals[i]/= node_normals[i].distance(Point<dim>(0.0,0.0,0.0));

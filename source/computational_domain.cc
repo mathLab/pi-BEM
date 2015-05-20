@@ -72,16 +72,16 @@ ComputationalDomain<dim>::~ComputationalDomain()
 template <int dim>
 void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 {
-  prm.declare_entry("Number of cycles", "4",
+  prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
 
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    prm.declare_entry("Dirichlet Surface 1 ID", "110", Patterns::Integer());
+    prm.declare_entry("Dirichlet Surface 1 ID", "1", Patterns::Integer());
     prm.declare_entry("Dirichlet Surface 2 ID", "110", Patterns::Integer());
     prm.declare_entry("Dirichlet Surface 3 ID", "110", Patterns::Integer());
-    prm.declare_entry("Neumann Surface 1 ID", "110", Patterns::Integer());
+    prm.declare_entry("Neumann Surface 1 ID", "0", Patterns::Integer());
     prm.declare_entry("Neumann Surface 2 ID", "110", Patterns::Integer());
     prm.declare_entry("Neumann Surface 3 ID", "110", Patterns::Integer());
   }

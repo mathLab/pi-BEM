@@ -20,10 +20,10 @@
 #include "utilities.h"
 
 template <int dim>
-BEMFMA<dim>::BEMFMA()
+BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
   :
   singular_quadrature_order(5),//TO BE CHANGED WITH A PARSER
-  mpi_communicator (MPI_COMM_WORLD),
+  mpi_communicator (mpi_commy),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
   pcout(std::cout)
@@ -674,7 +674,7 @@ void BEMFMA<dim>::direct_integrals()
                     {
                       prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
                       prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                      
+
                       if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
                           init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
                       else

@@ -63,7 +63,7 @@
 #include "bem_fma.h"
 #include "boundary_conditions.h"
 #include "computational_domain.h"
-
+#include "parameter_acceptor.h"
 using namespace dealii;
 
 //using namespace TrilinosWrappers::MPI::Vector;
@@ -71,7 +71,7 @@ using namespace dealii;
 
 
 template <int dim>
-class Driver
+class Driver : public ParameterAcceptor
 {
 public:
 
@@ -99,11 +99,10 @@ private:
 
   ParameterHandler prm;
 
-  
+
 
   const unsigned int n_mpi_processes;
   const unsigned int this_mpi_process;
 };
 
 #endif
-

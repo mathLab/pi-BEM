@@ -93,7 +93,7 @@
 #include "../include/computational_domain.h"
 #include "../include/bem_fma.h"
 #include "../include/constrained_matrix.h"
-
+#include "parameter_acceptor.h"
 
 
 #include <mpi.h>
@@ -103,7 +103,7 @@ using namespace dealii;
 //using namespace TrilinosWrappers::MPI;
 
 template <int dim>
-class BEMProblem
+class BEMProblem : public ParameterAcceptor
 {
 public:
 

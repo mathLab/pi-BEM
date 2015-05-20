@@ -73,7 +73,7 @@ public:
   // quadrature methods and octree
   // partitioning methods
 
-  BEMFMA();
+  BEMFMA(MPI_Comm mpi_commy=MPI_COMM_WORLD);
   ~BEMFMA();
   // Parameters declaration
 

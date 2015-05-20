@@ -18,12 +18,11 @@ using namespace std;
 template <int dim>
 Driver<dim>::Driver(int argc, char **argv) :
   pcout (std::cout),
-  computational_domain(1,1),
-  fma(computational_domain),
-  bem_problem(computational_domain, fma),
+  mpi_communicator (MPI_COMM_WORLD),
+  computational_domain(mpi_communicator),
+  bem_problem(computational_domain,1,mpi_communicator),
   boundary_conditions(computational_domain, bem_problem),
   prm(),
-  mpi_communicator (MPI_COMM_WORLD),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
 {
@@ -98,7 +97,6 @@ void Driver<dim>::DeclareParameters()
   computational_domain.declare_parameters(prm);
   boundary_conditions.declare_parameters(prm);
   bem_problem.declare_parameters(prm);
-  fma.declare_parameters(prm);
 }
 
 template <int dim>
@@ -107,7 +105,6 @@ void Driver<dim>::ParseParameters()
   computational_domain.parse_parameters(prm);
   boundary_conditions.parse_parameters(prm);
   bem_problem.parse_parameters(prm);
-  fma.parse_parameters(prm);
 }
 
-//template class Driver<3>;
+template class Driver<3>;

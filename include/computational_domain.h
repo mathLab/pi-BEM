@@ -69,7 +69,6 @@
 #include <map>
 
 
-#include "../include/octree_block.h"
 #include "../include/local_expansion.h"
 #include "../include/multipole_expansion.h"
 #include "../include/ass_leg_function.h"
@@ -94,8 +93,7 @@ public:
   // make them public end introduce suitable
   // Get and Set methods, if needed
 
-  ComputationalDomain(const unsigned int fe_degree = 1,
-                      const unsigned int mapping_degree = 1);
+  ComputationalDomain(MPI_Comm comm = MPI_COMM_WORLD);
 
 
   ~ComputationalDomain();
@@ -124,21 +122,6 @@ public:
 
   void refine_and_resize(const unsigned int refinement_level);
 
-  // in the imported mesh, the nodes on the
-  // domain edges are doubled: this routine
-  // creates a std::vector of std::set which
-  // allows to relate each node to their
-  // double(s)
-
-  void generate_double_nodes_set();
-
-  // this method is needed to
-  // separate Dirichlet nodes from
-  // Neumann nodes.
-
-  void compute_phi_nodes();
-  // computation of normals at collocation points (dofs)
-  void compute_normals();
 
   // Here are the members of the class:
   // they are all public, as the upper level
@@ -160,48 +143,11 @@ public:
   //const unsigned int mapping_degree;
 
   Triangulation<dim-1, dim>             tria;
-  FE_Q<dim-1,dim>                       fe;
-  DoFHandler<dim-1,dim>                 dh;
-  FESystem<dim-1,dim>                   gradient_fe;
-  DoFHandler<dim-1,dim>                 gradient_dh;
-
-  // these are the std::vectors of std::sets
-  // containing informations on multiple
-  // nodes on the edges: one vector is
-  // created for the points associated with
-  // the degrees of freedom of the potential
-  // function, and one is created for the
-  // points associated with the degrees of
-  // freedom of its gradient (a vector field)
-
-  std::vector <std::set<unsigned int> >   double_nodes_set;
-  std::vector <std::set<unsigned int> >   gradient_double_nodes_set;
-
-  // An Eulerian Mapping is created to deal
-  // with the free surface and boat mesh
-  // deformation
-
-  Vector<double> map_points;
-  //MappingQ<dim-1, dim>  mapping;
-  MappingQEulerian<dim-1, Vector<double>, dim> * mapping;
 
   // here we are just renaming the cell
   // iterator
 
-  typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
-  // the following vectors are needed to
-  // treat Dirichlet and Neumann nodes
-  // differently. Each component of the
-  // first one is null if it corresponds
-  // to a Dirichlet node, and zero if
-  // it corresponds to a Neumann node.
-  // The second vector has instead null
-  // entries for Dirichlet nodes, and ones
-  // for Neumann nodes
-
-  Vector<double> surface_nodes;
-  Vector<double> other_nodes;
 
   // values to be imported from the
   // parameters file:
@@ -211,35 +157,18 @@ public:
   unsigned int n_cycles;
 
 
-  // the number of standard quadrature points
-  // and singular kernel quadrature to be
-  // used
-
-  std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
-  unsigned int singular_quadrature_order;
 
   // the material ID numbers in the mesh
   // input file, for the free surface cells
   // and wall boundary (boat) cells
 
-  unsigned int free_sur_ID1;
-  unsigned int free_sur_ID2;
-  unsigned int free_sur_ID3;
-  unsigned int wall_sur_ID1;
-  unsigned int wall_sur_ID2;
-  unsigned int wall_sur_ID3;
-  // a std::set containing nodes of
-  // free surface with doubles on the boat
-  // needed to calculate their displacement
+  unsigned int dirichlet_sur_ID1;
+  unsigned int dirichlet_sur_ID2;
+  unsigned int dirichlet_sur_ID3;
+  unsigned int neumann_sur_ID1;
+  unsigned int neumann_sur_ID2;
+  unsigned int neumann_sur_ID3;
 
-  std::set<unsigned int> free_surf_and_boat_nodes;
-
-  // a std::set containing nodes of
-  // the boat with doubles on the boat
-  // needed to calculate the boat
-  // surface smoothing
-
-  std::set<unsigned int> boat_keel_nodes;
 
   MPI_Comm mpi_communicator;
 
@@ -249,14 +178,6 @@ public:
 
   ConditionalOStream pcout;
 
-  // vector of Point<dim> containing the node normals
-
-  std::vector<Point<dim> > node_normals;
-
-  //______________________
-  //just for check: to be removed
-
-  std::map <unsigned int, std::map<cell_it,unsigned int> > integralCheck;
 
 };
 

@@ -43,7 +43,7 @@ void Operator::MinBEMOperator<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, co
   TrilinosWrappers::MPI::Vector matrVectProdN;
   TrilinosWrappers::MPI::Vector matrVectProdD;
 
-  const unsigned int n_dofs =  op_fma.fma_dh->n_dofs();
+  //const unsigned int n_dofs =  op_fma.fma_dh->n_dofs();
 
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
   matrVectProdD.reinit(this_cpu_set,mpi_communicator);
@@ -84,7 +84,7 @@ void Operator::MinBEMOperator<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &d
   TrilinosWrappers::MPI::Vector matrVectProdN;
   TrilinosWrappers::MPI::Vector matrVectProdD;
 
-  const unsigned int n_dofs =  op_fma.fma_dh->n_dofs();
+  //const unsigned int n_dofs =  op_fma.fma_dh->n_dofs();
 
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
   matrVectProdD.reinit(this_cpu_set,mpi_communicator);

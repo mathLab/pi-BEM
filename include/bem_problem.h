@@ -110,7 +110,7 @@ public:
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
   BEMProblem(ComputationalDomain<dim> &comp_dom,
-             BEMFMA<dim> &fma,
+             const unsigned int fe_degree,
              MPI_Comm comm = MPI_COMM_WORLD);
 
   void solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
@@ -167,11 +167,76 @@ public:
 
   void compute_gradients(const TrilinosWrappers::MPI::Vector &phi, const TrilinosWrappers::MPI::Vector &dphi_dn);
 
-  ConditionalOStream pcout;
+  void compute_normals();
 
+  // this method is needed to
+  // separate Dirichlet dofs from
+  // Neumann nodes.
+
+  void compute_dirichlet_and_neumann_dofs_vectors();
+
+
+  // in the imported mesh, the nodes on the
+  // domain edges are doubled: this routine
+  // creates a std::vector of std::set which
+  // allows to relate each node to their
+  // double(s)
+
+  void compute_double_nodes_set();
+
+
+
+
+  ConditionalOStream pcout;
   ComputationalDomain<dim> &comp_dom;
 
-  BEMFMA<dim> &fma;
+  FE_Q<dim-1,dim>                   fe;
+  DoFHandler<dim-1,dim>             dh;
+  FESystem<dim-1,dim>      gradient_fe;
+  DoFHandler<dim-1,dim>    gradient_dh;
+
+
+
+  // An Eulerian Mapping is created to deal
+  // with the free surface and boat mesh
+  // deformation
+
+  MappingQ<dim-1, dim>      mapping;
+  Vector<double> map_points;
+
+
+  // these are the std::vectors of std::sets
+  // containing informations on multiple
+  // nodes on the edges: one vector is
+  // created for the points associated with
+  // the degrees of freedom of the potential
+  // function, and one is created for the
+  // points associated with the degrees of
+  // freedom of its gradient (a vector field)
+
+  std::vector <std::set<unsigned int> >   double_nodes_set;
+  std::vector <std::set<unsigned int> >   gradient_double_nodes_set;
+
+
+
+  // the following vectors are needed to
+  // treat Dirichlet and Neumann nodes
+  // differently. Each component of the
+  // first one is null if it corresponds
+  // to a Dirichlet node, and zero if
+  // it corresponds to a Neumann node.
+  // The second vector has instead null
+  // entries for Dirichlet nodes, and ones
+  // for Neumann nodes
+
+  // the number of standard quadrature points
+  // and singular kernel quadrature to be
+  // used
+
+  std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
+  unsigned int singular_quadrature_order;
+
+
   TrilinosWrappers::SparsityPattern full_sparsity_pattern;
   TrilinosWrappers::SparseMatrix neumann_matrix;
   TrilinosWrappers::SparseMatrix dirichlet_matrix;
@@ -209,14 +274,18 @@ public:
 
   unsigned int this_mpi_process;
 
-  TrilinosWrappers::MPI::Vector surface_nodes;
-  TrilinosWrappers::MPI::Vector other_nodes;
+  TrilinosWrappers::MPI::Vector dirichlet_nodes;
+  TrilinosWrappers::MPI::Vector neumann_nodes;
 
   IndexSet this_cpu_set;
 
   std::vector<Point<dim> > node_surface_gradients;
 
   std::vector<Point<dim> > node_gradients;
+
+  std::vector<Point<dim> > node_normals;
+
+  BEMFMA<dim> fma;
 };
 
 #endif

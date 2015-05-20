@@ -18,37 +18,19 @@
  */
 
 
-#include "step_fma.h"
+#include "driver.h"
 
-
-
-
-
-// @sect3{The main() function}
-
-// This is the main function of this program. It is exactly like all previous
-// tutorial programs:
 int main (int argc, char *argv[])
 {
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
   try
     {
-      using namespace dealii;
-      using namespace MinFmm;
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      const unsigned int degree = 1;
+      Driver<3> driver(argc, argv);
 
-      // deallog.depth_console (3);
-      // StepFMA<2> laplace_problem_2d(degree, mapping_degree);
-      // laplace_problem_2d.run();
-
-      StepFMA<3> laplace_problem_3d_fmm(degree, true);
-      ParameterAcceptor::initialize("parameters_fma.prm", "used_parameters_fma.prm");
-      laplace_problem_3d_fmm.run();
-
-      StepFMA<3> laplace_problem_3d_direct(degree, false);
-      ParameterAcceptor::initialize("parameters_fma.prm", "used_parameters_fma.prm");
-      laplace_problem_3d_direct.run();
+      
+      driver.run();
+    
     }
   catch (std::exception &exc)
     {
@@ -60,10 +42,10 @@ int main (int argc, char *argv[])
                 << "Aborting!" << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
-
+      
       return 1;
     }
-  catch (...)
+  catch (...) 
     {
       std::cerr << std::endl << std::endl
                 << "----------------------------------------------------"
@@ -77,3 +59,7 @@ int main (int argc, char *argv[])
 
   return 0;
 }
+
+
+
+

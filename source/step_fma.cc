@@ -526,7 +526,7 @@ void MinFmm::StepFMA<dim>::solve_system()
 
 
 template <int dim>
-void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
+void MinFmm::StepFMA<dim>::compute_errors(const unsigned int /*cycle*/)
 {
   std::cout<<"using sak to compute the errors"<<std::endl;
   eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
@@ -818,7 +818,7 @@ void MinFmm::StepFMA<dim>::run()
       compute_double_nodes_set();
       compute_boundary_condition();
       if (cycle == 0)
-        fma.init_fma(dh, double_nodes_set, dirichlet_nodes, constraints, mapping);
+        fma.init_fma(dh, double_nodes_set, dirichlet_nodes, mapping);
       if (!fmm_sol)
         assemble_direct_system();
       solve_system();

@@ -50,7 +50,7 @@ public:
                       MPI_Comm comm = MPI_COMM_WORLD) :
     constraints(c),
     matrix(m),
-    mpi_communicator (MPI_COMM_WORLD),
+    mpi_communicator (comm),
     n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
   {}

@@ -47,7 +47,6 @@ BEMFMA<dim>::~BEMFMA()
   // dirichlet_nodes = SP();//per quadratura singolare e octree generator
   // double_nodes_set = SP();//da passare al metodo che fa il precondizionatore
   // fma_mapping = SP();
-  // fma_cm = SP();
 
 
 }
@@ -56,7 +55,6 @@ template <int dim>
 void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
                            const std::vector<std::set<unsigned int> > &db_in,
                            const TrilinosWrappers::MPI::Vector &input_sn,
-                           const ConstraintMatrix &input_cm,
                            const Mapping<dim-1,dim> &input_mapping)
 {
   fma_dh = &input_dh;
@@ -64,7 +62,6 @@ void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
   dirichlet_nodes = &input_sn;//per quadratura singolare e octree generator
   double_nodes_set = &db_in;//da passare al metodo che fa il precondizionatore
   fma_mapping = &input_mapping;
-  fma_cm = &input_cm;
 
 }
 
@@ -560,12 +557,10 @@ void BEMFMA<dim>::direct_integrals()
                     {
                       prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
                       prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                      //     if (cell->material_id() ==  free_sur_ID1 ||
-                      //        cell->material_id() ==  free_sur_ID2 ||
-                      //  cell->material_id() ==  free_sur_ID3    )
-                      //        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                      //     else
-                      //        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                      else
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
                     }
 
                 } // end loop on cells of the intList
@@ -679,13 +674,11 @@ void BEMFMA<dim>::direct_integrals()
                     {
                       prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
                       prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                      // HELP!!!
-                      //     if (cell->material_id() == comp_dom.free_sur_ID1 ||
-                      //        cell->material_id() == comp_dom.free_sur_ID2 ||
-                      //  cell->material_id() == comp_dom.free_sur_ID3    )
-                      //        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                      //     else
-                      //        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      
+                      if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                      else
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
                     }
 
 
@@ -862,7 +855,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
       Point<dim> deltaHalf;
       for (unsigned int i=0; i<dim; i++)
         deltaHalf(i) = delta/2.;
-      Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
+      //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
 
       std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
 
@@ -1185,13 +1178,14 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
     if (c.is_constrained(i))
       {
         final_preconditioner.set(i,i,1);
+        std::cout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
         // constrainednodes entries are taken from the bem problem constraint matrix
         const std::vector< std::pair < unsigned int, double > >
         *entries = c.get_constraint_entries (i);
         for (unsigned int j=0; j< entries->size(); ++j)
           {
             final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
-            //cout<<i<<" "<<(*entries)[j].first<<" "<<(*entries)[j].second<<endl;
+            std::cout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
           }
       }
     else
@@ -1203,7 +1197,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
             if (init_prec_sparsity_pattern.exists(i,j))
               {
                 final_preconditioner.set(i,j,init_preconditioner(i,j));
-                //cout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<endl;
+                std::cout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
               }
           }
       }
@@ -1212,8 +1206,10 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
 
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
     if ( (*dirichlet_nodes)(i) == 0 && !c.is_constrained(i))
+      {
       final_preconditioner.add(i,i,alpha(i));
-
+      std::cout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+      }
 
   //preconditioner.print_formatted(std::cout,4,true,0," 0 ",1.);
   preconditioner.initialize(final_preconditioner);
@@ -1236,7 +1232,7 @@ void BEMFMA<dim>::compute_geometry_cache()
   FESystem<dim-1,dim> gradient_fe(*fma_fe, dim);
   DoFHandler<dim-1, dim> gradient_dh(fma_dh->get_tria());
 
-  double tol = 1e-8;
+  //double tol = 1e-8;
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());
 
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *fma_mapping,

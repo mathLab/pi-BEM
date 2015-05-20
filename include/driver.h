@@ -89,9 +89,9 @@ private:
 
   ConditionalOStream pcout;
 
-  ComputationalDomain<dim> computational_domain;
+  MPI_Comm mpi_communicator;
 
-  BEMFMA<dim> fma;
+  ComputationalDomain<dim> computational_domain;
 
   BEMProblem<dim> bem_problem;
 
@@ -99,7 +99,7 @@ private:
 
   ParameterHandler prm;
 
-  MPI_Comm mpi_communicator;
+  
 
   const unsigned int n_mpi_processes;
   const unsigned int this_mpi_process;

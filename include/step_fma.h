@@ -197,26 +197,24 @@ namespace MinFmm
     unsigned int n_cycles;
     unsigned int external_refinement;
 
-
-    unsigned int n_mpi_processes;
-
-    unsigned int this_mpi_process;
-
     bool run_in_this_dimension;
     bool extend_solution;
-    ConditionalOStream pcout;
     IndexSet this_cpu_set;
     TrilinosWrappers::MPI::Vector dirichlet_nodes;
     TrilinosWrappers::MPI::Vector              dirichlet_values;
     TrilinosWrappers::MPI::Vector              neumann_values;
     std::vector <std::set<unsigned int> >   double_nodes_set;
+    bool fmm_sol;
     ErrorHandler<2> eh;
+    unsigned int n_mpi_processes;
+    unsigned int this_mpi_process;
+    ConditionalOStream pcout;
+
     TrilinosWrappers::SparseMatrix system_matrix;//(const size_type m, const size_type n, const unsigned int n_max_entries_per_row);
     TrilinosWrappers::SparsityPattern tril_sp;
     ConstraintMatrix constraints;
     TrilinosWrappers::MPI::Vector              system_rhs;
     TrilinosWrappers::MPI::Vector              system_alpha;
-    bool fmm_sol;
     BEMFMA<dim> fma;
 
   };

@@ -49,15 +49,9 @@
 // is static, and has no knowledge of
 // the number of components.
 template <int dim>
-ComputationalDomain<dim>::ComputationalDomain(const unsigned int fe_degree,
-                                              const unsigned int mapping_degree)
+ComputationalDomain<dim>::ComputationalDomain(MPI_Comm comm)
   :
-  fe(fe_degree),
-  dh(tria),
-  gradient_fe(FE_Q<dim-1,dim>(fe_degree), dim),
-  gradient_dh(tria),
-  mapping(NULL),
-  mpi_communicator (MPI_COMM_WORLD),
+  mpi_communicator (comm),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
   pcout(std::cout)
@@ -70,11 +64,7 @@ ComputationalDomain<dim>::ComputationalDomain(const unsigned int fe_degree,
 template <int dim>
 ComputationalDomain<dim>::~ComputationalDomain()
 {
-  if (mapping != NULL)
-    {
-      delete mapping;
-      mapping = NULL;
-    }
+
 }
 
 
@@ -85,25 +75,15 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   prm.declare_entry("Number of cycles", "4",
                     Patterns::Integer());
 
-  prm.enter_subsection("Quadrature rules");
-  {
-    prm.declare_entry("Quadrature type", "gauss",
-                      Patterns::Selection(QuadratureSelector<(dim-1)>::get_quadrature_names()));
-    prm.declare_entry("Quadrature order", "4", Patterns::Integer());
-    prm.declare_entry("Singular quadrature order", "5", Patterns::Integer());
-  }
-  prm.leave_subsection();
-
-
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    prm.declare_entry("Free Surface 1 ID", "110", Patterns::Integer());
-    prm.declare_entry("Free Surface 2 ID", "110", Patterns::Integer());
-    prm.declare_entry("Free Surface 3 ID", "110", Patterns::Integer());
-    prm.declare_entry("Wall Surface 1 ID", "110", Patterns::Integer());
-    prm.declare_entry("Wall Surface 2 ID", "110", Patterns::Integer());
-    prm.declare_entry("Wall Surface 3 ID", "110", Patterns::Integer());
+    prm.declare_entry("Dirichlet Surface 1 ID", "110", Patterns::Integer());
+    prm.declare_entry("Dirichlet Surface 2 ID", "110", Patterns::Integer());
+    prm.declare_entry("Dirichlet Surface 3 ID", "110", Patterns::Integer());
+    prm.declare_entry("Neumann Surface 1 ID", "110", Patterns::Integer());
+    prm.declare_entry("Neumann Surface 2 ID", "110", Patterns::Integer());
+    prm.declare_entry("Neumann Surface 3 ID", "110", Patterns::Integer());
   }
   prm.leave_subsection();
 
@@ -115,24 +95,15 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
 {
   n_cycles = prm.get_integer("Number of cycles");
 
-  prm.enter_subsection("Quadrature rules");
-  {
-    quadrature =
-      std_cxx1x::shared_ptr<Quadrature<dim-1> >
-      (new QuadratureSelector<dim-1> (prm.get("Quadrature type"),
-                                      prm.get_integer("Quadrature order")));
-    singular_quadrature_order = prm.get_integer("Singular quadrature order");
-  }
-  prm.leave_subsection();
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    free_sur_ID1 = prm.get_integer("Free Surface 1 ID");
-    free_sur_ID2 = prm.get_integer("Free Surface 2 ID");
-    free_sur_ID3 = prm.get_integer("Free Surface 3 ID");
-    wall_sur_ID1 = prm.get_integer("Wall Surface 1 ID");
-    wall_sur_ID2 = prm.get_integer("Wall Surface 2 ID");
-    wall_sur_ID3 = prm.get_integer("Wall Surface 3 ID");
+    dirichlet_sur_ID1 = prm.get_integer("Dirichlet Surface 1 ID");
+    dirichlet_sur_ID2 = prm.get_integer("Dirichlet Surface 2 ID");
+    dirichlet_sur_ID3 = prm.get_integer("Dirichlet Surface 3 ID");
+    neumann_sur_ID1 = prm.get_integer("Neumann Surface 1 ID");
+    neumann_sur_ID2 = prm.get_integer("Neumann Surface 2 ID");
+    neumann_sur_ID3 = prm.get_integer("Neumann Surface 3 ID");
   }
   prm.leave_subsection();
 
@@ -217,7 +188,7 @@ void ComputationalDomain<dim>::read_domain()
   GridIn<dim-1, dim> gi;
   gi.attach_triangulation (tria);
   gi.read_ucd (in);
-  dh.distribute_dofs(fe);
+
 
 
 }
@@ -498,407 +469,10 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
   grid_out0.write_ucd(tria, logfile0);
 
 
-  dh.distribute_dofs(fe);
-  DoFRenumbering::subdomain_wise(dh);
-  gradient_dh.distribute_dofs(gradient_fe);
-  DoFRenumbering::subdomain_wise(dh);
-  map_points.reinit(gradient_dh.n_dofs(),false);
-
-  const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association (dh, this_mpi_process);
-  pcout<<"Proc: "<<this_mpi_process<<"  Dofs: "<<n_local_dofs<<std::endl;
-
-  if (mapping == NULL)
-    mapping = new MappingQEulerian<dim-1, Vector<double>, dim>
-    (gradient_fe.degree, gradient_dh, map_points);
-
-  //Vector<double> map_points_old(map_points);
-  //soltrans.refine_interpolate(map_points_old, map_points);
-
-  generate_double_nodes_set();
-
-
   pcout<<"...done refining and resizing mesh"<<std::endl;
 }
 
 
-template <int dim>
-void ComputationalDomain<dim>::generate_double_nodes_set()
-{
-  pcout<<"Generating double nodes set..."<<std::endl;
-
-  // @sect5{ComputationalDomain::generate_double_nodes_set}
-
-  // The following is the function
-  // which creates a set containing
-  // the double nodes.
-
-
-  double tol = 1e-8;
-  double_nodes_set.clear();
-  double_nodes_set.resize(dh.n_dofs());
-  std::vector<Point<dim> > support_points(dh.n_dofs());
-
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping,
-                                                    dh, support_points);
-
-  for (unsigned int i=0; i<dh.n_dofs(); ++i)
-    {
-      for (unsigned int j=0; j<dh.n_dofs(); ++j)
-        {
-          //pcout<<"i "<<i<<" ("<<support_points[i]<<")  j "<<j<<" ("<<support_points[j]<<")  distance "<<support_points[i].distance(support_points[j])<<std::endl;
-          if (support_points[i].distance(support_points[j]) < tol)
-            {
-              double_nodes_set[i].insert(j);
-              //pcout<<"i "<<i<<" double "<<double_nodes_set[i].count(j)<<std::endl;
-            }
-        }
-
-    }
-  // for the gradient dofs finding coupled
-  // dofs is a little bit difficult, as the
-  // gradient is a vectorial function: usually
-  // in such case the dofs are numbered
-  // so that for each support point dim
-  // consecutive dofs represent each component
-  // of the vector field: in this case
-  // (and only in this case) the following
-  // piece of code works
-
-  gradient_double_nodes_set.clear();
-  gradient_double_nodes_set.resize(gradient_dh.n_dofs());
-  std::vector<Point<dim> > gradient_support_points(gradient_dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping,
-                                                    gradient_dh, gradient_support_points);
-  for (unsigned int k = 0; k < dim; k++)
-    {
-      for (unsigned int i=k; i<gradient_dh.n_dofs(); i=i+dim)
-        {
-          for (unsigned int j=k; j<gradient_dh.n_dofs(); j=j+dim)
-            {
-              //pcout<<"i "<<i<<" ("<<support_points[i]<<")  j "<<j<<" ("<<support_points[j]<<")  distance "<<support_points[i].distance(support_points[j])<<std::endl;
-              if (gradient_support_points[i].distance(gradient_support_points[j]) < tol )
-                {
-                  gradient_double_nodes_set[i].insert(j);
-                  //pcout<<"i "<<i<<" double "<<j<<std::endl;
-                }
-            }
-        }
-    }
-
-  cell_it
-  gradient_cell = gradient_dh.begin_active(),
-  gradient_endc = gradient_dh.end();
-
-  cell_it
-  cell = dh.begin_active(),
-  endc = dh.end();
-
-  std::vector<unsigned int> dofs(fe.dofs_per_cell);
-  std::vector<unsigned int> gradient_dofs(gradient_fe.dofs_per_cell);
-  // mappa che associa ad ogni dof le celle cui esso appartiene
-  //fma.dof_to_elems.clear();
-
-  // mappa che associa ad ogni gradient dof le celle cui esso appartiene
-  //fma.gradient_dof_to_elems.clear();
-
-  // vettore che associa ad ogni gradient dof la sua componente
-  //fma.gradient_dof_components.clear();
-  //fma.gradient_dof_components.resize(gradient_dh.n_dofs());
-
-  // mappa che associa ad ogni cella un set contenente le celle circostanti
-  //fma.elem_to_surr_elems.clear();
-
-  // set che raccoglie i nodi della free surface che stanno sulla barca
-  free_surf_and_boat_nodes.clear();
-
-  // mappa raccoglie i nodi degli edges della barca
-  boat_keel_nodes.clear();
-
-
-  for (; cell!=endc; ++cell,++gradient_cell)
-    {
-      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
-
-      cell->get_dof_indices(dofs);
-      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
-        {
-          //fma.dof_to_elems[dofs[j]].push_back(cell);
-        }
-      gradient_cell->get_dof_indices(gradient_dofs);
-      for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
-        {
-          //fma.gradient_dof_to_elems[gradient_dofs[j]].push_back(gradient_cell);
-          //fma.gradient_dof_components[gradient_dofs[j]] = gradient_fe.system_to_component_index(j).first;
-        }
-    }
-
-  // qui viene creata la mappa dei elmenti che circondano ciascun elemento
-  for (cell = dh.begin_active(); cell != endc; ++cell)
-    {
-      cell->get_dof_indices(dofs);
-      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
-        {
-          std::set <unsigned int> duplicates = double_nodes_set[dofs[j]];
-          // TO BE FIXED !!!
-          // for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-          //     {
-          //     std::vector<cell_it>
-          //     dof_cell_list = //fma.dof_to_elems[*pos];
-          //     //for (unsigned int k=0; k<dof_cell_list.size(); ++k)
-          //               //fma.elem_to_surr_elems[cell].insert(dof_cell_list[k]);
-          //     }
-        }
-    }
-
-  gradient_cell = gradient_dh.begin_active();
-  cell = dh.begin_active();
-
-  for (; cell!=endc; ++cell,++gradient_cell)
-    {
-      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
-
-      if (cell->material_id() == wall_sur_ID1 ||
-          cell->material_id() == wall_sur_ID2 ||
-          cell->material_id() == wall_sur_ID3)
-        {
-          // This is a free surface node.
-          gradient_cell->get_dof_indices(gradient_dofs);
-          for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
-            {
-              std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
-              // TO BE FIXED !!!
-              //    for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-              //        {
-              //        //cell_it duplicate_cell = //fma.gradient_dof_to_elems[*pos][0];
-              //  if (duplicate_cell->material_id() == free_sur_ID1 ||
-              //                  duplicate_cell->material_id() == free_sur_ID2 ||
-              //                  duplicate_cell->material_id() == free_sur_ID3)
-              //     {
-              //     free_surf_and_boat_nodes.insert(gradient_dofs[j]);
-              //     }
-              //
-              //        }
-            }
-          //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
-        }
-    }
-
-  gradient_cell = gradient_dh.begin_active();
-  cell = dh.begin_active();
-
-  for (; cell!=endc; ++cell,++gradient_cell)
-    {
-      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
-
-      if (gradient_cell->material_id() == wall_sur_ID1)
-        {
-          gradient_cell->get_dof_indices(gradient_dofs);
-          for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
-            {
-              std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
-              // TO BE FIXED !!!
-              //    for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-              //        {
-              //        //cell_it duplicate_cell = //fma.gradient_dof_to_elems[*pos][0];
-              //  if (
-              //                  duplicate_cell->material_id() == wall_sur_ID2 ||
-              //                  duplicate_cell->material_id() == wall_sur_ID3)
-              //     {
-              //     boat_keel_nodes.insert(gradient_dofs[j]);
-              //     }
-              //
-              //        }
-            }
-          //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
-        }
-    }
-  gradient_cell = gradient_dh.begin_active();
-  cell = dh.begin_active();
-
-  for (; cell!=endc; ++cell,++gradient_cell)
-    {
-      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
-
-      if (gradient_cell->material_id() == wall_sur_ID2)
-        {
-          // This is a free surface node.
-          gradient_cell->get_dof_indices(gradient_dofs);
-          for (unsigned int j=0; j<gradient_fe.dofs_per_cell; ++j)
-            {
-              std::set <unsigned int> duplicates = gradient_double_nodes_set[gradient_dofs[j]];
-              // TO BE FIXED !!!
-              //    for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
-              //        {
-              //        //cell_it duplicate_cell = //fma.gradient_dof_to_elems[*pos][0];
-              // //  if (duplicate_cell->material_id() == wall_sur_ID3)
-              // //     {
-              // //     boat_keel_nodes.insert(gradient_dofs[j]);
-              // //     }
-              //
-              //        }
-            }
-          //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
-        }
-    }
-
-
-  pcout<<"...done"<<std::endl;
-}
-
-
-template <int dim>
-void ComputationalDomain<dim>::compute_phi_nodes()
-{
-
-  cell_it
-  gradient_cell = gradient_dh.begin_active(),
-  gradient_endc = gradient_dh.end();
-
-  cell_it
-  cell = dh.begin_active(),
-  endc = dh.end();
-
-  surface_nodes.reinit(dh.n_dofs());
-  other_nodes.reinit(dh.n_dofs());
-  other_nodes.add(1);
-  std::vector<unsigned int> dofs(fe.dofs_per_cell);
-  std::vector<unsigned int> gradient_dofs(gradient_fe.dofs_per_cell);
-
-  for (; cell != endc; ++cell)
-    {
-      if (cell->material_id() == free_sur_ID1 ||
-          cell->material_id() == free_sur_ID2 ||
-          cell->material_id() == free_sur_ID3)
-        {
-          // This is a free surface node.
-          cell->get_dof_indices(dofs);
-          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-            {
-              surface_nodes(dofs[i]) = 1;
-              other_nodes(dofs[i]) = 0;
-              //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
-            }
-        }
-      else
-        {
-          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-            {
-              cell->get_dof_indices(dofs);
-              //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<surface_nodes(dofs[i])<<"  otherNodes: "<<other_nodes(dofs[i])<<std::endl;
-            }
-
-        }
-
-    }
-
-  //for (unsigned int i=0; i<dh.n_dofs(); ++i)
-  //    if (this_mpi_process == 1)
-  //       pcout<<i<<" "<<surface_nodes(i)<<" "<<other_nodes(i)<<std::endl;
-
-}
-
-
-
-
-
-
-template <int dim>
-void ComputationalDomain<dim>::compute_normals()
-{
-  typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-
-  SparsityPattern      normals_sparsity_pattern;
-  normals_sparsity_pattern.reinit(gradient_dh.n_dofs(),
-                                  gradient_dh.n_dofs(),
-                                  gradient_dh.max_couplings_between_dofs());
-  ConstraintMatrix  vector_constraints;
-  vector_constraints.clear();
-  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  vector_constraints.close();
-  DoFTools::make_sparsity_pattern (gradient_dh, normals_sparsity_pattern, vector_constraints);
-  normals_sparsity_pattern.compress();
-  Vector<double> vector_normals_solution(gradient_dh.n_dofs());
-
-  SparseMatrix<double> vector_normals_matrix;
-  Vector<double> vector_normals_rhs;
-
-  vector_normals_matrix.reinit (normals_sparsity_pattern);
-  vector_normals_rhs.reinit(gradient_dh.n_dofs());
-  vector_normals_solution.reinit(gradient_dh.n_dofs());
-
-
-  FEValues<dim-1,dim> gradient_fe_v(*mapping, gradient_fe, *quadrature,
-                                    update_values | update_cell_normal_vectors |
-                                    update_JxW_values);
-
-  const unsigned int vector_n_q_points = gradient_fe_v.n_quadrature_points;
-  const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
-  std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
-
-  FullMatrix<double>   local_normals_matrix (vector_dofs_per_cell, vector_dofs_per_cell);
-  Vector<double>       local_normals_rhs (vector_dofs_per_cell);
-
-  cell_it
-  vector_cell = gradient_dh.begin_active(),
-  vector_endc = gradient_dh.end();
-
-  for (; vector_cell!=vector_endc; ++vector_cell)
-    {
-      gradient_fe_v.reinit (vector_cell);
-      local_normals_matrix = 0;
-      local_normals_rhs = 0;
-      const std::vector<Point<dim> > &vector_node_normals = gradient_fe_v.get_normal_vectors();
-      unsigned int comp_i, comp_j;
-
-      for (unsigned int q=0; q<vector_n_q_points; ++q)
-        for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
-          {
-            comp_i = gradient_fe.system_to_component_index(i).first;
-            for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
-              {
-                comp_j = gradient_fe.system_to_component_index(j).first;
-                if (comp_i == comp_j)
-                  {
-                    local_normals_matrix(i,j) += gradient_fe_v.shape_value(i,q)*
-                                                 gradient_fe_v.shape_value(j,q)*
-                                                 gradient_fe_v.JxW(q);
-                  }
-              }
-            local_normals_rhs(i) += (gradient_fe_v.shape_value(i, q)) *
-                                    vector_node_normals[q](comp_i) * gradient_fe_v.JxW(q);
-          }
-
-      vector_cell->get_dof_indices (vector_local_dof_indices);
-
-      vector_constraints.distribute_local_to_global
-      (local_normals_matrix,
-       local_normals_rhs,
-       vector_local_dof_indices,
-       vector_normals_matrix,
-       vector_normals_rhs);
-    }
-
-
-
-  SparseDirectUMFPACK normals_inverse;
-  normals_inverse.initialize(vector_normals_matrix);
-  normals_inverse.vmult(vector_normals_solution, vector_normals_rhs);
-  vector_constraints.distribute(vector_normals_solution);
-
-  node_normals.resize(dh.n_dofs());
-
-  for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
-    {
-      for (unsigned int d=0; d<dim; d++)
-        node_normals[i](d) = vector_normals_solution(3*i+d);
-      node_normals[i]/= node_normals[i].distance(Point<dim>(0.0,0.0,0.0));
-      //cout<<i<<" Gradient: "<<node_normals[i]<<endl;
-      for (unsigned int d=0; d<dim; d++)
-        vector_normals_solution(3*i+d) = node_normals[i](d);
-    }
-
-
-}
 
 
 template class ComputationalDomain<3>;

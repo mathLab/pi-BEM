@@ -84,7 +84,6 @@ public:
   void init_fma(const DoFHandler<dim-1,dim> &input_dh,
                 const std::vector<std::set<unsigned int> > &db_in,
                 const TrilinosWrappers::MPI::Vector &input_sn,
-                const ConstraintMatrix &input_cm,
                 const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping);
 
   virtual void declare_parameters(ParameterHandler &prm);
@@ -156,7 +155,6 @@ private:
 
   SmartPointer<const DoFHandler<dim-1,dim> >         fma_dh;
   SmartPointer<const FiniteElement<dim-1,dim> >  fma_fe;
-  SmartPointer<const ConstraintMatrix >  fma_cm;
   SmartPointer<const Mapping<dim-1,dim> >  fma_mapping;
 
 
@@ -251,6 +249,8 @@ private:
   // diretta in una vera matrice.
   TrilinosWrappers::PreconditionILU preconditioner;
 
+  unsigned int singular_quadrature_order;
+
   // mpi related variables
 
   MPI_Comm mpi_communicator;
@@ -258,8 +258,6 @@ private:
   unsigned int n_mpi_processes;
 
   unsigned int this_mpi_process;
-
-  unsigned int singular_quadrature_order;
 
 
   // number of levels of the octree

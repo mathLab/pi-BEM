@@ -59,12 +59,17 @@ RCP<Time> LacSolveTime = TimeMonitor::getNewTimer("LAC Solve Time");
 // the number of components.
 template <int dim>
 BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
-                            BEMFMA<dim> &fma,
+                            const unsigned int fe_degree,
                             MPI_Comm comm)
   :
   pcout(std::cout),
-  comp_dom(comp_dom), fma(fma),
-  mpi_communicator (MPI_COMM_WORLD),
+  comp_dom(comp_dom),
+  fe(fe_degree),
+  dh(comp_dom.tria),
+  gradient_fe(FE_Q<dim-1,dim>(fe_degree), dim),
+  gradient_dh(comp_dom.tria),
+  mapping(fe_degree),
+  mpi_communicator (comm),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
 {
@@ -76,18 +81,24 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
 template <int dim>
 void BEMProblem<dim>::reinit()
 {
-  const unsigned int n_dofs =  comp_dom.dh.n_dofs();
-  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
-  //this_cpu_set = DoFTools::dof_indices_with_subdomain_association(comp_dom.dh,this_mpi_process);
+
+
+  dh.distribute_dofs(fe);
+  gradient_dh.distribute_dofs(gradient_fe);
+  const unsigned int n_dofs =  dh.n_dofs();
+
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
-  DoFTools::get_subdomain_association   (comp_dom.dh,dofs_domain_association);
+  DoFTools::get_subdomain_association   (dh,dofs_domain_association);
+  this_cpu_set.clear();
   this_cpu_set.set_size(n_dofs);
+
   for (unsigned int i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)
       {
         this_cpu_set.add_index(i);
       }
   this_cpu_set.compress();
+
   //pcout<<"****  Proc: "<<this_mpi_process<<"  Dofs: "<<n_local_dofs<<"  of "<<n_dofs<<std::endl;
 
   system_rhs.reinit(this_cpu_set,mpi_communicator);
@@ -112,21 +123,20 @@ void BEMProblem<dim>::reinit()
   preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
   is_preconditioner_initialized = false;
 
-  surface_nodes.reinit(this_cpu_set,mpi_communicator);
-  other_nodes.reinit(this_cpu_set,mpi_communicator);
-  comp_dom.compute_phi_nodes();
-  surface_nodes = comp_dom.surface_nodes;
-  other_nodes = comp_dom.other_nodes;
+  dirichlet_nodes.reinit(this_cpu_set,mpi_communicator);
+  neumann_nodes.reinit(this_cpu_set,mpi_communicator);
+  compute_dirichlet_and_neumann_dofs_vectors();
+  compute_double_nodes_set();
 
-
+  fma.init_fma(dh, double_nodes_set, dirichlet_nodes, mapping);
   /*
-  for (unsigned int i=0; i<surface_nodes.size(); ++i)
+  for (unsigned int i=0; i<dirichlet_nodes.size(); ++i)
       if (this_cpu_set.is_element(i))
          {
          if (true)//(this_mpi_process == 0)
             {
-            pcout<<"Proc: "<<this_mpi_process<<"   i: "<<i<<" Sn: "<<surface_nodes(i)<<" "<<comp_dom.surface_nodes(i) <<std::endl;
-            pcout<<"Proc: "<<this_mpi_process<<"   i: "<<i<<" On: "<<other_nodes(i)<<" "<<comp_dom.other_nodes(i) <<std::endl;
+            pcout<<"Proc: "<<this_mpi_process<<"   i: "<<i<<" Sn: "<<dirichlet_nodes(i)<<" "<<dirichlet_nodes(i) <<std::endl;
+            pcout<<"Proc: "<<this_mpi_process<<"   i: "<<i<<" On: "<<neumann_nodes(i)<<" "<<neumann_nodes(i) <<std::endl;
             }
          }
   //*/
@@ -148,6 +158,17 @@ void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.declare_entry("Solution method", "Direct",
                     Patterns::Selection("Direct|FMA"));
+
+  prm.enter_subsection("Quadrature rules");
+  {
+    prm.declare_entry("Quadrature type", "gauss",
+                      Patterns::Selection(QuadratureSelector<(dim-1)>::get_quadrature_names()));
+    prm.declare_entry("Quadrature order", "4", Patterns::Integer());
+    prm.declare_entry("Singular quadrature order", "5", Patterns::Integer());
+  }
+  prm.leave_subsection();
+
+  fma.declare_parameters(prm);
 }
 
 template <int dim>
@@ -161,8 +182,104 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
   solution_method = prm.get("Solution method");
 
 
+  prm.enter_subsection("Quadrature rules");
+  {
+    quadrature =
+      std_cxx1x::shared_ptr<Quadrature<dim-1> >
+      (new QuadratureSelector<dim-1> (prm.get("Quadrature type"),
+                                      prm.get_integer("Quadrature order")));
+    singular_quadrature_order = prm.get_integer("Singular quadrature order");
+  }
+  prm.leave_subsection();
+
+  fma.parse_parameters(prm);
+
+
 }
 
+
+template <int dim>
+void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
+{
+
+  Vector<double> non_partitioned_dirichlet_nodes(dh.n_dofs());
+  Vector<double> non_partitioned_neumann_nodes(dh.n_dofs());
+
+
+  cell_it
+  gradient_cell = gradient_dh.begin_active(),
+  gradient_endc = gradient_dh.end();
+
+  cell_it
+  cell = dh.begin_active(),
+  endc = dh.end();
+
+
+  non_partitioned_neumann_nodes.add(1);
+  std::vector<unsigned int> dofs(fe.dofs_per_cell);
+  std::vector<unsigned int> gradient_dofs(gradient_fe.dofs_per_cell);
+
+  for (; cell != endc; ++cell)
+    {
+      if (cell->material_id() == comp_dom.dirichlet_sur_ID1 ||
+          cell->material_id() == comp_dom.dirichlet_sur_ID2 ||
+          cell->material_id() == comp_dom.dirichlet_sur_ID3)
+        {
+          // This is a free surface node.
+          cell->get_dof_indices(dofs);
+          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+            {
+              non_partitioned_dirichlet_nodes(dofs[i]) = 1;
+              non_partitioned_neumann_nodes(dofs[i]) = 0;
+              //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
+            }
+        }
+      else
+        {
+          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+            {
+              cell->get_dof_indices(dofs);
+              //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
+            }
+
+        }
+
+    }
+
+  dirichlet_nodes = non_partitioned_dirichlet_nodes;
+  neumann_nodes = non_partitioned_neumann_nodes;
+
+  //for (unsigned int i=0; i<dh.n_dofs(); ++i)
+  //    if (this_mpi_process == 1)
+  //       pcout<<i<<" "<<dirichlet_nodes(i)<<" "<<neumann_nodes(i)<<std::endl;
+
+}
+
+template <int dim>
+void BEMProblem<dim>::compute_double_nodes_set()
+{
+  double tol=1e-4;
+  double_nodes_set.clear();
+  double_nodes_set.resize(dh.n_dofs());
+  std::vector<Point<dim> > support_points(dh.n_dofs());
+
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping,
+                                                    dh, support_points);
+
+  for (unsigned int i=0; i<dh.n_dofs(); ++i)
+    {
+      for (unsigned int j=0; j<dh.n_dofs(); ++j)
+        {
+          if (support_points[i].distance(support_points[j]) < tol)
+            {
+              double_nodes_set[i].insert(j);
+            }
+        }
+
+    }
+
+
+}
 
 
 template <int dim>
@@ -176,11 +293,11 @@ void BEMProblem<dim>::assemble_system()
 
 
 
-  std::vector<QGaussOneOverR<2> > sing_quadratures_3d;
-  for (unsigned int i=0; i<comp_dom.fe.dofs_per_cell; ++i)
+  std::vector<QTelles<2> > sing_quadratures_3d;
+  for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
     sing_quadratures_3d.push_back
-    (QGaussOneOverR<2>(comp_dom.singular_quadrature_order,
-                       comp_dom.fe.get_unit_support_points()[i], true));
+    (QTelles<2>(singular_quadrature_order,
+                       fe.get_unit_support_points()[i]));
 
 
   // Next, we initialize an FEValues
@@ -193,7 +310,7 @@ void BEMProblem<dim>::assemble_system()
   // precise, since the functions we
   // are integrating are not
   // polynomial functions.
-  FEValues<dim-1,dim> fe_v(*comp_dom.mapping,comp_dom.fe, *comp_dom.quadrature,
+  FEValues<dim-1,dim> fe_v(mapping,fe, *quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -201,7 +318,7 @@ void BEMProblem<dim>::assemble_system()
 
   const unsigned int n_q_points = fe_v.n_quadrature_points;
 
-  std::vector<unsigned int> local_dof_indices(comp_dom.fe.dofs_per_cell);
+  std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
 
   // Unlike in finite element
   // methods, if we use a collocation
@@ -219,8 +336,8 @@ void BEMProblem<dim>::assemble_system()
   // global row $i$. The following
   // object will hold this
   // information:
-  Vector<double>      local_neumann_matrix_row_i(comp_dom.fe.dofs_per_cell);
-  Vector<double>      local_dirichlet_matrix_row_i(comp_dom.fe.dofs_per_cell);
+  Vector<double>      local_neumann_matrix_row_i(fe.dofs_per_cell);
+  Vector<double>      local_dirichlet_matrix_row_i(fe.dofs_per_cell);
 
   // Now that we have checked that
   // the number of vertices is equal
@@ -228,8 +345,8 @@ void BEMProblem<dim>::assemble_system()
   // freedom, we construct a vector
   // of support points which will be
   // used in the local integrations:
-  std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping, comp_dom.dh, support_points);
+  std::vector<Point<dim> > support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
 
 
   // After doing so, we can start the
@@ -244,13 +361,13 @@ void BEMProblem<dim>::assemble_system()
 
 
   cell_it
-  cell = comp_dom.dh.begin_active(),
-  endc = comp_dom.dh.end();
+  cell = dh.begin_active(),
+  endc = dh.end();
 
   Point<dim> D;
   double s;
 
-  for (cell = comp_dom.dh.begin_active(); cell != endc; ++cell)
+  for (cell = dh.begin_active(); cell != endc; ++cell)
     {
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);
@@ -274,7 +391,7 @@ void BEMProblem<dim>::assemble_system()
       // therefore check wether this is
       // the case, and we store which
       // one is the singular index:
-      for (unsigned int i=0; i<comp_dom.dh.n_dofs() ; ++i) //these must now be the locally owned dofs. the rest should stay the same
+      for (unsigned int i=0; i<dh.n_dofs() ; ++i) //these must now be the locally owned dofs. the rest should stay the same
         {
           if (this_cpu_set.is_element(i))
             {
@@ -284,9 +401,9 @@ void BEMProblem<dim>::assemble_system()
               bool is_singular = false;
               unsigned int singular_index = numbers::invalid_unsigned_int;
 
-              for (unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j)
+              for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                 //if(local_dof_indices[j] == i)
-                if (comp_dom.double_nodes_set[i].count(local_dof_indices[j]) > 0)
+                if (double_nodes_set[i].count(local_dof_indices[j]) > 0)
                   {
                     singular_index = j;
                     is_singular = true;
@@ -309,7 +426,7 @@ void BEMProblem<dim>::assemble_system()
                       const Tensor<1,dim> R = q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, D, s);
 
-                      for (unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j)
+                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                         {
                           local_neumann_matrix_row_i(j) += ( ( D *
                                                                normals[q] ) *
@@ -544,7 +661,7 @@ void BEMProblem<dim>::assemble_system()
                     = (dim == 2
                        ?
                        dynamic_cast<Quadrature<dim-1>*>(
-                         new QGaussLogR<1>(comp_dom.singular_quadrature_order,
+                         new QGaussLogR<1>(singular_quadrature_order,
                                            Point<1>((double)singular_index),
                                            1./cell->measure(), true))
                        :
@@ -556,7 +673,7 @@ void BEMProblem<dim>::assemble_system()
                         0));
                   Assert(singular_quadrature, ExcInternalError());
 
-                  FEValues<dim-1,dim> fe_v_singular (*comp_dom.mapping, comp_dom.fe, *singular_quadrature,
+                  FEValues<dim-1,dim> fe_v_singular (mapping, fe, *singular_quadrature,
                                                      update_jacobians |
                                                      update_values |
                                                      update_cell_normal_vectors |
@@ -572,7 +689,7 @@ void BEMProblem<dim>::assemble_system()
                       const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, D, s);
 
-                      for (unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j)
+                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                         {
                           local_neumann_matrix_row_i(j) += (( D *
                                                               singular_normals[q])                *
@@ -592,7 +709,7 @@ void BEMProblem<dim>::assemble_system()
               // the contributions of the
               // current cell to the
               // global matrix.
-              for (unsigned int j=0; j<comp_dom.fe.dofs_per_cell; ++j)
+              for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                 {
                   neumann_matrix.add(i,local_dof_indices[j],local_neumann_matrix_row_i(j));
                   dirichlet_matrix.add(i,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
@@ -628,12 +745,12 @@ void BEMProblem<dim>::assemble_system()
 
   /*
     pcout<<"Neumann"<<std::endl;
-    for (unsigned int i = 0; i < comp_dom.dh.n_dofs(); i++)
+    for (unsigned int i = 0; i < dh.n_dofs(); i++)
         {
         if (this_cpu_set.is_element(i))
            {
            pcout<<this_mpi_process<<" *** ";
-           for (unsigned int j = 0; j < comp_dom.dh.n_dofs(); j++)
+           for (unsigned int j = 0; j < dh.n_dofs(); j++)
                {
                pcout<<neumann_matrix(i,j)<<" ";
                }
@@ -644,12 +761,12 @@ void BEMProblem<dim>::assemble_system()
 
 
     pcout<<"Dirichlet"<<std::endl;
-    for (unsigned int i = 0; i < comp_dom.dh.n_dofs(); i++)
+    for (unsigned int i = 0; i < dh.n_dofs(); i++)
         {
         if (this_cpu_set.is_element(i))
            {
            pcout<<this_mpi_process<<" *** ";
-           for (unsigned int j = 0; j < comp_dom.dh.n_dofs(); j++)
+           for (unsigned int j = 0; j < dh.n_dofs(); j++)
                {
                pcout<<dirichlet_matrix(i,j)<<" ";
                }
@@ -666,7 +783,7 @@ template <int dim>
 void BEMProblem<dim>::compute_alpha()
 {
   static TrilinosWrappers::MPI::Vector ones, zeros, dummy;
-  if (ones.size() != comp_dom.dh.n_dofs())
+  if (ones.size() != dh.n_dofs())
     {
       ones.reinit(this_cpu_set,mpi_communicator);
       ones.add(-1.);
@@ -711,8 +828,8 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
   dst = 0;
 
 
-  serv_phi.scale(other_nodes);
-  serv_dphi_dn.scale(surface_nodes);
+  serv_phi.scale(neumann_nodes);
+  serv_dphi_dn.scale(dirichlet_nodes);
 
   //phi.print(pcout);
   //dphi_dn.print(pcout);
@@ -735,10 +852,12 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
       dst += matrVectProdN;
       dst += serv_phi;
     }
+
+
   // in fully neumann bc case, we have to rescale the vector to have a zero mean
   // one
 // DA RIVEDERE!!! PER ORA QUESTO CASO IN MPI NON GIREREBBE
-  //if (comp_dom.surface_nodes.linfty_norm() < 1e-10)
+  //if (dirichlet_nodes.linfty_norm() < 1e-10)
   //   dst.add(-dst.l2_norm());
 
 }
@@ -756,20 +875,20 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
   static TrilinosWrappers::MPI::Vector matrVectProdN;
   static TrilinosWrappers::MPI::Vector matrVectProdD;
 
-  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
-  //  IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();
+  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(dh,this_mpi_process);
+  //  IndexSet this_cpu_set = dh.locally_owned_dofs();
 
-  const unsigned int n_dofs =  comp_dom.dh.n_dofs();
-  const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(comp_dom.dh,this_mpi_process);
-  IndexSet this_cpu_set = comp_dom.dh.locally_owned_dofs();/// !!! OCCHIO CHE NON SERVE TUTTO
+  //const unsigned int n_dofs =  dh.n_dofs();
+  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(dh,this_mpi_process);
+  IndexSet this_cpu_set = dh.locally_owned_dofs();/// !!! OCCHIO CHE NON SERVE TUTTO
 
 
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
   matrVectProdD.reinit(this_cpu_set,mpi_communicator);
 
 
-  serv_phi.scale(surface_nodes);
-  serv_dphi_dn.scale(other_nodes);
+  serv_phi.scale(dirichlet_nodes);
+  serv_dphi_dn.scale(neumann_nodes);
 
   //for (unsigned int ppp = 0; ppp < src.size(); ++ppp)
   //pcout<<ppp<<"  phi(ppp)="<<phi(ppp)<<"  |||   dphi_dn(ppp)="<<dphi_dn(ppp)<<std::endl;
@@ -822,23 +941,21 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
 
   compute_alpha();
 
-  //pcout<<"alpha "<<std::endl;
   //for (unsigned int i = 0; i < alpha.size(); i++)
   //    if (this_cpu_set.is_element(i))
-  //       pcout<<i<<" ("<<this_mpi_process<<")  "<<alpha(i)<<std::endl;
+  //       pcout<<std::setprecision(20)<<alpha(i)<<std::endl;
 
 
 
 
   compute_rhs(system_rhs, tmp_rhs);
+ 
 
   compute_constraints(constraints, tmp_rhs);
   ConstrainedOperator<TrilinosWrappers::MPI::Vector, BEMProblem<dim> >
   cc(*this, constraints);
 
   cc.distribute_rhs(system_rhs);
-
-
 
 
   if (solution_method == "Direct")
@@ -851,23 +968,27 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
     }
   else
     {
-      TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
-      solver.solve (cc, sol, system_rhs, fma_preconditioner);
-      //solver.solve (cc, sol, system_rhs, PreconditionIdentity());
+      //TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
+      //solver.solve (cc, sol, system_rhs, fma_preconditioner);
+      solver.solve (cc, sol, system_rhs, PreconditionIdentity());
     }
 
   //pcout<<"sol = [";
-  //for (unsigned int i = 0; i < comp_dom.dh.n_dofs(); i++)
+  //for (unsigned int i = 0; i < dh.n_dofs(); i++)
   //    pcout<<sol(i)<<"; ";
   //pcout<<"];"<<std::endl;
 
+    for (unsigned int i = 0; i < sol.size(); i++)
+      if (this_cpu_set.is_element(i))
+         pcout<<std::setprecision(20)<<sol(i)<<std::endl;
+   
 
 
 
 ///////////////////////////////////
   /*
-    std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
-    DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping, comp_dom.dh, support_points);
+    std::vector<Point<dim> > support_points(dh.n_dofs());
+    DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
       pcout<<"**solution "<<std::endl;
      for (unsigned int i = 0; i < alpha.size(); i++)
          if (this_cpu_set.is_element(i))
@@ -881,11 +1002,11 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
 //////////////////////////////////
 
 
-  for (unsigned int i=0; i <surface_nodes.size(); i++)
+  for (unsigned int i=0; i <dirichlet_nodes.size(); i++)
     {
       if (this_cpu_set.is_element(i))
         {
-          if (surface_nodes(i) == 0)
+          if (dirichlet_nodes(i) == 0)
             {
               phi(i) = sol(i);
             }
@@ -897,16 +1018,16 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
     }
 
 
-  //for (unsigned int i=0;i<comp_dom.dh.n_dofs();++i)
-  // cout<<i<<" "<<tmp_rhs(i)<<" "<<dphi_dn(i)<<" "<<phi(i)<<" "<<surface_nodes(i)<<endl;
+  //for (unsigned int i=0;i<dh.n_dofs();++i)
+  // cout<<i<<" "<<tmp_rhs(i)<<" "<<dphi_dn(i)<<" "<<phi(i)<<" "<<dirichlet_nodes(i)<<endl;
 
   //pcout<<"sol "<<std::endl;
   //for (unsigned int i = 0; i < sol.size(); i++)
   //    {
   //pcout<<i<<" "<<sol(i)<<" ";
-  //std::set<unsigned int> doubles = comp_dom.double_nodes_set[i];
+  //std::set<unsigned int> doubles = double_nodes_set[i];
   // for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
-  //    pcout<<*it<<"("<<surface_nodes(*it)<<") ";
+  //    pcout<<*it<<"("<<dirichlet_nodes(*it)<<") ";
   //pcout<<"phi "<<phi(i)<<"  dphi_dn "<<dphi_dn(i);
   //pcout<<std::endl;
   //    }
@@ -944,7 +1065,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
 {
   // communication is needed here: there is one matrix per process: thus the vector needed to set
   // inhomogeneities has to be copied locally
-  comp_dom.compute_normals();
+  compute_normals();
   compute_surface_gradients(tmp_rhs);
 
   Vector<double> loc_tmp_rhs(tmp_rhs.size());
@@ -956,7 +1077,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
   // here we prepare the constraint matrix so as to account for the presence hanging
   // nodes
 
-  DoFTools::make_hanging_node_constraints (comp_dom.dh,c);
+  DoFTools::make_hanging_node_constraints (dh,c);
 
 
   // here we prepare the constraint matrix so as to account for the presence of double and
@@ -971,11 +1092,11 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
         // is the first dirichlet node in the set, and if no dirichlet node is there, we get the
         // first neumann node
 
-        std::set<unsigned int> doubles = comp_dom.double_nodes_set[i];
+        std::set<unsigned int> doubles = double_nodes_set[i];
         unsigned int firstOfDoubles = *doubles.begin();
         for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
           {
-            if (comp_dom.surface_nodes(*it) == 1)
+            if (dirichlet_nodes(*it) == 1)
               {
                 firstOfDoubles = *it;
                 break;
@@ -993,15 +1114,15 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
             // if the current (first) node is a dirichlet node, for all its neumann doubles we will
             // impose that the potential is equal to that of the first node: this means that in the
             // matrix vector product we will put the potential value of the double node
-            if (comp_dom.surface_nodes(i) == 1)
+            if (dirichlet_nodes(i) == 1)
               {
                 for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                   {
-                    if (comp_dom.surface_nodes(*it) == 1)
+                    if (dirichlet_nodes(*it) == 1)
                       {
                         // this is the dirichlet-dirichlet case on flat edges: here we impose that
                         // dphi_dn on the two (or more) sides is equal.
-                        if ( comp_dom.node_normals[*it].distance(comp_dom.node_normals[i]) < 1e-4 )
+                        if ( node_normals[*it].distance(node_normals[i]) < 1e-4 )
                           {
                             c.add_line(*it);
                             c.add_entry(*it,i,1);
@@ -1011,18 +1132,18 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
                         else
                           {
                             c.add_line(*it);
-                            double this_normal_gradient = (1.0/(1.0-pow(comp_dom.node_normals[i]*comp_dom.node_normals[*it],2))) *
-                                                          (node_surface_gradients[*it]*comp_dom.node_normals[i]+
-                                                           (node_surface_gradients[i]*comp_dom.node_normals[*it])*(comp_dom.node_normals[i]*comp_dom.node_normals[*it]));
-                            double other_normal_gradient = (1.0/(1.0-pow(comp_dom.node_normals[*it]*comp_dom.node_normals[i],2))) *
-                                                           (node_surface_gradients[i]*comp_dom.node_normals[*it]+
-                                                            (node_surface_gradients[*it]*comp_dom.node_normals[i])*(comp_dom.node_normals[*it]*comp_dom.node_normals[i]));
+                            double this_normal_gradient = (1.0/(1.0-pow(node_normals[i]*node_normals[*it],2))) *
+                                                          (node_surface_gradients[*it]*node_normals[i]+
+                                                           (node_surface_gradients[i]*node_normals[*it])*(node_normals[i]*node_normals[*it]));
+                            double other_normal_gradient = (1.0/(1.0-pow(node_normals[*it]*node_normals[i],2))) *
+                                                           (node_surface_gradients[i]*node_normals[*it]+
+                                                            (node_surface_gradients[*it]*node_normals[i])*(node_normals[*it]*node_normals[i]));
                             //std::cout<<"i="<<i<<" j="<<*it<<std::endl;
-                            //std::cout<<"ni=("<<comp_dom.node_normals[i]<<")  nj=("<<comp_dom.node_normals[*it]<<")"<<std::endl;
+                            //std::cout<<"ni=("<<node_normals[i]<<")  nj=("<<node_normals[*it]<<")"<<std::endl;
                             //std::cout<<"grad_s_phi_i=("<<node_surface_gradients[i]<<")  grad_s_phi_j=("<<node_surface_gradients[*it]<<")"<<std::endl;
                             //std::cout<<"dphi_dn_i="<<this_normal_gradient<<" dphi_dn_j="<<other_normal_gradient<<std::endl;
-                            //Point<3> this_full_gradient = comp_dom.node_normals[i]*this_normal_gradient + node_surface_gradients[i];
-                            //Point<3> other_full_gradient = comp_dom.node_normals[*it]*other_normal_gradient + node_surface_gradients[*it];
+                            //Point<3> this_full_gradient = node_normals[i]*this_normal_gradient + node_surface_gradients[i];
+                            //Point<3> other_full_gradient = node_normals[*it]*other_normal_gradient + node_surface_gradients[*it];
                             //std::cout<<"grad_phi_i=("<<this_full_gradient<<")  grad_phi_j=("<<other_full_gradient<<")"<<std::endl;
                             c.add_line(i);
                             c.set_inhomogeneity(i,this_normal_gradient);
@@ -1043,7 +1164,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
             // the potential is equal to that of the first node: this means that in the matrix vector
             // product we will put the difference between the potential at the fist node in the doubles
             // set, and the current double node
-            if (comp_dom.surface_nodes(i) == 0)
+            if (dirichlet_nodes(i) == 0)
               {
                 for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                   {
@@ -1060,19 +1181,19 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
 
   /*
   pcout<<"CONSTAINT MATRIX CHECK "<<std::endl;
-    for (unsigned int i=0; i<comp_dom.dh.n_dofs(); ++i)
+    for (unsigned int i=0; i<dh.n_dofs(); ++i)
         {
-        std::set <unsigned int> duplicates = comp_dom.double_nodes_set[i];
+        std::set <unsigned int> duplicates = double_nodes_set[i];
         if (duplicates.size()>1)
            {
-           pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" ("<<comp_dom.surface_nodes(i)<<") duplicates: ";
+           pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" ("<<dirichlet_nodes(i)<<") duplicates: ";
            for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
                pcout<<" "<<*pos;
            pcout<<std::endl;
            }
         }
 
-    for(unsigned int i=0; i<comp_dom.dh.n_dofs(); ++i)
+    for(unsigned int i=0; i<dh.n_dofs(); ++i)
       if( (constraints.is_constrained(i)) )
         {pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" (";
     const std::vector< std::pair < unsigned int, double > >
@@ -1092,9 +1213,9 @@ void BEMProblem<dim>::assemble_preconditioner()
 
   if (is_preconditioner_initialized == false)
     {
-      for (int i=0; (unsigned int) i<comp_dom.dh.n_dofs(); ++i)
+      for (int i=0; (unsigned int) i<dh.n_dofs(); ++i)
         if (this_cpu_set.is_element((unsigned int) i))
-          for (int j=std::max(i-preconditioner_band/2,0); j<std::min(i+preconditioner_band/2,(int)comp_dom.dh.n_dofs()); ++j)
+          for (int j=std::max(i-preconditioner_band/2,0); j<std::min(i+preconditioner_band/2,(int)dh.n_dofs()); ++j)
             preconditioner_sparsity_pattern.add((unsigned int) i,(unsigned int) j);
       preconditioner_sparsity_pattern.compress();
       band_system.reinit(preconditioner_sparsity_pattern);
@@ -1104,17 +1225,17 @@ void BEMProblem<dim>::assemble_preconditioner()
     band_system = 0;
 
 
-  for (int i=0; (unsigned int) i<comp_dom.dh.n_dofs(); ++i)
+  for (int i=0; (unsigned int) i<dh.n_dofs(); ++i)
     {
       if (this_cpu_set.is_element((unsigned int) i))
         {
           if (constraints.is_constrained(i))
             band_system.add((unsigned int)i,(unsigned int) i, 1);
-          for (int j=std::max(i-preconditioner_band/2,0); j<std::min(i+preconditioner_band/2,(int)comp_dom.dh.n_dofs()); ++j)
+          for (int j=std::max(i-preconditioner_band/2,0); j<std::min(i+preconditioner_band/2,(int)dh.n_dofs()); ++j)
             {
               if (constraints.is_constrained(i) == false)
                 {
-                  if (surface_nodes(i) == 0)
+                  if (dirichlet_nodes(i) == 0)
                     {
                       // Nodo di Dirichlet
                       band_system.add(i,j,neumann_matrix(i,j));
@@ -1158,14 +1279,14 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
   SparsityPattern      gradients_sparsity_pattern;
-  gradients_sparsity_pattern.reinit(comp_dom.gradient_dh.n_dofs(),
-                                    comp_dom.gradient_dh.n_dofs(),
-                                    comp_dom.gradient_dh.max_couplings_between_dofs());
+  gradients_sparsity_pattern.reinit(gradient_dh.n_dofs(),
+                                    gradient_dh.n_dofs(),
+                                    gradient_dh.max_couplings_between_dofs());
   ConstraintMatrix  vector_constraints;
   vector_constraints.clear();
-  DoFTools::make_hanging_node_constraints (comp_dom.gradient_dh,vector_constraints);
+  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
-  DoFTools::make_sparsity_pattern (comp_dom.gradient_dh, gradients_sparsity_pattern, vector_constraints);
+  DoFTools::make_sparsity_pattern (gradient_dh, gradients_sparsity_pattern, vector_constraints);
   gradients_sparsity_pattern.compress();
 
 
@@ -1173,24 +1294,24 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   Vector<double> vector_gradients_rhs;
 
   vector_gradients_matrix.reinit (gradients_sparsity_pattern);
-  vector_gradients_rhs.reinit(comp_dom.gradient_dh.n_dofs());
-  Vector<double> vector_gradients_solution(comp_dom.gradient_dh.n_dofs());
+  vector_gradients_rhs.reinit(gradient_dh.n_dofs());
+  Vector<double> vector_gradients_solution(gradient_dh.n_dofs());
 
 
-  FEValues<dim-1,dim> vector_fe_v(*comp_dom.mapping, comp_dom.gradient_fe, *comp_dom.quadrature,
+  FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
-  FEValues<dim-1,dim> fe_v(*comp_dom.mapping, comp_dom.fe, *comp_dom.quadrature,
+  FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
                            update_quadrature_points |
                            update_JxW_values);
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
-  const unsigned int   vector_dofs_per_cell   = comp_dom.gradient_fe.dofs_per_cell;
+  const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
   std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
 
   std::vector< Tensor<1,dim> > phi_surf_grads(vector_n_q_points);
@@ -1203,24 +1324,24 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
 
   cell_it
-  vector_cell = comp_dom.gradient_dh.begin_active(),
-  vector_endc = comp_dom.gradient_dh.end();
+  vector_cell = gradient_dh.begin_active(),
+  vector_endc = gradient_dh.end();
 
   cell_it
-  cell = comp_dom.dh.begin_active(),
-  endc = comp_dom.dh.end();
+  cell = dh.begin_active(),
+  endc = dh.end();
 
-  std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping, comp_dom.dh, support_points);
-  std::vector<unsigned int> face_dofs(comp_dom.fe.dofs_per_face);
+  std::vector<Point<dim> > support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+  std::vector<unsigned int> face_dofs(fe.dofs_per_face);
 
-  Quadrature <dim-1> dummy_quadrature(comp_dom.fe.get_unit_support_points());
-  FEValues<dim-1,dim> dummy_fe_v(*comp_dom.mapping, comp_dom.fe, dummy_quadrature,
+  Quadrature <dim-1> dummy_quadrature(fe.get_unit_support_points());
+  FEValues<dim-1,dim> dummy_fe_v(mapping, fe, dummy_quadrature,
                                  update_values | update_gradients |
                                  update_cell_normal_vectors |
                                  update_quadrature_points);
 
-  const unsigned int   dofs_per_cell = comp_dom.fe.dofs_per_cell;
+  const unsigned int   dofs_per_cell = fe.dofs_per_cell;
   std::vector<unsigned int> local_dof_indices (dofs_per_cell);
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
@@ -1250,10 +1371,10 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
           Point<dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
           for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
             {
-              comp_i = comp_dom.gradient_fe.system_to_component_index(i).first;
+              comp_i = gradient_fe.system_to_component_index(i).first;
               for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
                 {
-                  comp_j = comp_dom.gradient_fe.system_to_component_index(j).first;
+                  comp_j = gradient_fe.system_to_component_index(j).first;
                   if (comp_i == comp_j)
                     {
                       local_gradients_matrix(i,j) += vector_fe_v.shape_value(i,q)*
@@ -1281,9 +1402,9 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   vector_constraints.distribute(vector_gradients_solution);
 
 
-  node_gradients.resize(comp_dom.dh.n_dofs());
+  node_gradients.resize(dh.n_dofs());
 
-  for (unsigned int i=0; i<comp_dom.gradient_dh.n_dofs()/dim; ++i)
+  for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
     {
       for (unsigned int d=0; d<dim; d++)
         node_gradients[i](d) = vector_gradients_solution(3*i+d);
@@ -1300,20 +1421,20 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 {
   Vector<double> phi(tmp_rhs.size());
   phi = tmp_rhs;
-  phi.scale(comp_dom.surface_nodes);
+  phi.scale(dirichlet_nodes);
 
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
   SparsityPattern      gradients_sparsity_pattern;
-  gradients_sparsity_pattern.reinit(comp_dom.gradient_dh.n_dofs(),
-                                    comp_dom.gradient_dh.n_dofs(),
-                                    comp_dom.gradient_dh.max_couplings_between_dofs());
+  gradients_sparsity_pattern.reinit(gradient_dh.n_dofs(),
+                                    gradient_dh.n_dofs(),
+                                    gradient_dh.max_couplings_between_dofs());
   ConstraintMatrix  vector_constraints;
   vector_constraints.clear();
-  DoFTools::make_hanging_node_constraints (comp_dom.gradient_dh,vector_constraints);
+  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
-  DoFTools::make_sparsity_pattern (comp_dom.gradient_dh, gradients_sparsity_pattern, vector_constraints);
+  DoFTools::make_sparsity_pattern (gradient_dh, gradients_sparsity_pattern, vector_constraints);
   gradients_sparsity_pattern.compress();
 
 
@@ -1321,24 +1442,24 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   Vector<double> vector_gradients_rhs;
 
   vector_gradients_matrix.reinit (gradients_sparsity_pattern);
-  vector_gradients_rhs.reinit(comp_dom.gradient_dh.n_dofs());
-  Vector<double> vector_gradients_solution(comp_dom.gradient_dh.n_dofs());
+  vector_gradients_rhs.reinit(gradient_dh.n_dofs());
+  Vector<double> vector_gradients_solution(gradient_dh.n_dofs());
 
 
-  FEValues<dim-1,dim> vector_fe_v(*comp_dom.mapping, comp_dom.gradient_fe, *comp_dom.quadrature,
+  FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
-  FEValues<dim-1,dim> fe_v(*comp_dom.mapping, comp_dom.fe, *comp_dom.quadrature,
+  FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
                            update_quadrature_points |
                            update_JxW_values);
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
-  const unsigned int   vector_dofs_per_cell   = comp_dom.gradient_fe.dofs_per_cell;
+  const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
   std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
 
   std::vector< Tensor<1,dim> > phi_surf_grads(vector_n_q_points);
@@ -1351,24 +1472,24 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
 
   cell_it
-  vector_cell = comp_dom.gradient_dh.begin_active(),
-  vector_endc = comp_dom.gradient_dh.end();
+  vector_cell = gradient_dh.begin_active(),
+  vector_endc = gradient_dh.end();
 
   cell_it
-  cell = comp_dom.dh.begin_active(),
-  endc = comp_dom.dh.end();
+  cell = dh.begin_active(),
+  endc = dh.end();
 
-  std::vector<Point<dim> > support_points(comp_dom.dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( *comp_dom.mapping, comp_dom.dh, support_points);
-  std::vector<unsigned int> face_dofs(comp_dom.fe.dofs_per_face);
+  std::vector<Point<dim> > support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+  std::vector<unsigned int> face_dofs(fe.dofs_per_face);
 
-  Quadrature <dim-1> dummy_quadrature(comp_dom.fe.get_unit_support_points());
-  FEValues<dim-1,dim> dummy_fe_v(*comp_dom.mapping, comp_dom.fe, dummy_quadrature,
+  Quadrature <dim-1> dummy_quadrature(fe.get_unit_support_points());
+  FEValues<dim-1,dim> dummy_fe_v(mapping, fe, dummy_quadrature,
                                  update_values | update_gradients |
                                  update_cell_normal_vectors |
                                  update_quadrature_points);
 
-  const unsigned int   dofs_per_cell = comp_dom.fe.dofs_per_cell;
+  const unsigned int   dofs_per_cell = fe.dofs_per_cell;
   std::vector<unsigned int> local_dof_indices (dofs_per_cell);
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
@@ -1393,10 +1514,10 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
           Tensor<1,dim> gradient = phi_surf_grads[q];
           for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
             {
-              comp_i = comp_dom.gradient_fe.system_to_component_index(i).first;
+              comp_i = gradient_fe.system_to_component_index(i).first;
               for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
                 {
-                  comp_j = comp_dom.gradient_fe.system_to_component_index(j).first;
+                  comp_j = gradient_fe.system_to_component_index(j).first;
                   if (comp_i == comp_j)
                     {
                       local_gradients_matrix(i,j) += vector_fe_v.shape_value(i,q)*
@@ -1424,9 +1545,9 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   vector_constraints.distribute(vector_gradients_solution);
 
 
-  node_surface_gradients.resize(comp_dom.dh.n_dofs());
+  node_surface_gradients.resize(dh.n_dofs());
 
-  for (unsigned int i=0; i<comp_dom.gradient_dh.n_dofs()/dim; ++i)
+  for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
     {
       for (unsigned int d=0; d<dim; d++)
         node_surface_gradients[i](d) = vector_gradients_solution(3*i+d);
@@ -1437,4 +1558,106 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 }
 
 
-//template class BEMProblem<3>;
+
+  template <int dim>
+  void BEMProblem<dim>::compute_normals()
+  {
+   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
+
+   SparsityPattern      normals_sparsity_pattern;
+   normals_sparsity_pattern.reinit(gradient_dh.n_dofs(),
+                                   gradient_dh.n_dofs(),
+                                   gradient_dh.max_couplings_between_dofs());
+   ConstraintMatrix  vector_constraints;
+   vector_constraints.clear();
+   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
+   vector_constraints.close();
+   DoFTools::make_sparsity_pattern (gradient_dh, normals_sparsity_pattern, vector_constraints);
+   normals_sparsity_pattern.compress();
+   Vector<double> vector_normals_solution(gradient_dh.n_dofs());
+                                   
+   SparseMatrix<double> vector_normals_matrix;
+   Vector<double> vector_normals_rhs;
+
+   vector_normals_matrix.reinit (normals_sparsity_pattern);
+   vector_normals_rhs.reinit(gradient_dh.n_dofs());
+   vector_normals_solution.reinit(gradient_dh.n_dofs());
+
+
+   FEValues<dim-1,dim> gradient_fe_v(mapping, gradient_fe, *quadrature,
+			     update_values | update_cell_normal_vectors |  
+			     update_JxW_values);
+
+   const unsigned int vector_n_q_points = gradient_fe_v.n_quadrature_points;
+   const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
+   std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
+
+   FullMatrix<double>   local_normals_matrix (vector_dofs_per_cell, vector_dofs_per_cell);
+   Vector<double>       local_normals_rhs (vector_dofs_per_cell);
+
+   cell_it
+   vector_cell = gradient_dh.begin_active(),
+   vector_endc = gradient_dh.end();
+            
+   for (; vector_cell!=vector_endc; ++vector_cell)
+     {
+       gradient_fe_v.reinit (vector_cell);
+       local_normals_matrix = 0;
+       local_normals_rhs = 0;
+       const std::vector<Point<dim> > &vector_node_normals = gradient_fe_v.get_normal_vectors();
+       unsigned int comp_i, comp_j;
+       
+       for (unsigned int q=0; q<vector_n_q_points; ++q)
+	 for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
+	   {
+	     comp_i = gradient_fe.system_to_component_index(i).first;
+	     for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
+	       {
+		 comp_j = gradient_fe.system_to_component_index(j).first;
+		 if (comp_i == comp_j) 
+		   {
+		     local_normals_matrix(i,j) += gradient_fe_v.shape_value(i,q)*
+						  gradient_fe_v.shape_value(j,q)*
+						  gradient_fe_v.JxW(q);
+		   }
+	       }
+	   local_normals_rhs(i) += (gradient_fe_v.shape_value(i, q)) *
+                                    vector_node_normals[q](comp_i) * gradient_fe_v.JxW(q);
+	   }
+        
+       vector_cell->get_dof_indices (vector_local_dof_indices);
+       
+       vector_constraints.distribute_local_to_global
+       (local_normals_matrix,
+	local_normals_rhs,
+	vector_local_dof_indices,
+	vector_normals_matrix,
+	vector_normals_rhs);
+     }
+
+
+
+   SparseDirectUMFPACK normals_inverse;
+   normals_inverse.initialize(vector_normals_matrix);
+   normals_inverse.vmult(vector_normals_solution, vector_normals_rhs);
+   vector_constraints.distribute(vector_normals_solution);
+
+   node_normals.resize(dh.n_dofs());
+ 
+   for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
+       { 
+       for (unsigned int d=0; d<dim; d++)
+           node_normals[i](d) = vector_normals_solution(3*i+d);
+       node_normals[i]/= node_normals[i].distance(Point<dim>(0.0,0.0,0.0));
+       //cout<<i<<" Gradient: "<<node_normals[i]<<endl;
+       for (unsigned int d=0; d<dim; d++)
+           vector_normals_solution(3*i+d) = node_normals[i](d);
+       }
+
+
+  }
+
+
+
+
+template class BEMProblem<3>;

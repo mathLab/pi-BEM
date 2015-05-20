@@ -30,30 +30,30 @@ Driver<dim>::Driver(int argc, char **argv) :
   //PathSearch search_prm("PARAMETER");
 
   // Declare the parameter entries..
-  DeclareParameters();
-
-  deallog.depth_console(this_mpi_process == 0 ? 3 : 0);
-
-  vector<string> args;
-  for (int i=0; i<argc; ++i)
-    args.push_back (argv[i]);
-
-  string default_prm;
-  // The default parameter file is the name of the application plus prm
-  default_prm = args[0] + ".prm";
-
-  prm.read_input(default_prm, false, true);
-
-  for (int i=1; i<argc; ++i)
-    prm.read_input(args[i], true);
-
-  // Now that we have the final version of the parameters, parse them.
-  ParseParameters();
-
-  // And write the used ones.
-  default_prm = args.front() + "_used.prm";
-  ofstream outprm(default_prm.c_str());
-  prm.print_parameters(outprm, ParameterHandler::ShortText);
+  // DeclareParameters();
+  //
+  // deallog.depth_console(this_mpi_process == 0 ? 3 : 0);
+  //
+  // vector<string> args;
+  // for (int i=0; i<argc; ++i)
+  //   args.push_back (argv[i]);
+  //
+  // string default_prm;
+  // // The default parameter file is the name of the application plus prm
+  // default_prm = args[0] + ".prm";
+  //
+  // prm.read_input(default_prm, false, true);
+  //
+  // for (int i=1; i<argc; ++i)
+  //   prm.read_input(args[i], true);
+  //
+  // // Now that we have the final version of the parameters, parse them.
+  // ParseParameters();
+  //
+  // // And write the used ones.
+  // default_prm = args.front() + "_used.prm";
+  // ofstream outprm(default_prm.c_str());
+  // prm.print_parameters(outprm, ParameterHandler::ShortText);
 }
 
 template <int dim>
@@ -91,20 +91,22 @@ void Driver<dim>::run()
   TimeMonitor::summarize();
 }
 
-template <int dim>
-void Driver<dim>::DeclareParameters()
-{
-  computational_domain.declare_parameters(prm);
-  boundary_conditions.declare_parameters(prm);
-  bem_problem.declare_parameters(prm);
-}
-
-template <int dim>
-void Driver<dim>::ParseParameters()
-{
-  computational_domain.parse_parameters(prm);
-  boundary_conditions.parse_parameters(prm);
-  bem_problem.parse_parameters(prm);
-}
+// template <int dim>
+// void Driver<dim>::DeclareParameters(ParameterHandler &prm)
+// {
+//   unsigned int pippo;
+//   // computational_domain.declare_parameters(prm);
+//   // boundary_conditions.declare_parameters(prm);
+//   // bem_problem.declare_parameters(prm);
+// }
+//
+// template <int dim>
+// void Driver<dim>::ParseParameters(ParameterHandler &prm)
+// {
+//   unsigned int pippo;
+//   // computational_domain.parse_parameters(prm);
+//   // boundary_conditions.parse_parameters(prm);
+//   // bem_problem.parse_parameters(prm);
+// }
 
 template class Driver<3>;

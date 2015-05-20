@@ -71,7 +71,7 @@ using namespace dealii;
 
 
 template <int dim>
-class Driver : public ParameterAcceptor
+class Driver 
 {
 public:
 
@@ -81,9 +81,9 @@ public:
 
   void run();
 
-  void DeclareParameters();
-
-  void ParseParameters();
+  // virtual void DeclareParameters(ParameterHandler &prm);
+  //
+  // virtual void ParseParameters(ParameterHandler &prm);
 
 private:
 

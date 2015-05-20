@@ -122,9 +122,9 @@ public:
 
   //  private:
 
-  void declare_parameters(ParameterHandler &prm);
+  virtual void declare_parameters(ParameterHandler &prm);
 
-  void parse_parameters(ParameterHandler &prm);
+  virtual void parse_parameters(ParameterHandler &prm);
 
   // To be commented
 

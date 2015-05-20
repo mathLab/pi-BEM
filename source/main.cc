@@ -28,9 +28,10 @@ int main (int argc, char *argv[])
 
       Driver<3> driver(argc, argv);
 
-      
+      ParameterAcceptor::initialize("parmaeter_bem.prm","used_parmaeter_bem.prm");
+
       driver.run();
-    
+
     }
   catch (std::exception &exc)
     {
@@ -42,10 +43,10 @@ int main (int argc, char *argv[])
                 << "Aborting!" << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
-      
+
       return 1;
     }
-  catch (...) 
+  catch (...)
     {
       std::cerr << std::endl << std::endl
                 << "----------------------------------------------------"
@@ -59,7 +60,3 @@ int main (int argc, char *argv[])
 
   return 0;
 }
-
-
-
-

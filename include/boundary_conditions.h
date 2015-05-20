@@ -74,7 +74,7 @@
 
 
 template <int dim>
-class BoundaryConditions
+class BoundaryConditions : public ParameterAcceptor
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem) :
@@ -90,9 +90,9 @@ public:
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
-  void declare_parameters(ParameterHandler &prm);
+  virtual void declare_parameters(ParameterHandler &prm);
 
-  void parse_parameters(ParameterHandler &prm);
+  virtual void parse_parameters(ParameterHandler &prm);
 
   void prepare_bem_vectors();
 

@@ -73,12 +73,13 @@
 #include "../include/multipole_expansion.h"
 #include "../include/ass_leg_function.h"
 
+#include "parameter_acceptor.h"
 #include <mpi.h>
 
 using namespace dealii;
 
 template <int dim>
-class ComputationalDomain
+class ComputationalDomain : public ParameterAcceptor
 {
 public:
 
@@ -101,12 +102,12 @@ public:
   // method to declare the parameters
   // to be read from the parameters file
 
-  void declare_parameters(ParameterHandler &prm);
+  virtual void declare_parameters(ParameterHandler &prm);
 
   // method to parse the needed parameters
   // from the parameters file
 
-  void parse_parameters(ParameterHandler &prm);
+  virtual void parse_parameters(ParameterHandler &prm);
 
   // method to create initial mesh
 

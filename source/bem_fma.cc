@@ -106,7 +106,7 @@ void BEMFMA<dim>::direct_integrals()
 {
   std::cout<<"Computing direct integrals..."<<std::endl;
 
-  // The following function performs
+  /// The following function performs
   // the direct integrals
   // for the fast multipole algorithm
   // and saves the results into two
@@ -114,16 +114,14 @@ void BEMFMA<dim>::direct_integrals()
   // also used for precondictioning:
   // the actual preconditioner is a
   // third sparse matrix
-
   // declaration of the 3d singular
   // quadrature to be used
 
 
-  std::vector<QTelles<dim-1> > sing_quadratures_3d;
-  // TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
+  std::vector<QTelles<dim-1> > sing_quadratures;
+  /// TODO TO BE CHANGE USING THE PARSED SINGULAR QUADRATURE
   for (unsigned int i=0; i<fma_fe->dofs_per_cell; ++i)
-    sing_quadratures_3d.push_back
-    // TO BE CHANGE USING THE PARSED SINGULAR QUADRATURE AND TELLES
+    sing_quadratures.push_back
     (QTelles<dim-1>(singular_quadrature_order,
                     fma_fe->get_unit_support_points()[i]));
   // number of dofs per cell
@@ -495,13 +493,12 @@ void BEMFMA<dim>::direct_integrals()
                         = (dim == 2
                            ?
                            dynamic_cast<Quadrature<dim-1>*>(
-                             new QTelles<1>( singular_quadrature_order,
-                                             Point<1>((double)singular_index)))
+                             &sing_quadratures[singular_index])
                            :
                            (dim == 3
                             ?
                             dynamic_cast<Quadrature<dim-1>*>(
-                              &sing_quadratures_3d[singular_index])
+                              &sing_quadratures[singular_index])
                             :
                             0));
                       Assert(singular_quadrature, ExcInternalError());

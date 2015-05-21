@@ -26,10 +26,10 @@ BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
   mpi_communicator (mpi_commy),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
-  pcout(std::cout)
-{
-  pcout.set_condition(this_mpi_process == 0);
-}
+  pcout(std::cout,
+         (this_mpi_process
+          == 0))
+{}
 
 
 template <int dim>
@@ -104,9 +104,9 @@ void BEMFMA<dim>::parse_parameters (ParameterHandler &prm)
 template <int dim>
 void BEMFMA<dim>::direct_integrals()
 {
-  std::cout<<"Computing direct integrals..."<<std::endl;
+  pcout<<"Computing direct integrals..."<<std::endl;
 
-  /// The following function performs
+  // The following function performs
   // the direct integrals
   // for the fast multipole algorithm
   // and saves the results into two
@@ -119,29 +119,28 @@ void BEMFMA<dim>::direct_integrals()
 
 
   std::vector<QTelles<dim-1> > sing_quadratures;
-  /// TODO TO BE CHANGE USING THE PARSED SINGULAR QUADRATURE
   for (unsigned int i=0; i<fma_fe->dofs_per_cell; ++i)
     sing_quadratures.push_back
     (QTelles<dim-1>(singular_quadrature_order,
                     fma_fe->get_unit_support_points()[i]));
   const unsigned int dofs_per_cell = fma_fe->dofs_per_cell;
 
-  /// vector containing the ids of the dofs
+  // vector containing the ids of the dofs
   // of each cell: it will be used to transfer
   // the computed local rows of the matrices
   // into the global matrices
 
   std::vector<unsigned int> local_dof_indices(dofs_per_cell);
 
-  /// vector to store parts of rows of neumann
+  // vector to store parts of rows of neumann
   // and dirichlet matrix obtained in local
   // operations
-  // TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
+
   Vector<double>      local_neumann_matrix_row_i(fma_fe->dofs_per_cell);
   Vector<double>      local_dirichlet_matrix_row_i(fma_fe->dofs_per_cell);
 
 
-  /// Now that we have checked that
+  // Now that we have checked that
   // the number of vertices is equal
   // to the number of degrees of
   // freedom, we construct a vector
@@ -152,7 +151,7 @@ void BEMFMA<dim>::direct_integrals()
   DoFTools::map_dofs_to_support_points<dim-1, dim>(*fma_mapping, *fma_dh, support_points);
 
 
-  /// After doing so, we can start the
+  // After doing so, we can start the
   // integration loop over all cells,
   // where we first initialize the
   // FEValues object and get the
@@ -167,7 +166,7 @@ void BEMFMA<dim>::direct_integrals()
   cell = fma_dh->begin_active(),
   endc = fma_dh->end();
 
-  /// first, we (re)initialize the
+  // first, we (re)initialize the
   // preconditioning matricies by
   // generating the corresponding
   // sparsity pattern, obtained by
@@ -191,7 +190,7 @@ void BEMFMA<dim>::direct_integrals()
 
   for (unsigned int kk = 0; kk < childlessList.size(); kk++)
     {
-      /// for each block in the childless
+      // for each block in the childless
       // list we get the list of nodes and
       // we check if it contains nodes:
       // if no nodes are contained there is
@@ -241,7 +240,7 @@ void BEMFMA<dim>::direct_integrals()
                   // get its dofs and put them in the set
                   // of direct nodes
 
-                  cell_it cell = (*it).first;//std::cout<<cell<<"  end "<<(*blockQuadPointsList.end()).first<<std::endl;
+                  cell_it cell = (*it).first;//pcout<<cell<<"  end "<<(*blockQuadPointsList.end()).first<<std::endl;
                   cell->get_dof_indices(local_dof_indices);
                   for (unsigned int j = 0; j < dofs_per_cell; j++)
                     directNodes.insert(local_dof_indices[j]);
@@ -341,7 +340,7 @@ void BEMFMA<dim>::direct_integrals()
 
   init_prec_sparsity_pattern.compress();
   double filling_percentage = double(init_prec_sparsity_pattern.n_nonzero_elements())/double(fma_dh->n_dofs()*fma_dh->n_dofs())*100.;
-  std::cout<<init_prec_sparsity_pattern.n_nonzero_elements()<<" Nonzeros out of "<<fma_dh->n_dofs()*fma_dh->n_dofs()<<":  "<<filling_percentage<<"%"<<std::endl;
+  pcout<<init_prec_sparsity_pattern.n_nonzero_elements()<<" Nonzeros out of "<<fma_dh->n_dofs()*fma_dh->n_dofs()<<":  "<<filling_percentage<<"%"<<std::endl;
 
   prec_neumann_matrix.reinit(init_prec_sparsity_pattern);
   prec_dirichlet_matrix.reinit(init_prec_sparsity_pattern);
@@ -356,8 +355,8 @@ void BEMFMA<dim>::direct_integrals()
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
 
     {
-      //std::cout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
-      //std::cout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
+      //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
+      //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
 
       // this is the Id of the block
       unsigned int blockId =  childlessList[kk];
@@ -440,9 +439,9 @@ void BEMFMA<dim>::direct_integrals()
                   // we use regular quadrature
                   if (is_singular == false)
                     {
-                      //std::cout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
-                      //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) std::cout<<" "<<local_dof_indices[j];
-                      //std::cout<<std::endl;
+                      //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+                      //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+                      //pcout<<std::endl;
 
                       // we start looping on the quad points of the cell: *pos will be the
                       // index of the quad point
@@ -466,9 +465,9 @@ void BEMFMA<dim>::direct_integrals()
                               local_dirichlet_matrix_row_i(j) += ( s *
                                                                    quadShapeFunValues[cell][*pos][j] *
                                                                    quadJxW[cell][*pos] );
-                              //std::cout<<D<<" "<< quadNormals[cell][*pos]<<" ";
-                              //std::cout<< quadShapeFunValues[cell][*pos][j]<<" ";
-                              //std::cout<< quadJxW[cell][*pos]<<std::endl;
+                              //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
+                              //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
+                              //pcout<< quadJxW[cell][*pos]<<std::endl;
                             }
                         }
                     } // end if
@@ -628,9 +627,9 @@ void BEMFMA<dim>::direct_integrals()
                   // we copy the cell quad points in this set
                   std::set<unsigned int> &cellQuadPoints = (*it).second;
 
-                  //std::cout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
-                  //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) std::cout<<" "<<local_dof_indices[j];
-                  //std::cout<<std::endl;
+                  //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+                  //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+                  //pcout<<std::endl;
 
                   // we start looping on the quad points of the cell: *pos will be the
                   // index of the quad point
@@ -681,7 +680,7 @@ void BEMFMA<dim>::direct_integrals()
 
 
 
-  std::cout<<"...done computing direct integrals"<<std::endl;
+  pcout<<"...done computing direct integrals"<<std::endl;
 }
 
 
@@ -690,7 +689,7 @@ template <int dim>
 void BEMFMA<dim>::multipole_integrals()
 {
 
-  std::cout<<"Computing multipole integrals..."<<std::endl;
+  pcout<<"Computing multipole integrals..."<<std::endl;
 
   // we start clearing the two structures in which we will
   // store the integrals. these objects are quite complicated:
@@ -722,8 +721,8 @@ void BEMFMA<dim>::multipole_integrals()
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
 
     {
-      //std::cout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
-      //std::cout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
+      //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
+      //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
 
       // we get the current block and its Id, and then we
       // compute its center, which is needed to construct the
@@ -785,7 +784,7 @@ void BEMFMA<dim>::multipole_integrals()
 
 
 
-  std::cout<<"...done computing multipole integrals"<<std::endl;
+  pcout<<"...done computing multipole integrals"<<std::endl;
 }
 
 
@@ -793,7 +792,7 @@ void BEMFMA<dim>::multipole_integrals()
 template <int dim>
 void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const
 {
-  std::cout<<"Generating multipole expansions..."<<std::endl;
+  pcout<<"Generating multipole expansions..."<<std::endl;
 
 
 // also here we clear the structures storing the multipole
@@ -888,7 +887,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
       // for each block we add the (translated) multipole expansion to the the parent expansion
 
-      std::cout<<"processing level "<<level <<"  of  "<< num_octree_levels<<std::endl;
+      // pcout<<"processing level "<<level <<"  of  "<< num_octree_levels<<std::endl;
 
       for (unsigned int kk =  startLevel[level]; kk <  endLevel[level]+1; kk++)
 
@@ -903,7 +902,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
     } // end loop over levels
 
 
-  std::cout<<"...done generating multipole expansions"<<std::endl;
+  pcout<<"...done generating multipole expansions"<<std::endl;
 
 }
 
@@ -913,7 +912,7 @@ template <int dim>
 void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
                                                TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
 {
-  std::cout<<"Computing multipole matrix-vector products... "<<std::endl;
+  pcout<<"Computing multipole matrix-vector products... "<<std::endl;
 
   // we start re-initializing matrix-vector-product vectors
   matrVectProdN = 0;
@@ -969,7 +968,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   for (unsigned int level = 1; level <  num_octree_levels + 1;  level++)
 
     {
-      std::cout<<"processing level "<<level <<"  of  "<< num_octree_levels<<std::endl;
+      // pcout<<"processing level "<<level <<"  of  "<< num_octree_levels<<std::endl;
 
       // we get the ids of the first and last block of the level
       unsigned int startBlockLevel =  startLevel[level];
@@ -981,7 +980,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
       for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
         {
-          //std::cout<<"Block "<<jj<<std::endl;
+          //pcout<<"Block "<<jj<<std::endl;
           unsigned int jj =  dofs_filled_blocks[level][k];
           OctreeBlock<dim> *block1 =  blocks[jj];
           unsigned int block1Parent = block1->GetParentId();
@@ -1016,7 +1015,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
               for (std::set <unsigned int>::iterator pos1 = nonIntList.lower_bound(startBlockLevel); pos1 != nonIntList.upper_bound(endBlockLevel);  pos1++) // loop over NNs of NNs and add them to intList
                 {
-                  //std::cout<<"NonIntListPart2 Blocks: "<<*pos1<<" ";
+                  //pcout<<"NonIntListPart2 Blocks: "<<*pos1<<" ";
                   unsigned int block2Id = *pos1;
                   blockLocalExpansionsKer1[jj].Add(blockMultipoleExpansionsKer1[block2Id]);
                   blockLocalExpansionsKer2[jj].Add(blockMultipoleExpansionsKer2[block2Id]);
@@ -1049,7 +1048,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
               for (std::set <unsigned int>::iterator pos1 = nonIntList.upper_bound(endBlockLevel); pos1 != nonIntList.end();  pos1++)
                 {
-                  //std::cout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
+                  //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
                   unsigned int block2Id = *pos1;
                   //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
                   for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
@@ -1106,7 +1105,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       {
     for (cell_it cell = fma_dh->begin_active(); cell != fma_dh->end(); ++cell)
           {
-      std::cout<<i<<" "<<cell<<" "<< integralCheck[i][cell]<<std::endl;
+      pcout<<i<<" "<<cell<<" "<< integralCheck[i][cell]<<std::endl;
        integralCheck[i][cell] = 0;
     }
       }
@@ -1115,7 +1114,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
 
 
-  std::cout<<"...done computing multipole matrix-vector products"<<std::endl;
+  pcout<<"...done computing multipole matrix-vector products"<<std::endl;
 
 }
 
@@ -1170,14 +1169,14 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
     if (c.is_constrained(i))
       {
         final_preconditioner.set(i,i,1);
-        std::cout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+        //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
         // constrainednodes entries are taken from the bem problem constraint matrix
         const std::vector< std::pair < unsigned int, double > >
         *entries = c.get_constraint_entries (i);
         for (unsigned int j=0; j< entries->size(); ++j)
           {
             final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
-            std::cout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
+            //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
           }
       }
     else
@@ -1189,7 +1188,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
             if (init_prec_sparsity_pattern.exists(i,j))
               {
                 final_preconditioner.set(i,j,init_preconditioner(i,j));
-                std::cout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
+                //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
               }
           }
       }
@@ -1200,10 +1199,10 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
     if ( (*dirichlet_nodes)(i) == 0 && !c.is_constrained(i))
       {
       final_preconditioner.add(i,i,alpha(i));
-      std::cout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+      //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
       }
 
-  //preconditioner.print_formatted(std::cout,4,true,0," 0 ",1.);
+  //preconditioner.print_formatted(pcout,4,true,0," 0 ",1.);
   preconditioner.initialize(final_preconditioner);
 
   return preconditioner;

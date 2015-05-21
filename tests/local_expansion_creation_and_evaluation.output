@@ -1,0 +1,10 @@
+
+DEAL::Charge 1 of intensity 0.100000 is located at point (2.80000 3.00000 3.00000)
+DEAL::Charge 2 of intensity 0.400000 is located at point (3.00000 2.80000 3.00000)
+DEAL::Charge 3 of intensity 1.00000 is located at point (3.00000 3.00000 2.80000)
+DEAL::Charge 4 of intensity 0.200000 is located at point (3.20000 3.00000 3.00000)
+DEAL::Charge 5 of intensity 0.700000 is located at point (3.00000 3.00000 3.20000)
+DEAL::Exact potential at point Q(0,0,0): 0.464443
+DEAL::Approx potential at point Q(0,0,0): 0.463665
+DEAL::The absolute multipole approximation error is: 0.000778428
+DEAL::The relative multipole approximation error is: 0.00167605

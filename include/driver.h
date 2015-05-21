@@ -71,19 +71,15 @@ using namespace dealii;
 
 
 template <int dim>
-class Driver 
+class Driver
 {
 public:
 
-  Driver(int argc, char **argv);
+  Driver();
 
   ~Driver();
 
   void run();
-
-  // virtual void DeclareParameters(ParameterHandler &prm);
-  //
-  // virtual void ParseParameters(ParameterHandler &prm);
 
 private:
 

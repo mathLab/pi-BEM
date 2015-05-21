@@ -16,7 +16,7 @@ RCP<Time> SolveTime = TimeMonitor::getNewTimer("Solve Time");
 using namespace std;
 
 template <int dim>
-Driver<dim>::Driver(int argc, char **argv) :
+Driver<dim>::Driver() :
   pcout (std::cout),
   mpi_communicator (MPI_COMM_WORLD),
   computational_domain(mpi_communicator),
@@ -80,8 +80,6 @@ void Driver<dim>::run()
       boundary_conditions.solve_problem();
     }
 
-    // {
-    //   TimeMonitor LocalTimer(*OutputTime);
     std::string filename = ( boundary_conditions.output_file_name + ".vtk" );
     boundary_conditions.compute_errors();
     boundary_conditions.output_results(filename);
@@ -91,22 +89,5 @@ void Driver<dim>::run()
   TimeMonitor::summarize();
 }
 
-// template <int dim>
-// void Driver<dim>::DeclareParameters(ParameterHandler &prm)
-// {
-//   unsigned int pippo;
-//   // computational_domain.declare_parameters(prm);
-//   // boundary_conditions.declare_parameters(prm);
-//   // bem_problem.declare_parameters(prm);
-// }
-//
-// template <int dim>
-// void Driver<dim>::ParseParameters(ParameterHandler &prm)
-// {
-//   unsigned int pippo;
-//   // computational_domain.parse_parameters(prm);
-//   // boundary_conditions.parse_parameters(prm);
-//   // bem_problem.parse_parameters(prm);
-// }
 
 template class Driver<3>;

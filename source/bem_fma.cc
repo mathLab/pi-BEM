@@ -124,18 +124,16 @@ void BEMFMA<dim>::direct_integrals()
     sing_quadratures.push_back
     (QTelles<dim-1>(singular_quadrature_order,
                     fma_fe->get_unit_support_points()[i]));
-  // number of dofs per cell
-  // TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
   const unsigned int dofs_per_cell = fma_fe->dofs_per_cell;
 
-  // vector containing the ids of the dofs
+  /// vector containing the ids of the dofs
   // of each cell: it will be used to transfer
   // the computed local rows of the matrices
   // into the global matrices
 
   std::vector<unsigned int> local_dof_indices(dofs_per_cell);
 
-  // vector to store parts of rows of neumann
+  /// vector to store parts of rows of neumann
   // and dirichlet matrix obtained in local
   // operations
   // TO BE CHANGE USING THE FE ATTACHED TO THE DOF HANDLER
@@ -143,7 +141,7 @@ void BEMFMA<dim>::direct_integrals()
   Vector<double>      local_dirichlet_matrix_row_i(fma_fe->dofs_per_cell);
 
 
-  // Now that we have checked that
+  /// Now that we have checked that
   // the number of vertices is equal
   // to the number of degrees of
   // freedom, we construct a vector
@@ -154,7 +152,7 @@ void BEMFMA<dim>::direct_integrals()
   DoFTools::map_dofs_to_support_points<dim-1, dim>(*fma_mapping, *fma_dh, support_points);
 
 
-  // After doing so, we can start the
+  /// After doing so, we can start the
   // integration loop over all cells,
   // where we first initialize the
   // FEValues object and get the
@@ -169,13 +167,11 @@ void BEMFMA<dim>::direct_integrals()
   cell = fma_dh->begin_active(),
   endc = fma_dh->end();
 
-  // first, we (re)initialize the
+  /// first, we (re)initialize the
   // preconditioning matricies by
   // generating the corresponding
   // sparsity pattern, obtained by
   // means of the octree blocking
-
-
   // the idea here is that we take
   // each childless block containing
   // at least a dof (such dof index is i)
@@ -190,13 +186,12 @@ void BEMFMA<dim>::direct_integrals()
   // elements ij of the precondition
   // matrix
 
+  /// TODO understand the bandwith of the preconditioner
   init_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
-  // ALL THE LIST TO BE MOVED INSIDE BEM_FMA
   for (unsigned int kk = 0; kk < childlessList.size(); kk++)
-
     {
-      // for each block in the childless
+      /// for each block in the childless
       // list we get the list of nodes and
       // we check if it contains nodes:
       // if no nodes are contained there is

@@ -26,7 +26,7 @@ int main (int argc, char *argv[])
     {
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      Driver<3> driver(argc, argv);
+      Driver<3> driver;
 
       ParameterAcceptor::initialize("parmaeter_bem.prm","used_parmaeter_bem.prm");
 

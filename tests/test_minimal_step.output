@@ -59,222 +59,38 @@ Computing multipole integrals...
 ...done computing multipole integrals
 setting alpha
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 computing rhs
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 solving
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
-...done computing multipole matrix-vector products
-Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
-...done generating multipole expansions
-Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 using sak to compute the errors
 Generating octree blocking... 
@@ -338,237 +154,53 @@ Computing multipole integrals...
 ...done computing multipole integrals
 setting alpha
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 computing rhs
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 solving
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
 ...done generating multipole expansions
 Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
-...done computing multipole matrix-vector products
-Generating multipole expansions...
-processing level 10  of  10
-processing level 9  of  10
-processing level 8  of  10
-processing level 7  of  10
-processing level 6  of  10
-processing level 5  of  10
-processing level 4  of  10
-processing level 3  of  10
-processing level 2  of  10
-processing level 1  of  10
-...done generating multipole expansions
-Computing multipole matrix-vector products... 
-processing level 1  of  10
-processing level 2  of  10
-processing level 3  of  10
-processing level 4  of  10
-processing level 5  of  10
-processing level 6  of  10
-processing level 7  of  10
-processing level 8  of  10
-processing level 9  of  10
-processing level 10  of  10
 ...done computing multipole matrix-vector products
 using sak to compute the errors
 using sak to print the output
 cells dofs    u_Linfty         u_L2           u_H1      
-   24   26 1.488e-04    - 4.944e-04    - 4.944e-04    - 
-   96   98 3.539e-05 2.07 1.234e-04 2.00 1.234e-04 2.00 
+   24   26 1.065e-04    - 3.539e-04    - 3.539e-04    - 
+   96   98 4.731e-05 1.17 1.650e-04 1.10 1.650e-04 1.10 
 cells dofs    u_Linfty         u_L2            u_H1       
-   24   26 2.220e-16    - 1.957e-16     - 1.107e-08     - 
-   96   98 2.220e-16 0.00 1.998e-16 -0.03 1.223e-08 -0.14 
+   24   26 4.441e-16    - 3.914e-16     - 2.214e-08     - 
+   96   98 4.441e-16 0.00 3.996e-16 -0.03 2.445e-08 -0.14 
 using sak to compute the errors
 using sak to compute the errors
 using sak to print the output
-cells dofs    u_Linfty          u_L2            u_H1       
-   24   26 1.042e+00     - 1.843e+00     - 3.390e+00     - 
-   96   98 1.124e+00 -0.11 2.142e+00 -0.22 3.769e+00 -0.15 
+cells dofs    u_Linfty         u_L2           u_H1      
+   24   26 3.777e-01    - 6.956e-01    - 1.279e+00    - 
+   96   98 1.021e-01 1.89 2.145e-01 1.70 3.787e-01 1.76 
 cells dofs    u_Linfty         u_L2            u_H1       
-   24   26 2.220e-16    - 1.957e-16     - 1.107e-08     - 
-   96   98 2.220e-16 0.00 1.998e-16 -0.03 1.223e-08 -0.14 
+   24   26 4.441e-16    - 3.914e-16     - 2.214e-08     - 
+   96   98 4.441e-16 0.00 3.996e-16 -0.03 2.445e-08 -0.14 

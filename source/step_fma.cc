@@ -505,6 +505,7 @@ void MinFmm::StepFMA<dim>::solve_system()
           if (dirichlet_nodes[i]==0)
             {
               dphi_dn[i] = neumann_values[i];
+              phi[i] *= 2;
               // phi[i] = dirichlet_values[i];
               // if(phi[i]<1e-4)
               //   std::cout<<"errore"<<std::endl;
@@ -602,17 +603,17 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int /*cycle*/)
 template<int dim>
 const Quadrature<dim-1> & MinFmm::StepFMA<dim>::get_singular_quadrature(const unsigned int index) const
 {
-  Assert(index < fe.dofs_per_cell,
-         ExcIndexRange(0, fe.dofs_per_cell, index));
+    Assert(index < fe.dofs_per_cell,
+           ExcIndexRange(0, fe.dofs_per_cell, index));
 
-  //static std::vector<QGaussOneOverR<2> > quadratures;
-  static std::vector<QTelles<dim-1> > quadratures;
-  if (quadratures.size() == 0)
-    for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-      quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
-                                           fe.get_unit_support_points()[i]));
+    //static std::vector<QGaussOneOverR<2> > quadratures;
+    static std::vector<QTelles<dim-1> > quadratures;
+    if (quadratures.size() == 0)
+        for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+            quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
+                                             fe.get_unit_support_points()[i]));
 
-  return quadratures[index];
+    return quadratures[index];
 }
 
 //

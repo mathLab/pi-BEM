@@ -878,7 +878,8 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
 
   //const unsigned int n_dofs =  dh.n_dofs();
   //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(dh,this_mpi_process);
-  IndexSet this_cpu_set = dh.locally_owned_dofs();/// !!! OCCHIO CHE NON SERVE TUTTO
+  // Why a different one?
+  // IndexSet this_cpu_set = dh.locally_owned_dofs();/// !!! OCCHIO CHE NON SERVE TUTTO
 
 
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);

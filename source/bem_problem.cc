@@ -699,8 +699,6 @@ void BEMProblem<dim>::assemble_system()
                                                                fe_v_singular.JxW(q) );
                         }
                     }
-                  if (dim==2)
-                    delete singular_quadrature;
                 }
 
               // Finally, we need to add

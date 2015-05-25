@@ -123,7 +123,7 @@ namespace MinFmm
   class StepFMA : public ParameterAcceptor
   {
   public:
-    StepFMA(const unsigned int fe_degree = 1, bool fmm_method = true);
+    StepFMA(const unsigned int fe_degree = 1, bool fmm_method = true, const MPI_Comm comm = MPI_COMM_WORLD);
 
     void run();
 

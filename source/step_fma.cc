@@ -17,9 +17,9 @@
 // Functions::ParsedFunction::declare_parameters is static, and has no
 // knowledge of the number of components.
 template <int dim>
-MinFmm::StepFMA<dim>::StepFMA(const unsigned int fe_degree, bool fmm_method)
+MinFmm::StepFMA<dim>::StepFMA(const unsigned int fe_degree, bool fmm_method, const MPI_Comm comm)
   :
-  mpi_communicator (MPI_COMM_WORLD),
+  mpi_communicator (comm),
   fe(fe_degree),
   dh(tria),
   mapping(fe_degree),
@@ -602,17 +602,17 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int /*cycle*/)
 template<int dim>
 const Quadrature<dim-1> & MinFmm::StepFMA<dim>::get_singular_quadrature(const unsigned int index) const
 {
-    Assert(index < fe.dofs_per_cell,
-           ExcIndexRange(0, fe.dofs_per_cell, index));
+  Assert(index < fe.dofs_per_cell,
+         ExcIndexRange(0, fe.dofs_per_cell, index));
 
-    //static std::vector<QGaussOneOverR<2> > quadratures;
-    static std::vector<QTelles<dim-1> > quadratures;
-    if (quadratures.size() == 0)
-        for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-            quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
-                                             fe.get_unit_support_points()[i]));
+  //static std::vector<QGaussOneOverR<2> > quadratures;
+  static std::vector<QTelles<dim-1> > quadratures;
+  if (quadratures.size() == 0)
+    for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+      quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
+                                           fe.get_unit_support_points()[i]));
 
-    return quadratures[index];
+  return quadratures[index];
 }
 
 //

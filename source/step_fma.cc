@@ -17,9 +17,9 @@
 // Functions::ParsedFunction::declare_parameters is static, and has no
 // knowledge of the number of components.
 template <int dim>
-MinFmm::StepFMA<dim>::StepFMA(const unsigned int fe_degree, bool fmm_method)
+MinFmm::StepFMA<dim>::StepFMA(const unsigned int fe_degree, bool fmm_method, const MPI_Comm comm)
   :
-  mpi_communicator (MPI_COMM_WORLD),
+  mpi_communicator (comm),
   fe(fe_degree),
   dh(tria),
   mapping(fe_degree),
@@ -38,6 +38,8 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
 {
 
 
+  prm.declare_entry("Initial refinement", "0",
+                    Patterns::Integer());
 
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
@@ -94,6 +96,7 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
 template <int dim>
 void MinFmm::StepFMA<dim>::parse_parameters (ParameterHandler &prm)
 {
+  initial_ref = prm.get_integer("Initial refinement");
   n_cycles = prm.get_integer("Number of cycles");
   external_refinement = prm.get_integer("External refinement");
   extend_solution = prm.get_bool("Extend solution on the -2,2 box");
@@ -161,6 +164,8 @@ void MinFmm::StepFMA<dim>::read_domain()
 
   tria.set_all_manifold_ids(1);
   tria.set_manifold(1, manifold);
+  if(initial_ref)
+    tria.refine_global(initial_ref);
 }
 
 
@@ -505,6 +510,7 @@ void MinFmm::StepFMA<dim>::solve_system()
           if (dirichlet_nodes[i]==0)
             {
               dphi_dn[i] = neumann_values[i];
+              phi[i] *= 2;
               // phi[i] = dirichlet_values[i];
               // if(phi[i]<1e-4)
               //   std::cout<<"errore"<<std::endl;

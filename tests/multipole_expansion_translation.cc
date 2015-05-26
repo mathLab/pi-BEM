@@ -40,10 +40,10 @@ int main ()
   Point<3> zero(0.0,0.0,0.0);
   double exact_potential = 0.0;
   for (unsigned int i=0; i<charges_locations.size(); ++i)
-      {
+    {
       exact_potential += charges_intensities[i]/charges_locations[i].distance(zero);
       deallog<<"Charge "<<i+1<<" of intensity "<<charges_intensities[i]<<" is located at point ("<<charges_locations[i]<<")"<<std::endl;
-      }
+    }
 
   deallog<<"Exact potential at point Q(0,0,0): "<<exact_potential<<std::endl;
 
@@ -63,7 +63,7 @@ int main ()
   // member so that the expansion can account of the effect of each charge
   // considered
   for (unsigned int i=0; i<charges_locations.size(); ++i)
-      multipole.Add(charges_intensities[i],charges_locations[i]);
+    multipole.Add(charges_intensities[i],charges_locations[i]);
 
 
   // to test the multipole expansion translation, we now create a second
@@ -80,7 +80,7 @@ int main ()
   // at point Q. This is done using the Evaluate(const dealii::Point<3> &evalPoint)
   // member function.
   double approx_potential = new_multipole.Evaluate(zero);
- 
+
   deallog<<"Approx potential at point Q(0,0,0): "<<approx_potential<<std::endl;
 
   deallog<<"The absolute multipole approximation error is: "<<fabs(exact_potential-approx_potential)<<std::endl;

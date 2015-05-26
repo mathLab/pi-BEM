@@ -123,7 +123,7 @@ namespace MinFmm
   class StepFMA : public ParameterAcceptor
   {
   public:
-    StepFMA(const unsigned int fe_degree = 1, bool fmm_method = true);
+    StepFMA(const unsigned int fe_degree = 1, bool fmm_method = true, const MPI_Comm comm = MPI_COMM_WORLD);
 
     void run();
 
@@ -194,6 +194,7 @@ namespace MinFmm
 
     SolverControl solver_control;
 
+    unsigned int initial_ref;
     unsigned int n_cycles;
     unsigned int external_refinement;
 

@@ -27,8 +27,8 @@ BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
   pcout(std::cout,
-         (this_mpi_process
-          == 0))
+        (this_mpi_process
+         == 0))
 {}
 
 
@@ -549,9 +549,9 @@ void BEMFMA<dim>::direct_integrals()
                       prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
                       prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
                       if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
                       else
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
                     }
 
                 } // end loop on cells of the intList
@@ -667,9 +667,9 @@ void BEMFMA<dim>::direct_integrals()
                       prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
 
                       if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
                       else
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
                     }
 
 
@@ -1198,8 +1198,8 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
     if ( (*dirichlet_nodes)(i) == 0 && !c.is_constrained(i))
       {
-      final_preconditioner.add(i,i,alpha(i));
-      //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+        final_preconditioner.add(i,i,alpha(i));
+        //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
       }
 
   //preconditioner.print_formatted(pcout,4,true,0," 0 ",1.);

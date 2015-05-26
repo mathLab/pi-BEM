@@ -111,7 +111,7 @@ public:
 
   BEMProblem(ComputationalDomain<dim> &comp_dom,
              const unsigned int fe_degree,
-             MPI_Comm comm = MPI_COMM_WORLD);
+             const MPI_Comm comm = MPI_COMM_WORLD);
 
   void solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
              const TrilinosWrappers::MPI::Vector &tmp_rhs);

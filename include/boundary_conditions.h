@@ -77,9 +77,9 @@ template <int dim>
 class BoundaryConditions : public ParameterAcceptor
 {
 public:
-  BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem) :
+  BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem, const MPI_Comm comm = MPI_COMM_WORLD) :
     wind(dim), comp_dom(comp_dom), bem(bem),
-    mpi_communicator (MPI_COMM_WORLD),
+    mpi_communicator (comm),
     n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
   {

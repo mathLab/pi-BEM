@@ -149,6 +149,10 @@ namespace MinFmm
 
     void output_results(const unsigned int cycle);
 
+    void save_direct_solution(const unsigned int cycle);
+
+    void read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct);
+
     const Quadrature<dim-1> & get_singular_quadrature(const unsigned int index) const;
 
     MPI_Comm mpi_communicator;
@@ -198,6 +202,7 @@ namespace MinFmm
     unsigned int n_cycles;
     unsigned int external_refinement;
 
+    bool from_theory;
     bool run_in_this_dimension;
     bool extend_solution;
     IndexSet this_cpu_set;

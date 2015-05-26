@@ -49,6 +49,10 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
                     Patterns::Bool());
   prm.declare_entry("Run 2d simulation", "false",
                     Patterns::Bool());
+
+  prm.declare_entry("Error from theory", "true",
+                    Patterns::Bool());
+
   prm.declare_entry("Run 3d simulation", "true",
                     Patterns::Bool());
 
@@ -98,6 +102,7 @@ void MinFmm::StepFMA<dim>::parse_parameters (ParameterHandler &prm)
 {
   initial_ref = prm.get_integer("Initial refinement");
   n_cycles = prm.get_integer("Number of cycles");
+  from_theory = prm.get_bool("Error from theory");
   external_refinement = prm.get_integer("External refinement");
   extend_solution = prm.get_bool("Extend solution on the -2,2 box");
 
@@ -532,14 +537,60 @@ void MinFmm::StepFMA<dim>::solve_system()
 
 
 template <int dim>
-void MinFmm::StepFMA<dim>::compute_errors(const unsigned int /*cycle*/)
+void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
 {
-  std::cout<<"using sak to compute the errors"<<std::endl;
-  eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
-  eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+  if(from_theory)
+  {
+    std::cout<<"using sak to compute the errors"<<std::endl;
+    eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+    eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+  }
+  else
+  {
+    if(!fmm_sol)
+    {
+      save_direct_solution(cycle);
+      std::cout<<"using sak to compute the errors"<<std::endl;
+      eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+      eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+
+    }
+    else
+    {
+      std::cout<<"using sak to compute the errors"<<std::endl;
+      Vector<double> phi_dummy(phi);
+      Vector<double> phi_direct(phi_dummy.size());
+      read_direct_solution(cycle, phi_direct);
+      phi_direct -= phi_dummy;
+      eh.error_from_exact(mapping, dh, phi_direct, ZeroFunction<dim>(),0);
+      eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+
+    }
+  }
+
 
 }
 
+template <int dim>
+void MinFmm::StepFMA<dim>::save_direct_solution(const unsigned int cycle)
+{
+  std::string file_name1;
+  Vector<double> phi_dir(phi);
+  file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ofstream dir_sol (file_name1.c_str());
+  phi_dir.block_write(dir_sol);
+
+}
+
+template <int dim>
+void MinFmm::StepFMA<dim>::read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct)
+{
+  std::string file_name1;
+  file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ifstream dir_sol (file_name1.c_str());
+  phi_direct.block_read(dir_sol);
+
+}
 
 // Singular integration requires a careful selection of the quadrature
 // rules. In particular the deal.II library provides quadrature rules which

@@ -194,6 +194,7 @@ namespace MinFmm
 
     SolverControl solver_control;
 
+    unsigned int initial_ref;
     unsigned int n_cycles;
     unsigned int external_refinement;
 

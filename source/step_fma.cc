@@ -38,6 +38,8 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
 {
 
 
+  prm.declare_entry("Initial refinement", "0",
+                    Patterns::Integer());
 
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
@@ -94,6 +96,7 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
 template <int dim>
 void MinFmm::StepFMA<dim>::parse_parameters (ParameterHandler &prm)
 {
+  initial_ref = prm.get_integer("Initial refinement");
   n_cycles = prm.get_integer("Number of cycles");
   external_refinement = prm.get_integer("External refinement");
   extend_solution = prm.get_bool("Extend solution on the -2,2 box");
@@ -161,6 +164,8 @@ void MinFmm::StepFMA<dim>::read_domain()
 
   tria.set_all_manifold_ids(1);
   tria.set_manifold(1, manifold);
+  if(initial_ref)
+    tria.refine_global(initial_ref);
 }
 
 

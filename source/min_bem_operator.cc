@@ -116,4 +116,10 @@ void Operator::MinBEMOperator<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &d
 
 }
 
+template<int dim>
+void Operator::MinBEMOperator<dim>::increase_fma_order()
+{
+  op_fma.trunc_order +=1;
+}
+
 template class Operator::MinBEMOperator<3>;

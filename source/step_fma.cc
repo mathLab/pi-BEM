@@ -43,6 +43,10 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
+
+  prm.declare_entry("Number of octree cycles", "10",
+                    Patterns::Integer());
+
   prm.declare_entry("External refinement", "5",
                     Patterns::Integer());
   prm.declare_entry("Extend solution on the -2,2 box", "false",
@@ -102,6 +106,7 @@ void MinFmm::StepFMA<dim>::parse_parameters (ParameterHandler &prm)
 {
   initial_ref = prm.get_integer("Initial refinement");
   n_cycles = prm.get_integer("Number of cycles");
+  n_cycles_octree = prm.get_integer("Number of octree cycles");
   from_theory = prm.get_bool("Error from theory");
   external_refinement = prm.get_integer("External refinement");
   extend_solution = prm.get_bool("Extend solution on the -2,2 box");
@@ -180,10 +185,11 @@ void MinFmm::StepFMA<dim>::read_domain()
 // and resizes matrices and vectors.
 
 template <int dim>
-void MinFmm::StepFMA<dim>::refine_and_resize()
+void MinFmm::StepFMA<dim>::refine_and_resize(bool ref)
 {
   // BEMFMA(dh, double_nodes_set, dirichlet_nodes, mapping);
-  tria.refine_global(1);
+  if(ref)
+    tria.refine_global(1);
 
   dh.distribute_dofs(fe);
 
@@ -881,6 +887,53 @@ void MinFmm::StepFMA<dim>::run()
       solve_system();
       compute_errors(cycle);
       output_results(cycle);
+    }
+  std::cout<<"using sak to print the output"<<std::endl;
+  eh.output_table(std::cout,0);
+  eh.output_table(std::cout,1);
+  tria.set_manifold(1);
+  // if (extend_solution == true)
+  //   compute_exterior_solution();
+}
+
+
+template <int dim>
+void MinFmm::StepFMA<dim>::run_for_octree()
+{
+  // ParameterHandler prm;
+  //
+  // declare_parameters(prm);
+  // parse_parameters(prm);
+
+  //read_parameters("parameters.prm");
+
+  if (run_in_this_dimension == false)
+    {
+      deallog << "Run in dimension " << dim
+              << " explicitly disabled in parameter file. "
+              << std::endl;
+      return;
+    }
+
+  read_domain();
+
+  for (unsigned int cycle=0; cycle<n_cycles_octree; ++cycle)
+    {
+      if(cycle==0)
+        refine_and_resize();
+      else
+        refine_and_resize(false);
+      compute_double_nodes_set();
+      compute_boundary_condition();
+      if (cycle == 0)
+        fma.init_fma(dh, double_nodes_set, dirichlet_nodes, mapping);
+      if (!fmm_sol)
+        assemble_direct_system();
+      solve_system();
+      compute_errors(cycle);
+      output_results(cycle);
+      Operator::MinBEMOperator<dim> oppy(fma, mpi_communicator, this_cpu_set, this_mpi_process);
+      oppy.increase_fma_order();
     }
   std::cout<<"using sak to print the output"<<std::endl;
   eh.output_table(std::cout,0);

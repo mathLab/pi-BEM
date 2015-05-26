@@ -127,6 +127,8 @@ namespace MinFmm
 
     void run();
 
+    void run_for_octree();
+
   private:
 
     virtual void declare_parameters (ParameterHandler &prm);
@@ -135,7 +137,7 @@ namespace MinFmm
 
     void read_domain();
 
-    void refine_and_resize();
+    void refine_and_resize(const bool ref=true);
 
     void compute_boundary_condition();
 
@@ -200,6 +202,7 @@ namespace MinFmm
 
     unsigned int initial_ref;
     unsigned int n_cycles;
+    unsigned int n_cycles_octree;
     unsigned int external_refinement;
 
     bool from_theory;

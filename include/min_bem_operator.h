@@ -24,7 +24,7 @@ namespace Operator
     void set_alpha();
     void vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src)const;
     void compute_rhs(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src_dir, const TrilinosWrappers::MPI::Vector &src_neum);
-    
+    void increase_fma_order();
   private:
     const BEMFMA<dim> &op_fma;
     TrilinosWrappers::MPI::Vector alpha;

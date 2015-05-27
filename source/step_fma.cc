@@ -16,6 +16,13 @@
 // number of components explicitly, since the function
 // Functions::ParsedFunction::declare_parameters is static, and has no
 // knowledge of the number of components.
+
+template <int gdim>
+void test(BEMFMA<gdim> &fma)
+{
+  fma.trunc_order += 1;
+}
+
 template <int dim>
 MinFmm::StepFMA<dim>::StepFMA(const unsigned int fe_degree, bool fmm_method, const MPI_Comm comm)
   :
@@ -932,8 +939,7 @@ void MinFmm::StepFMA<dim>::run_for_octree()
       solve_system();
       compute_errors(cycle);
       output_results(cycle);
-      Operator::MinBEMOperator<dim> oppy(fma, mpi_communicator, this_cpu_set, this_mpi_process);
-      oppy.increase_fma_order();
+      test(fma);
     }
   std::cout<<"using sak to print the output"<<std::endl;
   eh.output_table(std::cout,0);

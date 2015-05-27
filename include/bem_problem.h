@@ -154,6 +154,7 @@ public:
   // and the (fully populated) sytstem
   // matrix.
 
+  //TODO CHECK
   void assemble_preconditioner();
 
   void solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
@@ -162,9 +163,9 @@ public:
 
   void output_results(const std::string);
 
-
+  //TODO PARALLELIZE
   void compute_surface_gradients(const TrilinosWrappers::MPI::Vector &tmp_rhs);
-
+  //TODO PARALLELIZE
   void compute_gradients(const TrilinosWrappers::MPI::Vector &phi, const TrilinosWrappers::MPI::Vector &dphi_dn);
 
   void compute_normals();

@@ -153,7 +153,7 @@ namespace MinFmm
 
     void save_direct_solution(const unsigned int cycle);
 
-    void read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct);
+    void read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct, Vector<double> &alpha_dir);
 
     const Quadrature<dim-1> & get_singular_quadrature(const unsigned int index) const;
 

@@ -562,7 +562,7 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
   {
     if(!fmm_sol)
     {
-      save_direct_solution(cycle);
+      save_direct_solution(n_cycles);
       std::cout<<"using sak to compute the errors"<<std::endl;
       eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
       eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
@@ -572,11 +572,14 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
     {
       std::cout<<"using sak to compute the errors"<<std::endl;
       Vector<double> phi_dummy(phi);
+      Vector<double> alpha_dummy(system_alpha);
       Vector<double> phi_direct(phi_dummy.size());
-      read_direct_solution(cycle, phi_direct);
+      Vector<double> alpha_dir(alpha_dummy.size());
+      read_direct_solution(n_cycles, phi_direct, alpha_dir);
       phi_direct -= phi_dummy;
+      alpha_dir -= alpha_dummy;
       eh.error_from_exact(mapping, dh, phi_direct, ZeroFunction<dim>(),0);
-      eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+      eh.error_from_exact(mapping, dh, alpha_dir, ZeroFunction<dim>(),1);
 
     }
   }
@@ -587,21 +590,28 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
 template <int dim>
 void MinFmm::StepFMA<dim>::save_direct_solution(const unsigned int cycle)
 {
-  std::string file_name1;
+  std::string file_name1, file_name2;
   Vector<double> phi_dir(phi);
+  Vector<double> alpha_dir(system_alpha);
   file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
   std::ofstream dir_sol (file_name1.c_str());
   phi_dir.block_write(dir_sol);
+  file_name2 = "alpha_direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ofstream alpha_dir_sol (file_name2.c_str());
+  alpha_dir.block_write(alpha_dir_sol);
 
 }
 
 template <int dim>
-void MinFmm::StepFMA<dim>::read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct)
+void MinFmm::StepFMA<dim>::read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct, Vector<double> &alpha_dir)
 {
-  std::string file_name1;
+  std::string file_name1, file_name2;
   file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
   std::ifstream dir_sol (file_name1.c_str());
   phi_direct.block_read(dir_sol);
+  file_name2 = "alpha_direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ifstream alpha_dir_sol (file_name2.c_str());
+  alpha_dir.block_read(alpha_dir_sol);
 
 }
 

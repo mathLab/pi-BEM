@@ -33,6 +33,12 @@ void Operator::MinBEMOperator<dim>::set_alpha()
 }
 
 template <int dim>
+TrilinosWrappers::MPI::Vector Operator::MinBEMOperator<dim>::get_alpha()
+{
+  return alpha;
+}
+
+template <int dim>
 void Operator::MinBEMOperator<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src) const
 {
   TrilinosWrappers::MPI::Vector serv_phi(src);

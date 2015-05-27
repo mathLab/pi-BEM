@@ -502,6 +502,7 @@ void MinFmm::StepFMA<dim>::solve_system()
       fma.multipole_integrals();
       std::cout<<"setting alpha"<<std::endl;
       oppy.set_alpha();
+      system_alpha = oppy.get_alpha();
       std::cout<<"computing rhs"<<std::endl;
       oppy.compute_rhs(system_rhs, dirichlet_values, neumann_values);
       std::cout<<"solving"<<std::endl;

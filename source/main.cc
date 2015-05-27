@@ -28,7 +28,7 @@ int main (int argc, char *argv[])
 
       Driver<3> driver;
 
-      ParameterAcceptor::initialize("parmaeter_bem.prm","used_parmaeter_bem.prm");
+      ParameterAcceptor::initialize("parameter_bem.prm","used_parameter_bem.prm");
 
       driver.run();
 

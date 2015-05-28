@@ -83,12 +83,27 @@ void BEMProblem<dim>::reinit()
 {
 
 
+
+
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
+
+  // local_dofs_per_process.resize (n_mpi_processes);
+  // vector_local_dofs_per_process.resize (n_mpi_processes);
+  //  for (unsigned int i=0; i<n_mpi_processes; ++i)
+  //  {
+  //    local_dofs_per_process[i] = DoFTools::count_dofs_with_subdomain_association (dh, i);
+  //
+  //    vector_local_dofs_per_process[i] = DoFTools::count_dofs_with_subdomain_association (gradient_dh, i);
+  //
+  //  }
+
   const unsigned int n_dofs =  dh.n_dofs();
 
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
+
   DoFTools::get_subdomain_association   (dh,dofs_domain_association);
+
   this_cpu_set.clear();
   this_cpu_set.set_size(n_dofs);
 
@@ -98,6 +113,22 @@ void BEMProblem<dim>::reinit()
         this_cpu_set.add_index(i);
       }
   this_cpu_set.compress();
+
+  std::vector<types::subdomain_id> vector_dofs_domain_association(gradient_dh.n_dofs());
+
+  DoFTools::get_subdomain_association   (gradient_dh,vector_dofs_domain_association);
+
+  vector_this_cpu_set.clear();
+  vector_this_cpu_set.set_size(gradient_dh.n_dofs());
+
+  for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
+    if (vector_dofs_domain_association[i] == this_mpi_process)
+      {
+        vector_this_cpu_set.add_index(i);
+      }
+  vector_this_cpu_set.compress();
+
+
 
   //pcout<<"****  Proc: "<<this_mpi_process<<"  Dofs: "<<n_local_dofs<<"  of "<<n_dofs<<std::endl;
 
@@ -1273,28 +1304,42 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   // dphi_dn = glob_dphi_dn;
 
 
+
+  vector_gradients_solution.reinit(vector_this_cpu_set,mpi_communicator);
+
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
-  TrilinosWrappers::SparsityPattern      gradients_sparsity_pattern;
 
-  gradients_sparsity_pattern.reinit(sol.vector_partitioner(), gradient_dh.max_couplings_between_dofs());
-  // gradients_sparsity_pattern.reinit(gradient_dh.n_dofs(),
-  //                                   gradient_dh.n_dofs(),
-  //                                   gradient_dh.max_couplings_between_dofs());
+  DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
+                                                     gradient_dh.n_dofs());
+
+  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
+
   ConstraintMatrix  vector_constraints;
+
   vector_constraints.clear();
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
-  DoFTools::make_sparsity_pattern (gradient_dh, gradients_sparsity_pattern, vector_constraints);
-  gradients_sparsity_pattern.compress();
+
+  vector_constraints.condense (gradient_sparsity_pattern);
+
+  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
+  gradient_sparsity_pattern.compress();
 
 
-  SparseMatrix<double> vector_gradients_matrix;
-  Vector<double> vector_gradients_rhs;
+  TrilinosWrappers::SparseMatrix vector_gradients_matrix;
+  TrilinosWrappers::MPI::Vector vector_gradients_rhs(vector_this_cpu_set,mpi_communicator);
 
-  vector_gradients_matrix.reinit (gradients_sparsity_pattern);
-  vector_gradients_rhs.reinit(gradient_dh.n_dofs());
-  Vector<double> vector_gradients_solution(gradient_dh.n_dofs());
+
+  vector_gradients_matrix.reinit (gradient_sparsity_pattern);
+                        // gradient_sparsity_pattern,
+                        // local_dofs_per_process,
+                        // local_dofs_per_process,
+                        // this_mpi_process);
+
+  // vector_gradients_matrix.reinit (gradient_sparsity_pattern);
+  // vector_gradients_rhs.reinit(gradient_dh.n_dofs());
+
 
 
   FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
@@ -1322,13 +1367,6 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   Vector<double>       local_gradients_rhs (vector_dofs_per_cell);
 
 
-  cell_it
-  vector_cell = gradient_dh.begin_active(),
-  vector_endc = gradient_dh.end();
-
-  cell_it
-  cell = dh.begin_active(),
-  endc = dh.end();
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
@@ -1345,70 +1383,90 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
 
+  cell_it
+  vector_cell = gradient_dh.begin_active(),
+  vector_endc = gradient_dh.end();
+
+  cell_it
+  cell = dh.begin_active(),
+  endc = dh.end();
+
 
   for (; cell!=endc; ++cell,++vector_cell)
     {
       Assert(cell->index() == vector_cell->index(), ExcInternalError());
+      Assert(cell->subdomain_id() == vector_cell->subdomain_id(), ExcInternalError());
 
-      fe_v.reinit (cell);
-      vector_fe_v.reinit (vector_cell);
-      local_gradients_matrix = 0;
-      local_gradients_rhs = 0;
-      const std::vector<Point<dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
-      fe_v.get_function_gradients(phi, phi_surf_grads);
-      fe_v.get_function_values(dphi_dn, phi_norm_grads);
-      unsigned int comp_i, comp_j;
+      if (cell->subdomain_id() == this_mpi_process)
+      {
+        fe_v.reinit (cell);
+        vector_fe_v.reinit (vector_cell);
+        local_gradients_matrix = 0;
+        local_gradients_rhs = 0;
+        const std::vector<Point<dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
+        fe_v.get_function_gradients(phi, phi_surf_grads);
+        fe_v.get_function_values(dphi_dn, phi_norm_grads);
+        unsigned int comp_i, comp_j;
 
 
 
 
-      for (unsigned int q=0; q<vector_n_q_points; ++q)
-        {
-          Point<dim> node_normal_grad_dir(q_vector_normals_solution[q](0),
-                                          q_vector_normals_solution[q](1),
-                                          q_vector_normals_solution[q](2));
-          Point<dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
-          for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
-            {
-              comp_i = gradient_fe.system_to_component_index(i).first;
-              for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
-                {
-                  comp_j = gradient_fe.system_to_component_index(j).first;
-                  if (comp_i == comp_j)
-                    {
-                      local_gradients_matrix(i,j) += vector_fe_v.shape_value(i,q)*
-                                                     vector_fe_v.shape_value(j,q)*
-                                                     vector_fe_v.JxW(q);
-                    }
-                }
-              local_gradients_rhs(i) += (vector_fe_v.shape_value(i, q)) *
-                                        gradient(comp_i) * vector_fe_v.JxW(q);
-            }
-        }
-      vector_cell->get_dof_indices (vector_local_dof_indices);
+        for (unsigned int q=0; q<vector_n_q_points; ++q)
+          {
+            Point<dim> node_normal_grad_dir(q_vector_normals_solution[q](0),
+                                            q_vector_normals_solution[q](1),
+                                            q_vector_normals_solution[q](2));
+            Point<dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
+            for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
+              {
+                comp_i = gradient_fe.system_to_component_index(i).first;
+                for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
+                  {
+                    comp_j = gradient_fe.system_to_component_index(j).first;
+                    if (comp_i == comp_j)
+                      {
+                        local_gradients_matrix(i,j) += vector_fe_v.shape_value(i,q)*
+                                                       vector_fe_v.shape_value(j,q)*
+                                                       vector_fe_v.JxW(q);
+                      }
+                  }
+                local_gradients_rhs(i) += (vector_fe_v.shape_value(i, q)) *
+                                          gradient(comp_i) * vector_fe_v.JxW(q);
+              }
+          }
+        vector_cell->get_dof_indices (vector_local_dof_indices);
 
-      vector_constraints.distribute_local_to_global
-      (local_gradients_matrix,
-       local_gradients_rhs,
-       vector_local_dof_indices,
-       vector_gradients_matrix,
-       vector_gradients_rhs);
+        vector_constraints.distribute_local_to_global
+        (local_gradients_matrix,
+         local_gradients_rhs,
+         vector_local_dof_indices,
+         vector_gradients_matrix,
+         vector_gradients_rhs);
+       }
     }
 
-  SparseDirectUMFPACK gradients_inverse;
-  gradients_inverse.initialize(vector_gradients_matrix);
-  gradients_inverse.vmult(vector_gradients_solution, vector_gradients_rhs);
+  vector_gradients_matrix.compress(VectorOperation::add);
+  vector_gradients_rhs.compress(VectorOperation::add);
+
+  SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
+                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
+
+  solver.solve (vector_gradients_matrix, vector_gradients_solution, vector_gradients_rhs, PreconditionIdentity());
+
+  // SparseDirectUMFPACK gradients_inverse;
+  // gradients_inverse.initialize(vector_gradients_matrix);
+  // gradients_inverse.vmult(vector_gradients_solution, vector_gradients_rhs);
   vector_constraints.distribute(vector_gradients_solution);
 
 
-  node_gradients.resize(dh.n_dofs());
-
-  for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
-    {
-      for (unsigned int d=0; d<dim; d++)
-        node_gradients[i](d) = vector_gradients_solution(dim*i+d);
-      //cout<<i<<" Gradient: "<<node_gradients[i]<<endl;
-    }
+  // node_gradients.resize(dh.n_dofs());
+  //
+  // for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
+  //   {
+  //     for (unsigned int d=0; d<dim; d++)
+  //       node_gradients[i](d) = vector_gradients_solution(dim*i+d);
+  //     //cout<<i<<" Gradient: "<<node_gradients[i]<<endl;
+  //   }
 
 
 }

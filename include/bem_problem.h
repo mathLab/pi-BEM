@@ -280,11 +280,19 @@ public:
 
   IndexSet this_cpu_set;
 
+  IndexSet vector_this_cpu_set;
+
   std::vector<Point<dim> > node_surface_gradients;
 
-  std::vector<Point<dim> > node_gradients;
-
+  // std::vector<Point<dim> > node_gradients;
+  //
   std::vector<Point<dim> > node_normals;
+
+  TrilinosWrappers::MPI::Vector vector_gradients_solution;
+
+  // std::vector<types::global_dof_index> local_dofs_per_process;
+  //
+  // std::vector<types::global_dof_index> vector_local_dofs_per_process;
 
   BEMFMA<dim> fma;
 };

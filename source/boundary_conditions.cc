@@ -307,10 +307,10 @@ void BoundaryConditions<dim>::compute_errors()
 {
 
   bem.compute_gradients(phi,dphi_dn);
-  Vector<double> vector_gradients_solution(bem.gradient_dh.n_dofs());
-  for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-    for (unsigned int d=0; d<dim; ++d)
-      vector_gradients_solution(3*i+d) = bem.node_gradients[i](d);
+  Vector<double> vector_gradients_solution(bem.vector_gradients_solution);
+  // for (unsigned int i=0; i<bem.gradient_dh.n_dofs(); ++i)
+  //   for (unsigned int d=0; d<dim; ++d)
+  //     vector_gradients_solution(3*i+d) = bem.node_gradients[i](d);
 
   Vector<float> grad_difference_per_cell (comp_dom.tria.n_active_cells());
   VectorTools::integrate_difference (bem.mapping, bem.gradient_dh, vector_gradients_solution,
@@ -388,10 +388,10 @@ void BoundaryConditions<dim>::output_results(const std::string filename) const
     }
 
   bem.compute_gradients(phi,dphi_dn);
-  Vector<double> vector_gradients_solution(bem.gradient_dh.n_dofs());
-  for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-    for (unsigned int d=0; d<dim; ++d)
-      vector_gradients_solution(3*i+d) = bem.node_gradients[i](d);
+  Vector<double> vector_gradients_solution(bem.vector_gradients_solution);
+  // for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
+  //   for (unsigned int d=0; d<dim; ++d)
+  //     vector_gradients_solution(3*i+d) = bem.node_gradients[i](d);
 
   bem.compute_normals();
   Vector<double> vector_normals_solution(bem.gradient_dh.n_dofs());

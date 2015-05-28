@@ -88,15 +88,8 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
 
-  // local_dofs_per_process.resize (n_mpi_processes);
-  // vector_local_dofs_per_process.resize (n_mpi_processes);
-  //  for (unsigned int i=0; i<n_mpi_processes; ++i)
-  //  {
-  //    local_dofs_per_process[i] = DoFTools::count_dofs_with_subdomain_association (dh, i);
-  //
-  //    vector_local_dofs_per_process[i] = DoFTools::count_dofs_with_subdomain_association (gradient_dh, i);
-  //
-  //  }
+  local_dofs_per_process.resize (n_mpi_processes);
+  vector_local_dofs_per_process.resize (n_mpi_processes);
 
   const unsigned int n_dofs =  dh.n_dofs();
 
@@ -127,6 +120,15 @@ void BEMProblem<dim>::reinit()
         vector_this_cpu_set.add_index(i);
       }
   vector_this_cpu_set.compress();
+
+
+  for (unsigned int i=0; i<n_mpi_processes; ++i)
+  {
+    local_dofs_per_process[i] = DoFTools::count_dofs_with_subdomain_association (dh, i);
+
+    vector_local_dofs_per_process[i] = DoFTools::count_dofs_with_subdomain_association (gradient_dh, i);
+
+  }
 
 
 
@@ -171,6 +173,22 @@ void BEMProblem<dim>::reinit()
             }
          }
   //*/
+
+  TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
+  std::cout<<vector_local_dofs_per_process[this_mpi_process]<<std::endl;
+  vector_sparsity_pattern.reinit( helper.vector_partitioner(), gradient_dh.max_couplings_between_dofs());
+  DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern);
+
+
+
+  vector_constraints.reinit(vector_this_cpu_set);
+  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
+  vector_constraints.close();
+
+  // vector_constraints.condense (vector_sparsity_pattern);
+  DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern, vector_constraints, true, this_mpi_process);
+  vector_sparsity_pattern.compress();
+
 }
 
 template <int dim>
@@ -1124,11 +1142,12 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
         unsigned int firstOfDoubles = *doubles.begin();
         for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
           {
-            if (dirichlet_nodes(*it) == 1)
-              {
-                firstOfDoubles = *it;
-                break;
-              }
+            if(this_cpu_set.is_element(*it))
+              if (dirichlet_nodes(*it) == 1)
+                {
+                  firstOfDoubles = *it;
+                  break;
+                }
           }
 
         // for each set of double nodes, we will perform the correction only once, and precisely
@@ -1146,60 +1165,63 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
               {
                 for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                   {
-                    if (dirichlet_nodes(*it) == 1)
-                      {
-                        // this is the dirichlet-dirichlet case on flat edges: here we impose that
-                        // dphi_dn on the two (or more) sides is equal.
-                        double normal_distance = 0;
-                        for(unsigned int idim=0; idim < dim; ++idim)
-                          normal_distance += vector_normals_solution[i*dim+idim] * vector_normals_solution[(*it)*dim+idim];
-                        normal_distance /= normal_distance;
-                        if ( normal_distance < 1e-4 )
-                          {
-                            c.add_line(*it);
-                            c.add_entry(*it,i,1);
-                          }
-                        // this is the dirichlet-dirichlet case on sharp edges: both normal gradients
-                        // can be computed from surface gradients of phi and assingned as BC
-                        else
-                          {
-                            c.add_line(*it);
-                            double norm_i_norm_it = 0;
-                            double surf_it_norm_i = 0;
-                            double surf_i_norm_it = 0;
-
-                            // We no longer have a std::vector of Point<dim> so we need to perform the scalar product
-                            for(unsigned int idim=0; idim < dim; ++idim)
+                    if(this_cpu_set.is_element(*it))
+                    {
+                      if (dirichlet_nodes(*it) == 1)
+                        {
+                          // this is the dirichlet-dirichlet case on flat edges: here we impose that
+                          // dphi_dn on the two (or more) sides is equal.
+                          double normal_distance = 0;
+                          for(unsigned int idim=0; idim < dim; ++idim)
+                            normal_distance += vector_normals_solution[i*dim+idim] * vector_normals_solution[(*it)*dim+idim];
+                          normal_distance /= normal_distance;
+                          if ( normal_distance < 1e-4 )
                             {
-                              norm_i_norm_it += vector_normals_solution[i*dim+idim]*vector_normals_solution[(*it)*dim+idim];
-                              surf_it_norm_i += vector_surface_gradients_solution[(*it)*dim+idim]*vector_normals_solution[i*dim+idim];
-                              surf_i_norm_it += vector_surface_gradients_solution[i*dim+idim]*vector_normals_solution[(*it)*dim+idim];
+                              c.add_line(*it);
+                              c.add_entry(*it,i,1);
                             }
-                            double this_normal_gradient = (1.0/(1.0-pow(norm_i_norm_it,2))) *
-                                                          (surf_it_norm_i+
-                                                           (surf_i_norm_it)*(norm_i_norm_it));
-                            double other_normal_gradient = (1.0/(1.0-pow(norm_i_norm_it,2))) *
-                                                           (surf_i_norm_it+
-                                                            (surf_it_norm_i)*(norm_i_norm_it));
-                            //std::cout<<"i="<<i<<" j="<<*it<<std::endl;
-                            //std::cout<<"ni=("<<node_normals[i]<<")  nj=("<<node_normals[*it]<<")"<<std::endl;
-                            //std::cout<<"grad_s_phi_i=("<<node_surface_gradients[i]<<")  grad_s_phi_j=("<<node_surface_gradients[*it]<<")"<<std::endl;
-                            //std::cout<<"dphi_dn_i="<<this_normal_gradient<<" dphi_dn_j="<<other_normal_gradient<<std::endl;
-                            //Point<3> this_full_gradient = node_normals[i]*this_normal_gradient + node_surface_gradients[i];
-                            //Point<3> other_full_gradient = node_normals[*it]*other_normal_gradient + node_surface_gradients[*it];
-                            //std::cout<<"grad_phi_i=("<<this_full_gradient<<")  grad_phi_j=("<<other_full_gradient<<")"<<std::endl;
-                            c.add_line(i);
-                            c.set_inhomogeneity(i,this_normal_gradient);
-                            c.add_line(*it);
-                            c.set_inhomogeneity(*it,other_normal_gradient);
-                          }
-                      }
-                    else
-                      {
-                        c.add_line(*it);
-                        c.set_inhomogeneity(*it,loc_tmp_rhs(i));
-                        //dst(*it) = phi(*it)/alpha(*it);
-                      }
+                          // this is the dirichlet-dirichlet case on sharp edges: both normal gradients
+                          // can be computed from surface gradients of phi and assingned as BC
+                          else
+                            {
+                              c.add_line(*it);
+                              double norm_i_norm_it = 0;
+                              double surf_it_norm_i = 0;
+                              double surf_i_norm_it = 0;
+
+                              // We no longer have a std::vector of Point<dim> so we need to perform the scalar product
+                              for(unsigned int idim=0; idim < dim; ++idim)
+                              {
+                                norm_i_norm_it += vector_normals_solution[i*dim+idim]*vector_normals_solution[(*it)*dim+idim];
+                                surf_it_norm_i += vector_surface_gradients_solution[(*it)*dim+idim]*vector_normals_solution[i*dim+idim];
+                                surf_i_norm_it += vector_surface_gradients_solution[i*dim+idim]*vector_normals_solution[(*it)*dim+idim];
+                              }
+                              double this_normal_gradient = (1.0/(1.0-pow(norm_i_norm_it,2))) *
+                                                            (surf_it_norm_i+
+                                                             (surf_i_norm_it)*(norm_i_norm_it));
+                              double other_normal_gradient = (1.0/(1.0-pow(norm_i_norm_it,2))) *
+                                                             (surf_i_norm_it+
+                                                              (surf_it_norm_i)*(norm_i_norm_it));
+                              //std::cout<<"i="<<i<<" j="<<*it<<std::endl;
+                              //std::cout<<"ni=("<<node_normals[i]<<")  nj=("<<node_normals[*it]<<")"<<std::endl;
+                              //std::cout<<"grad_s_phi_i=("<<node_surface_gradients[i]<<")  grad_s_phi_j=("<<node_surface_gradients[*it]<<")"<<std::endl;
+                              //std::cout<<"dphi_dn_i="<<this_normal_gradient<<" dphi_dn_j="<<other_normal_gradient<<std::endl;
+                              //Point<3> this_full_gradient = node_normals[i]*this_normal_gradient + node_surface_gradients[i];
+                              //Point<3> other_full_gradient = node_normals[*it]*other_normal_gradient + node_surface_gradients[*it];
+                              //std::cout<<"grad_phi_i=("<<this_full_gradient<<")  grad_phi_j=("<<other_full_gradient<<")"<<std::endl;
+                              c.add_line(i);
+                              c.set_inhomogeneity(i,this_normal_gradient);
+                              c.add_line(*it);
+                              c.set_inhomogeneity(*it,other_normal_gradient);
+                            }
+                        }
+                      else
+                        {
+                          c.add_line(*it);
+                          c.set_inhomogeneity(*it,loc_tmp_rhs(i));
+                          //dst(*it) = phi(*it)/alpha(*it);
+                        }
+                    }
                   }
               }
 
@@ -1323,28 +1345,28 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
 
-  DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
-                                                     gradient_dh.n_dofs());
-
-  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
-
-  ConstraintMatrix  vector_constraints;
-
-  vector_constraints.clear();
-  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  vector_constraints.close();
-
-  vector_constraints.condense (gradient_sparsity_pattern);
-
-  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
-  gradient_sparsity_pattern.compress();
+  // DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
+  //                                                    gradient_dh.n_dofs());
+  //
+  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
+  //
+  // ConstraintMatrix  vector_constraints;
+  //
+  // vector_constraints.clear();
+  // DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
+  // vector_constraints.close();
+  //
+  // vector_constraints.condense (gradient_sparsity_pattern);
+  //
+  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
+  // gradient_sparsity_pattern.compress();
 
 
   TrilinosWrappers::SparseMatrix vector_gradients_matrix;
   TrilinosWrappers::MPI::Vector vector_gradients_rhs(vector_this_cpu_set,mpi_communicator);
 
 
-  vector_gradients_matrix.reinit (gradient_sparsity_pattern);
+  vector_gradients_matrix.reinit (vector_sparsity_pattern);
 
 
 
@@ -1472,28 +1494,28 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
 
-  DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
-                                                     gradient_dh.n_dofs());
-
-  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
-
-  ConstraintMatrix  vector_constraints;
-
-  vector_constraints.clear();
-  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  vector_constraints.close();
-
-  vector_constraints.condense (gradient_sparsity_pattern);
-
-  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
-  gradient_sparsity_pattern.compress();
+  // DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
+  //                                                    gradient_dh.n_dofs());
+  //
+  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
+  //
+  // ConstraintMatrix  vector_constraints;
+  //
+  // vector_constraints.clear();
+  // DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
+  // vector_constraints.close();
+  //
+  // vector_constraints.condense (gradient_sparsity_pattern);
+  //
+  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
+  // gradient_sparsity_pattern.compress();
 
 
   TrilinosWrappers::SparseMatrix vector_surface_gradients_matrix;
   TrilinosWrappers::MPI::Vector vector_surface_gradients_rhs(vector_this_cpu_set,mpi_communicator);
 
 
-  vector_surface_gradients_matrix.reinit (gradient_sparsity_pattern);
+  vector_surface_gradients_matrix.reinit (vector_sparsity_pattern);
 
 
 
@@ -1760,28 +1782,15 @@ void BEMProblem<dim>::compute_normals()
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
 
-  DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
-                                                     gradient_dh.n_dofs());
-
-  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
-
-  ConstraintMatrix  vector_constraints;
-
-  vector_constraints.clear();
-  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  vector_constraints.close();
-
-  vector_constraints.condense (gradient_sparsity_pattern);
-
-  DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
-  gradient_sparsity_pattern.compress();
+  // DynamicSparsityPattern gradient_sparsity_pattern ( vector_local_dofs_per_process[this_mpi_process], gradient_dh.n_dofs(), vector_this_cpu_set);
+  //
 
 
   TrilinosWrappers::SparseMatrix vector_normals_matrix;
   TrilinosWrappers::MPI::Vector vector_normals_rhs(vector_this_cpu_set,mpi_communicator);
 
 
-  vector_normals_matrix.reinit (gradient_sparsity_pattern);
+  vector_normals_matrix.reinit (vector_sparsity_pattern);
 
 
 

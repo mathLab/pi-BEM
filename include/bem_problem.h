@@ -294,9 +294,13 @@ public:
 
   TrilinosWrappers::MPI::Vector vector_normals_solution;
 
-  // std::vector<types::global_dof_index> local_dofs_per_process;
-  //
-  // std::vector<types::global_dof_index> vector_local_dofs_per_process;
+  std::vector<types::global_dof_index> local_dofs_per_process;
+
+  std::vector<types::global_dof_index> vector_local_dofs_per_process;
+
+  TrilinosWrappers::SparsityPattern vector_sparsity_pattern;
+
+  ConstraintMatrix  vector_constraints;
 
   BEMFMA<dim> fma;
 };

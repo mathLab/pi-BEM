@@ -579,7 +579,7 @@ void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
       read_direct_solution(n_cycles, phi_direct, alpha_dir);
       phi_direct -= phi_dummy;
       alpha_dir -= alpha_dummy;
-      eh.error_from_exact(mapping, dh, phi_direct, ZeroFunction<dim>(),0);
+      eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
       eh.error_from_exact(mapping, dh, alpha_dir, ZeroFunction<dim>(),1);
 
     }
@@ -594,6 +594,8 @@ void MinFmm::StepFMA<dim>::save_direct_solution(const unsigned int cycle)
   std::string file_name1, file_name2;
   Vector<double> phi_dir(phi);
   Vector<double> alpha_dir(system_alpha);
+  alpha_dir.add(-1.);
+  alpha_dir*=-1.;
   file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
   std::ofstream dir_sol (file_name1.c_str());
   phi_dir.block_write(dir_sol);

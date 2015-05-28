@@ -167,7 +167,7 @@ public:
   void compute_surface_gradients(const TrilinosWrappers::MPI::Vector &tmp_rhs);
   //TODO PARALLELIZE
   void compute_gradients(const TrilinosWrappers::MPI::Vector &phi, const TrilinosWrappers::MPI::Vector &dphi_dn);
-
+  //TODO PARALLELIZE
   void compute_normals();
 
   // this method is needed to

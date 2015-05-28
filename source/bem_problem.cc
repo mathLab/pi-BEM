@@ -1404,7 +1404,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
     {
       for (unsigned int d=0; d<dim; d++)
-        node_gradients[i](d) = vector_gradients_solution(3*i+d);
+        node_gradients[i](d) = vector_gradients_solution(dim*i+d);
       //cout<<i<<" Gradient: "<<node_gradients[i]<<endl;
     }
 
@@ -1547,7 +1547,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
     {
       for (unsigned int d=0; d<dim; d++)
-        node_surface_gradients[i](d) = vector_gradients_solution(3*i+d);
+        node_surface_gradients[i](d) = vector_gradients_solution(dim*i+d);
       //cout<<i<<" Gradient: "<<node_gradients[i]<<endl;
     }
 
@@ -1644,11 +1644,11 @@ void BEMProblem<dim>::compute_normals()
   for (unsigned int i=0; i<gradient_dh.n_dofs()/dim; ++i)
     {
       for (unsigned int d=0; d<dim; d++)
-        node_normals[i](d) = vector_normals_solution(3*i+d);
-      node_normals[i]/= node_normals[i].distance(Point<dim>(0.0,0.0,0.0));
+        node_normals[i](d) = vector_normals_solution(dim*i+d);
+      node_normals[i]/= node_normals[i].distance(Point<dim>());
       //cout<<i<<" Gradient: "<<node_normals[i]<<endl;
       for (unsigned int d=0; d<dim; d++)
-        vector_normals_solution(3*i+d) = node_normals[i](d);
+        vector_normals_solution(dim*i+d) = node_normals[i](d);
     }
 
 

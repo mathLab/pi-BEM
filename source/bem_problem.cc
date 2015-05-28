@@ -1267,18 +1267,20 @@ void BEMProblem<dim>::assemble_preconditioner()
 template <int dim>
 void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glob_phi, const TrilinosWrappers::MPI::Vector &glob_dphi_dn)
 {
-  Vector<double> phi(glob_phi.size());
-  phi = glob_phi;
-  Vector<double> dphi_dn(glob_dphi_dn.size());
-  dphi_dn = glob_dphi_dn;
+  TrilinosWrappers::MPI::Vector phi(glob_phi);
+  // phi = glob_phi;
+  TrilinosWrappers::MPI::Vector dphi_dn(glob_dphi_dn);
+  // dphi_dn = glob_dphi_dn;
 
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
-  SparsityPattern      gradients_sparsity_pattern;
-  gradients_sparsity_pattern.reinit(gradient_dh.n_dofs(),
-                                    gradient_dh.n_dofs(),
-                                    gradient_dh.max_couplings_between_dofs());
+  TrilinosWrappers::SparsityPattern      gradients_sparsity_pattern;
+
+  gradients_sparsity_pattern.reinit(sol.vector_partitioner(), gradient_dh.max_couplings_between_dofs());
+  // gradients_sparsity_pattern.reinit(gradient_dh.n_dofs(),
+  //                                   gradient_dh.n_dofs(),
+  //                                   gradient_dh.max_couplings_between_dofs());
   ConstraintMatrix  vector_constraints;
   vector_constraints.clear();
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);

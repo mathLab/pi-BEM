@@ -16,6 +16,13 @@
 // number of components explicitly, since the function
 // Functions::ParsedFunction::declare_parameters is static, and has no
 // knowledge of the number of components.
+
+template <int gdim>
+void test(BEMFMA<gdim> &fma)
+{
+  fma.trunc_order += 1;
+}
+
 template <int dim>
 MinFmm::StepFMA<dim>::StepFMA(const unsigned int fe_degree, bool fmm_method, const MPI_Comm comm)
   :
@@ -43,12 +50,20 @@ void MinFmm::StepFMA<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
+
+  prm.declare_entry("Number of octree cycles", "10",
+                    Patterns::Integer());
+
   prm.declare_entry("External refinement", "5",
                     Patterns::Integer());
   prm.declare_entry("Extend solution on the -2,2 box", "false",
                     Patterns::Bool());
   prm.declare_entry("Run 2d simulation", "false",
                     Patterns::Bool());
+
+  prm.declare_entry("Error from theory", "true",
+                    Patterns::Bool());
+
   prm.declare_entry("Run 3d simulation", "true",
                     Patterns::Bool());
 
@@ -98,6 +113,8 @@ void MinFmm::StepFMA<dim>::parse_parameters (ParameterHandler &prm)
 {
   initial_ref = prm.get_integer("Initial refinement");
   n_cycles = prm.get_integer("Number of cycles");
+  n_cycles_octree = prm.get_integer("Number of octree cycles");
+  from_theory = prm.get_bool("Error from theory");
   external_refinement = prm.get_integer("External refinement");
   extend_solution = prm.get_bool("Extend solution on the -2,2 box");
 
@@ -175,10 +192,11 @@ void MinFmm::StepFMA<dim>::read_domain()
 // and resizes matrices and vectors.
 
 template <int dim>
-void MinFmm::StepFMA<dim>::refine_and_resize()
+void MinFmm::StepFMA<dim>::refine_and_resize(bool ref)
 {
   // BEMFMA(dh, double_nodes_set, dirichlet_nodes, mapping);
-  tria.refine_global(1);
+  if(ref)
+    tria.refine_global(1);
 
   dh.distribute_dofs(fe);
 
@@ -484,6 +502,7 @@ void MinFmm::StepFMA<dim>::solve_system()
       fma.multipole_integrals();
       std::cout<<"setting alpha"<<std::endl;
       oppy.set_alpha();
+      system_alpha = oppy.get_alpha();
       std::cout<<"computing rhs"<<std::endl;
       oppy.compute_rhs(system_rhs, dirichlet_values, neumann_values);
       std::cout<<"solving"<<std::endl;
@@ -532,14 +551,72 @@ void MinFmm::StepFMA<dim>::solve_system()
 
 
 template <int dim>
-void MinFmm::StepFMA<dim>::compute_errors(const unsigned int /*cycle*/)
+void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
 {
-  std::cout<<"using sak to compute the errors"<<std::endl;
-  eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
-  eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+  if(from_theory)
+  {
+    std::cout<<"using sak to compute the errors"<<std::endl;
+    eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+    eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+  }
+  else
+  {
+    if(!fmm_sol)
+    {
+      save_direct_solution(n_cycles);
+      std::cout<<"using sak to compute the errors"<<std::endl;
+      eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+      eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
+
+    }
+    else
+    {
+      std::cout<<"using sak to compute the errors"<<std::endl;
+      Vector<double> phi_dummy(phi);
+      Vector<double> alpha_dummy(system_alpha);
+      Vector<double> phi_direct(phi_dummy.size());
+      Vector<double> alpha_dir(alpha_dummy.size());
+      read_direct_solution(n_cycles, phi_direct, alpha_dir);
+      phi_direct -= phi_dummy;
+      alpha_dir -= alpha_dummy;
+      eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+      eh.error_from_exact(mapping, dh, alpha_dir, ZeroFunction<dim>(),1);
+
+    }
+  }
+
 
 }
 
+template <int dim>
+void MinFmm::StepFMA<dim>::save_direct_solution(const unsigned int cycle)
+{
+  std::string file_name1, file_name2;
+  Vector<double> phi_dir(phi);
+  Vector<double> alpha_dir(system_alpha);
+  alpha_dir.add(-1.);
+  alpha_dir*=-1.;
+  file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ofstream dir_sol (file_name1.c_str());
+  phi_dir.block_write(dir_sol);
+  file_name2 = "alpha_direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ofstream alpha_dir_sol (file_name2.c_str());
+  alpha_dir.block_write(alpha_dir_sol);
+
+}
+
+template <int dim>
+void MinFmm::StepFMA<dim>::read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct, Vector<double> &alpha_dir)
+{
+  std::string file_name1, file_name2;
+  file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ifstream dir_sol (file_name1.c_str());
+  phi_direct.block_read(dir_sol);
+  file_name2 = "alpha_direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
+  std::ifstream alpha_dir_sol (file_name2.c_str());
+  alpha_dir.block_read(alpha_dir_sol);
+
+}
 
 // Singular integration requires a careful selection of the quadrature
 // rules. In particular the deal.II library provides quadrature rules which
@@ -830,6 +907,52 @@ void MinFmm::StepFMA<dim>::run()
       solve_system();
       compute_errors(cycle);
       output_results(cycle);
+    }
+  std::cout<<"using sak to print the output"<<std::endl;
+  eh.output_table(std::cout,0);
+  eh.output_table(std::cout,1);
+  tria.set_manifold(1);
+  // if (extend_solution == true)
+  //   compute_exterior_solution();
+}
+
+
+template <int dim>
+void MinFmm::StepFMA<dim>::run_for_octree()
+{
+  // ParameterHandler prm;
+  //
+  // declare_parameters(prm);
+  // parse_parameters(prm);
+
+  //read_parameters("parameters.prm");
+
+  if (run_in_this_dimension == false)
+    {
+      deallog << "Run in dimension " << dim
+              << " explicitly disabled in parameter file. "
+              << std::endl;
+      return;
+    }
+
+  read_domain();
+
+  for (unsigned int cycle=0; cycle<n_cycles_octree; ++cycle)
+    {
+      if(cycle==0)
+        refine_and_resize();
+      else
+        refine_and_resize(false);
+      compute_double_nodes_set();
+      compute_boundary_condition();
+      if (cycle == 0)
+        fma.init_fma(dh, double_nodes_set, dirichlet_nodes, mapping);
+      if (!fmm_sol)
+        assemble_direct_system();
+      solve_system();
+      compute_errors(cycle);
+      output_results(cycle);
+      test(fma);
     }
   std::cout<<"using sak to print the output"<<std::endl;
   eh.output_table(std::cout,0);

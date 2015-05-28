@@ -127,6 +127,8 @@ namespace MinFmm
 
     void run();
 
+    void run_for_octree();
+
   private:
 
     virtual void declare_parameters (ParameterHandler &prm);
@@ -135,7 +137,7 @@ namespace MinFmm
 
     void read_domain();
 
-    void refine_and_resize();
+    void refine_and_resize(const bool ref=true);
 
     void compute_boundary_condition();
 
@@ -148,6 +150,10 @@ namespace MinFmm
     void compute_errors(const unsigned int cycle);
 
     void output_results(const unsigned int cycle);
+
+    void save_direct_solution(const unsigned int cycle);
+
+    void read_direct_solution(const unsigned int cycle, Vector<double> &phi_direct, Vector<double> &alpha_dir);
 
     const Quadrature<dim-1> & get_singular_quadrature(const unsigned int index) const;
 
@@ -196,8 +202,10 @@ namespace MinFmm
 
     unsigned int initial_ref;
     unsigned int n_cycles;
+    unsigned int n_cycles_octree;
     unsigned int external_refinement;
 
+    bool from_theory;
     bool run_in_this_dimension;
     bool extend_solution;
     IndexSet this_cpu_set;

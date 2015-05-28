@@ -44,10 +44,13 @@ class BEMFMA : public ParameterAcceptor
 public:
 
   /// Function to be used in the tests, it can access everything inside bemfma
-  template<int fdim>
-  friend void test(Operator::MinBEMOperator<fdim> &);
+  // template<int fdim>
+  // friend void test(Operator::MinBEMOperator<fdim> &);
   /// Class that implements a minimal operator
   friend class Operator::MinBEMOperator<dim>;
+
+  template<int gdim>
+  friend void test(BEMFMA<gdim> &);
 
   /// Just renaming the cell iterator type
 

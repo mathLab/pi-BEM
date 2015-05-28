@@ -282,13 +282,17 @@ public:
 
   IndexSet vector_this_cpu_set;
 
-  std::vector<Point<dim> > node_surface_gradients;
+  // std::vector<Point<dim> > node_surface_gradients;
 
   // std::vector<Point<dim> > node_gradients;
   //
-  std::vector<Point<dim> > node_normals;
+  // std::vector<Point<dim> > node_normals;
 
   TrilinosWrappers::MPI::Vector vector_gradients_solution;
+
+  TrilinosWrappers::MPI::Vector vector_surface_gradients_solution;
+
+  TrilinosWrappers::MPI::Vector vector_normals_solution;
 
   // std::vector<types::global_dof_index> local_dofs_per_process;
   //

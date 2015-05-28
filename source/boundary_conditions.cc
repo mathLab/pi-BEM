@@ -232,7 +232,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
 
   phi.reinit(this_cpu_set,mpi_communicator);
   dphi_dn.reinit(this_cpu_set,mpi_communicator);
-  tmp_rhs.reinit(this_cpu_set,mpi_communicator);
+  // tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
 
   std::vector<Point<dim> > support_points(n_dofs);
@@ -275,14 +275,18 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                     Vector<double> imposed_pot_grad(dim);
                     wind.vector_value(support_points[local_dof_indices[j]],imposed_pot_grad);
                     Point<dim> imposed_potential_gradient;
+                    double tmp_dphi_dn = 0;
                     for (unsigned int d=0; d<dim; ++d)
+                    {
                       imposed_potential_gradient(d) = imposed_pot_grad(d);
-                    tmp_rhs(local_dof_indices[j]) = imposed_potential_gradient*bem.node_normals[local_dof_indices[j]];
-                    dphi_dn(local_dof_indices[j]) = imposed_potential_gradient*bem.node_normals[local_dof_indices[j]];
+                      tmp_dphi_dn += imposed_potential_gradient[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
+                    }
+                    // tmp_rhs(local_dof_indices[j]) = imposed_potential_gradient*bem.node_normals[local_dof_indices[j]];
+                    dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
                   }
                 else
                   {
-                    tmp_rhs(local_dof_indices[j]) = 0;
+                    // tmp_rhs(local_dof_indices[j]) = 0;
                     dphi_dn(local_dof_indices[j]) = 0;
                   }
                 //bem.pcout<<"internalIf   "<<local_dof_indices[j]<<" norm ("<<node_normals[j]<<")  "<<" pos ("<<node_coors[j]<<")    "<<node_normals[j]*datum_grad<<std::endl;
@@ -291,7 +295,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
               {
                 //tmp_rhs(local_dof_indices[j]) = node_coors[j](0);
                 phi(local_dof_indices[j]) = potential.value(support_points[local_dof_indices[j]]);
-                tmp_rhs(local_dof_indices[j]) = phi(local_dof_indices[j]);
+                // tmp_rhs(local_dof_indices[j]) = phi(local_dof_indices[j]);
                 //bem.pcout<<"internalElse "<<local_dof_indices[j]<<" norm ("<<node_normals[j]<<")  "<<" pos ("<<node_coors[j]<<")    "<<node_coors[j](0)<<std::endl;
               }
             //bem.pcout<<tmp_rhs(local_dof_indices[j])<<"   phi "<<phi(local_dof_indices[j])<<std::endl;
@@ -382,26 +386,26 @@ void BoundaryConditions<dim>::output_results(const std::string filename) const
 
   for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
     {
-      phi_dphidn_alpha(3*i) = phi(i);
-      phi_dphidn_alpha(3*i+1) = dphi_dn(i);
-      phi_dphidn_alpha(3*i+2) = bem.alpha(i);
+      phi_dphidn_alpha(dim*i) = phi(i);
+      phi_dphidn_alpha(dim*i+1) = dphi_dn(i);
+      phi_dphidn_alpha(dim*i+2) = bem.alpha(i);
     }
 
   bem.compute_gradients(phi,dphi_dn);
-  Vector<double> vector_gradients_solution(bem.vector_gradients_solution);
+  // Vector<double> vector_gradients_solution(bem.vector_gradients_solution);
   // for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
   //   for (unsigned int d=0; d<dim; ++d)
   //     vector_gradients_solution(3*i+d) = bem.node_gradients[i](d);
 
   bem.compute_normals();
-  Vector<double> vector_normals_solution(bem.gradient_dh.n_dofs());
-  for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-    for (unsigned int d=0; d<dim; ++d)
-      vector_normals_solution(3*i+d) = bem.node_normals[i](d);
+  // Vector<double> vector_normals_solution(bem.gradient_dh.n_dofs());
+  // for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
+  //   for (unsigned int d=0; d<dim; ++d)
+  //     vector_normals_solution(3*i+d) = bem.node_normals[i](d);
 
   dataout.add_data_vector(phi_dphidn_alpha, "phi_dphidn_alpha");
-  dataout.add_data_vector(vector_gradients_solution, "phi_gradient");
-  dataout.add_data_vector(vector_normals_solution, "normals_at_nodes");
+  dataout.add_data_vector(bem.vector_gradients_solution, "phi_gradient");
+  dataout.add_data_vector(bem.vector_normals_solution, "normals_at_nodes");
   dataout.build_patches(bem.mapping,
                         bem.mapping.get_degree(),
                         DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);

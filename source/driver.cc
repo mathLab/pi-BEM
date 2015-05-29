@@ -80,7 +80,7 @@ void Driver<dim>::run()
       boundary_conditions.solve_problem();
     }
 
-    std::string filename = ( boundary_conditions.output_file_name + ".vtk" );
+    std::string filename = ( boundary_conditions.output_file_name);
     boundary_conditions.compute_errors();
     boundary_conditions.output_results(filename);
     // }

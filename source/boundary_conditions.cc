@@ -210,11 +210,13 @@ void BoundaryConditions<dim>:: solve_problem()
   dphi_dn.reinit(this_cpu_set,mpi_communicator);
   tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
+  bem.compute_normals();
   prepare_bem_vectors();
 
 
   bem.solve(phi, dphi_dn, tmp_rhs);
 
+  // bem.compute_gradients(phi, dphi_dn);
 
 
 
@@ -227,7 +229,7 @@ template <int dim>
 void BoundaryConditions<dim>::prepare_bem_vectors()
 {
 
-  bem.compute_normals();
+  // bem.compute_normals();
   const unsigned int n_dofs =  bem.dh.n_dofs();
 
   phi.reinit(this_cpu_set,mpi_communicator);
@@ -360,7 +362,7 @@ void BoundaryConditions<dim>::compute_errors()
   const unsigned int n_active_cells=comp_dom.tria.n_active_cells();
   const unsigned int n_dofs=bem.dh.n_dofs();
 
-  std::cout << "   Number of active cells:       "
+  pcout << "   Number of active cells:       "
             << n_active_cells
             << std::endl
             << "   Number of degrees of freedom: "
@@ -368,10 +370,10 @@ void BoundaryConditions<dim>::compute_errors()
             << std::endl
             ;
 
-  std::cout<<"Phi Nodes error L_inf norm: "<<phi_max_error<<std::endl;
-  std::cout<<"Phi Cells error L_2 norm: "<<L2_error<<std::endl;
-  std::cout<<"Phi Nodes Gradient error L_inf norm: "<<grad_phi_max_error<<std::endl;
-  std::cout<<"Phi Cells Gradient  error L_2 norm: "<<grad_L2_error<<std::endl;
+  pcout<<"Phi Nodes error L_inf norm: "<<phi_max_error<<std::endl;
+  pcout<<"Phi Cells error L_2 norm: "<<L2_error<<std::endl;
+  pcout<<"Phi Nodes Gradient error L_inf norm: "<<grad_phi_max_error<<std::endl;
+  pcout<<"Phi Cells Gradient  error L_2 norm: "<<grad_L2_error<<std::endl;
 
 }
 
@@ -379,45 +381,52 @@ template <int dim>
 void BoundaryConditions<dim>::output_results(const std::string filename) const
 {
 
-  DataOut<dim-1, DoFHandler<dim-1, dim> > dataout;
+  const Vector<double> localized_phi (phi);
+  const Vector<double> localized_dphi_dn (dphi_dn);
+  const Vector<double> localized_alpha (bem.alpha);
+  // bem.compute_gradients(phi,dphi_dn);
+  // bem.compute_normals();
+  const Vector<double> localized_gradients (bem.vector_gradients_solution);
+  const Vector<double> localized_normals (bem.vector_normals_solution);
+  if(this_mpi_process == 0)
+  {
+    std::string filename_scalar, filename_vector;
+    filename_scalar = filename + "_scalar_results" + ".vtu";
+    filename_vector = filename + "_vector_results" + ".vtu";
 
-  dataout.attach_dof_handler(bem.gradient_dh);
+    DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_scalar;
+    DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_vector;
 
-  TrilinosWrappers::MPI::Vector phi_dphidn_alpha(bem.vector_this_cpu_set, mpi_communicator);
+    dataout_scalar.attach_dof_handler(bem.dh);
+    dataout_vector.attach_dof_handler(bem.gradient_dh);
 
-  for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-    {
-      if(bem.this_cpu_set.is_element(i))
-      {
-        phi_dphidn_alpha(dim*i) = phi(i);
-        phi_dphidn_alpha(dim*i+1) = dphi_dn(i);
-        phi_dphidn_alpha(dim*i+2) = bem.alpha(i);
-      }
-    }
 
-  bem.compute_gradients(phi,dphi_dn);
-  // Vector<double> vector_gradients_solution(bem.vector_gradients_solution);
-  // for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-  //   for (unsigned int d=0; d<dim; ++d)
-  //     vector_gradients_solution(3*i+d) = bem.node_gradients[i](d);
 
-  bem.compute_normals();
-  // Vector<double> vector_normals_solution(bem.gradient_dh.n_dofs());
-  // for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-  //   for (unsigned int d=0; d<dim; ++d)
-  //     vector_normals_solution(3*i+d) = bem.node_normals[i](d);
+    dataout_scalar.add_data_vector(localized_phi, "phi");
+    dataout_scalar.add_data_vector(localized_dphi_dn, "dphi_dn");
+    dataout_scalar.add_data_vector(localized_alpha, "alpha");
 
-  dataout.add_data_vector(phi_dphidn_alpha, "phi_dphidn_alpha");
-  dataout.add_data_vector(bem.vector_gradients_solution, "phi_gradient");
-  dataout.add_data_vector(bem.vector_normals_solution, "normals_at_nodes");
-  dataout.build_patches();//bem.mapping,
-                        // bem.mapping.get_degree(),
-                        // DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+    dataout_vector.add_data_vector(localized_gradients, "phi_gradient");
+    dataout_vector.add_data_vector(localized_normals, "normals_at_nodes");
 
-  std::ofstream file(filename.c_str());
 
-  dataout.write_vtk(file);
+    dataout_scalar.build_patches(bem.mapping,
+                          bem.mapping.get_degree(),
+                          DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
+    std::ofstream file_scalar(filename_scalar.c_str());
+
+    dataout_scalar.write_vtu(file_scalar);
+
+    dataout_vector.build_patches(bem.mapping,
+                          bem.mapping.get_degree(),
+                          DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+
+    std::ofstream file_vector(filename_vector.c_str());
+
+    dataout_vector.write_vtu(file_vector);
+
+  }
 
 }
 

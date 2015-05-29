@@ -177,7 +177,7 @@ void BEMProblem<dim>::reinit()
   TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
   std::cout<<vector_local_dofs_per_process[this_mpi_process]<<std::endl;
   vector_sparsity_pattern.reinit( helper.vector_partitioner(), gradient_dh.max_couplings_between_dofs());
-  DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern);
+  // DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern);
 
 
 

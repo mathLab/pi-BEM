@@ -83,10 +83,11 @@ void BEMProblem<dim>::reinit()
 {
 
 
-
-
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
+
+  DoFRenumbering::subdomain_wise (dh);
+  DoFRenumbering::subdomain_wise (gradient_dh);
 
   local_dofs_per_process.resize (n_mpi_processes);
   vector_local_dofs_per_process.resize (n_mpi_processes);
@@ -174,18 +175,32 @@ void BEMProblem<dim>::reinit()
          }
   //*/
 
-  TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
-  std::cout<<vector_local_dofs_per_process[this_mpi_process]<<std::endl;
-  vector_sparsity_pattern.reinit( helper.vector_partitioner(), gradient_dh.max_couplings_between_dofs());
+  // TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
+  // std::cout<<vector_local_dofs_per_process[this_mpi_process]<<std::endl;
   // DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern);
 
 
 
-  vector_constraints.reinit(vector_this_cpu_set);
+  // vector_constraints.condense (vector_sparsity_pattern);
+
+  TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
+  // IndexSet vector_active_dofs;
+  IndexSet vector_relevant_dofs;
+  // vector_active_dofs.clear();
+  // vector_relevant_dofs.clear();
+  // vector_active_dofs = gradient_dh.locally_owned_dofs();//, vector_active_dofs);
+  DoFTools::extract_locally_relevant_dofs(gradient_dh, vector_relevant_dofs);
+  // pcout<<vector_active_dofs.n_elements()<<"  "<<vector_relevant_dofs.n_elements()<<"   "<<vector_this_cpu_set.n_elements()<<std::endl;
+  unsigned int foo = 0;
+  foo = Utilities::MPI::sum (vector_this_cpu_set.n_elements(), mpi_communicator);
+  pcout<<foo<<" "<<vector_this_cpu_set.size()<<std::endl;
+
+
+  vector_constraints.reinit(vector_relevant_dofs);
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
 
-  // vector_constraints.condense (vector_sparsity_pattern);
+  vector_sparsity_pattern.reinit(helper.vector_partitioner(), helper.vector_partitioner());
   DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern, vector_constraints, true, this_mpi_process);
   vector_sparsity_pattern.compress();
 
@@ -268,6 +283,8 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
   for (; cell != endc; ++cell)
     {
+      if(cell->subdomain_id() == this_mpi_process)
+      {
       if (cell->material_id() == comp_dom.dirichlet_sur_ID1 ||
           cell->material_id() == comp_dom.dirichlet_sur_ID2 ||
           cell->material_id() == comp_dom.dirichlet_sur_ID3)
@@ -290,6 +307,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
             }
 
         }
+      }
 
     }
 
@@ -1114,6 +1132,10 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
   compute_normals();
   compute_surface_gradients(tmp_rhs);
 
+
+  Vector<double> localized_surface_gradients(vector_surface_gradients_solution);
+  Vector<double> localized_normals(vector_normals_solution);
+  Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
   Vector<double> loc_tmp_rhs(tmp_rhs.size());
   loc_tmp_rhs = tmp_rhs;
 
@@ -1142,8 +1164,8 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
         unsigned int firstOfDoubles = *doubles.begin();
         for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
           {
-            if(this_cpu_set.is_element(*it))
-              if (dirichlet_nodes(*it) == 1)
+            // if(this_cpu_set.is_element(*it))
+              if (localized_dirichlet_nodes(*it) == 1)
                 {
                   firstOfDoubles = *it;
                   break;
@@ -1161,19 +1183,19 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
             // if the current (first) node is a dirichlet node, for all its neumann doubles we will
             // impose that the potential is equal to that of the first node: this means that in the
             // matrix vector product we will put the potential value of the double node
-            if (dirichlet_nodes(i) == 1)
+            if (localized_dirichlet_nodes(i) == 1)
               {
                 for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                   {
-                    if(this_cpu_set.is_element(*it))
+                    // if(this_cpu_set.is_element(*it))
                     {
-                      if (dirichlet_nodes(*it) == 1)
+                      if (localized_dirichlet_nodes(*it) == 1)
                         {
                           // this is the dirichlet-dirichlet case on flat edges: here we impose that
                           // dphi_dn on the two (or more) sides is equal.
                           double normal_distance = 0;
                           for(unsigned int idim=0; idim < dim; ++idim)
-                            normal_distance += vector_normals_solution[i*dim+idim] * vector_normals_solution[(*it)*dim+idim];
+                            normal_distance += localized_normals[i*dim+idim] * localized_normals[(*it)*dim+idim];
                           normal_distance /= normal_distance;
                           if ( normal_distance < 1e-4 )
                             {
@@ -1192,9 +1214,9 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
                               // We no longer have a std::vector of Point<dim> so we need to perform the scalar product
                               for(unsigned int idim=0; idim < dim; ++idim)
                               {
-                                norm_i_norm_it += vector_normals_solution[i*dim+idim]*vector_normals_solution[(*it)*dim+idim];
-                                surf_it_norm_i += vector_surface_gradients_solution[(*it)*dim+idim]*vector_normals_solution[i*dim+idim];
-                                surf_i_norm_it += vector_surface_gradients_solution[i*dim+idim]*vector_normals_solution[(*it)*dim+idim];
+                                norm_i_norm_it += localized_normals[i*dim+idim]*localized_normals[(*it)*dim+idim];
+                                surf_it_norm_i += localized_surface_gradients[(*it)*dim+idim]*localized_normals[i*dim+idim];
+                                surf_i_norm_it += localized_surface_gradients[i*dim+idim]*localized_normals[(*it)*dim+idim];
                               }
                               double this_normal_gradient = (1.0/(1.0-pow(norm_i_norm_it,2))) *
                                                             (surf_it_norm_i+
@@ -1229,7 +1251,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
             // the potential is equal to that of the first node: this means that in the matrix vector
             // product we will put the difference between the potential at the fist node in the doubles
             // set, and the current double node
-            if (dirichlet_nodes(i) == 0)
+            if (localized_dirichlet_nodes(i) == 0)
               {
                 for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                   {
@@ -1251,7 +1273,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
         std::set <unsigned int> duplicates = double_nodes_set[i];
         if (duplicates.size()>1)
            {
-           pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" ("<<dirichlet_nodes(i)<<") duplicates: ";
+           pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" ("<<localized_dirichlet_nodes(i)<<") duplicates: ";
            for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
                pcout<<" "<<*pos;
            pcout<<std::endl;

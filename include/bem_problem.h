@@ -40,7 +40,7 @@
 #include<deal.II/lac/precondition.h>
 #include<deal.II/lac/compressed_sparsity_pattern.h>
 #include<deal.II/lac/sparse_direct.h>
-
+#include <deal.II/lac/block_sparsity_pattern.h>
 #include <deal.II/lac/trilinos_block_vector.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
@@ -275,8 +275,11 @@ public:
 
   unsigned int this_mpi_process;
 
+  ///TODO all the story of the double nodes imposes all the procs to know almost everything.
   TrilinosWrappers::MPI::Vector dirichlet_nodes;
   TrilinosWrappers::MPI::Vector neumann_nodes;
+  // Vector<double> dirichlet_nodes;
+  // Vector<double> neumann_nodes;
 
   IndexSet this_cpu_set;
 
@@ -298,7 +301,7 @@ public:
 
   std::vector<types::global_dof_index> vector_local_dofs_per_process;
 
-  TrilinosWrappers::SparsityPattern vector_sparsity_pattern;
+  TrilinosWrappers::SparsityPattern vector_sparsity_pattern;// TrilinosWrappers::SparsityPattern
 
   ConstraintMatrix  vector_constraints;
 

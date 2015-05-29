@@ -394,6 +394,10 @@ void BoundaryConditions<dim>::output_results(const std::string filename) const
     filename_scalar = filename + "_scalar_results" + ".vtu";
     filename_vector = filename + "_vector_results" + ".vtu";
 
+    std::vector<DataComponentInterpretation::DataComponentInterpretation>
+    data_component_interpretation
+    (dim, DataComponentInterpretation::component_is_part_of_vector);
+
     DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_scalar;
     DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_vector;
 
@@ -402,12 +406,12 @@ void BoundaryConditions<dim>::output_results(const std::string filename) const
 
 
 
-    dataout_scalar.add_data_vector(localized_phi, "phi");
-    dataout_scalar.add_data_vector(localized_dphi_dn, "dphi_dn");
-    dataout_scalar.add_data_vector(localized_alpha, "alpha");
+    dataout_scalar.add_data_vector(localized_phi, "phi", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+    dataout_scalar.add_data_vector(localized_dphi_dn, "dphi_dn", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+    dataout_scalar.add_data_vector(localized_alpha, "alpha", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
 
-    dataout_vector.add_data_vector(localized_gradients, "phi_gradient");
-    dataout_vector.add_data_vector(localized_normals, "normals_at_nodes");
+    dataout_vector.add_data_vector(localized_gradients, std::vector<std::string > (dim,"phi_gradient"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+    dataout_vector.add_data_vector(localized_normals, std::vector<std::string > (dim,"normals_at_nodes"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
 
 
     dataout_scalar.build_patches(bem.mapping,

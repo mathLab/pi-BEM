@@ -198,6 +198,7 @@ void BoundaryConditions<dim>:: solve_problem()
   const unsigned int n_dofs =  bem.dh.n_dofs();
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association   (bem.dh,dofs_domain_association);
+  // THIS IS REPEATED CODE
   this_cpu_set.set_size(n_dofs);
   for (unsigned int i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)

@@ -196,7 +196,7 @@ void BEMProblem<dim>::reinit()
   pcout<<foo<<" "<<vector_this_cpu_set.size()<<std::endl;
 
 
-  vector_constraints.reinit(vector_relevant_dofs);
+  vector_constraints.reinit();//vector_relevant_dofs);
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
 
@@ -358,10 +358,10 @@ void BEMProblem<dim>::assemble_system()
 
 
 
-  std::vector<QTelles<2> > sing_quadratures_3d;
+  std::vector<QTelles<dim-1> > sing_quadratures;
   for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-    sing_quadratures_3d.push_back
-    (QTelles<2>(singular_quadrature_order,
+    sing_quadratures.push_back
+    (QTelles<dim-1>(singular_quadrature_order,
                 fe.get_unit_support_points()[i]));
 
 
@@ -723,19 +723,8 @@ void BEMProblem<dim>::assemble_system()
 
                   const Quadrature<dim-1> *
                   singular_quadrature
-                    = (dim == 2
-                       ?
-                       dynamic_cast<Quadrature<dim-1>*>(
-                         new QGaussLogR<1>(singular_quadrature_order,
-                                           Point<1>((double)singular_index),
-                                           1./cell->measure(), true))
-                       :
-                       (dim == 3
-                        ?
-                        dynamic_cast<Quadrature<dim-1>*>(
-                          &sing_quadratures_3d[singular_index])
-                        :
-                        0));
+                    = dynamic_cast<Quadrature<dim-1>*>(
+                          &sing_quadratures[singular_index]);
                   Assert(singular_quadrature, ExcInternalError());
 
                   FEValues<dim-1,dim> fe_v_singular (mapping, fe, *singular_quadrature,
@@ -1512,6 +1501,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   TrilinosWrappers::MPI::Vector phi(tmp_rhs);
 
   vector_surface_gradients_solution.reinit(vector_this_cpu_set,mpi_communicator);
+
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 

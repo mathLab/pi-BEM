@@ -75,15 +75,16 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
 
-
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    prm.declare_entry("Dirichlet Surface 1 ID", "1", Patterns::Integer());
-    prm.declare_entry("Dirichlet Surface 2 ID", "110", Patterns::Integer());
-    prm.declare_entry("Dirichlet Surface 3 ID", "110", Patterns::Integer());
-    prm.declare_entry("Neumann Surface 1 ID", "0", Patterns::Integer());
-    prm.declare_entry("Neumann Surface 2 ID", "110", Patterns::Integer());
-    prm.declare_entry("Neumann Surface 3 ID", "110", Patterns::Integer());
+    prm.declare_entry("Dirichlet boundary ids", "0,110,110", Patterns::List(Patterns::Integer(0)));
+    prm.declare_entry("Neumann boundary ids", "1,110,110", Patterns::List(Patterns::Integer(0)));
+    // prm.declare_entry("Dirichlet Surface 1 ID", "1", Patterns::Integer());
+    // prm.declare_entry("Dirichlet Surface 2 ID", "110", Patterns::Integer());
+    // prm.declare_entry("Dirichlet Surface 3 ID", "110", Patterns::Integer());
+    // prm.declare_entry("Neumann Surface 1 ID", "0", Patterns::Integer());
+    // prm.declare_entry("Neumann Surface 2 ID", "110", Patterns::Integer());
+    // prm.declare_entry("Neumann Surface 3 ID", "110", Patterns::Integer());
   }
   prm.leave_subsection();
 
@@ -96,14 +97,33 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
   n_cycles = prm.get_integer("Number of cycles");
 
 
+
+
+
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    dirichlet_sur_ID1 = prm.get_integer("Dirichlet Surface 1 ID");
-    dirichlet_sur_ID2 = prm.get_integer("Dirichlet Surface 2 ID");
-    dirichlet_sur_ID3 = prm.get_integer("Dirichlet Surface 3 ID");
-    neumann_sur_ID1 = prm.get_integer("Neumann Surface 1 ID");
-    neumann_sur_ID2 = prm.get_integer("Neumann Surface 2 ID");
-    neumann_sur_ID3 = prm.get_integer("Neumann Surface 3 ID");
+    std::vector<std::string> dirichlet_string_list = Utilities::split_string_list(prm.get("Dirichlet boundary ids"));
+    dirichlet_boundary_ids.resize(dirichlet_string_list.size());
+    for (unsigned int i=0; i<dirichlet_string_list.size(); ++i)
+      {
+        std::istringstream reader(dirichlet_string_list[i]);
+        reader >> dirichlet_boundary_ids[i];
+      }
+
+    std::vector<std::string> neumann_string_list = Utilities::split_string_list(prm.get("Neumann boundary ids"));
+    neumann_boundary_ids.resize(neumann_string_list.size());
+    for (unsigned int i=0; i<neumann_string_list.size(); ++i)
+      {
+        std::istringstream reader(neumann_string_list[i]);
+        reader >> neumann_boundary_ids[i];
+      }
+
+    // dirichlet_sur_ID1 = prm.get_integer("Dirichlet Surface 1 ID");
+    // dirichlet_sur_ID2 = prm.get_integer("Dirichlet Surface 2 ID");
+    // dirichlet_sur_ID3 = prm.get_integer("Dirichlet Surface 3 ID");
+    // neumann_sur_ID1 = prm.get_integer("Neumann Surface 1 ID");
+    // neumann_sur_ID2 = prm.get_integer("Neumann Surface 2 ID");
+    // neumann_sur_ID3 = prm.get_integer("Neumann Surface 3 ID");
   }
   prm.leave_subsection();
 

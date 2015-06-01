@@ -163,6 +163,9 @@ public:
   // input file, for the free surface cells
   // and wall boundary (boat) cells
 
+  std::vector<unsigned int> dirichlet_boundary_ids;
+  std::vector<unsigned int> neumann_boundary_ids;
+
   unsigned int dirichlet_sur_ID1;
   unsigned int dirichlet_sur_ID2;
   unsigned int dirichlet_sur_ID3;

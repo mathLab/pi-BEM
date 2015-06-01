@@ -379,59 +379,70 @@ void BoundaryConditions<dim>::compute_errors()
 }
 
 template <int dim>
-void BoundaryConditions<dim>::output_results(const std::string filename) const
+void BoundaryConditions<dim>::output_results(const std::string filename)
 {
 
-  const Vector<double> localized_phi (phi);
-  const Vector<double> localized_dphi_dn (dphi_dn);
-  const Vector<double> localized_alpha (bem.alpha);
-  // bem.compute_gradients(phi,dphi_dn);
-  // bem.compute_normals();
-  const Vector<double> localized_gradients (bem.vector_gradients_solution);
-  const Vector<double> localized_normals (bem.vector_normals_solution);
-  if(this_mpi_process == 0)
-  {
-    std::string filename_scalar, filename_vector;
-    filename_scalar = filename + "_scalar_results" + ".vtu";
-    filename_vector = filename + "_vector_results" + ".vtu";
+  data_out_scalar.prepare_data_output(bem.dh);
+  data_out_scalar.add_data_vector (phi, "phi");
+  data_out_scalar.add_data_vector (dphi_dn, "dphidn");
+  data_out_scalar.add_data_vector (bem.alpha, "alpha");
+  data_out_scalar.write_data_and_clear();
 
-    std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    data_component_interpretation
-    (dim, DataComponentInterpretation::component_is_part_of_vector);
-
-    DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_scalar;
-    DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_vector;
-
-    dataout_scalar.attach_dof_handler(bem.dh);
-    dataout_vector.attach_dof_handler(bem.gradient_dh);
-
-
-
-    dataout_scalar.add_data_vector(localized_phi, "phi", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
-    dataout_scalar.add_data_vector(localized_dphi_dn, "dphi_dn", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
-    dataout_scalar.add_data_vector(localized_alpha, "alpha", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
-
-    dataout_vector.add_data_vector(localized_gradients, std::vector<std::string > (dim,"phi_gradient"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
-    dataout_vector.add_data_vector(localized_normals, std::vector<std::string > (dim,"normals_at_nodes"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
-
-
-    dataout_scalar.build_patches(bem.mapping,
-                          bem.mapping.get_degree(),
-                          DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
-
-    std::ofstream file_scalar(filename_scalar.c_str());
-
-    dataout_scalar.write_vtu(file_scalar);
-
-    dataout_vector.build_patches(bem.mapping,
-                          bem.mapping.get_degree(),
-                          DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
-
-    std::ofstream file_vector(filename_vector.c_str());
-
-    dataout_vector.write_vtu(file_vector);
-
-  }
+  data_out_vector.prepare_data_output(bem.gradient_dh);
+  data_out_vector.add_data_vector (bem.vector_gradients_solution, "gradient");
+  data_out_vector.add_data_vector (bem.vector_normals_solution, "normal");
+  data_out_vector.write_data_and_clear();
+  //
+  // const Vector<double> localized_phi (phi);
+  // const Vector<double> localized_dphi_dn (dphi_dn);
+  // const Vector<double> localized_alpha (bem.alpha);
+  // // bem.compute_gradients(phi,dphi_dn);
+  // // bem.compute_normals();
+  // const Vector<double> localized_gradients (bem.vector_gradients_solution);
+  // const Vector<double> localized_normals (bem.vector_normals_solution);
+  // if(this_mpi_process == 0)
+  // {
+  //   std::string filename_scalar, filename_vector;
+  //   filename_scalar = filename + "_scalar_results" + ".vtu";
+  //   filename_vector = filename + "_vector_results" + ".vtu";
+  //
+  //   std::vector<DataComponentInterpretation::DataComponentInterpretation>
+  //   data_component_interpretation
+  //   (dim, DataComponentInterpretation::component_is_part_of_vector);
+  //
+  //   DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_scalar;
+  //   DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_vector;
+  //
+  //   dataout_scalar.attach_dof_handler(bem.dh);
+  //   dataout_vector.attach_dof_handler(bem.gradient_dh);
+  //
+  //
+  //
+  //   dataout_scalar.add_data_vector(localized_phi, "phi", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+  //   dataout_scalar.add_data_vector(localized_dphi_dn, "dphi_dn", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+  //   dataout_scalar.add_data_vector(localized_alpha, "alpha", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+  //
+  //   dataout_vector.add_data_vector(localized_gradients, std::vector<std::string > (dim,"phi_gradient"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+  //   dataout_vector.add_data_vector(localized_normals, std::vector<std::string > (dim,"normals_at_nodes"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+  //
+  //
+  //   dataout_scalar.build_patches(bem.mapping,
+  //                         bem.mapping.get_degree(),
+  //                         DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+  //
+  //   std::ofstream file_scalar(filename_scalar.c_str());
+  //
+  //   dataout_scalar.write_vtu(file_scalar);
+  //
+  //   dataout_vector.build_patches(bem.mapping,
+  //                         bem.mapping.get_degree(),
+  //                         DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+  //
+  //   std::ofstream file_vector(filename_vector.c_str());
+  //
+  //   dataout_vector.write_vtu(file_vector);
+  //
+  // }
 
 }
 

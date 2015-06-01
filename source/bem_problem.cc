@@ -86,8 +86,8 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
 
-  DoFRenumbering::subdomain_wise (dh);
-  DoFRenumbering::subdomain_wise (gradient_dh);
+  // DoFRenumbering::subdomain_wise (dh);
+  // DoFRenumbering::subdomain_wise (gradient_dh);
 
   local_dofs_per_process.resize (n_mpi_processes);
   vector_local_dofs_per_process.resize (n_mpi_processes);

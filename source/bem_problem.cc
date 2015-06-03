@@ -201,7 +201,7 @@ void BEMProblem<dim>::reinit()
   foo = Utilities::MPI::sum (vector_this_cpu_set.n_elements(), mpi_communicator);
   pcout<<foo<<" "<<vector_this_cpu_set.size()<<std::endl;
 
-  Assert(vector_active_dofs == vector_this_cpu_set, ExcNotImplemented());
+  // Assert(vector_active_dofs == vector_this_cpu_set, ExcNotImplemented());
   vector_constraints.reinit();//vector_relevant_dofs);
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();

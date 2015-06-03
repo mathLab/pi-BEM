@@ -198,13 +198,15 @@ void BoundaryConditions<dim>:: solve_problem()
   const unsigned int n_dofs =  bem.dh.n_dofs();
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association   (bem.dh,dofs_domain_association);
+  this_cpu_set.clear();
+  this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(bem.dh, this_mpi_process);
   // THIS IS REPEATED CODE
-  this_cpu_set.set_size(n_dofs);
-  for (unsigned int i=0; i<n_dofs; ++i)
-    if (dofs_domain_association[i] == this_mpi_process)
-      {
-        this_cpu_set.add_index(i);
-      }
+  // this_cpu_set.set_size(n_dofs);
+  // for (unsigned int i=0; i<n_dofs; ++i)
+  //   if (dofs_domain_association[i] == this_mpi_process)
+  //     {
+  //       this_cpu_set.add_index(i);
+  //     }
   this_cpu_set.compress();
 
   phi.reinit(this_cpu_set,mpi_communicator);
@@ -282,11 +284,11 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
             else
             {
               for(auto nbound : comp_dom.neumann_boundary_ids)
-              if(cell->material_id() == nbound)
-              {
-                neumann = true;
-                break;
-              }
+                if(cell->material_id() == nbound)
+                {
+                  neumann = true;
+                  break;
+                }
 
               if(neumann)
               {
@@ -426,16 +428,25 @@ template <int dim>
 void BoundaryConditions<dim>::output_results(const std::string filename)
 {
 
-  data_out_scalar.prepare_data_output(bem.dh);
-  data_out_scalar.add_data_vector (phi, "phi");
-  data_out_scalar.add_data_vector (dphi_dn, "dphidn");
-  data_out_scalar.add_data_vector (bem.alpha, "alpha");
-  data_out_scalar.write_data_and_clear("", bem.mapping);
+  const Vector<double> localized_phi (phi);
+  const Vector<double> localized_dphi_dn (dphi_dn);
+  const Vector<double> localized_alpha (bem.alpha);
+  const Vector<double> localized_gradients (bem.vector_gradients_solution);
+  const Vector<double> localized_normals (bem.vector_normals_solution);
 
-  data_out_vector.prepare_data_output(bem.gradient_dh);
-  data_out_vector.add_data_vector (bem.vector_gradients_solution, "gradient");
-  data_out_vector.add_data_vector (bem.vector_normals_solution, "normal");
-  data_out_vector.write_data_and_clear("", bem.mapping);
+  if(this_mpi_process == 0)
+  {
+    data_out_scalar.prepare_data_output(bem.dh);
+    data_out_scalar.add_data_vector (localized_phi, "phi");
+    data_out_scalar.add_data_vector (localized_dphi_dn, "dphidn");
+    data_out_scalar.add_data_vector (localized_alpha, "alpha");
+    data_out_scalar.write_data_and_clear("", bem.mapping);
+
+    data_out_vector.prepare_data_output(bem.gradient_dh);
+    data_out_vector.add_data_vector (localized_gradients, "gradient");
+    data_out_vector.add_data_vector (localized_normals, "normal");
+    data_out_vector.write_data_and_clear("", bem.mapping);
+  }
   //
   // const Vector<double> localized_phi (phi);
   // const Vector<double> localized_dphi_dn (dphi_dn);

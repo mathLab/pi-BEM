@@ -86,8 +86,8 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
   // TODO Understand why it does not work with the new bc
-  // DoFRenumbering::subdomain_wise (dh);
-  // DoFRenumbering::subdomain_wise (gradient_dh);
+  DoFRenumbering::subdomain_wise (dh);
+  DoFRenumbering::subdomain_wise (gradient_dh);
 
   local_dofs_per_process.resize (n_mpi_processes);
   vector_local_dofs_per_process.resize (n_mpi_processes);
@@ -1024,6 +1024,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
       //solver.solve (*this, sol, system_rhs, inv);
       assemble_preconditioner();
       //solver.solve (cc, sol, system_rhs, PreconditionIdentity());
+      sol.sadd(1., 0., system_rhs);
       solver.solve (cc, sol, system_rhs, preconditioner);
     }
   else

@@ -199,14 +199,7 @@ void BoundaryConditions<dim>:: solve_problem()
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association   (bem.dh,dofs_domain_association);
   this_cpu_set.clear();
-  this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(bem.dh, this_mpi_process);
-  // THIS IS REPEATED CODE
-  // this_cpu_set.set_size(n_dofs);
-  // for (unsigned int i=0; i<n_dofs; ++i)
-  //   if (dofs_domain_association[i] == this_mpi_process)
-  //     {
-  //       this_cpu_set.add_index(i);
-  //     }
+  this_cpu_set = bem.this_cpu_set;
   this_cpu_set.compress();
 
   phi.reinit(this_cpu_set,mpi_communicator);

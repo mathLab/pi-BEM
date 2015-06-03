@@ -99,14 +99,14 @@ void BEMProblem<dim>::reinit()
   DoFTools::get_subdomain_association   (dh,dofs_domain_association);
 
   this_cpu_set.clear();
-  this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(dh, this_mpi_process);
-  // this_cpu_set.set_size(n_dofs);
-  //
-  // for (unsigned int i=0; i<n_dofs; ++i)
-  //   if (dofs_domain_association[i] == this_mpi_process)
-  //     {
-  //       this_cpu_set.add_index(i);
-  //     }
+  // this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(dh, this_mpi_process);
+  this_cpu_set.set_size(n_dofs);
+
+  for (unsigned int i=0; i<n_dofs; ++i)
+    if (dofs_domain_association[i] == this_mpi_process)
+      {
+        this_cpu_set.add_index(i);
+      }
   this_cpu_set.compress();
 
   std::vector<types::subdomain_id> vector_dofs_domain_association(gradient_dh.n_dofs());
@@ -114,14 +114,14 @@ void BEMProblem<dim>::reinit()
   DoFTools::get_subdomain_association   (gradient_dh,vector_dofs_domain_association);
 
   vector_this_cpu_set.clear();
-  vector_this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(gradient_dh, this_mpi_process);
-  // vector_this_cpu_set.set_size(gradient_dh.n_dofs());
-  //
-  // for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
-  //   if (vector_dofs_domain_association[i] == this_mpi_process)
-  //     {
-  //       vector_this_cpu_set.add_index(i);
-  //     }
+  // vector_this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(gradient_dh, this_mpi_process);
+  vector_this_cpu_set.set_size(gradient_dh.n_dofs());
+
+  for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
+    if (vector_dofs_domain_association[i] == this_mpi_process)
+      {
+        vector_this_cpu_set.add_index(i);
+      }
   vector_this_cpu_set.compress();
 
 

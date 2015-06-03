@@ -85,9 +85,9 @@ void BEMProblem<dim>::reinit()
 
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
-
-  DoFRenumbering::subdomain_wise (dh);
-  DoFRenumbering::subdomain_wise (gradient_dh);
+  // TODO Understand why it does not work with the new bc
+  // DoFRenumbering::subdomain_wise (dh);
+  // DoFRenumbering::subdomain_wise (gradient_dh);
 
   local_dofs_per_process.resize (n_mpi_processes);
   vector_local_dofs_per_process.resize (n_mpi_processes);
@@ -185,7 +185,7 @@ void BEMProblem<dim>::reinit()
 
   // vector_constraints.condense (vector_sparsity_pattern);
 
-  // TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
+  TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
   IndexSet vector_active_dofs;
   IndexSet vector_relevant_dofs;
   IndexSet trial_index_set;
@@ -206,7 +206,8 @@ void BEMProblem<dim>::reinit()
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
 
-  vector_sparsity_pattern.reinit(vector_this_cpu_set, vector_this_cpu_set, mpi_communicator);//(helper.vector_partitioner(), helper.vector_partitioner());
+  vector_sparsity_pattern.reinit(helper.vector_partitioner(), helper.vector_partitioner());
+  // vector_sparsity_pattern.reinit(vector_this_cpu_set, vector_this_cpu_set, mpi_communicator);//(helper.vector_partitioner(), helper.vector_partitioner());
   DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern, vector_constraints, true, this_mpi_process);
   vector_sparsity_pattern.compress();
 

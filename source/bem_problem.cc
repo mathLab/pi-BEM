@@ -292,28 +292,50 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
     {
       if(cell->subdomain_id() == this_mpi_process)
       {
-      if (cell->material_id() == comp_dom.dirichlet_sur_ID1 ||
-          cell->material_id() == comp_dom.dirichlet_sur_ID2 ||
-          cell->material_id() == comp_dom.dirichlet_sur_ID3)
+        bool dirichlet = false;
+        for(auto dummy : comp_dom.dirichlet_boundary_ids)
         {
-          // This is a free surface node.
-          cell->get_dof_indices(dofs);
-          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-            {
-              non_partitioned_dirichlet_nodes(dofs[i]) = 1;
-              non_partitioned_neumann_nodes(dofs[i]) = 0;
-              //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
-            }
+          if(dummy == cell->material_id())
+          {
+            cell->get_dof_indices(dofs);
+            for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+              {
+                non_partitioned_dirichlet_nodes(dofs[i]) = 1;
+                non_partitioned_neumann_nodes(dofs[i]) = 0;
+                //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
+              }
+            dirichlet = true;
+            break;
+          }
         }
-      else
+        if(!dirichlet)
         {
-          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-            {
-              cell->get_dof_indices(dofs);
-              //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
-            }
+          cell->get_dof_indices(dofs);
 
         }
+
+      // if (cell->material_id() == comp_dom.dirichlet_sur_ID1 ||
+      //     cell->material_id() == comp_dom.dirichlet_sur_ID2 ||
+      //     cell->material_id() == comp_dom.dirichlet_sur_ID3)
+      //   {
+      //     // This is a free surface node.
+      //     cell->get_dof_indices(dofs);
+      //     for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+      //       {
+      //         non_partitioned_dirichlet_nodes(dofs[i]) = 1;
+      //         non_partitioned_neumann_nodes(dofs[i]) = 0;
+      //         //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
+      //       }
+      //   }
+      // else
+      //   {
+      //     for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+      //       {
+      //         cell->get_dof_indices(dofs);
+      //         //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
+      //       }
+      //
+      //   }
       }
 
     }

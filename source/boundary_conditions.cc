@@ -272,13 +272,6 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                 dirichlet = true;
                 break;
               }
-            if(!dirichlet)
-              for(auto nbound : comp_dom.neumann_boundary_ids)
-              if(cell->material_id() == nbound)
-              {
-                neumann = true;
-                break;
-              }
             if(dirichlet)
             {
               //tmp_rhs(local_dof_indices[j]) = node_coors[j](0);
@@ -286,28 +279,36 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
               // tmp_rhs(local_dof_indices[j]) = phi(local_dof_indices[j]);
               //bem.pcout<<"internalElse "<<local_dof_indices[j]<<" norm ("<<node_normals[j]<<")  "<<" pos ("<<node_coors[j]<<")    "<<node_coors[j](0)<<std::endl;
             }
-            else if(neumann)
-            {
-              //tmp_rhs(local_dof_indices[j]) = normals_sys_solution(local_dof_indices[j]);
-              //dphi_dn(local_dof_indices[j]) = normals_sys_solution(local_dof_indices[j]);
-              Vector<double> imposed_pot_grad(dim);
-              wind.vector_value(support_points[local_dof_indices[j]],imposed_pot_grad);
-              Point<dim> imposed_potential_gradient;
-              double tmp_dphi_dn = 0;
-              for (unsigned int d=0; d<dim; ++d)
-              {
-                imposed_potential_gradient(d) = imposed_pot_grad(d);
-                tmp_dphi_dn += imposed_potential_gradient[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
-              }
-              // tmp_rhs(local_dof_indices[j]) = imposed_potential_gradient*bem.node_normals[local_dof_indices[j]];
-              dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
-
-            }
             else
             {
-              // tmp_rhs(local_dof_indices[j]) = 0;
-              dphi_dn(local_dof_indices[j]) = 0;
-            }
+              for(auto nbound : comp_dom.neumann_boundary_ids)
+              if(cell->material_id() == nbound)
+              {
+                neumann = true;
+                break;
+              }
+
+              if(neumann)
+              {
+                //tmp_rhs(local_dof_indices[j]) = normals_sys_solution(local_dof_indices[j]);
+                //dphi_dn(local_dof_indices[j]) = normals_sys_solution(local_dof_indices[j]);
+                Vector<double> imposed_pot_grad(dim);
+                wind.vector_value(support_points[local_dof_indices[j]],imposed_pot_grad);
+                Point<dim> imposed_potential_gradient;
+                double tmp_dphi_dn = 0;
+                for (unsigned int d=0; d<dim; ++d)
+                {
+                  imposed_potential_gradient(d) = imposed_pot_grad(d);
+                  tmp_dphi_dn += imposed_potential_gradient[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
+                }
+                // tmp_rhs(local_dof_indices[j]) = imposed_potential_gradient*bem.node_normals[local_dof_indices[j]];
+                dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
+              }
+              else
+              {
+                // tmp_rhs(local_dof_indices[j]) = 0;
+                dphi_dn(local_dof_indices[j]) = 0;
+              }
             // if (cell->material_id() != comp_dom.dirichlet_sur_ID1 &&
             //     cell->material_id() != comp_dom.dirichlet_sur_ID2 &&
             //     cell->material_id() != comp_dom.dirichlet_sur_ID3 )
@@ -347,8 +348,8 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
             // //bem.pcout<<tmp_rhs(local_dof_indices[j])<<"   phi "<<phi(local_dof_indices[j])<<std::endl;
           }
 
-    }
-
+        }
+      }
 
 }
 

@@ -77,8 +77,8 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    prm.declare_entry("Dirichlet boundary ids", "0,110,110", Patterns::List(Patterns::Integer(0)));
-    prm.declare_entry("Neumann boundary ids", "1,110,110", Patterns::List(Patterns::Integer(0)));
+    prm.declare_entry("Dirichlet boundary ids", "1,110,110", Patterns::List(Patterns::Integer(0)));
+    prm.declare_entry("Neumann boundary ids", "0,110,110", Patterns::List(Patterns::Integer(0)));
     // prm.declare_entry("Dirichlet Surface 1 ID", "1", Patterns::Integer());
     // prm.declare_entry("Dirichlet Surface 2 ID", "110", Patterns::Integer());
     // prm.declare_entry("Dirichlet Surface 3 ID", "110", Patterns::Integer());

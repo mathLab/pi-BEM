@@ -1,17 +1,3 @@
-//----------------------------  step-34.cc  ---------------------------
-//    $Id: step-34.cc 18734 2009-04-25 13:36:48Z heltai $
-//    Version: $Name$
-//
-//    Copyright (C) 2009, 2011 by the deal.II authors
-//
-//    This file is subject to QPL and may not be  distributed
-//    without copyright and license information. Please refer
-//    to the file deal.II/doc/license.html for the  text  and
-//    further information on this license.
-//
-//    Authors: Luca Heltai, Cataldo Manigrasso
-//
-//----------------------------  step-34.cc  ---------------------------
 
 #ifndef bem_problem_h
 #define bem_problem_h
@@ -116,43 +102,66 @@ public:
   void solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
              const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
+  /// This function takes care of the proper initialization of all the elements needed
+  /// by the bem problem class. Since we need to sum elements associated with scalar
+  /// and vectorial Finite Element spaces we have chosen to renumber the dofs and force the
+  /// the IndexSet for the parallel partitioning to be consistent. Without this enforcing we are
+  /// getting in trouble with ghost elements. We set up the two TrilinosSparsityPattern to be used
+  /// in our computations (assemble system and compute_normals-gradients).
   void reinit();
 
+  /// This function compute a very specific case, a double node that has a
+  /// dirichlet-dirichlet condition. In this case there is a constraint for
+  /// the normal derivative since we want a conitnuos velocity thus a conitnuos
+  /// total gradient. We have solved this problem using an analytical expression
+  /// for these constraints. Since we need to know all the double nodes set we have
+  /// kept this function serial. We stress that it needs to be called only once.
   void compute_constraints(ConstraintMatrix &constraints, const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
   //  private:
 
+  /// We declare the parameters needed by the class. We made good use of the deal.ii SwissArmyKnife
+  /// library. The parameters will be read from a file if it is existent or a file will be created.
+  /// The class need a controller for the GMRES solver, quadrature rules, resolution strategy (direct
+  /// or fma).
   virtual void declare_parameters(ParameterHandler &prm);
 
+  /// We declare the parameters needed by the class. We made good use of the deal.ii SwissArmyKnife
+  /// library.
   virtual void parse_parameters(ParameterHandler &prm);
 
-  // To be commented
 
+  /// This function computes the fraction of solid angles seen by our domain. We use the Double Layer
+  /// Operator (through the Neumann matrix) to determine it.
   void compute_alpha();
 
+  /// This function assembles the full distributed matrices needed by the direct method. We compute
+  /// both the Double Layer Operator (Neumann matrix) and Single Layer Operator (Dirichlet matrix).
+  /// Then we have to use dirichlet and neumann vector to assemble properly the system matrix and its
+  /// right hand side.
   void assemble_system();
 
-  // The next three methods are
-  // needed by the GMRES solver:
-  // the first provides result of
-  // the product of the system
-  // matrix (a combination of Neumann
-  // and Dirichlet matrices) by the
-  // vector src. The result is stored
-  // in the vector dst.
 
+  /// The next three methods are
+  /// needed by the GMRES solver:
+  /// the first provides result of
+  /// the product of the system
+  /// matrix (a combination of Neumann
+  /// and Dirichlet matrices) by the
+  /// vector src. The result is stored
+  /// in the vector dst.
   void vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src) const;
 
-  // The second method computes the
-  // right hand side vector of the
-  // system.
+  /// The second method computes the
+  /// right hand side vector of the
+  /// system.
 
   void compute_rhs(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src) const;
 
-  // The third method computes the
-  // product between the solution vector
-  // and the (fully populated) sytstem
-  // matrix.
+  /// The third method computes the
+  /// product between the solution vector
+  /// and the (fully populated) sytstem
+  /// matrix.
 
   //TODO CHECK
   void assemble_preconditioner();
@@ -163,25 +172,42 @@ public:
 
   void output_results(const std::string);
 
-  //TODO PARALLELIZE
+  /// We have parallelised the computation of the surface gradients. We need a
+  /// solution vector that has also ghost cells. for this reason we made use of
+  /// a ghosted IndexSet that we have computed in the reinit function. After this
+  /// we simply make use of deal.ii and its TrilinosWrappers to built and solve
+  /// a mass matrix system.
   void compute_surface_gradients(const TrilinosWrappers::MPI::Vector &tmp_rhs);
-  //TODO PARALLELIZE
+
+  /// We have parallelised the computation of gradients. We need a
+  /// solution vector that has also ghost cells. for this reason we made use of
+  /// a ghosted IndexSet that we have computed in the reinit function. After this
+  /// we simply make use of deal.ii and its TrilinosWrappers to built and solve
+  /// a mass matrix system. We want the gradients to be continuos so we need  to make
+  /// good use of both surface gradients and the normal derivative.
   void compute_gradients(const TrilinosWrappers::MPI::Vector &phi, const TrilinosWrappers::MPI::Vector &dphi_dn);
-  //TODO PARALLELIZE
+
+  /// We have parallelised the computation of the L2 projection of the normal vector. We need a
+  /// solution vector that has also ghost cells. for this reason we made use of
+  /// a ghosted IndexSet that we have computed in the reinit function. After this
+  /// we simply make use of deal.ii and its TrilinosWrappers to built and solve
+  /// a mass matrix system. In this function we don't need any vector with ghost cells.
   void compute_normals();
 
-  // this method is needed to
-  // separate Dirichlet dofs from
-  // Neumann nodes.
+  /// this method is needed to
+  /// separate Dirichlet dofs from
+  /// Neumann nodes.
 
   void compute_dirichlet_and_neumann_dofs_vectors();
 
 
-  // in the imported mesh, the nodes on the
-  // domain edges are doubled: this routine
-  // creates a std::vector of std::set which
-  // allows to relate each node to their
-  // double(s)
+  /// in the imported mesh, the nodes on the
+  /// domain edges are doubled: this routine
+  /// creates a std::vector of std::set which
+  /// allows to relate each node to their
+  /// double(s). Since the geometry is shared among
+  /// all processors we can let every processors to compute_normals
+  /// the overall double nodes set.
 
   void compute_double_nodes_set();
 
@@ -198,22 +224,22 @@ public:
 
 
 
-  // An Eulerian Mapping is created to deal
-  // with the free surface and boat mesh
-  // deformation
+  /// An Eulerian Mapping is created to deal
+  /// with the free surface and boat mesh
+  /// deformation
 
   MappingQ<dim-1, dim>      mapping;
   Vector<double> map_points;
 
 
-  // these are the std::vectors of std::sets
-  // containing informations on multiple
-  // nodes on the edges: one vector is
-  // created for the points associated with
-  // the degrees of freedom of the potential
-  // function, and one is created for the
-  // points associated with the degrees of
-  // freedom of its gradient (a vector field)
+  /// these are the std::vectors of std::sets
+  /// containing informations on multiple
+  /// nodes on the edges: one vector is
+  /// created for the points associated with
+  /// the degrees of freedom of the potential
+  /// function, and one is created for the
+  /// points associated with the degrees of
+  /// freedom of its gradient (a vector field)
 
   std::vector <std::set<unsigned int> >   double_nodes_set;
   std::vector <std::set<unsigned int> >   gradient_double_nodes_set;

@@ -1173,8 +1173,8 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
   // we start looping on the dofs
   for (unsigned int i=0; i <tmp_rhs.size(); i++)
     {
-      if (this_cpu_set.is_element(i))
-      {
+      // if (this_cpu_set.is_element(i))
+      // {
         // in the next line we compute the "first" among the set of double nodes: this node
         // is the first dirichlet node in the set, and if no dirichlet node is there, we get the
         // first neumann node
@@ -1280,7 +1280,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
                   }
               }
           }
-      }
+      // }
     }
 
   c.close();

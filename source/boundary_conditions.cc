@@ -292,13 +292,14 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                 // Point<dim> imposed_potential_gradient;
                 double tmp_dphi_dn = 0;
                 double normy = 0;
+                double tol = 1e-4;
                 for (unsigned int d=0; d<dim; ++d)
                 {
                   // imposed_potential_gradient(d) = imposed_pot_grad(d);
                   tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
                   normy += bem.vector_normals_solution[local_dof_indices[j]*dim+d] * bem.vector_normals_solution[local_dof_indices[j]*dim+d];
                 }
-                pcout<<"NORMY "<<normy<<std::endl;
+                Assert(std::fabs(normy-1.)<tol, ExcMessage("error with boundary conditions"));
                 tmp_rhs(local_dof_indices[j]) = tmp_dphi_dn;
                 dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
               }
@@ -450,6 +451,7 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
   // bem.compute_gradients(phi,dphi_dn);
   // bem.compute_normals();
   const Vector<double> localized_gradients (bem.vector_gradients_solution);
+  const Vector<double> localized_surf_gradients (bem.vector_surface_gradients_solution);
   const Vector<double> localized_normals (bem.vector_normals_solution);
   if(this_mpi_process == 0)
   {
@@ -474,6 +476,7 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
     dataout_scalar.add_data_vector(localized_alpha, "alpha", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
 
     dataout_vector.add_data_vector(localized_gradients, std::vector<std::string > (dim,"phi_gradient"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+    dataout_vector.add_data_vector(localized_surf_gradients, std::vector<std::string > (dim,"phi_surf_gradient"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
     dataout_vector.add_data_vector(localized_normals, std::vector<std::string > (dim,"normals_at_nodes"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
 
 

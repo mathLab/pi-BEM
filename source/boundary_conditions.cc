@@ -291,11 +291,14 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                 wind.vector_value(support_points[local_dof_indices[j]],imposed_pot_grad);
                 // Point<dim> imposed_potential_gradient;
                 double tmp_dphi_dn = 0;
+                double normy = 0;
                 for (unsigned int d=0; d<dim; ++d)
                 {
                   // imposed_potential_gradient(d) = imposed_pot_grad(d);
-                  tmp_dphi_dn += imposed_pot_gradient[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
+                  tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
+                  normy += bem.vector_normals_solution[local_dof_indices[j]*dim+d] * bem.vector_normals_solution[local_dof_indices[j]*dim+d];
                 }
+                pcout<<"NORMY "<<normy<<std::endl;
                 tmp_rhs(local_dof_indices[j]) = tmp_dphi_dn;
                 dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
               }

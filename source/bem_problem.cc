@@ -85,8 +85,8 @@ void BEMProblem<dim>::reinit()
 
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
-  DoFRenumbering::subdomain_wise (dh);
-  DoFRenumbering::subdomain_wise (gradient_dh);
+  // DoFRenumbering::subdomain_wise (dh);
+  // DoFRenumbering::subdomain_wise (gradient_dh);
 
   local_dofs_per_process.resize (n_mpi_processes);
   vector_local_dofs_per_process.resize (n_mpi_processes);
@@ -193,7 +193,7 @@ void BEMProblem<dim>::reinit()
   trial_index_set.clear();
   // DoFTools::extract_locally_active_dofs(gradient_dh, vector_active_dofs);//, vector_active_dofs);
   trial_index_set = DoFTools::dof_indices_with_subdomain_association(gradient_dh, this_mpi_process);
-  // TODO Understand that when this assert fails everything fucks up. There are ghost cells or something similar. At the time being it works only if the number of procs is a divisor of both the number of cells and dofs!!!! 
+  // TODO Understand that when this assert fails everything fucks up. There are ghost cells or something similar. At the time being it works only if the number of procs is a divisor of both the number of cells and dofs!!!!
   // Assert(trial_index_set == vector_this_cpu_set, ExcNotImplemented());
   DoFTools::extract_locally_relevant_dofs(gradient_dh, vector_relevant_dofs);
   pcout<<vector_active_dofs.n_elements()<<"  "<<vector_relevant_dofs.n_elements()<<"   "<<vector_this_cpu_set.n_elements()<<std::endl;

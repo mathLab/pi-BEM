@@ -163,9 +163,12 @@ public:
   /// and the (fully populated) sytstem
   /// matrix.
 
-  //TODO CHECK
+  /// This function assembles in parallel the band preconditioner to be used in the direct resolution
+  /// method.
   void assemble_preconditioner();
 
+  /// This is the function that guides the execution of the BEM problem. Depending on the resolution
+  /// stategy we go whether for the direct or fma strategy.
   void solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
                     const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
@@ -246,29 +249,17 @@ public:
 
 
 
-  // the following vectors are needed to
-  // treat Dirichlet and Neumann nodes
-  // differently. Each component of the
-  // first one is null if it corresponds
-  // to a Dirichlet node, and zero if
-  // it corresponds to a Neumann node.
-  // The second vector has instead null
-  // entries for Dirichlet nodes, and ones
-  // for Neumann nodes
-
-  // the number of standard quadrature points
-  // and singular kernel quadrature to be
-  // used
 
   std_cxx1x::shared_ptr<Quadrature<dim-1> > quadrature;
+  /// the number of standard quadrature points
+  /// and singular kernel quadrature to be
+  /// used
   unsigned int singular_quadrature_order;
 
 
   TrilinosWrappers::SparsityPattern full_sparsity_pattern;
   TrilinosWrappers::SparseMatrix neumann_matrix;
   TrilinosWrappers::SparseMatrix dirichlet_matrix;
-  //FullMatrix<double>    neumann_matrix;
-  //FullMatrix<double>    dirichlet_matrix;
 
   TrilinosWrappers::MPI::Vector        system_rhs;
 
@@ -301,23 +292,27 @@ public:
 
   unsigned int this_mpi_process;
 
-  ///TODO all the story of the double nodes imposes all the procs to know almost everything.
+  /// the following vector is needed to
+  /// treat Dirichlet nodes.
+  /// Each component
+  /// is null if it corresponds
+  /// to a Dirichlet node, and zero if
+  /// it corresponds to a Neumann node.
   TrilinosWrappers::MPI::Vector dirichlet_nodes;
+  /// The vector has instead null
+  /// entries for Dirichlet nodes, and ones
+  /// for Neumann nodes
   TrilinosWrappers::MPI::Vector neumann_nodes;
-  // Vector<double> dirichlet_nodes;
-  // Vector<double> neumann_nodes;
 
+
+
+  /// The IndexSet for the problem without considering any ghost element for the scalar FE
   IndexSet this_cpu_set;
-
+  /// The IndexSet for the problem considering every ghost element for the scalar FE
   IndexSet ghosted_set;
-
+  /// The IndexSet for the problem without considering any ghost element for the vector FE
   IndexSet vector_this_cpu_set;
 
-  // std::vector<Point<dim> > node_surface_gradients;
-
-  // std::vector<Point<dim> > node_gradients;
-  //
-  // std::vector<Point<dim> > node_normals;
 
   TrilinosWrappers::MPI::Vector vector_gradients_solution;
 
@@ -329,7 +324,7 @@ public:
 
   std::vector<types::global_dof_index> vector_start_per_process;
 
-  TrilinosWrappers::SparsityPattern vector_sparsity_pattern;// TrilinosWrappers::SparsityPattern
+  TrilinosWrappers::SparsityPattern vector_sparsity_pattern;
 
   ConstraintMatrix  vector_constraints;
 

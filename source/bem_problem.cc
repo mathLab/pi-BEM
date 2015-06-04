@@ -108,7 +108,6 @@ void BEMProblem<dim>::reinit()
 
   this_cpu_set.clear();
   vector_this_cpu_set.clear();
-  // this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(dh, this_mpi_process);
   // vector_this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(gradient_dh, this_mpi_process);
   this_cpu_set.set_size(n_dofs);
   vector_this_cpu_set.set_size(gradient_dh.n_dofs());
@@ -246,6 +245,21 @@ void BEMProblem<dim>::reinit()
   // vector_sparsity_pattern.reinit(vector_this_cpu_set, vector_this_cpu_set, mpi_communicator);//(helper.vector_partitioner(), helper.vector_partitioner());
   DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern, vector_constraints, true, this_mpi_process);
   vector_sparsity_pattern.compress();
+
+  ghosted_set.clear();
+  ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);
+  // ghosted_set.set_size(n_dofs);
+  // std::vector<unsigned int> dofs(fe.dofs_per_cell);
+  // for(cell_it cell=dh.begin_active(); cell!=dh.end(); ++cell)
+  //   if(cell->subdomain_id()==this_mpi_process)
+  //   {
+  //     cell->get_dof_indices(dofs);
+  //     for(auto foo : dofs)
+  //     {
+  //       ghosted_set.add_index(foo);
+  //     }
+  //   }
+
 
 }
 
@@ -1418,31 +1432,16 @@ void BEMProblem<dim>::assemble_preconditioner()
 template <int dim>
 void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glob_phi, const TrilinosWrappers::MPI::Vector &glob_dphi_dn)
 {
-  Vector<double> phi(glob_phi);
-  Vector<double> dphi_dn(glob_dphi_dn);
+  TrilinosWrappers::MPI::Vector phi(ghosted_set);
+  phi.reinit(glob_phi,false,true);
+  TrilinosWrappers::MPI::Vector dphi_dn(ghosted_set);
+  dphi_dn.reinit(glob_dphi_dn,false,true);
 
 
 
   vector_gradients_solution.reinit(vector_this_cpu_set,mpi_communicator);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-
-
-  // DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
-  //                                                    gradient_dh.n_dofs());
-  //
-  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
-  //
-  // ConstraintMatrix  vector_constraints;
-  //
-  // vector_constraints.clear();
-  // DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  // vector_constraints.close();
-  //
-  // vector_constraints.condense (gradient_sparsity_pattern);
-  //
-  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
-  // gradient_sparsity_pattern.compress();
 
 
   TrilinosWrappers::SparseMatrix vector_gradients_matrix;
@@ -1570,29 +1569,13 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 template <int dim>
 void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
-  Vector<double> phi(tmp_rhs);
+  TrilinosWrappers::MPI::Vector phi(ghosted_set);
+  phi.reinit(tmp_rhs,false,true);
 
   vector_surface_gradients_solution.reinit(vector_this_cpu_set,mpi_communicator);
 
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-
-
-  // DynamicSparsityPattern gradient_sparsity_pattern (gradient_dh.n_dofs(),
-  //                                                    gradient_dh.n_dofs());
-  //
-  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern);
-  //
-  // ConstraintMatrix  vector_constraints;
-  //
-  // vector_constraints.clear();
-  // DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  // vector_constraints.close();
-  //
-  // vector_constraints.condense (gradient_sparsity_pattern);
-  //
-  // DoFTools::make_sparsity_pattern (gradient_dh, gradient_sparsity_pattern, vector_constraints);
-  // gradient_sparsity_pattern.compress();
 
 
   TrilinosWrappers::SparseMatrix vector_surface_gradients_matrix;

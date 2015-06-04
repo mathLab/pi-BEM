@@ -283,6 +283,8 @@ public:
 
   IndexSet this_cpu_set;
 
+  IndexSet ghosted_set;
+
   IndexSet vector_this_cpu_set;
 
   // std::vector<Point<dim> > node_surface_gradients;

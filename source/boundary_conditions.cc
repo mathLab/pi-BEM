@@ -202,6 +202,8 @@ void BoundaryConditions<dim>:: solve_problem()
   this_cpu_set = bem.this_cpu_set;
   this_cpu_set.compress();
 
+
+
   phi.reinit(this_cpu_set,mpi_communicator);
   dphi_dn.reinit(this_cpu_set,mpi_communicator);
   tmp_rhs.reinit(this_cpu_set,mpi_communicator);
@@ -295,9 +297,12 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                 double tol = 1e-4;
                 for (unsigned int d=0; d<dim; ++d)
                 {
+                  unsigned int vec_index = bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process] + d*bem.start_per_process[this_mpi_process] + local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
                   // imposed_potential_gradient(d) = imposed_pot_grad(d);
-                  tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[local_dof_indices[j]*dim+d];
-                  normy += bem.vector_normals_solution[local_dof_indices[j]*dim+d] * bem.vector_normals_solution[local_dof_indices[j]*dim+d];
+                  // Assert(this_cpu_set.is_element(local_dof_indices[j]), ExcMessage(":D"))
+                  Assert(bem.vector_this_cpu_set.is_element(vec_index), ExcMessage("moh so cazzi amari"))
+                  tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[vec_index];
+                  normy += bem.vector_normals_solution[vec_index] * bem.vector_normals_solution[vec_index];
                 }
                 Assert(std::fabs(normy-1.)<tol, ExcMessage("error with boundary conditions"));
                 tmp_rhs(local_dof_indices[j]) = tmp_dphi_dn;

@@ -26,7 +26,11 @@ using Teuchos::Time;
 using Teuchos::TimeMonitor;
 using Teuchos::RCP;
 
+RCP<Time> ConstraintsTime = TimeMonitor::getNewTimer("Compute Constraints Time");
 RCP<Time> AssembleTime = TimeMonitor::getNewTimer("Assemble Time");
+RCP<Time> NormalsTime = TimeMonitor::getNewTimer("Normals Time");
+RCP<Time> SurfaceGradientTime = TimeMonitor::getNewTimer("SurfaceGradientTime Time");
+RCP<Time> GradientTime = TimeMonitor::getNewTimer("Gradient Time");
 RCP<Time> LacSolveTime = TimeMonitor::getNewTimer("LAC Solve Time");
 
 // @sect4{BEMProblem::BEMProblem and
@@ -944,9 +948,8 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
 
   // in fully neumann bc case, we have to rescale the vector to have a zero mean
   // one
-// DA RIVEDERE!!! PER ORA QUESTO CASO IN MPI NON GIREREBBE
-  //if (dirichlet_nodes.linfty_norm() < 1e-10)
-  //   dst.add(-dst.l2_norm());
+  if (dirichlet_nodes.linfty_norm() < 1e-10)
+    dst.add(-dst.l2_norm());
 
 }
 
@@ -963,14 +966,6 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
   static TrilinosWrappers::MPI::Vector matrVectProdN;
   static TrilinosWrappers::MPI::Vector matrVectProdD;
 
-  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(dh,this_mpi_process);
-  //  IndexSet this_cpu_set = dh.locally_owned_dofs();
-
-  //const unsigned int n_dofs =  dh.n_dofs();
-  //const types::global_dof_index n_local_dofs = DoFTools::count_dofs_with_subdomain_association(dh,this_mpi_process);
-  // Why a different one?
-  // IndexSet this_cpu_set = dh.locally_owned_dofs();/// !!! OCCHIO CHE NON SERVE TUTTO
-
 
   matrVectProdN.reinit(this_cpu_set,mpi_communicator);
   matrVectProdD.reinit(this_cpu_set,mpi_communicator);
@@ -978,9 +973,6 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
 
   serv_phi.scale(dirichlet_nodes);
   serv_dphi_dn.scale(neumann_nodes);
-
-  //for (unsigned int ppp = 0; ppp < src.size(); ++ppp)
-  //pcout<<ppp<<"  phi(ppp)="<<phi(ppp)<<"  |||   dphi_dn(ppp)="<<dphi_dn(ppp)<<std::endl;
 
   if (solution_method == "Direct")
     {
@@ -1153,12 +1145,14 @@ template <int dim>
 void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &tmp_rhs)
 
 {
-  // communication is needed here: there is one matrix per process: thus the vector needed to set
-  // inhomogeneities has to be copied locally
+  TimeMonitor LocalTimer(*ConstraintsTime);
+  // We need both the normal vector and surface gradients to apply correctly dirichlet-dirichlet
+  // double node constraints.
   compute_normals();
   compute_surface_gradients(tmp_rhs);
 
-
+  // communication is needed here: there is one matrix per process: thus the vector needed to set
+  // inhomogeneities has to be copied locally
   Vector<double> localized_surface_gradients(vector_surface_gradients_solution);
   Vector<double> localized_normals(vector_normals_solution);
   Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
@@ -1389,32 +1383,36 @@ void BEMProblem<dim>::assemble_preconditioner()
 template <int dim>
 void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glob_phi, const TrilinosWrappers::MPI::Vector &glob_dphi_dn)
 {
+  TimeMonitor LocalTimer(*GradientTime);
+
+  // We need the solution to be stored on a parallel vector with ghost elements. We let
+  // Trilinos take care of it.
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
   phi.reinit(glob_phi,false,true);
   TrilinosWrappers::MPI::Vector dphi_dn(ghosted_set);
   dphi_dn.reinit(glob_dphi_dn,false,true);
 
 
-
+  // We reinit the gradient solution
   vector_gradients_solution.reinit(vector_this_cpu_set,mpi_communicator);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
 
+  // The matrix and rhs of our problem. We must decide if compute the mass matrix just once and for all or not.
   TrilinosWrappers::SparseMatrix vector_gradients_matrix;
   TrilinosWrappers::MPI::Vector vector_gradients_rhs(vector_this_cpu_set,mpi_communicator);
-
-
   vector_gradients_matrix.reinit (vector_sparsity_pattern);
 
 
-
+  // The vector FEValues to used in the assemblage
   FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
+  // The scalar FEValues to interpolate the known value of phi
   FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
@@ -1424,6 +1422,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
   const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
   std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
+
 
   std::vector< Tensor<1,dim> > phi_surf_grads(vector_n_q_points);
   std::vector<double> phi_norm_grads(vector_n_q_points);
@@ -1512,6 +1511,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
        }
     }
 
+  // At this point we can compress anything and solve via GMRES.
   vector_gradients_matrix.compress(VectorOperation::add);
   vector_gradients_rhs.compress(VectorOperation::add);
 
@@ -1526,6 +1526,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 template <int dim>
 void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
+  TimeMonitor LocalTimer(*SurfaceGradientTime);
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
   phi.reinit(tmp_rhs,false,true);
 
@@ -1658,6 +1659,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 template <int dim>
 void BEMProblem<dim>::compute_normals()
 {
+  TimeMonitor LocalTimer(*NormalsTime);
   vector_normals_solution.reinit(vector_this_cpu_set,mpi_communicator);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;

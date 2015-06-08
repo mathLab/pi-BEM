@@ -86,6 +86,9 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
 
+  // we should choose the appropriate renumbering strategy and then stick with it.
+  // in step 32 they use component_wise which is very straight-forward but maybe the quickest
+  // is subdomain_wise (step 17, 18)
   DoFRenumbering::component_wise (dh);
   DoFRenumbering::component_wise (gradient_dh);
 
@@ -99,43 +102,15 @@ void BEMProblem<dim>::reinit()
 
   DoFTools::get_subdomain_association   (dh,dofs_domain_association);
 
-  // std::vector<types::subdomain_id> vec_dofs_domain_association(gradient_dh.n_dofs());
-  //
-  // DoFTools::get_subdomain_association   (gradient_dh,vec_dofs_domain_association);
-  //
-  // for(unsigned int i=0; i<dofs_domain_association.size(); ++i)
-  //   pcout<<i<<" "<<dofs_domain_association[i]<<" "<<vec_dofs_domain_association[i]<<" "<<vec_dofs_domain_association[n_dofs+i]<<" "<<vec_dofs_domain_association[n_dofs*2+i]<<std::endl;
 
   this_cpu_set.clear();
   vector_this_cpu_set.clear();
-  // vector_this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(gradient_dh, this_mpi_process);
   this_cpu_set.set_size(n_dofs);
   vector_this_cpu_set.set_size(gradient_dh.n_dofs());
-  for (unsigned int i=0; i<n_dofs; ++i)
-    if (dofs_domain_association[i] == this_mpi_process)
-      {
-        this_cpu_set.add_index(i);
-        for(unsigned int idim=0; idim<dim; ++idim)
-          vector_this_cpu_set.add_index(i+idim*n_dofs);
-      }
-  this_cpu_set.compress();
-  vector_this_cpu_set.compress();
 
-  std::vector<types::subdomain_id> vector_dofs_domain_association(gradient_dh.n_dofs());
 
-  DoFTools::get_subdomain_association   (gradient_dh,vector_dofs_domain_association);
-
-  // vector_this_cpu_set.clear();
-  // // vector_this_cpu_set = DoFTools::dof_indices_with_subdomain_association	(gradient_dh, this_mpi_process);
-  //
-  // vector_this_cpu_set.set_size(gradient_dh.n_dofs());
-  //
-  // for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
-  //   if (vector_dofs_domain_association[i] == this_mpi_process)
-  //     {
-  //       vector_this_cpu_set.add_index(i);
-  //     }
-  // vector_this_cpu_set.compress();
+  // We compute this two vector in order to use an eventual DoFRenumbering::subdomain_wise
+  // At the time being we don't. We need to decide the better strategy.
 
   std::vector<types::global_dof_index> localized_ndfos(n_mpi_processes);
   std::vector<types::global_dof_index> localized_vector_ndfos(n_mpi_processes);
@@ -147,7 +122,6 @@ void BEMProblem<dim>::reinit()
 
   Utilities::MPI::sum (localized_ndfos, mpi_communicator, start_per_process);
   Utilities::MPI::sum (localized_vector_ndfos, mpi_communicator, vector_start_per_process);
-
 
   for(unsigned int i=1; i<start_per_process.size(); ++i)
   {
@@ -163,14 +137,27 @@ void BEMProblem<dim>::reinit()
   vector_start_per_process[0] = 0;
 
 
-  // start_per_process -= start_per_process[0];
-  // vector_start_per_process -= vector_start_per_process[0];
+  // We need to enforce consistency between the non-ghosted IndexSets.
+  // To be changed accordingly with the DoFRenumbering strategy.
+  for (unsigned int i=0; i<n_dofs; ++i)
+    if (dofs_domain_association[i] == this_mpi_process)
+      {
+        this_cpu_set.add_index(i);
+        for(unsigned int idim=0; idim<dim; ++idim)
+          vector_this_cpu_set.add_index(i+idim*n_dofs);
+      }
+  this_cpu_set.compress();
+  vector_this_cpu_set.compress();
+  // At this point we just need to create a ghosted IndexSet for the scalar
+  // DoFHandler. This can be through the builtin dealii function.
+  ghosted_set.clear();
+  ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);
 
-  for(unsigned int i=0; i<start_per_process.size(); ++i)
-  {
-    pcout<<start_per_process[i]<<" "<<vector_start_per_process[i]<<std::endl;
-  }
+  std::vector<types::subdomain_id> vector_dofs_domain_association(gradient_dh.n_dofs());
 
+  DoFTools::get_subdomain_association   (gradient_dh,vector_dofs_domain_association);
+
+  // standard TrilinosWrappers::MPI::Vector reinitialization.
   system_rhs.reinit(this_cpu_set,mpi_communicator);
   sol.reinit(this_cpu_set,mpi_communicator);
   alpha.reinit(this_cpu_set,mpi_communicator);
@@ -178,7 +165,7 @@ void BEMProblem<dim>::reinit()
   serv_dphi_dn.reinit(this_cpu_set,mpi_communicator);
   serv_tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
-
+  // TrilinosWrappers::SparsityPattern for the BEM matricesreinitialization
   full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
   for (unsigned int i=0; i<n_dofs; ++i)
     if (this_cpu_set.is_element(i))
@@ -186,6 +173,7 @@ void BEMProblem<dim>::reinit()
         for (unsigned int j=0; j<n_dofs; ++j)
           full_sparsity_pattern.add(i,j);
       }
+
   full_sparsity_pattern.compress();
   neumann_matrix.reinit(full_sparsity_pattern);
   dirichlet_matrix.reinit(full_sparsity_pattern);
@@ -199,66 +187,35 @@ void BEMProblem<dim>::reinit()
   compute_double_nodes_set();
 
   fma.init_fma(dh, double_nodes_set, dirichlet_nodes, mapping);
-  /*
-  for (unsigned int i=0; i<dirichlet_nodes.size(); ++i)
-      if (this_cpu_set.is_element(i))
-         {
-         if (true)//(this_mpi_process == 0)
-            {
-            pcout<<"Proc: "<<this_mpi_process<<"   i: "<<i<<" Sn: "<<dirichlet_nodes(i)<<" "<<dirichlet_nodes(i) <<std::endl;
-            pcout<<"Proc: "<<this_mpi_process<<"   i: "<<i<<" On: "<<neumann_nodes(i)<<" "<<neumann_nodes(i) <<std::endl;
-            }
-         }
-  //*/
-
-  // TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
-  // std::cout<<vector_local_dofs_per_process[this_mpi_process]<<std::endl;
-  // DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern);
 
 
-
-  // vector_constraints.condense (vector_sparsity_pattern);
-
+  // We need a TrilinosWrappers::MPI::Vector to reinit the SparsityPattern for
+  // the parallel mass matrices.
   TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
-  IndexSet vector_active_dofs;
-  IndexSet vector_relevant_dofs;
+  //These are just for test
+  // IndexSet vector_active_dofs;
+  // IndexSet vector_relevant_dofs;
   IndexSet trial_index_set;
-  vector_active_dofs.clear();
-  vector_relevant_dofs.clear();
+  // vector_active_dofs.clear();
+  // vector_relevant_dofs.clear();
   trial_index_set.clear();
   // DoFTools::extract_locally_active_dofs(gradient_dh, vector_active_dofs);//, vector_active_dofs);
   trial_index_set = DoFTools::dof_indices_with_subdomain_association(gradient_dh, this_mpi_process);
-  // TODO Understand that when this assert fails everything fucks up. There are ghost cells or something similar. At the time being it works only if the number of procs is a divisor of both the number of cells and dofs!!!!
   // Assert(trial_index_set == vector_this_cpu_set, ExcNotImplemented());
-  DoFTools::extract_locally_relevant_dofs(gradient_dh, vector_relevant_dofs);
-  pcout<<vector_active_dofs.n_elements()<<"  "<<vector_relevant_dofs.n_elements()<<"   "<<vector_this_cpu_set.n_elements()<<std::endl;
-  unsigned int foo = 0;
-  foo = Utilities::MPI::sum (vector_this_cpu_set.n_elements(), mpi_communicator);
-  pcout<<foo<<" "<<vector_this_cpu_set.size()<<std::endl;
+  // // The following functions returns the entire dof set.
+  // DoFTools::extract_locally_relevant_dofs(gradient_dh, vector_relevant_dofs);
+  // pcout<<vector_active_dofs.n_elements()<<"  "<<vector_relevant_dofs.n_elements()<<"   "<<vector_this_cpu_set.n_elements()<<std::endl;
 
-  // Assert(vector_active_dofs == vector_this_cpu_set, ExcNotImplemented());
-  vector_constraints.reinit();//vector_relevant_dofs);
+  vector_constraints.reinit();
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
 
+  // This is the only way we could create the SparsityPattern, through the Epetramap of an
+  // existing vector.
   vector_sparsity_pattern.reinit(helper.vector_partitioner(), helper.vector_partitioner());
-  // vector_sparsity_pattern.reinit(vector_this_cpu_set, vector_this_cpu_set, mpi_communicator);//(helper.vector_partitioner(), helper.vector_partitioner());
   DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern, vector_constraints, true, this_mpi_process);
   vector_sparsity_pattern.compress();
 
-  ghosted_set.clear();
-  ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);
-  // ghosted_set.set_size(n_dofs);
-  // std::vector<unsigned int> dofs(fe.dofs_per_cell);
-  // for(cell_it cell=dh.begin_active(); cell!=dh.end(); ++cell)
-  //   if(cell->subdomain_id()==this_mpi_process)
-  //   {
-  //     cell->get_dof_indices(dofs);
-  //     for(auto foo : dofs)
-  //     {
-  //       ghosted_set.add_index(foo);
-  //     }
-  //   }
 
 
 }

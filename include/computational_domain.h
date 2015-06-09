@@ -143,7 +143,9 @@ public:
 
   unsigned int n_cycles;
 
-
+  /// Strings identifying the input grid name and format
+  std::string input_grid_name;
+  std::string input_grid_format;
 
   /// the material ID numbers in the mesh
   /// input file, for the dirichlet_nodes

@@ -72,6 +72,13 @@ ComputationalDomain<dim>::~ComputationalDomain()
 template <int dim>
 void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 {
+
+  prm.declare_entry("Input grid name", "../utilities/coarse_cube_double_nodes",
+                    Patterns::Anything());
+
+  prm.declare_entry("Input grid format", "inp",
+                    Patterns::Anything());
+
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
 
@@ -94,6 +101,9 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 template <int dim>
 void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
 {
+
+  input_grid_name = prm.get("Input grid name");
+  input_grid_format = prm.get("Input grid format");
   n_cycles = prm.get_integer("Number of cycles");
 
 
@@ -189,26 +199,39 @@ template <int dim>
 void ComputationalDomain<dim>::read_domain()
 {
 
+    std::ifstream in;
+    in.open (input_grid_name + "." + input_grid_format);
+    GridIn<dim-1, dim> gi;
+    gi.attach_triangulation (tria);
+    if(input_grid_format=="vtk")
+        gi.read_vtk (in);
+    else if(input_grid_format=="msh")
+        gi.read_msh (in);
+    else if(input_grid_format=="inp")
+        gi.read_ucd (in);
+    else
+        Assert (false, ExcNotImplemented());
 
-  std::ifstream in;
-  switch (dim)
-    {
-    case 2:
-      in.open ("coarse_circle.inp");
-      break;
-
-    case 3:
-      in.open ("coarse_cube_double_nodes.inp");
-      break;
-
-    default:
-      Assert (false, ExcNotImplemented());
-    }
-
-  GridIn<dim-1, dim> gi;
-  gi.attach_triangulation (tria);
-  gi.read_ucd (in);
-
+  //
+  // std::ifstream in;
+  // switch (dim)
+  //   {
+  //   case 2:
+  //     in.open ("coarse_circle.inp");
+  //     break;
+  //
+  //   case 3:
+  //     in.open ("coarse_cube_double_nodes.inp");
+  //     break;
+  //
+  //   default:
+  //     Assert (false, ExcNotImplemented());
+  //   }
+  //
+  // GridIn<dim-1, dim> gi;
+  // gi.attach_triangulation (tria);
+  // gi.read_ucd (in);
+  //
 
 
 }

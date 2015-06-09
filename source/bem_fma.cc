@@ -19,6 +19,20 @@
 #include "../include/laplace_kernel.h"
 #include "utilities.h"
 
+
+#include "Teuchos_TimeMonitor.hpp"
+
+using Teuchos::Time;
+using Teuchos::TimeMonitor;
+using Teuchos::RCP;
+
+RCP<Time> MatrVec = TimeMonitor::getNewTimer("Multipole MatrVec Products Time");
+RCP<Time> MultGen = TimeMonitor::getNewTimer("Multipole Generation Time");
+RCP<Time> MultInt = TimeMonitor::getNewTimer("Multipole Integral Time");
+RCP<Time> ListCreat = TimeMonitor::getNewTimer("Octree Generation Time");
+RCP<Time> DirInt = TimeMonitor::getNewTimer("Direct Integral Time");
+RCP<Time> PrecondTime = TimeMonitor::getNewTimer("FMA_preconditioner Time");
+
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
   :
@@ -105,7 +119,7 @@ template <int dim>
 void BEMFMA<dim>::direct_integrals()
 {
   pcout<<"Computing direct integrals..."<<std::endl;
-
+  TimeMonitor LocalTimer(*DirInt);
   // The following function performs
   // the direct integrals
   // for the fast multipole algorithm
@@ -572,6 +586,7 @@ void BEMFMA<dim>::direct_integrals()
 
     {
       unsigned int startBlockLevel =  startLevel[level];
+      // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
       for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
         {
 
@@ -690,7 +705,7 @@ void BEMFMA<dim>::multipole_integrals()
 {
 
   pcout<<"Computing multipole integrals..."<<std::endl;
-
+  TimeMonitor LocalTimer(*MultInt);
   // we start clearing the two structures in which we will
   // store the integrals. these objects are quite complicated:
   // for each block we are going to get the portion of
@@ -793,7 +808,9 @@ template <int dim>
 void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const
 {
   pcout<<"Generating multipole expansions..."<<std::endl;
-
+  TimeMonitor LocalTimer(*MultGen);
+  // TODO I DON'T KNOW IF WE CAN SPLIT THIS OPERATION, IN CASE THIS WOULD NOT BE EASY COMMUNICATION, WE WOULD NEED TO
+  // COMMUNICATE THE ENTIRE CLASSES THAT HOLD THE MULTIPOLE<->LOCAL EXPANSIONS
 
 // also here we clear the structures storing the multipole
 // expansions for Dirichlet and Neumann matrices
@@ -913,7 +930,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                                                TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
 {
   pcout<<"Computing multipole matrix-vector products... "<<std::endl;
-
+  TimeMonitor LocalTimer(*MatrVec);
   // we start re-initializing matrix-vector-product vectors
   matrVectProdN = 0;
   matrVectProdD = 0;
@@ -978,6 +995,8 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       // contain at least one node (the local and multipole expansion will be finally evaluated
       // at the nodes positions)
 
+      // TODO WE COULD SPLIT THIS LOOP OVER THE BLOCKS OVER ALL THE PROCESSORS, THEN DO A TRILINOS.ADD WITH
+      // DIFFERENT MAPS. HERE WE NEED A FULL ONE.
       for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
         {
           //pcout<<"Block "<<jj<<std::endl;
@@ -998,6 +1017,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
           // block remains childless BEFORE the last level, at this point we need to compute
           // all its contributions up to the bottom level)
 
+
           for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
             {
               // we get the nonIntList of each block
@@ -1012,6 +1032,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
               // of blocks bigger than current block had already been considered in
               // the direct integrals method (the bounds of the local and multipole
               // expansion do not hold in such case)
+
 
               for (std::set <unsigned int>::iterator pos1 = nonIntList.lower_bound(startBlockLevel); pos1 != nonIntList.upper_bound(endBlockLevel);  pos1++) // loop over NNs of NNs and add them to intList
                 {
@@ -1083,6 +1104,8 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
   // finally, when the loop over levels is done, we need to evaluate local expansions of all
   // childless blocks, at each block node(s)
+
+  // TODO SPLIT THIS LOOP OVER ALL PROCESSORS THEN COMMUNICATE.
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
 
     {
@@ -1112,7 +1135,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   //////////////////////////////*/
 
 
-
+  // TODO I WOULD COMMUNICATE HERE, AT THE END OF ALL THINGS
 
   pcout<<"...done computing multipole matrix-vector products"<<std::endl;
 
@@ -1125,7 +1148,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 template <int dim>
 TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
 {
-
+  TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
@@ -1404,7 +1427,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 {
 
   pcout<<"Generating octree blocking... "<<std::endl;
-
+  TimeMonitor LocalTimer(*ListCreat);
   // @sect5{BEMProblem::generate_double_nodes_set}
 
   // The following is the function

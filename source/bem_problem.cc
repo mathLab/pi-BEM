@@ -1148,7 +1148,7 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
   TimeMonitor LocalTimer(*ConstraintsTime);
   // We need both the normal vector and surface gradients to apply correctly dirichlet-dirichlet
   // double node constraints.
-  compute_normals();
+  // compute_normals();
   compute_surface_gradients(tmp_rhs);
 
   // communication is needed here: there is one matrix per process: thus the vector needed to set

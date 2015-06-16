@@ -293,7 +293,8 @@ void BEMFMA<dim>::direct_integrals()
 
       for (unsigned int jj = 0; jj < dofs_filled_blocks[level].size();  jj++)
         {
-
+          if(m2l_flags[level][jj]==this_mpi_process)
+          {
           OctreeBlock<dim> *block1 =  blocks[dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -344,6 +345,7 @@ void BEMFMA<dim>::direct_integrals()
 
                 } // end loop over sublevels
             } // end if: is there any node in the block?
+          }// end if m2l flag
         }// end loop over block of a level
     }//end loop over octree levels
 
@@ -802,6 +804,68 @@ void BEMFMA<dim>::multipole_integrals()
   pcout<<"...done computing multipole integrals"<<std::endl;
 }
 
+template <int dim>
+void BEMFMA<dim>::compute_m2l_flags()
+{
+  pcout<<"Partitioning the descending phase Multipole2Local"<<std::endl;
+  m2l_flags.resize(num_octree_levels+1);
+  std::vector<unsigned int> m2l_operations_per_level(num_octree_levels+1);
+  std::vector<std::vector<unsigned int> > m2l_operations_per_block(num_octree_levels+1);
+  for(unsigned int level = 1; level <  num_octree_levels + 1;  level++)
+  {
+    m2l_flags[level].resize(dofs_filled_blocks[level].size());
+    m2l_operations_per_block[level].resize(dofs_filled_blocks[level].size());
+    m2l_operations_per_level[level] = 0;
+    for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
+    {
+      m2l_operations_per_block[level][k] = 0;
+      unsigned int jj =  dofs_filled_blocks[level][k];
+
+      OctreeBlock<dim> *block1 = blocks[jj];
+      for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+      {
+          m2l_operations_per_block[level][k] += block1->GetNonIntList(subLevel).size();
+          m2l_operations_per_level[level] += block1->GetNonIntList(subLevel).size();
+      }
+    }
+    unsigned int test = n_mpi_processes;
+    unsigned int operations_per_proc = m2l_operations_per_level[level]/test;     //(int) ceil(m2l_operations_per_level[level]/test);
+    int rest_op = m2l_operations_per_level[level]%test;
+    unsigned int my_operations=0;
+    unsigned int cumulative_check=0;
+    unsigned int proc=0;
+    unsigned int k=0;
+    std::vector<unsigned int> m2l_operations_per_proc(test);
+    std::vector<unsigned int> blocks_per_proc(test);
+    while (k <  dofs_filled_blocks[level].size() && proc<test) // loop over blocks of each level
+    {
+      if(my_operations >= operations_per_proc)
+      {
+
+        rest_op -= my_operations - operations_per_proc;
+        // pcout<<"On processor "<< proc<<", we have "<<my_operations<<"operations, cumulatively we are taking "<<cumulative_check<<" m2l ops over a total of "<<m2l_operations_per_level[level]<<std::endl;
+        proc += 1;
+        my_operations = 0;
+      }
+      m2l_flags[level][k]=proc;
+      my_operations += m2l_operations_per_block[level][k];
+      cumulative_check += m2l_operations_per_block[level][k];
+      m2l_operations_per_proc[proc] += m2l_operations_per_block[level][k];
+      blocks_per_proc[proc] += 1;
+      k+=1;
+    }
+    pcout<<"LEVEL "<<level<<std::endl;
+    pcout<<"Rest is "<<rest_op<<" last block is "<<k<<" , total of "<<dofs_filled_blocks[level].size()<<
+           " operations taken "<<cumulative_check<<" over a total of "<<m2l_operations_per_level[level]<<std::endl;
+    for(proc = 0 ; proc < test; ++proc)
+      pcout<<"On processor "<< proc<<", we have "<<m2l_operations_per_proc[proc]<<" m2l operations, and "
+           <<blocks_per_proc[proc]<<" blocks over a total of "<<dofs_filled_blocks[level].size()<<std::endl;
+  }
+
+
+
+
+}
 
 
 template <int dim>
@@ -926,16 +990,20 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
 
 template <int dim>
-void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
-                                               TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
+void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in,
+                                               TrilinosWrappers::MPI::Vector &matrVectProdN_in,    TrilinosWrappers::MPI::Vector &matrVectProdD_in) const
 {
   pcout<<"Computing multipole matrix-vector products... "<<std::endl;
   TimeMonitor LocalTimer(*MatrVec);
   // we start re-initializing matrix-vector-product vectors
-  matrVectProdN = 0;
-  matrVectProdD = 0;
+  // matrVectProdN = 0;
+  // matrVectProdD = 0;
 
   //and here we compute the direct integral contributions (stored in two sparse matrices)
+  const Vector<double> phi_values(phi_values_in);
+  const Vector<double> dphi_dn_values(dphi_dn_values_in);
+  Vector<double> matrVectProdD(fma_dh->n_dofs());
+  Vector<double> matrVectProdN(fma_dh->n_dofs());
   prec_neumann_matrix.vmult(matrVectProdN, phi_values);
   prec_dirichlet_matrix.vmult(matrVectProdD, dphi_dn_values);
 
@@ -999,6 +1067,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       // DIFFERENT MAPS. HERE WE NEED A FULL ONE.
       for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
         {
+          if(m2l_flags[level][k]==this_mpi_process)
+          {
+
           //pcout<<"Block "<<jj<<std::endl;
           unsigned int jj =  dofs_filled_blocks[level][k];
           OctreeBlock<dim> *block1 =  blocks[jj];
@@ -1096,7 +1167,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
 
             } // end loop over all sublevels in  nonIntlist
-
+          }//end if for m2l flags
         } // end loop over blocks of each level
 
     } // end loop over levels
@@ -1136,7 +1207,8 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
 
   // TODO I WOULD COMMUNICATE HERE, AT THE END OF ALL THINGS
-
+  matrVectProdN_in = matrVectProdN;
+  matrVectProdD_in = matrVectProdD;
   pcout<<"...done computing multipole matrix-vector products"<<std::endl;
 
 }

@@ -116,6 +116,8 @@ public:
                                     TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
 
 
+  void compute_m2l_flags();
+
   /// this methods creates the adaptive
   /// octree partitioning of the domain,
   /// needed by the FMA algorithm
@@ -353,6 +355,8 @@ private:
   SmartPointer<const TrilinosWrappers::MPI::Vector > dirichlet_nodes;
   /// This should be erased by the usage of the constraint matrix.
   const std::vector <std::set<unsigned int> >   *double_nodes_set;
+
+  std::vector<std::vector<unsigned int> > m2l_flags;
 
 };
 

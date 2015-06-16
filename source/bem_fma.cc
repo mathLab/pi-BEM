@@ -1226,8 +1226,10 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
+  IndexSet this_cpu_set(alpha.locally_owned_elements());
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
     {
+      if(this_cpu_set.is_element(i))
       if (c.is_constrained(i))
         {
           //cout<<i<<"  (c):"<<endl;
@@ -1261,6 +1263,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // now we assemble the final preconditioner matrix: the loop works
   // exactly like the previous one
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+    if(this_cpu_set.is_element(i))
     if (c.is_constrained(i))
       {
         final_preconditioner.set(i,i,1);
@@ -1291,6 +1294,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // neumann (in such nodes the potential phi is an unknown) and non constrained node
 
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+    if(this_cpu_set.is_element(i))
     if ( (*dirichlet_nodes)(i) == 0 && !c.is_constrained(i))
       {
         final_preconditioner.add(i,i,alpha(i));

@@ -352,7 +352,7 @@ private:
 
   /// TODO parsed quadrature?
   shared_ptr<Quadrature<dim-1> > quadrature;
-  SmartPointer<const TrilinosWrappers::MPI::Vector > dirichlet_nodes;
+  SmartPointer<const Vector<double> > dirichlet_nodes;
   /// This should be erased by the usage of the constraint matrix.
   const std::vector <std::set<unsigned int> >   *double_nodes_set;
 

@@ -73,7 +73,7 @@ void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
 {
   fma_dh = &input_dh;
   fma_fe = &(input_dh.get_fe());
-  dirichlet_nodes = &input_sn;//per quadratura singolare e octree generator
+  dirichlet_nodes = new const Vector<double>(input_sn);//per quadratura singolare e octree generator
   double_nodes_set = &db_in;//da passare al metodo che fa il precondizionatore
   fma_mapping = &input_mapping;
 

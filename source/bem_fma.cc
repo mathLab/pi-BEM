@@ -293,8 +293,6 @@ void BEMFMA<dim>::direct_integrals()
 
       for (unsigned int jj = 0; jj < dofs_filled_blocks[level].size();  jj++)
         {
-          if(m2l_flags[level][jj]==this_mpi_process)
-          {
           OctreeBlock<dim> *block1 =  blocks[dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -345,7 +343,6 @@ void BEMFMA<dim>::direct_integrals()
 
                 } // end loop over sublevels
             } // end if: is there any node in the block?
-          }// end if m2l flag
         }// end loop over block of a level
     }//end loop over octree levels
 
@@ -591,7 +588,8 @@ void BEMFMA<dim>::direct_integrals()
       // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
       for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
         {
-
+          if(m2l_flags[level][jj]==this_mpi_process)
+          {
           OctreeBlock<dim> *block1 =  blocks[ dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -692,6 +690,7 @@ void BEMFMA<dim>::direct_integrals()
 
                 } // end loop over quad points in the direct quad points list
             } // end loop over nodes in a block
+          }// end m2flags if
         }// end loop over block of a level
     }//end loop over octree levels
 
@@ -869,13 +868,14 @@ void BEMFMA<dim>::compute_m2l_flags()
 
 
 template <int dim>
-void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const
+void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
 {
   pcout<<"Generating multipole expansions..."<<std::endl;
   TimeMonitor LocalTimer(*MultGen);
   // TODO I DON'T KNOW IF WE CAN SPLIT THIS OPERATION, IN CASE THIS WOULD NOT BE EASY COMMUNICATION, WE WOULD NEED TO
   // COMMUNICATE THE ENTIRE CLASSES THAT HOLD THE MULTIPOLE<->LOCAL EXPANSIONS
-
+  const Vector<double> phi_values(phi_values_in);
+  const Vector<double> dphi_dn_values(dphi_dn_values_in);
 // also here we clear the structures storing the multipole
 // expansions for Dirichlet and Neumann matrices
 

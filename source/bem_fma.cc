@@ -205,7 +205,12 @@ void BEMFMA<dim>::direct_integrals()
 
   /// TODO understand the bandwith of the preconditioner
   pcout<<this_cpu_set.size()<<" "<<this_cpu_set.n_elements()<<std::endl;
-  init_prec_sparsity_pattern.reinit(this_cpu_set,mpi_communicator,125*fma_fe->dofs_per_cell);
+  unsigned int preconditioner_band = 125*fma_fe->dofs_per_cell;
+  // preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
+  TrilinosWrappers::MPI::Vector helper(this_cpu_set, mpi_communicator);
+  // TODO WHY?
+  // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
+  init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
   for (unsigned int kk = 0; kk < childlessList.size(); kk++)
     {
@@ -274,11 +279,11 @@ void BEMFMA<dim>::direct_integrals()
           // sparsity pattern
 
           for (unsigned int i = 0; i < block1Nodes.size(); i++)
-            for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-            {
-              if(this_cpu_set.is_element(i))
+            if(this_cpu_set.is_element(block1Nodes[i]))
+              for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+              {
                 init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
-            }
+              }
         }
 
     }
@@ -347,7 +352,7 @@ void BEMFMA<dim>::direct_integrals()
 
                   for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
                   {
-                    if(this_cpu_set.is_element(i))
+                    if(this_cpu_set.is_element(nodesBlk1Ids[i]))
                       for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
                         init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
                   }
@@ -602,8 +607,6 @@ void BEMFMA<dim>::direct_integrals()
       // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
       for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
         {
-          if(true)//(m2l_flags[level][jj]==this_mpi_process)
-          {
           OctreeBlock<dim> *block1 =  blocks[ dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -613,7 +616,11 @@ void BEMFMA<dim>::direct_integrals()
               // block remains childless BEFORE the last level, at this point we need to compute
               // all its contributions up to the bottom level)
               unsigned int nodeIndex = nodesBlk1Ids[i];
+              if(this_cpu_set.is_element(nodeIndex))//(m2l_flags[level][jj]==this_mpi_process)
+              {
+
               std::map <cell_it,std::set<unsigned int> > directQuadPoints;
+
               for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
                 {
                   const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
@@ -706,8 +713,9 @@ void BEMFMA<dim>::direct_integrals()
 
 
                 } // end loop over quad points in the direct quad points list
+              }// end check on proc
+
             } // end loop over nodes in a block
-          }// end m2flags if
         }// end loop over block of a level
     }//end loop over octree levels
 
@@ -1202,7 +1210,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   // childless blocks, at each block node(s)
 
   // TODO SPLIT THIS LOOP OVER ALL PROCESSORS THEN COMMUNICATE.
-  if(this_mpi_process==0)
+  // if(this_mpi_process==0)
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
 
     {

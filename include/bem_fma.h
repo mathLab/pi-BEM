@@ -357,6 +357,7 @@ private:
   const std::vector <std::set<unsigned int> >   *double_nodes_set;
 
   std::vector<std::vector<unsigned int> > m2l_flags;
+  IndexSet this_cpu_set;
 
 };
 

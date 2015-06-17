@@ -74,6 +74,10 @@ void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
   fma_dh = &input_dh;
   fma_fe = &(input_dh.get_fe());
   dirichlet_nodes = new const Vector<double>(input_sn);//per quadratura singolare e octree generator
+  this_cpu_set.clear();
+  this_cpu_set.set_size(fma_dh->n_dofs());
+  this_cpu_set.add_indices(input_sn.locally_owned_elements());// = new const IndexSet(input_sn.locally_owned_elements());
+  this_cpu_set.compress();
   double_nodes_set = &db_in;//da passare al metodo che fa il precondizionatore
   fma_mapping = &input_mapping;
 
@@ -200,7 +204,8 @@ void BEMFMA<dim>::direct_integrals()
   // matrix
 
   /// TODO understand the bandwith of the preconditioner
-  init_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
+  pcout<<this_cpu_set.size()<<" "<<this_cpu_set.n_elements()<<std::endl;
+  init_prec_sparsity_pattern.reinit(this_cpu_set,mpi_communicator,125*fma_fe->dofs_per_cell);
 
   for (unsigned int kk = 0; kk < childlessList.size(); kk++)
     {
@@ -270,7 +275,10 @@ void BEMFMA<dim>::direct_integrals()
 
           for (unsigned int i = 0; i < block1Nodes.size(); i++)
             for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-              init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+            {
+              if(this_cpu_set.is_element(i))
+                init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+            }
         }
 
     }
@@ -338,8 +346,11 @@ void BEMFMA<dim>::direct_integrals()
                   // we use the nodes in directList, to create the sparsity pattern
 
                   for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
-                    for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-                      init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
+                  {
+                    if(this_cpu_set.is_element(i))
+                      for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+                        init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
+                  }
 
                 } // end loop over sublevels
             } // end if: is there any node in the block?
@@ -559,12 +570,15 @@ void BEMFMA<dim>::direct_integrals()
 
                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
                     {
-                      prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                      prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                      if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                      else
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      if(this_cpu_set.is_element(local_dof_indices[j]))
+                      {
+                        prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+                        prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+                        if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                        else
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      }
                     }
 
                 } // end loop on cells of the intList
@@ -588,7 +602,7 @@ void BEMFMA<dim>::direct_integrals()
       // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
       for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
         {
-          if(m2l_flags[level][jj]==this_mpi_process)
+          if(true)//(m2l_flags[level][jj]==this_mpi_process)
           {
           OctreeBlock<dim> *block1 =  blocks[ dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
@@ -678,13 +692,16 @@ void BEMFMA<dim>::direct_integrals()
 
                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
                     {
-                      prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                      prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+                      if(this_cpu_set.is_element(local_dof_indices[j]))
+                      {
+                        prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+                        prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
 
-                      if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                      else
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                        if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                        else
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      }
                     }
 
 
@@ -990,8 +1007,8 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
 
 template <int dim>
-void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in,
-                                               TrilinosWrappers::MPI::Vector &matrVectProdN_in,    TrilinosWrappers::MPI::Vector &matrVectProdD_in) const
+void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+                                               TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
 {
   pcout<<"Computing multipole matrix-vector products... "<<std::endl;
   TimeMonitor LocalTimer(*MatrVec);
@@ -1000,10 +1017,10 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   // matrVectProdD = 0;
 
   //and here we compute the direct integral contributions (stored in two sparse matrices)
-  const Vector<double> phi_values(phi_values_in);
-  const Vector<double> dphi_dn_values(dphi_dn_values_in);
-  Vector<double> matrVectProdD(fma_dh->n_dofs());
-  Vector<double> matrVectProdN(fma_dh->n_dofs());
+  // const Vector<double> phi_values_loc(phi_values);
+  // const Vector<double> dphi_dn_values_loc(dphi_dn_values);
+  // Vector<double> matrVectProdD(fma_dh->n_dofs());
+  // Vector<double> matrVectProdN(fma_dh->n_dofs());
   prec_neumann_matrix.vmult(matrVectProdN, phi_values);
   prec_dirichlet_matrix.vmult(matrVectProdD, dphi_dn_values);
 
@@ -1067,15 +1084,23 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       // DIFFERENT MAPS. HERE WE NEED A FULL ONE.
       for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
         {
-          if(m2l_flags[level][k]==this_mpi_process)
-          {
 
           //pcout<<"Block "<<jj<<std::endl;
           unsigned int jj =  dofs_filled_blocks[level][k];
           OctreeBlock<dim> *block1 =  blocks[jj];
           unsigned int block1Parent = block1->GetParentId();
           std::vector <unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
-
+          bool on_process = false;
+          for(auto ind : nodesBlk1Ids)
+          {
+            if(this_cpu_set.is_element(ind))
+            {
+              on_process = true;
+              break;
+            }
+          }
+          if(on_process)
+          {
 
           // here we get parent contribution to local expansion and transfer it in current
           // block: this operation requires a local expansion translation, implemented
@@ -1177,6 +1202,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   // childless blocks, at each block node(s)
 
   // TODO SPLIT THIS LOOP OVER ALL PROCESSORS THEN COMMUNICATE.
+  if(this_mpi_process==0)
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
 
     {
@@ -1187,9 +1213,12 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       // loop over nodes of block
       for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
         {
-          Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
-          matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
-          matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+          if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
+          {
+            Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+            matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
+            matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+          }
         } // end loop over nodes
 
     } // end loop over childless blocks
@@ -1205,10 +1234,16 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       }
   //////////////////////////////*/
 
+  // std::cout<<matrVectProdN[23]<<" "<<matrVectProdD[23]<<std::endl;
 
   // TODO I WOULD COMMUNICATE HERE, AT THE END OF ALL THINGS
-  matrVectProdN_in = matrVectProdN;
-  matrVectProdD_in = matrVectProdD;
+  // TrilinosWrappers::MPI::Vector Ndummy(matrVectProdN_in.locally_owned_elements(), mpi_communicator);
+  // TrilinosWrappers::MPI::Vector Ddummy(matrVectProdD_in.locally_owned_elements(), mpi_communicator);
+  // Ndummy = matrVectProdN;
+  // Ddummy = matrVectProdD;
+  // matrVectProdN_in.add( Ndummy);
+  // matrVectProdD_in.add( Ddummy);
+
   pcout<<"...done computing multipole matrix-vector products"<<std::endl;
 
 }
@@ -1226,80 +1261,97 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
-  IndexSet this_cpu_set(alpha.locally_owned_elements());
+  // IndexSet this_cpu_set(alpha.locally_owned_elements());
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
     {
       if(this_cpu_set.is_element(i))
-      if (c.is_constrained(i))
-        {
-          //cout<<i<<"  (c):"<<endl;
-          // constrained nodes entries are taken from the bem problem constraint matrix
-          final_prec_sparsity_pattern.add(i,i);
-          const std::vector< std::pair < unsigned int, double > >
-          *entries = c.get_constraint_entries (i);
-          for (unsigned int j=0; j< entries->size(); ++j)
-            final_prec_sparsity_pattern.add(i,(*entries)[j].first);
-        }
-      else
-        {
-          //cout<<i<<"  (nc): ";
-          // other nodes entries are taken from the unconstrained preconditioner matrix
-          for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-            {
-              if (init_prec_sparsity_pattern.exists(i,j))
-                {
-                  final_prec_sparsity_pattern.add(i,j);
-                  //cout<<j<<" ";
-                }
-            }
-          //cout<<endl;
-        }
+      {
+        if (c.is_constrained(i))
+          {
+            //cout<<i<<"  (c):"<<endl;
+            // constrained nodes entries are taken from the bem problem constraint matrix
+            final_prec_sparsity_pattern.add(i,i);
+            const std::vector< std::pair < unsigned int, double > >
+            *entries = c.get_constraint_entries (i);
+            for (unsigned int j=0; j< entries->size(); ++j)
+              final_prec_sparsity_pattern.add(i,(*entries)[j].first);
+          }
+        else
+          {
+            //cout<<i<<"  (nc): ";
+            // other nodes entries are taken from the unconstrained preconditioner matrix
+            for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+              {
+                if (init_prec_sparsity_pattern.exists(i,j))
+                  {
+                    final_prec_sparsity_pattern.add(i,j);
+                    //cout<<j<<" ";
+                  }
+              }
+            //cout<<endl;
+          }
+      }
     }
+
 
   final_prec_sparsity_pattern.compress();
   final_preconditioner.reinit(final_prec_sparsity_pattern);
 
-
+  std::cout<<"ok prec sparsity pattern"<<std::endl;
   // now we assemble the final preconditioner matrix: the loop works
   // exactly like the previous one
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  {
     if(this_cpu_set.is_element(i))
-    if (c.is_constrained(i))
-      {
-        final_preconditioner.set(i,i,1);
-        //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
-        // constrainednodes entries are taken from the bem problem constraint matrix
-        const std::vector< std::pair < unsigned int, double > >
-        *entries = c.get_constraint_entries (i);
-        for (unsigned int j=0; j< entries->size(); ++j)
-          {
-            final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
-            //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
-          }
-      }
-    else
-      {
-        // other nodes entries are taken from the unconstrained preconditioner matrix
-        for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-          {
-            // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
-            if (init_prec_sparsity_pattern.exists(i,j))
-              {
-                final_preconditioner.set(i,j,init_preconditioner(i,j));
-                //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
-              }
-          }
-      }
+    {
+      if (c.is_constrained(i))
+        {
+          final_preconditioner.set(i,i,1);
+          //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+          // constrainednodes entries are taken from the bem problem constraint matrix
+          const std::vector< std::pair < unsigned int, double > >
+          *entries = c.get_constraint_entries (i);
+          for (unsigned int j=0; j< entries->size(); ++j)
+            {
+              final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
+              //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
+            }
+        }
+      else
+        {
+          // other nodes entries are taken from the unconstrained preconditioner matrix
+          for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+            {
+              // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
+              if (init_prec_sparsity_pattern.exists(i,j))
+                {
+                  final_preconditioner.set(i,j,init_preconditioner(i,j));
+                  //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
+                }
+            }
+
+        }
+    }
+  }
+  std::cout<<"now alpha"<<std::endl;
   // finally, we have to add the alpha values on the diagonal, whenever dealing with a
   // neumann (in such nodes the potential phi is an unknown) and non constrained node
 
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  {
     if(this_cpu_set.is_element(i))
-    if ( (*dirichlet_nodes)(i) == 0 && !c.is_constrained(i))
+    {
+      if ( (*dirichlet_nodes)(i) == 0 && !(c.is_constrained(i)))
+        {
+          final_preconditioner.add(i,i,alpha(i));
+          //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+        }
+      else // this is just to avoid a deadlock. we need a better strategy
       {
-        final_preconditioner.add(i,i,alpha(i));
-        //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+        final_preconditioner.add(i,i,0);
       }
+    }
+  }
 
   //preconditioner.print_formatted(pcout,4,true,0," 0 ",1.);
   preconditioner.initialize(final_preconditioner);

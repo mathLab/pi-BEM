@@ -204,11 +204,11 @@ void BEMFMA<dim>::direct_integrals()
   // matrix
 
   /// TODO understand the bandwith of the preconditioner
-  pcout<<this_cpu_set.size()<<" "<<this_cpu_set.n_elements()<<std::endl;
+  // pcout<<this_cpu_set.size()<<" "<<this_cpu_set.n_elements()<<std::endl;
   unsigned int preconditioner_band = 125*fma_fe->dofs_per_cell;
   // preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
   TrilinosWrappers::MPI::Vector helper(this_cpu_set, mpi_communicator);
-  // TODO WHY?
+  // TODO WHY IT DOES NOT WORK????
   // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
   init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
@@ -437,156 +437,156 @@ void BEMFMA<dim>::direct_integrals()
           for (unsigned int i=0; i<block1Nodes.size(); i++)
             {
               unsigned int nodeIndex = block1Nodes[i];
-              typename std::map <cell_it, std::set<unsigned int> >::iterator it;
-              // we loop on the list of quad points to be treated directly
-              for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
-                {
-                  // the vectors with the local integrals for the cell must first
-                  // be zeroed
-                  local_neumann_matrix_row_i = 0;
-                  local_dirichlet_matrix_row_i = 0;
+              if(this_cpu_set.is_element(nodeIndex))
+              {
+                typename std::map <cell_it, std::set<unsigned int> >::iterator it;
+                // we loop on the list of quad points to be treated directly
+                for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
+                  {
+                    // the vectors with the local integrals for the cell must first
+                    // be zeroed
+                    local_neumann_matrix_row_i = 0;
+                    local_dirichlet_matrix_row_i = 0;
 
-                  // we get the first entry of the map, i.e. the cell pointer
-                  // and we check if the cell contains the current node, to
-                  // decide if singular of regular quadrature is to be used
-                  cell_it cell = (*it).first;
-                  cell->get_dof_indices(local_dof_indices);
+                    // we get the first entry of the map, i.e. the cell pointer
+                    // and we check if the cell contains the current node, to
+                    // decide if singular of regular quadrature is to be used
+                    cell_it cell = (*it).first;
+                    cell->get_dof_indices(local_dof_indices);
 
-                  // we copy the cell quad points in this set
-                  std::set<unsigned int> &cellQuadPoints = (*it).second;
-                  bool is_singular = false;
-                  unsigned int singular_index = numbers::invalid_unsigned_int;
+                    // we copy the cell quad points in this set
+                    std::set<unsigned int> &cellQuadPoints = (*it).second;
+                    bool is_singular = false;
+                    unsigned int singular_index = numbers::invalid_unsigned_int;
 
-                  for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                    if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
-                      {
-                        singular_index = j;
-                        is_singular = true;
-                        break;
-                      }
-                  // first case: the current node does not belong to the current cell:
-                  // we use regular quadrature
-                  if (is_singular == false)
-                    {
-                      //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
-                      //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
-                      //pcout<<std::endl;
-
-                      // we start looping on the quad points of the cell: *pos will be the
-                      // index of the quad point
-                      for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                      if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
                         {
-                          // here we compute the distance R between the node and the quad point
+                          singular_index = j;
+                          is_singular = true;
+                          break;
+                        }
+                    // first case: the current node does not belong to the current cell:
+                    // we use regular quadrature
+                    if (is_singular == false)
+                      {
+                        //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+                        //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+                        //pcout<<std::endl;
 
-                          //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
-                          const Tensor<1, dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
-                          LaplaceKernel::kernels(R, D, s);
+                        // we start looping on the quad points of the cell: *pos will be the
+                        // index of the quad point
+                        for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+                          {
+                            // here we compute the distance R between the node and the quad point
 
-                          // and here are the integrals for each of the degrees of freedom of the cell: note
-                          // how the quadrature values (position, normals, jacobianXweight, shape functions)
-                          // are taken from the precomputed ones in ComputationalDomain class
-                          for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                            {
-                              local_neumann_matrix_row_i(j) += ( ( D *
-                                                                   quadNormals[cell][*pos] ) *
-                                                                 quadShapeFunValues[cell][*pos][j] *
-                                                                 quadJxW[cell][*pos] );
-                              local_dirichlet_matrix_row_i(j) += ( s *
+                            //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
+                            const Tensor<1, dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
+                            LaplaceKernel::kernels(R, D, s);
+
+                            // and here are the integrals for each of the degrees of freedom of the cell: note
+                            // how the quadrature values (position, normals, jacobianXweight, shape functions)
+                            // are taken from the precomputed ones in ComputationalDomain class
+                            for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                              {
+                                local_neumann_matrix_row_i(j) += ( ( D *
+                                                                     quadNormals[cell][*pos] ) *
                                                                    quadShapeFunValues[cell][*pos][j] *
                                                                    quadJxW[cell][*pos] );
-                              //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
-                              //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
-                              //pcout<< quadJxW[cell][*pos]<<std::endl;
-                            }
-                        }
-                    } // end if
-                  else
-                    {
-                      // after some checks, we have to create the singular quadrature:
-                      // here the quadrature points of the cell will be IGNORED,
-                      // and the singular quadrature points are instead used.
-                      // the 3d and 2d quadrature rules are different
-
-                      // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
-                      Assert(singular_index != numbers::invalid_unsigned_int,
-                             ExcInternalError());
-
-                      const Quadrature<dim-1> *
-                      singular_quadrature
-                        = (dim == 2
-                           ?
-                           dynamic_cast<Quadrature<dim-1>*>(
-                             &sing_quadratures[singular_index])
-                           :
-                           (dim == 3
-                            ?
-                            dynamic_cast<Quadrature<dim-1>*>(
-                              &sing_quadratures[singular_index])
-                            :
-                            0));
-                      Assert(singular_quadrature, ExcInternalError());
-
-                      // once the singular quadrature has been created, we employ it
-                      // to create the corresponding fe_values
-
-                      FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
-                                                         update_jacobians |
-                                                         update_values |
-                                                         update_cell_normal_vectors |
-                                                         update_quadrature_points );
-
-                      fe_v_singular.reinit(cell);
-
-                      // here are the vectors of the quad points and normals vectors
-
-                      const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
-                      const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
-
-
-                      // and here is the integrals computation: note how in this case the
-                      // values for shape functions & co. are not taken from the precomputed
-                      // ones in ComputationalDomain class
-
-                      for (unsigned int q=0; q<singular_quadrature->size(); ++q)
-                        {
-                          const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
-                          LaplaceKernel::kernels(R, D, s);
-                          for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                            {
-                              local_neumann_matrix_row_i(j) += (( D *
-                                                                  singular_normals[q]) *
-                                                                fe_v_singular.shape_value(j,q) *
-                                                                fe_v_singular.JxW(q) );
-
-                              local_dirichlet_matrix_row_i(j) += ( s   *
-                                                                   fe_v_singular.shape_value(j,q) *
-                                                                   fe_v_singular.JxW(q) );
-                            }
-                        }
-                      if (dim==2)
-                        delete singular_quadrature;
-
-                    } // end else
-
-                  // Finally, we need to add
-                  // the contributions of the
-                  // current cell to the
-                  // global matrix.
-
-                  for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                    {
-                      if(this_cpu_set.is_element(local_dof_indices[j]))
+                                local_dirichlet_matrix_row_i(j) += ( s *
+                                                                     quadShapeFunValues[cell][*pos][j] *
+                                                                     quadJxW[cell][*pos] );
+                                //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
+                                //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
+                                //pcout<< quadJxW[cell][*pos]<<std::endl;
+                              }
+                          }
+                      } // end if
+                    else
                       {
-                        prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                        prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                        if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                        else
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
-                      }
-                    }
+                        // after some checks, we have to create the singular quadrature:
+                        // here the quadrature points of the cell will be IGNORED,
+                        // and the singular quadrature points are instead used.
+                        // the 3d and 2d quadrature rules are different
 
-                } // end loop on cells of the intList
+                        // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
+                        Assert(singular_index != numbers::invalid_unsigned_int,
+                               ExcInternalError());
+
+                        const Quadrature<dim-1> *
+                        singular_quadrature
+                          = (dim == 2
+                             ?
+                             dynamic_cast<Quadrature<dim-1>*>(
+                               &sing_quadratures[singular_index])
+                             :
+                             (dim == 3
+                              ?
+                              dynamic_cast<Quadrature<dim-1>*>(
+                                &sing_quadratures[singular_index])
+                              :
+                              0));
+                        Assert(singular_quadrature, ExcInternalError());
+
+                        // once the singular quadrature has been created, we employ it
+                        // to create the corresponding fe_values
+
+                        FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
+                                                           update_jacobians |
+                                                           update_values |
+                                                           update_cell_normal_vectors |
+                                                           update_quadrature_points );
+
+                        fe_v_singular.reinit(cell);
+
+                        // here are the vectors of the quad points and normals vectors
+
+                        const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                        const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
+
+
+                        // and here is the integrals computation: note how in this case the
+                        // values for shape functions & co. are not taken from the precomputed
+                        // ones in ComputationalDomain class
+
+                        for (unsigned int q=0; q<singular_quadrature->size(); ++q)
+                          {
+                            const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
+                            LaplaceKernel::kernels(R, D, s);
+                            for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                              {
+                                local_neumann_matrix_row_i(j) += (( D *
+                                                                    singular_normals[q]) *
+                                                                  fe_v_singular.shape_value(j,q) *
+                                                                  fe_v_singular.JxW(q) );
+
+                                local_dirichlet_matrix_row_i(j) += ( s   *
+                                                                     fe_v_singular.shape_value(j,q) *
+                                                                     fe_v_singular.JxW(q) );
+                              }
+                          }
+                        if (dim==2)
+                          delete singular_quadrature;
+
+                      } // end else
+
+                    // Finally, we need to add
+                    // the contributions of the
+                    // current cell to the
+                    // global matrix.
+
+                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                      {
+                          prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+                          prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+                          if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                            init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                          else
+                            init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      }
+
+                  } // end loop on cells of the intList
+              }
             } // end loop over nodes of block1
         } // end if (nodes in block > 0)
     } // end loop over childless blocks
@@ -699,8 +699,8 @@ void BEMFMA<dim>::direct_integrals()
 
                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
                     {
-                      if(this_cpu_set.is_element(local_dof_indices[j]))
-                      {
+                      // if(this_cpu_set.is_element(local_dof_indices[j]))
+                      // {
                         prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
                         prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
 
@@ -708,7 +708,7 @@ void BEMFMA<dim>::direct_integrals()
                           init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
                         else
                           init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
-                      }
+                      // }
                     }
 
 
@@ -1032,6 +1032,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   prec_neumann_matrix.vmult(matrVectProdN, phi_values);
   prec_dirichlet_matrix.vmult(matrVectProdD, dphi_dn_values);
 
+  // if(this_cpu_set.is_element(55))
+  //   std::cout<<matrVectProdN[55]<<" "<<phi_values[55]<<" "<<matrVectProdD[55]<<" "<<dphi_dn_values[55]<<std::endl;
+
   //from here on, we compute the multipole expansions contributions
 
   // we start cleaning past sessions
@@ -1305,7 +1308,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   final_prec_sparsity_pattern.compress();
   final_preconditioner.reinit(final_prec_sparsity_pattern);
 
-  std::cout<<"ok prec sparsity pattern"<<std::endl;
+  // std::cout<<"ok prec sparsity pattern"<<std::endl;
   // now we assemble the final preconditioner matrix: the loop works
   // exactly like the previous one
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
@@ -1341,7 +1344,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
         }
     }
   }
-  std::cout<<"now alpha"<<std::endl;
+  // std::cout<<"now alpha"<<std::endl;
   // finally, we have to add the alpha values on the diagonal, whenever dealing with a
   // neumann (in such nodes the potential phi is an unknown) and non constrained node
 

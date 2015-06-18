@@ -129,7 +129,7 @@ public:
   /// Method for the assembling of the
   /// sparse preconitioning matrix for FMA
 
-  TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
+  TrilinosWrappers::PreconditionAMG &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
 private:
 
@@ -229,7 +229,7 @@ private:
   /// the preconditioner to be passed to bem_problem
   /// contributi diretti del multipolo, assembla la parte
   /// diretta in una vera matrice.
-  TrilinosWrappers::PreconditionILU preconditioner;
+  TrilinosWrappers::PreconditionAMG preconditioner;
 
   unsigned int singular_quadrature_order;
 

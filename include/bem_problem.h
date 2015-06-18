@@ -272,12 +272,14 @@ public:
 
   ConstraintMatrix     constraints;
 
+  std::string preconditioner_type;
+
   std::string solution_method;
 
   SolverControl solver_control;
 
   // TODO AMG preconditioner
-  TrilinosWrappers::PreconditionILU preconditioner;
+  TrilinosWrappers::PreconditionAMG preconditioner;
 
   TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern;
 

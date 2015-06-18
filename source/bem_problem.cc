@@ -238,6 +238,9 @@ void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
   SolverControl::declare_parameters(prm);
   prm.leave_subsection();
 
+  prm.declare_entry("Preconditioner","ILU",
+                    Patterns::Selection("ILU|AMG"));
+
   prm.declare_entry("Solution method", "Direct",
                     Patterns::Selection("Direct|FMA"));
 
@@ -259,6 +262,8 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
   prm.enter_subsection("Solver");
   solver_control.parse_parameters(prm);
   prm.leave_subsection();
+
+  preconditioner_type = prm.get("Preconditioner");
 
   solution_method = prm.get("Solution method");
 
@@ -1050,7 +1055,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
     }
   else
     {
-      TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
+      TrilinosWrappers::PreconditionAMG &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
       solver.solve (cc, sol, system_rhs, fma_preconditioner);
       // solver.solve (cc, sol, system_rhs, PreconditionIdentity());
     }

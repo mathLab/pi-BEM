@@ -96,8 +96,8 @@ void BEMProblem<dim>::reinit()
   DoFRenumbering::component_wise (dh);
   DoFRenumbering::component_wise (gradient_dh);
 
-  // DoFRenumbering::subdomain_wise (dh);
-  // DoFRenumbering::subdomain_wise (gradient_dh);
+  DoFRenumbering::subdomain_wise (dh);
+  DoFRenumbering::subdomain_wise (gradient_dh);
 
 
   const unsigned int n_dofs =  dh.n_dofs();
@@ -121,26 +121,6 @@ void BEMProblem<dim>::reinit()
   start_per_process.resize (n_mpi_processes);
   vector_start_per_process.resize (n_mpi_processes);
 
-  localized_ndfos[this_mpi_process] = this_cpu_set.n_elements();
-  localized_vector_ndfos[this_mpi_process] = vector_this_cpu_set.n_elements();
-
-  Utilities::MPI::sum (localized_ndfos, mpi_communicator, start_per_process);
-  Utilities::MPI::sum (localized_vector_ndfos, mpi_communicator, vector_start_per_process);
-
-  for(unsigned int i=1; i<start_per_process.size(); ++i)
-  {
-    start_per_process[i] += start_per_process[i-1];
-    vector_start_per_process[i] += vector_start_per_process[i-1];
-  }
-  for(unsigned int i=1; i<start_per_process.size(); ++i)
-  {
-    start_per_process[i] -= start_per_process[0];
-    vector_start_per_process[i] -= vector_start_per_process[0];
-  }
-  start_per_process[0] = 0;
-  vector_start_per_process[0] = 0;
-
-
   // We need to enforce consistency between the non-ghosted IndexSets.
   // To be changed accordingly with the DoFRenumbering strategy.
   for (unsigned int i=0; i<n_dofs; ++i)
@@ -152,6 +132,30 @@ void BEMProblem<dim>::reinit()
       }
   this_cpu_set.compress();
   vector_this_cpu_set.compress();
+  localized_ndfos[this_mpi_process] = this_cpu_set.n_elements();
+  localized_vector_ndfos[this_mpi_process] = vector_this_cpu_set.n_elements();
+
+  Utilities::MPI::sum (localized_ndfos, mpi_communicator, start_per_process);
+  Utilities::MPI::sum (localized_vector_ndfos, mpi_communicator, vector_start_per_process);
+
+  for(unsigned int i=start_per_process.size()-1; i>0; --i)
+  {
+    start_per_process[i] = start_per_process[i-1];
+    vector_start_per_process[i] = vector_start_per_process[i-1];
+  }
+  start_per_process[0] = 0;
+  vector_start_per_process[0] = 0;
+  for(unsigned int i=2; i<start_per_process.size(); ++i)
+  {
+    start_per_process[i] += start_per_process[i-1];
+    vector_start_per_process[i] += vector_start_per_process[i-1];
+  }
+  // start_per_process[0] = 0;
+  // vector_start_per_process[0] = 0;
+
+  std::cout<<this_mpi_process<<" "<<start_per_process[this_mpi_process]<<" "<<vector_start_per_process[this_mpi_process]<<std::endl;
+
+
   // At this point we just need to create a ghosted IndexSet for the scalar
   // DoFHandler. This can be through the builtin dealii function.
   ghosted_set.clear();
@@ -1241,8 +1245,8 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                           double normal_distance = 0;
                           for(unsigned int idim=0; idim < dim; ++idim)
                           {
-                            unsigned int index1 = gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]); //vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
-                            unsigned int index2 = gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
+                            unsigned int index1 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]); //gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
+                            unsigned int index2 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]);//gradient_dh.n_dofs()/dim*idim+(*it); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
                             normal_distance += localized_normals[index1] * localized_normals[index2];
                           }
                           normal_distance /= normal_distance;
@@ -1263,8 +1267,8 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                               // We no longer have a std::vector of Point<dim> so we need to perform the scalar product
                               for(unsigned int idim=0; idim < dim; ++idim)
                               {
-                                unsigned int index1 = gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]);//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim;
-                                unsigned int index2 = gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]);//vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;
+                                unsigned int index1 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]);//gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim;
+                                unsigned int index2 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]);//gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;
                                 norm_i_norm_it += localized_normals[index1]*localized_normals[index2];
                                 surf_it_norm_i += localized_surface_gradients[index2]*localized_normals[index1];
                                 surf_i_norm_it += localized_surface_gradients[index1]*localized_normals[index2];

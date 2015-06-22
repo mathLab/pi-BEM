@@ -297,7 +297,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                 double tol = 1e-4;
                 for (unsigned int d=0; d<dim; ++d)
                 {
-                  unsigned int vec_index = bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process] + d*bem.start_per_process[this_mpi_process] + local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
+                  unsigned int vec_index = bem.vector_start_per_process[this_mpi_process] + d*bem.this_cpu_set.n_elements() + local_dof_indices[j]-bem.start_per_process[this_mpi_process];//bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
                   Assert(bem.vector_this_cpu_set.is_element(vec_index), ExcMessage("vector cpu set and cpu set are inconsistent"))
                   tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[vec_index];
                   normy += bem.vector_normals_solution[vec_index] * bem.vector_normals_solution[vec_index];

@@ -279,7 +279,7 @@ public:
   SolverControl solver_control;
 
   // TODO AMG preconditioner
-  TrilinosWrappers::PreconditionAMG preconditioner;
+  TrilinosWrappers::PreconditionILU preconditioner;
 
   TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern;
 

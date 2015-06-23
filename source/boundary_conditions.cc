@@ -357,7 +357,7 @@ void BoundaryConditions<dim>::compute_errors()
       for (unsigned int d=0; d<dim; ++d)
         vector_gradients_node_error(3*i+d) = grads_nodes_errs[i](d);
     vector_gradients_node_error*=-1.0;
-    vector_gradients_node_error.add(localized_gradient_solution);
+    vector_gradients_node_error.add(1.,localized_gradient_solution);
 
     Vector<double> phi_node_error(bem.dh.n_dofs());
     std::vector<double> phi_nodes_errs(bem.dh.n_dofs());
@@ -366,7 +366,7 @@ void BoundaryConditions<dim>::compute_errors()
       phi_node_error(i) = phi_nodes_errs[i];
 
     phi_node_error*=-1.0;
-    phi_node_error.add(localized_phi);
+    phi_node_error.add(1.,localized_phi);
 
 
     const double phi_max_error = phi_node_error.linfty_norm();

@@ -291,6 +291,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
   Vector<double> non_partitioned_neumann_nodes(dh.n_dofs());
 
 
+
   cell_it
   gradient_cell = gradient_dh.begin_active(),
   gradient_endc = gradient_dh.end();
@@ -327,6 +328,11 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
         if(!dirichlet)
         {
           cell->get_dof_indices(dofs);
+          // for(unsigned int i=0; i<fe.dofs_per_cell; ++i)
+          // {
+          //   non_partitioned_neumann_nodes(dofs[i]) = 1;
+          //   non_partitioned_dirichlet_nodes(dofs[i]) = 0;
+          // }
 
         }
 
@@ -356,8 +362,14 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
     }
 
-  dirichlet_nodes = non_partitioned_dirichlet_nodes;
-  neumann_nodes = non_partitioned_neumann_nodes;
+  for(unsigned int i=0; i<dh.n_dofs(); ++i)
+    if(this_cpu_set.is_element(i))
+    {
+      dirichlet_nodes(i)=non_partitioned_dirichlet_nodes(i);
+      neumann_nodes(i)=non_partitioned_neumann_nodes(i);
+    }
+  // dirichlet_nodes.add(non_partitioned_dirichlet_nodes, true);// = non_partitioned_dirichlet_nodes;
+  // neumann_nodes.add(non_partitioned_neumann_nodes, true);// = non_partitioned_neumann_nodes;
 
   //for (unsigned int i=0; i<dh.n_dofs(); ++i)
   //    if (this_mpi_process == 1)

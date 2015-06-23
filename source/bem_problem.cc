@@ -96,6 +96,8 @@ void BEMProblem<dim>::reinit()
   DoFRenumbering::component_wise (dh);
   DoFRenumbering::component_wise (gradient_dh);
 
+  compute_reordering_vectors();
+
   DoFRenumbering::subdomain_wise (dh);
   DoFRenumbering::subdomain_wise (gradient_dh);
 
@@ -105,6 +107,9 @@ void BEMProblem<dim>::reinit()
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
 
   DoFTools::get_subdomain_association   (dh,dofs_domain_association);
+  std::vector<types::subdomain_id> vector_dofs_domain_association(gradient_dh.n_dofs());
+
+  DoFTools::get_subdomain_association   (gradient_dh,vector_dofs_domain_association);
 
 
   this_cpu_set.clear();
@@ -116,10 +121,6 @@ void BEMProblem<dim>::reinit()
   // We compute this two vector in order to use an eventual DoFRenumbering::subdomain_wise
   // At the time being we don't. We need to decide the better strategy.
 
-  std::vector<types::global_dof_index> localized_ndfos(n_mpi_processes);
-  std::vector<types::global_dof_index> localized_vector_ndfos(n_mpi_processes);
-  start_per_process.resize (n_mpi_processes);
-  vector_start_per_process.resize (n_mpi_processes);
 
   // We need to enforce consistency between the non-ghosted IndexSets.
   // To be changed accordingly with the DoFRenumbering strategy.
@@ -127,33 +128,53 @@ void BEMProblem<dim>::reinit()
     if (dofs_domain_association[i] == this_mpi_process)
       {
         this_cpu_set.add_index(i);
+        unsigned int dummy=sub_wise_to_original[i];
         for(unsigned int idim=0; idim<dim; ++idim)
-          vector_this_cpu_set.add_index(i+idim*n_dofs);
+        {
+          vector_this_cpu_set.add_index(vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy]);
+        }
       }
+
+      // for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
+      //   if (vector_dofs_domain_association[i] == this_mpi_process)
+      //     {
+      //       vector_this_cpu_set.add_index(i);
+      //       // for(unsigned int idim=0; idim<dim; ++idim)
+      //       // {
+      //       //   vector_this_cpu_set.add_index(i*dim+idim);
+      //       // }
+      //     }
+
   this_cpu_set.compress();
   vector_this_cpu_set.compress();
-  localized_ndfos[this_mpi_process] = this_cpu_set.n_elements();
-  localized_vector_ndfos[this_mpi_process] = vector_this_cpu_set.n_elements();
 
-  Utilities::MPI::sum (localized_ndfos, mpi_communicator, start_per_process);
-  Utilities::MPI::sum (localized_vector_ndfos, mpi_communicator, vector_start_per_process);
-
-  for(unsigned int i=start_per_process.size()-1; i>0; --i)
-  {
-    start_per_process[i] = start_per_process[i-1];
-    vector_start_per_process[i] = vector_start_per_process[i-1];
-  }
-  start_per_process[0] = 0;
-  vector_start_per_process[0] = 0;
-  for(unsigned int i=2; i<start_per_process.size(); ++i)
-  {
-    start_per_process[i] += start_per_process[i-1];
-    vector_start_per_process[i] += vector_start_per_process[i-1];
-  }
+  // std::vector<types::global_dof_index> localized_ndfos(n_mpi_processes);
+  // std::vector<types::global_dof_index> localized_vector_ndfos(n_mpi_processes);
+  // start_per_process.resize (n_mpi_processes);
+  // vector_start_per_process.resize (n_mpi_processes);
+  //
+  // localized_ndfos[this_mpi_process] = this_cpu_set.n_elements();
+  // localized_vector_ndfos[this_mpi_process] = vector_this_cpu_set.n_elements();
+  //
+  // Utilities::MPI::sum (localized_ndfos, mpi_communicator, start_per_process);
+  // Utilities::MPI::sum (localized_vector_ndfos, mpi_communicator, vector_start_per_process);
+  //
+  // for(unsigned int i=start_per_process.size()-1; i>0; --i)
+  // {
+  //   start_per_process[i] = start_per_process[i-1];
+  //   vector_start_per_process[i] = vector_start_per_process[i-1];
+  // }
+  // start_per_process[0] = 0;
+  // vector_start_per_process[0] = 0;
+  // for(unsigned int i=2; i<start_per_process.size(); ++i)
+  // {
+  //   start_per_process[i] += start_per_process[i-1];
+  //   vector_start_per_process[i] += vector_start_per_process[i-1];
+  // }
   // start_per_process[0] = 0;
   // vector_start_per_process[0] = 0;
 
-  std::cout<<this_mpi_process<<" "<<start_per_process[this_mpi_process]<<" "<<vector_start_per_process[this_mpi_process]<<std::endl;
+  // std::cout<<this_mpi_process<<" "<<start_per_process[this_mpi_process]<<" "<<vector_start_per_process[this_mpi_process]<<std::endl;
 
 
   // At this point we just need to create a ghosted IndexSet for the scalar
@@ -161,9 +182,6 @@ void BEMProblem<dim>::reinit()
   ghosted_set.clear();
   ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);
 
-  std::vector<types::subdomain_id> vector_dofs_domain_association(gradient_dh.n_dofs());
-
-  DoFTools::get_subdomain_association   (gradient_dh,vector_dofs_domain_association);
 
   // standard TrilinosWrappers::MPI::Vector reinitialization.
   system_rhs.reinit(this_cpu_set,mpi_communicator);
@@ -407,7 +425,27 @@ void BEMProblem<dim>::compute_double_nodes_set()
 
 }
 
+template <int dim>
+void BEMProblem<dim>::compute_reordering_vectors()
+{
+  original_to_sub_wise.resize(dh.n_dofs());
+  sub_wise_to_original.resize(dh.n_dofs());
+  vec_original_to_sub_wise.resize(gradient_dh.n_dofs());
+  vec_sub_wise_to_original.resize(gradient_dh.n_dofs());
 
+  DoFRenumbering::compute_subdomain_wise(original_to_sub_wise, dh);
+  DoFRenumbering::compute_subdomain_wise(vec_original_to_sub_wise, gradient_dh);
+
+  for(unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
+  {
+    if(i<dh.n_dofs())
+    {
+      sub_wise_to_original[original_to_sub_wise[i]]=i;
+    }
+    vec_sub_wise_to_original[vec_original_to_sub_wise[i]]=i;
+  }
+
+}
 template <int dim>
 void BEMProblem<dim>::assemble_system()
 {
@@ -1197,6 +1235,9 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
   DoFTools::make_hanging_node_constraints (dh,c);
 
 
+  std::vector<types::subdomain_id> dofs_domain_association(dh.n_dofs());
+
+  DoFTools::get_subdomain_association   (dh,dofs_domain_association);
   // here we prepare the constraint matrix so as to account for the presence of double and
   // triple dofs
 
@@ -1243,10 +1284,16 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                           // this is the dirichlet-dirichlet case on flat edges: here we impose that
                           // dphi_dn on the two (or more) sides is equal.
                           double normal_distance = 0;
+
+                          // unsigned int owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
+                          // unsigned int owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
+
                           for(unsigned int idim=0; idim < dim; ++idim)
                           {
-                            unsigned int index1 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]); //gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
-                            unsigned int index2 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]);//gradient_dh.n_dofs()/dim*idim+(*it); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
+                            unsigned int dummy_1 = sub_wise_to_original[i];
+                            unsigned int dummy_2 = sub_wise_to_original[*it];
+                            unsigned int index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]); //gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
+                            unsigned int index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
                             normal_distance += localized_normals[index1] * localized_normals[index2];
                           }
                           normal_distance /= normal_distance;
@@ -1264,11 +1311,17 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                               double surf_it_norm_i = 0;
                               double surf_i_norm_it = 0;
 
+                              // unsigned int owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
+                              // unsigned int owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
+
                               // We no longer have a std::vector of Point<dim> so we need to perform the scalar product
                               for(unsigned int idim=0; idim < dim; ++idim)
                               {
-                                unsigned int index1 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]);//gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim;
-                                unsigned int index2 = vector_start_per_process[this_mpi_process] + idim * start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]);//gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;
+                                unsigned int dummy_1 = sub_wise_to_original[i];
+                                unsigned int dummy_2 = sub_wise_to_original[*it];
+
+                                unsigned int index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]);//gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim;
+                                unsigned int index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;
                                 norm_i_norm_it += localized_normals[index1]*localized_normals[index2];
                                 surf_it_norm_i += localized_surface_gradients[index2]*localized_normals[index1];
                                 surf_i_norm_it += localized_surface_gradients[index1]*localized_normals[index2];

@@ -238,6 +238,9 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
   std::vector<Point<dim> > support_points(n_dofs);
   DoFTools::map_dofs_to_support_points<dim-1, dim>( bem.mapping, bem.dh, support_points);
 
+  std::vector<Point<dim> > vec_support_points(bem.gradient_dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( bem.mapping, bem.gradient_dh, vec_support_points);
+
   cell_it
   cell = bem.dh.begin_active(),
   endc = bem.dh.end();
@@ -297,8 +300,11 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                 double tol = 1e-4;
                 for (unsigned int d=0; d<dim; ++d)
                 {
-                  unsigned int vec_index = bem.vector_start_per_process[this_mpi_process] + d*bem.this_cpu_set.n_elements() + local_dof_indices[j]-bem.start_per_process[this_mpi_process];//bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
-                  Assert(bem.vector_this_cpu_set.is_element(vec_index), ExcMessage("vector cpu set and cpu set are inconsistent"))
+                  unsigned int dummy = bem.sub_wise_to_original[local_dof_indices[j]];
+                  unsigned int vec_index = bem.vec_original_to_sub_wise[bem.gradient_dh.n_dofs()/dim*d+dummy];//bem.vector_start_per_process[this_mpi_process] + d*bem.this_cpu_set.n_elements() + local_dof_indices[j]-bem.start_per_process[this_mpi_process];//bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
+                  // std::cout<<this_mpi_process<<" "<<support_points[local_dof_indices[j]]<<" "<<vec_support_points[vec_index]<<std::endl;
+                  Assert(bem.vector_this_cpu_set.is_element(vec_index), ExcMessage("vector cpu set and cpu set are inconsistent"));
+                  // Assert(support_points[local_dof_indices[j]]==vec_support_points[vec_index], ExcMessage("the support points of dh and gradient_dh are different"));
                   tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[vec_index];
                   normy += bem.vector_normals_solution[vec_index] * bem.vector_normals_solution[vec_index];
                 }

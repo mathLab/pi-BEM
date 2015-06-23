@@ -214,6 +214,8 @@ public:
 
   void compute_double_nodes_set();
 
+  void compute_reordering_vectors();
+
 
 
 
@@ -331,6 +333,14 @@ public:
   TrilinosWrappers::SparsityPattern vector_sparsity_pattern;
 
   ConstraintMatrix  vector_constraints;
+
+  std::vector<types::global_dof_index> original_to_sub_wise;
+
+  std::vector<types::global_dof_index> sub_wise_to_original;
+
+  std::vector<types::global_dof_index> vec_original_to_sub_wise;
+
+  std::vector<types::global_dof_index> vec_sub_wise_to_original;
 
   BEMFMA<dim> fma;
 };

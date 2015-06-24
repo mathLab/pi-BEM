@@ -517,6 +517,224 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 }
 
 
+template <int dim>
+void ComputationalDomain<dim>::conditional_refine_and_resize(const unsigned int refinement_level)
+{
+  pcout<<"Conditionally refining and resizing mesh as required"<<std::endl;
+
+  const Point<dim> center (0,0,0);
+  compute_double_vertex_cache();
+  make_edges_conformal();
+
+  for (unsigned int step=0; step < refinement_level; ++step)
+    {
+      auto cell = tria.begin_active();
+      auto endc = tria.end();
+      for (; cell!=endc; ++cell)
+        {
+          for (unsigned int v=0;
+               v < GeometryInfo<dim-1>::vertices_per_cell;
+               ++v)
+            {
+              const double distance_from_center
+                = center.distance (cell->vertex(v));
+              if (std::fabs(distance_from_center) < 1.)
+                {
+                  cell->set_refine_flag ();
+                  break;
+                }
+            }
+        }
+      tria.execute_coarsening_and_refinement ();
+      compute_double_vertex_cache();
+      make_edges_conformal();
+    }
+    compute_double_vertex_cache();
+    make_edges_conformal();
+
+    pcout<<"We have a tria of "<<tria.n_active_cells()<<" cells."<<std::endl;
+
+
+}
+
+
+template<int dim>
+void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes)
+{
+	if(with_double_nodes==false)
+	{
+		auto cell = tria.begin_active();
+		auto endc = tria.end();
+
+		for(cell=tria.begin_active(); cell!=endc; ++cell)
+		{
+			for(unsigned int f=0; f<GeometryInfo<2>::faces_per_cell; ++f)
+				if(cell->face(f)->at_boundary())//material_id()!=numbers::invalid_material_id)//dovrei essere su un buondary
+				{
+					//TriaIterator<CellAccessor<dim-1,dim> > cell_neigh = cell->neighbor(f);
+					if(cell->neighbor_is_coarser(f))
+					{
+						TriaIterator<CellAccessor<dim-1,dim> > cell_neigh = cell->neighbor(f);
+						cell_neigh->set_refine_flag(RefinementCase<dim-1>::isotropic_refinement);
+						//std::cout<<"mammina..."<<std::endl;
+
+					}
+				}
+
+		}
+		tria.prepare_coarsening_and_refinement();
+		tria.execute_coarsening_and_refinement();
+	}
+	else
+	{
+
+		pcout<<"Restoring mesh conformity on edges..."<<std::endl;
+		pcout<<"cells before"<<tria.n_active_cells()<<std::endl;
+		//pcout<<"dofs before: "<<dhh.n_dofs()<<std::endl;
+		unsigned int n_vertex=tria.n_vertices();
+		auto all_vertices=tria.get_vertices();
+
+		double tol=1e-7;
+		for(unsigned int i=0; i<n_vertex; ++i)
+		{
+			if(vertex_on_boundary[i]==true && double_vertex_vector[i].size()>0)
+			{
+				std::vector<Point<dim> > nodes(GeometryInfo<dim-1>::vertices_per_face);
+				for (unsigned int kk=0; kk<vert_to_elems[i].size();++kk)//ogni faccia ha due estremi
+        {
+					auto cell = vert_to_elems[i][kk];//mi riconduco alla cella con il nodo non conforme
+					for (unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
+          {
+						if (cell->face(f)->at_boundary())// ritrovo la faccia con l'edge non doppio
+						{
+							//std::cout<<cell->face(f)->vertex(1)<<"  "<<cell->face(f)->vertex(0)<<std::endl;
+							if (all_vertices[i].distance(cell->face(f)->vertex(0)) <tol)
+								nodes[kk] = cell->face(f)->vertex(1);
+							else if (all_vertices[i].distance(cell->face(f)->vertex(1)) <tol)
+								nodes[kk] = cell->face(f)->vertex(0);
+						}
+          }
+					//std::cout<<std::endl;
+        }
+				//std::cout<<nodes[0]<<"    "<<ref_points[i]<<"   "<<nodes[1]<<std::endl;
+				// we can now compute the center of the parent cell face
+				Point<3> parent_face_center = 0.5*(nodes[0]+nodes[1]);
+							for (auto jt=edge_cells.begin(); jt != edge_cells.end(); ++jt)
+							for (unsigned int d=0; d<GeometryInfo<2>::faces_per_cell; ++d)
+								if ((*jt)->face(d)->at_boundary())
+								{
+									//cout<<parent_face_center.distance((*jt)->face(d)->center())<<" "<<tol<<endl;
+									if ( parent_face_center.distance(((*jt)->face(d)->vertex(0)+(*jt)->face(d)->vertex(1))/2) < tol)
+									{
+										// if we are on wall or free surf, use isotropic refinement
+										// if ( (*jt)->material_id() == free_sur_ID1 ||
+										// 	(*jt)->material_id() == free_sur_ID2 ||
+										// 	(*jt)->material_id() == free_sur_ID3 ||
+										// 	(*jt)->material_id() == wall_sur_ID1 ||
+										// 	(*jt)->material_id() == wall_sur_ID2 ||
+										// 	(*jt)->material_id() == wall_sur_ID3 )
+											(*jt)->set_refine_flag();
+										// otherwise, use anisotropic refinement to make edge mesh conformal(non ora xkè non voglio morire)
+										// else
+										// {
+                    //
+										// 	(*jt)->set_refine_flag();
+                    //
+										// 	if (fabs((*jt)->extent_in_direction(1)-nodes[0].distance(nodes[1]))<tol)
+										// 		(*jt)->set_refine_flag(RefinementCase<2>::cut_axis(1));
+										// 	else
+										// 		(*jt)->set_refine_flag(RefinementCase<2>::cut_axis(0));
+										// }
+									}
+								}
+			}
+
+		}
+		tria.prepare_coarsening_and_refinement();
+    tria.execute_coarsening_and_refinement();
+
+		pcout<<"cells after"<<tria.n_active_cells()<<std::endl;
+		pcout<<"...Done restoring mesh conformity"<<std::endl;
+	}
+
+}
+
+template <int dim>
+void ComputationalDomain<dim>::compute_double_vertex_cache()
+{
+  pcout<<"Computing infos for the double_vertex"<<std::endl;
+	double toll=1e-7;
+	double_vertex_vector.clear();
+	unsigned int n_vertex=tria.n_vertices();
+	double_vertex_vector.resize(n_vertex);
+	vertex_on_boundary.resize(n_vertex);
+	std::fill(vertex_on_boundary.begin(), vertex_on_boundary.end(),false);
+
+	auto all_vertices=tria.get_vertices();
+
+	for(unsigned int i = 0; i<n_vertex; ++i)
+	{
+		for(unsigned int j = 0; j<n_vertex; ++j)
+		{
+			if(all_vertices[i].distance(all_vertices[j])<=toll)
+			{
+				double_vertex_vector[i].push_back(j);
+			}
+		}
+	}
+
+
+
+	auto cell = tria.begin_active();
+	auto endc = tria.end();
+	vert_to_elems.clear();
+  edge_cells.clear();
+
+	for(cell=tria.begin_active(); cell!=endc; ++cell)
+	{
+		std::vector<Point<dim> > cell_vertices(GeometryInfo<dim-1>::vertices_per_cell);
+
+		for (unsigned int v=0;
+			 v < GeometryInfo<dim-1>::vertices_per_cell;
+			 ++v)
+		{
+			vert_to_elems[cell->vertex_index(v)].push_back(cell);
+			cell_vertices[v]=cell->vertex(v);
+		}
+
+
+		if(cell->at_boundary())
+		{
+      edge_cells.insert(cell);
+
+			for (unsigned int f=0;
+				 f < GeometryInfo<dim-1>::faces_per_cell;
+				 ++f)
+			{
+				if(cell->face(f)->at_boundary())
+				{
+					for (unsigned int v=0;
+						 v < GeometryInfo<dim-1>::vertices_per_cell;
+						 ++v)
+					{
+						if(cell->face(f)->vertex(0)==cell_vertices[v])
+							vertex_on_boundary[cell->vertex_index(v)]=true;
+						else if(cell->face(f)->vertex(1)==cell_vertices[v])
+							vertex_on_boundary[cell->vertex_index(v)]=true;
+					}
+
+				}
+
+
+			}
+
+
+
+		}
+	}
+	pcout<<"done double_vertex cache"<<std::endl;
+}
+
 
 
 template class ComputationalDomain<3>;

@@ -109,6 +109,7 @@ public:
 
   void refine_and_resize(const unsigned int refinement_level);
 
+  void conditional_refine_and_resize(const unsigned int refinement_level);
 
   /// Here are the members of the class:
   /// they are all public, as the upper level
@@ -126,6 +127,10 @@ public:
   /// the solution gradients, which are
   /// vectorial functions
 
+
+  void make_edges_conformal(const bool with_double_nodes = true);
+
+  void compute_double_vertex_cache();
   //const unsigned int fe_degree;
   //const unsigned int mapping_degree;
 
@@ -160,6 +165,11 @@ public:
 
   unsigned int this_mpi_process;
 
+  // to deal with conformity on edges with double nodes
+  std::vector<bool> vertex_on_boundary;
+  std::vector<std::vector<unsigned int> > double_vertex_vector;
+  std::map<unsigned int, std::vector<typename Triangulation<dim-1,dim>::active_cell_iterator> > vert_to_elems;
+  std::set<typename Triangulation<dim-1,dim>::active_cell_iterator> edge_cells;
   ConditionalOStream pcout;
 
 

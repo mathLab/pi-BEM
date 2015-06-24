@@ -71,13 +71,24 @@ using namespace dealii;
 
 
 template <int dim>
-class Driver
+class Driver : public ParameterAcceptor
 {
 public:
 
   Driver();
 
   ~Driver();
+
+  /// method to declare the parameters
+  /// to be read from the parameters file
+
+  virtual void declare_parameters(ParameterHandler &prm);
+
+  /// method to parse the needed parameters
+  /// from the parameters file
+
+  virtual void parse_parameters(ParameterHandler &prm);
+
 
   void run();
 
@@ -95,7 +106,7 @@ private:
 
   ParameterHandler prm;
 
-
+  bool global_refinement;
 
   const unsigned int n_mpi_processes;
   const unsigned int this_mpi_process;

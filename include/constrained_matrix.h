@@ -47,9 +47,11 @@ class ConstrainedOperator
 public:
   ConstrainedOperator(const MATRIX &m,
                       const ConstraintMatrix &c,
+                      const IndexSet &c_cpu_set,
                       MPI_Comm comm = MPI_COMM_WORLD) :
     constraints(c),
     matrix(m),
+    constr_cpu_set(c_cpu_set),
     mpi_communicator (comm),
     n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
     this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
@@ -64,6 +66,7 @@ public:
 private:
   const ConstraintMatrix &constraints;
   const MATRIX &matrix;
+  const IndexSet constr_cpu_set;
   MPI_Comm mpi_communicator;
   unsigned int n_mpi_processes;
   unsigned int this_mpi_process;
@@ -80,8 +83,10 @@ template<class VEC, class MATRIX>
 void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
 {
 
-  Vector<double> loc_src(src.size());
-  loc_src = src;
+  // Vector<double> loc_src(src);
+  VEC loc_src(constr_cpu_set);
+  loc_src.reinit(src,false,true);
+  // loc_src = src;
 
   // std::cout<<"in vector "<<std::endl;
   // for (unsigned int i = 0; i < src.size(); i++)

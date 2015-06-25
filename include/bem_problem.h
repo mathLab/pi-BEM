@@ -116,7 +116,7 @@ public:
   /// total gradient. We have solved this problem using an analytical expression
   /// for these constraints. Since we need to know all the double nodes set we have
   /// kept this function serial. We stress that it needs to be called only once.
-  void compute_constraints(ConstraintMatrix &constraints, const TrilinosWrappers::MPI::Vector &tmp_rhs);
+  void compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix &constraints, const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
   //  private:
 
@@ -316,7 +316,7 @@ public:
   /// The IndexSet for the problem without considering any ghost element for the vector FE
   IndexSet vector_this_cpu_set;
 
-
+  IndexSet constr_cpu_set;
 
   TrilinosWrappers::MPI::Vector vector_gradients_solution;
 

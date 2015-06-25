@@ -1049,15 +1049,16 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   compute_rhs(system_rhs, tmp_rhs);
 
 
-  compute_constraints(constraints, tmp_rhs);
+  compute_constraints(constr_cpu_set, constraints, tmp_rhs);
   ConstrainedOperator<TrilinosWrappers::MPI::Vector, BEMProblem<dim> >
-  cc(*this, constraints);
+  cc(*this, constraints,constr_cpu_set,mpi_communicator);
 
 
   cc.distribute_rhs(system_rhs);
   vmult(sol,system_rhs);
   Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Schizofrenia???"));
   cc.vmult(sol,system_rhs);
+  Assert(sol.locally_owned_elements()==system_rhs.locally_owned_elements(),ExcMessage("IndexSet a muzzo..."));
   Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Ma boh..."));
 
 
@@ -1165,7 +1166,7 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
 
 
 template <int dim>
-void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &tmp_rhs)
+void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &tmp_rhs)
 
 {
   TimeMonitor LocalTimer(*ConstraintsTime);
@@ -1314,6 +1315,26 @@ void BEMProblem<dim>::compute_constraints(ConstraintMatrix &c, const TrilinosWra
     }
 
   c.close();
+
+  c_cpu_set.clear();
+  c_cpu_set.set_size(this_cpu_set.size());
+  for(unsigned int i=0; i<dh.n_dofs(); ++i)
+  {
+    if(this_cpu_set.is_element(i))
+    {
+      c_cpu_set.add_index(i);
+      if(c.is_constrained(i))
+      {
+        const std::vector< std::pair < unsigned int, double > >
+        *entries = c.get_constraint_entries (i);
+        for (unsigned int j=0; j< entries->size(); ++j)
+          c_cpu_set.add_index((*entries)[j].first);
+
+      }
+
+    }
+  }
+  c_cpu_set.compress();
 
   /*
   pcout<<"CONSTAINT MATRIX CHECK "<<std::endl;

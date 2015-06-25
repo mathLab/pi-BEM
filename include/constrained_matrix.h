@@ -83,15 +83,16 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
   Vector<double> loc_src(src.size());
   loc_src = src;
 
-  //std::cout<<"in vector "<<std::endl;
+  // std::cout<<"in vector "<<std::endl;
   // for (unsigned int i = 0; i < src.size(); i++)
   //     if (src.locally_owned_elements().is_element(i))
   //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<loc_src(i)<<std::endl;
 
   matrix.vmult(dst, src);
 
+  // IndexSet dummy(dst.locally_owned_elements());
 
-  for (unsigned int i=0; i<dst.size(); ++i)
+  for (unsigned int i=0; i<src.size(); ++i)
     if ( (constraints.is_constrained(i)) &&
          (src.locally_owned_elements().is_element(i)) )
       {
@@ -103,11 +104,15 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
                     loc_src((*entries)[j].first);
       }
 
-  //std::cout<<"out vector "<<std::endl;
+  // std::cout<<"out vector "<<std::endl;
   // for (unsigned int i = 0; i < dst.size(); i++)
   //     if (dst.locally_owned_elements().is_element(i))
   //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<dst(i)<<std::endl;
 
+  // std::cout<<"check vector "<<std::endl;
+  // for (unsigned int i = 0; i < dst.size(); i++)
+  //     if (dst.locally_owned_elements().is_element(i) && !(dummy.is_element(i)))
+  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<dst(i)<<std::endl;
 
 
 }

@@ -1053,7 +1053,12 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   ConstrainedOperator<TrilinosWrappers::MPI::Vector, BEMProblem<dim> >
   cc(*this, constraints);
 
+
   cc.distribute_rhs(system_rhs);
+  vmult(sol,system_rhs);
+  Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Schizofrenia???"));
+  cc.vmult(sol,system_rhs);
+  Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Ma boh..."));
 
 
   if (solution_method == "Direct")

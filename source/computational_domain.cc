@@ -545,14 +545,42 @@ void ComputationalDomain<dim>::conditional_refine_and_resize(const unsigned int 
                 }
             }
         }
+      tria.prepare_coarsening_and_refinement ();
       tria.execute_coarsening_and_refinement ();
       compute_double_vertex_cache();
       make_edges_conformal();
     }
     compute_double_vertex_cache();
     make_edges_conformal();
+    // tria.execute_coarsening_and_refinement ();
 
     pcout<<"We have a tria of "<<tria.n_active_cells()<<" cells."<<std::endl;
+    GridTools::partition_triangulation(n_mpi_processes, tria);
+    std::string filename0 = ( "meshResult.inp" );
+    std::ofstream logfile0(filename0.c_str());
+    GridOut grid_out0;
+    grid_out0.write_ucd(tria, logfile0);
+
+    std::ostringstream filename;
+    filename << "mesh.vtu";
+     std::ofstream output (filename.str().c_str());
+
+    FE_Q<dim-1, dim> fe_dummy(1);
+
+    DoFHandler<dim-1,dim> dof_handler(tria);
+    dof_handler.distribute_dofs (fe_dummy);
+    DataOut<dim-1,DoFHandler<dim-1, dim>> data_out;
+            data_out.attach_dof_handler (dof_handler);
+    std::vector<unsigned int> partition_int (tria.n_active_cells());
+    GridTools::get_subdomain_association (tria, partition_int);
+    const Vector<double> partitioning(partition_int.begin(),
+                                      partition_int.end());
+    data_out.add_data_vector (partitioning, "partitioning");
+    data_out.build_patches ();
+    data_out.write_vtu (output);
+
+
+    pcout<<"...done refining and resizing mesh"<<std::endl;
 
 
 }

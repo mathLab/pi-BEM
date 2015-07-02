@@ -116,6 +116,8 @@ public:
                                     TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
 
 
+  void compute_m2l_flags();
+
   /// this methods creates the adaptive
   /// octree partitioning of the domain,
   /// needed by the FMA algorithm
@@ -127,7 +129,7 @@ public:
   /// Method for the assembling of the
   /// sparse preconitioning matrix for FMA
 
-  TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
+  TrilinosWrappers::PreconditionAMG &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
 private:
 
@@ -227,7 +229,7 @@ private:
   /// the preconditioner to be passed to bem_problem
   /// contributi diretti del multipolo, assembla la parte
   /// diretta in una vera matrice.
-  TrilinosWrappers::PreconditionILU preconditioner;
+  TrilinosWrappers::PreconditionAMG preconditioner;
 
   unsigned int singular_quadrature_order;
 
@@ -350,9 +352,12 @@ private:
 
   /// TODO parsed quadrature?
   shared_ptr<Quadrature<dim-1> > quadrature;
-  SmartPointer<const TrilinosWrappers::MPI::Vector > dirichlet_nodes;
+  SmartPointer<const Vector<double> > dirichlet_nodes;
   /// This should be erased by the usage of the constraint matrix.
   const std::vector <std::set<unsigned int> >   *double_nodes_set;
+
+  std::vector<std::vector<unsigned int> > m2l_flags;
+  IndexSet this_cpu_set;
 
 };
 

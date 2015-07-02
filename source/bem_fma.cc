@@ -19,6 +19,20 @@
 #include "../include/laplace_kernel.h"
 #include "utilities.h"
 
+
+#include "Teuchos_TimeMonitor.hpp"
+
+using Teuchos::Time;
+using Teuchos::TimeMonitor;
+using Teuchos::RCP;
+
+RCP<Time> MatrVec = TimeMonitor::getNewTimer("Multipole MatrVec Products Time");
+RCP<Time> MultGen = TimeMonitor::getNewTimer("Multipole Generation Time");
+RCP<Time> MultInt = TimeMonitor::getNewTimer("Multipole Integral Time");
+RCP<Time> ListCreat = TimeMonitor::getNewTimer("Octree Generation Time");
+RCP<Time> DirInt = TimeMonitor::getNewTimer("Direct Integral Time");
+RCP<Time> PrecondTime = TimeMonitor::getNewTimer("FMA_preconditioner Time");
+
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
   :
@@ -59,7 +73,11 @@ void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
 {
   fma_dh = &input_dh;
   fma_fe = &(input_dh.get_fe());
-  dirichlet_nodes = &input_sn;//per quadratura singolare e octree generator
+  dirichlet_nodes = new const Vector<double>(input_sn);//per quadratura singolare e octree generator
+  this_cpu_set.clear();
+  this_cpu_set.set_size(fma_dh->n_dofs());
+  this_cpu_set.add_indices(input_sn.locally_owned_elements());// = new const IndexSet(input_sn.locally_owned_elements());
+  this_cpu_set.compress();
   double_nodes_set = &db_in;//da passare al metodo che fa il precondizionatore
   fma_mapping = &input_mapping;
 
@@ -105,7 +123,7 @@ template <int dim>
 void BEMFMA<dim>::direct_integrals()
 {
   pcout<<"Computing direct integrals..."<<std::endl;
-
+  TimeMonitor LocalTimer(*DirInt);
   // The following function performs
   // the direct integrals
   // for the fast multipole algorithm
@@ -186,7 +204,13 @@ void BEMFMA<dim>::direct_integrals()
   // matrix
 
   /// TODO understand the bandwith of the preconditioner
-  init_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
+  // pcout<<this_cpu_set.size()<<" "<<this_cpu_set.n_elements()<<std::endl;
+  unsigned int preconditioner_band = 125*fma_fe->dofs_per_cell;
+  // preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
+  TrilinosWrappers::MPI::Vector helper(this_cpu_set, mpi_communicator);
+  // TODO WHY IT DOES NOT WORK????
+  // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
+  init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
   for (unsigned int kk = 0; kk < childlessList.size(); kk++)
     {
@@ -255,8 +279,11 @@ void BEMFMA<dim>::direct_integrals()
           // sparsity pattern
 
           for (unsigned int i = 0; i < block1Nodes.size(); i++)
-            for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-              init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+            if(this_cpu_set.is_element(block1Nodes[i]))
+              for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+              {
+                init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+              }
         }
 
     }
@@ -279,7 +306,6 @@ void BEMFMA<dim>::direct_integrals()
 
       for (unsigned int jj = 0; jj < dofs_filled_blocks[level].size();  jj++)
         {
-
           OctreeBlock<dim> *block1 =  blocks[dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -325,8 +351,11 @@ void BEMFMA<dim>::direct_integrals()
                   // we use the nodes in directList, to create the sparsity pattern
 
                   for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
-                    for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-                      init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
+                  {
+                    if(this_cpu_set.is_element(nodesBlk1Ids[i]))
+                      for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+                        init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
+                  }
 
                 } // end loop over sublevels
             } // end if: is there any node in the block?
@@ -408,153 +437,156 @@ void BEMFMA<dim>::direct_integrals()
           for (unsigned int i=0; i<block1Nodes.size(); i++)
             {
               unsigned int nodeIndex = block1Nodes[i];
-              typename std::map <cell_it, std::set<unsigned int> >::iterator it;
-              // we loop on the list of quad points to be treated directly
-              for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
-                {
-                  // the vectors with the local integrals for the cell must first
-                  // be zeroed
-                  local_neumann_matrix_row_i = 0;
-                  local_dirichlet_matrix_row_i = 0;
+              if(this_cpu_set.is_element(nodeIndex))
+              {
+                typename std::map <cell_it, std::set<unsigned int> >::iterator it;
+                // we loop on the list of quad points to be treated directly
+                for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
+                  {
+                    // the vectors with the local integrals for the cell must first
+                    // be zeroed
+                    local_neumann_matrix_row_i = 0;
+                    local_dirichlet_matrix_row_i = 0;
 
-                  // we get the first entry of the map, i.e. the cell pointer
-                  // and we check if the cell contains the current node, to
-                  // decide if singular of regular quadrature is to be used
-                  cell_it cell = (*it).first;
-                  cell->get_dof_indices(local_dof_indices);
+                    // we get the first entry of the map, i.e. the cell pointer
+                    // and we check if the cell contains the current node, to
+                    // decide if singular of regular quadrature is to be used
+                    cell_it cell = (*it).first;
+                    cell->get_dof_indices(local_dof_indices);
 
-                  // we copy the cell quad points in this set
-                  std::set<unsigned int> &cellQuadPoints = (*it).second;
-                  bool is_singular = false;
-                  unsigned int singular_index = numbers::invalid_unsigned_int;
+                    // we copy the cell quad points in this set
+                    std::set<unsigned int> &cellQuadPoints = (*it).second;
+                    bool is_singular = false;
+                    unsigned int singular_index = numbers::invalid_unsigned_int;
 
-                  for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                    if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
-                      {
-                        singular_index = j;
-                        is_singular = true;
-                        break;
-                      }
-                  // first case: the current node does not belong to the current cell:
-                  // we use regular quadrature
-                  if (is_singular == false)
-                    {
-                      //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
-                      //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
-                      //pcout<<std::endl;
-
-                      // we start looping on the quad points of the cell: *pos will be the
-                      // index of the quad point
-                      for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                      if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
                         {
-                          // here we compute the distance R between the node and the quad point
+                          singular_index = j;
+                          is_singular = true;
+                          break;
+                        }
+                    // first case: the current node does not belong to the current cell:
+                    // we use regular quadrature
+                    if (is_singular == false)
+                      {
+                        //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+                        //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+                        //pcout<<std::endl;
 
-                          //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
-                          const Tensor<1, dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
-                          LaplaceKernel::kernels(R, D, s);
+                        // we start looping on the quad points of the cell: *pos will be the
+                        // index of the quad point
+                        for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+                          {
+                            // here we compute the distance R between the node and the quad point
 
-                          // and here are the integrals for each of the degrees of freedom of the cell: note
-                          // how the quadrature values (position, normals, jacobianXweight, shape functions)
-                          // are taken from the precomputed ones in ComputationalDomain class
-                          for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                            {
-                              local_neumann_matrix_row_i(j) += ( ( D *
-                                                                   quadNormals[cell][*pos] ) *
-                                                                 quadShapeFunValues[cell][*pos][j] *
-                                                                 quadJxW[cell][*pos] );
-                              local_dirichlet_matrix_row_i(j) += ( s *
+                            //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
+                            const Tensor<1, dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
+                            LaplaceKernel::kernels(R, D, s);
+
+                            // and here are the integrals for each of the degrees of freedom of the cell: note
+                            // how the quadrature values (position, normals, jacobianXweight, shape functions)
+                            // are taken from the precomputed ones in ComputationalDomain class
+                            for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                              {
+                                local_neumann_matrix_row_i(j) += ( ( D *
+                                                                     quadNormals[cell][*pos] ) *
                                                                    quadShapeFunValues[cell][*pos][j] *
                                                                    quadJxW[cell][*pos] );
-                              //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
-                              //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
-                              //pcout<< quadJxW[cell][*pos]<<std::endl;
-                            }
-                        }
-                    } // end if
-                  else
-                    {
-                      // after some checks, we have to create the singular quadrature:
-                      // here the quadrature points of the cell will be IGNORED,
-                      // and the singular quadrature points are instead used.
-                      // the 3d and 2d quadrature rules are different
+                                local_dirichlet_matrix_row_i(j) += ( s *
+                                                                     quadShapeFunValues[cell][*pos][j] *
+                                                                     quadJxW[cell][*pos] );
+                                //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
+                                //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
+                                //pcout<< quadJxW[cell][*pos]<<std::endl;
+                              }
+                          }
+                      } // end if
+                    else
+                      {
+                        // after some checks, we have to create the singular quadrature:
+                        // here the quadrature points of the cell will be IGNORED,
+                        // and the singular quadrature points are instead used.
+                        // the 3d and 2d quadrature rules are different
 
-                      // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
-                      Assert(singular_index != numbers::invalid_unsigned_int,
-                             ExcInternalError());
+                        // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
+                        Assert(singular_index != numbers::invalid_unsigned_int,
+                               ExcInternalError());
 
-                      const Quadrature<dim-1> *
-                      singular_quadrature
-                        = (dim == 2
-                           ?
-                           dynamic_cast<Quadrature<dim-1>*>(
-                             &sing_quadratures[singular_index])
-                           :
-                           (dim == 3
-                            ?
-                            dynamic_cast<Quadrature<dim-1>*>(
-                              &sing_quadratures[singular_index])
-                            :
-                            0));
-                      Assert(singular_quadrature, ExcInternalError());
+                        const Quadrature<dim-1> *
+                        singular_quadrature
+                          = (dim == 2
+                             ?
+                             dynamic_cast<Quadrature<dim-1>*>(
+                               &sing_quadratures[singular_index])
+                             :
+                             (dim == 3
+                              ?
+                              dynamic_cast<Quadrature<dim-1>*>(
+                                &sing_quadratures[singular_index])
+                              :
+                              0));
+                        Assert(singular_quadrature, ExcInternalError());
 
-                      // once the singular quadrature has been created, we employ it
-                      // to create the corresponding fe_values
+                        // once the singular quadrature has been created, we employ it
+                        // to create the corresponding fe_values
 
-                      FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
-                                                         update_jacobians |
-                                                         update_values |
-                                                         update_cell_normal_vectors |
-                                                         update_quadrature_points );
+                        FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
+                                                           update_jacobians |
+                                                           update_values |
+                                                           update_cell_normal_vectors |
+                                                           update_quadrature_points );
 
-                      fe_v_singular.reinit(cell);
+                        fe_v_singular.reinit(cell);
 
-                      // here are the vectors of the quad points and normals vectors
+                        // here are the vectors of the quad points and normals vectors
 
-                      const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
-                      const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
+                        const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                        const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
 
-                      // and here is the integrals computation: note how in this case the
-                      // values for shape functions & co. are not taken from the precomputed
-                      // ones in ComputationalDomain class
+                        // and here is the integrals computation: note how in this case the
+                        // values for shape functions & co. are not taken from the precomputed
+                        // ones in ComputationalDomain class
 
-                      for (unsigned int q=0; q<singular_quadrature->size(); ++q)
-                        {
-                          const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
-                          LaplaceKernel::kernels(R, D, s);
-                          for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                            {
-                              local_neumann_matrix_row_i(j) += (( D *
-                                                                  singular_normals[q]) *
-                                                                fe_v_singular.shape_value(j,q) *
-                                                                fe_v_singular.JxW(q) );
+                        for (unsigned int q=0; q<singular_quadrature->size(); ++q)
+                          {
+                            const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
+                            LaplaceKernel::kernels(R, D, s);
+                            for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                              {
+                                local_neumann_matrix_row_i(j) += (( D *
+                                                                    singular_normals[q]) *
+                                                                  fe_v_singular.shape_value(j,q) *
+                                                                  fe_v_singular.JxW(q) );
 
-                              local_dirichlet_matrix_row_i(j) += ( s   *
-                                                                   fe_v_singular.shape_value(j,q) *
-                                                                   fe_v_singular.JxW(q) );
-                            }
-                        }
-                      if (dim==2)
-                        delete singular_quadrature;
+                                local_dirichlet_matrix_row_i(j) += ( s   *
+                                                                     fe_v_singular.shape_value(j,q) *
+                                                                     fe_v_singular.JxW(q) );
+                              }
+                          }
+                        if (dim==2)
+                          delete singular_quadrature;
 
-                    } // end else
+                      } // end else
 
-                  // Finally, we need to add
-                  // the contributions of the
-                  // current cell to the
-                  // global matrix.
+                    // Finally, we need to add
+                    // the contributions of the
+                    // current cell to the
+                    // global matrix.
 
-                  for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                    {
-                      prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                      prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                      if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                      else
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
-                    }
+                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                      {
+                          prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+                          prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+                          if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                            init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                          else
+                            init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      }
 
-                } // end loop on cells of the intList
+                  } // end loop on cells of the intList
+              }
             } // end loop over nodes of block1
         } // end if (nodes in block > 0)
     } // end loop over childless blocks
@@ -572,9 +604,9 @@ void BEMFMA<dim>::direct_integrals()
 
     {
       unsigned int startBlockLevel =  startLevel[level];
+      // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
       for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
         {
-
           OctreeBlock<dim> *block1 =  blocks[ dofs_filled_blocks[level][jj]];
           const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -584,7 +616,11 @@ void BEMFMA<dim>::direct_integrals()
               // block remains childless BEFORE the last level, at this point we need to compute
               // all its contributions up to the bottom level)
               unsigned int nodeIndex = nodesBlk1Ids[i];
+              if(this_cpu_set.is_element(nodeIndex))//(m2l_flags[level][jj]==this_mpi_process)
+              {
+
               std::map <cell_it,std::set<unsigned int> > directQuadPoints;
+
               for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
                 {
                   const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
@@ -663,17 +699,22 @@ void BEMFMA<dim>::direct_integrals()
 
                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
                     {
-                      prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                      prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+                      // if(this_cpu_set.is_element(local_dof_indices[j]))
+                      // {
+                        prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+                        prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
 
-                      if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                      else
-                        init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                        if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+                        else
+                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+                      // }
                     }
 
 
                 } // end loop over quad points in the direct quad points list
+              }// end check on proc
+
             } // end loop over nodes in a block
         }// end loop over block of a level
     }//end loop over octree levels
@@ -690,7 +731,7 @@ void BEMFMA<dim>::multipole_integrals()
 {
 
   pcout<<"Computing multipole integrals..."<<std::endl;
-
+  TimeMonitor LocalTimer(*MultInt);
   // we start clearing the two structures in which we will
   // store the integrals. these objects are quite complicated:
   // for each block we are going to get the portion of
@@ -787,14 +828,109 @@ void BEMFMA<dim>::multipole_integrals()
   pcout<<"...done computing multipole integrals"<<std::endl;
 }
 
+template <int dim>
+void BEMFMA<dim>::compute_m2l_flags()
+{
+  pcout<<"Partitioning the descending phase Multipole2Local"<<std::endl;
+  m2l_flags.resize(num_octree_levels+1);
+  std::vector<unsigned int> m2l_operations_per_level(num_octree_levels+1);
+  std::vector<std::vector<unsigned int> > m2l_operations_per_block(num_octree_levels+1);
+  unsigned int my_total_operations=0;
+
+  for(unsigned int level = 1; level <  num_octree_levels + 1;  level++)
+  {
+    m2l_flags[level].resize(dofs_filled_blocks[level].size());
+    m2l_operations_per_block[level].resize(dofs_filled_blocks[level].size());
+    m2l_operations_per_level[level] = 0;
+    for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
+    {
+      m2l_operations_per_block[level][k] = 0;
+      unsigned int jj =  dofs_filled_blocks[level][k];
+
+      OctreeBlock<dim> *block1 = blocks[jj];
+      for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+      {
+          m2l_operations_per_block[level][k] += block1->GetNonIntList(subLevel).size();
+          m2l_operations_per_level[level] += block1->GetNonIntList(subLevel).size();
+      }
+    }
+    unsigned int test = n_mpi_processes;
+    unsigned int operations_per_proc = m2l_operations_per_level[level]/test;     //(int) ceil(m2l_operations_per_level[level]/test);
+    int rest_op = m2l_operations_per_level[level]%test;
+    unsigned int my_operations=0;
+    unsigned int cumulative_check=0;
+    unsigned int proc=0;
+    unsigned int k=0;
+    std::vector<unsigned int> m2l_operations_per_proc(test);
+    std::vector<unsigned int> blocks_per_proc(test);
+    for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
+    {
+      // m2l_operations_per_block[level][k] = 0;
+      unsigned int jj =  dofs_filled_blocks[level][k];
+      OctreeBlock<dim> *block1 = blocks[jj];
+      std::vector <unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
+      bool on_process = false;
+      for(auto ind : nodesBlk1Ids)
+      {
+        if(this_cpu_set.is_element(ind))
+        {
+          on_process = true;
+          break;
+        }
+      }
+      if(on_process)
+      {
+      for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+      {
+         my_operations += m2l_operations_per_block[level][k];
+         my_total_operations += m2l_operations_per_block[level][k];
+      }
+      }
+    }
+    std::cout<<"level --- mpi_proc --- ops"<<std::endl;
+    std::cout<<level<<" --- "<<this_mpi_process<<" --- "<<my_operations<<std::endl;
+    // while (k <  dofs_filled_blocks[level].size() && proc<test) // loop over blocks of each level
+    // {
+    //   if(my_operations >= operations_per_proc)
+    //   {
+    //
+    //     rest_op -= my_operations - operations_per_proc;
+    //     // pcout<<"On processor "<< proc<<", we have "<<my_operations<<"operations, cumulatively we are taking "<<cumulative_check<<" m2l ops over a total of "<<m2l_operations_per_level[level]<<std::endl;
+    //     proc += 1;
+    //     my_operations = 0;
+    //   }
+    //   m2l_flags[level][k]=proc;
+    //   my_operations += m2l_operations_per_block[level][k];
+    //   cumulative_check += m2l_operations_per_block[level][k];
+    //   m2l_operations_per_proc[proc] += m2l_operations_per_block[level][k];
+    //   blocks_per_proc[proc] += 1;
+    //   k+=1;
+    // }
+    // pcout<<"LEVEL "<<level<<std::endl;
+    // pcout<<"Rest is "<<rest_op<<" last block is "<<k<<" , total of "<<dofs_filled_blocks[level].size()<<
+    //        " operations taken "<<cumulative_check<<" over a total of "<<m2l_operations_per_level[level]<<std::endl;
+    // for(proc = 0 ; proc < test; ++proc)
+    //   pcout<<"On processor "<< proc<<", we have "<<m2l_operations_per_proc[proc]<<" m2l operations, and "
+    //        <<blocks_per_proc[proc]<<" blocks over a total of "<<dofs_filled_blocks[level].size()<<std::endl;
+  }
+
+  std::cout<<"finalcountmpi_proc --- ops"<<std::endl;
+  std::cout<<this_mpi_process<<" --- "<<my_total_operations<<std::endl;
+
+
+
+}
 
 
 template <int dim>
-void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const
+void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
 {
   pcout<<"Generating multipole expansions..."<<std::endl;
-
-
+  TimeMonitor LocalTimer(*MultGen);
+  // TODO I DON'T KNOW IF WE CAN SPLIT THIS OPERATION, IN CASE THIS WOULD NOT BE EASY COMMUNICATION, WE WOULD NEED TO
+  // COMMUNICATE THE ENTIRE CLASSES THAT HOLD THE MULTIPOLE<->LOCAL EXPANSIONS
+  const Vector<double> phi_values(phi_values_in);
+  const Vector<double> dphi_dn_values(dphi_dn_values_in);
 // also here we clear the structures storing the multipole
 // expansions for Dirichlet and Neumann matrices
 
@@ -913,14 +1049,21 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                                                TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
 {
   pcout<<"Computing multipole matrix-vector products... "<<std::endl;
-
+  TimeMonitor LocalTimer(*MatrVec);
   // we start re-initializing matrix-vector-product vectors
-  matrVectProdN = 0;
-  matrVectProdD = 0;
+  // matrVectProdN = 0;
+  // matrVectProdD = 0;
 
   //and here we compute the direct integral contributions (stored in two sparse matrices)
+  // const Vector<double> phi_values_loc(phi_values);
+  // const Vector<double> dphi_dn_values_loc(dphi_dn_values);
+  // Vector<double> matrVectProdD(fma_dh->n_dofs());
+  // Vector<double> matrVectProdN(fma_dh->n_dofs());
   prec_neumann_matrix.vmult(matrVectProdN, phi_values);
   prec_dirichlet_matrix.vmult(matrVectProdD, dphi_dn_values);
+
+  // if(this_cpu_set.is_element(55))
+  //   std::cout<<matrVectProdN[55]<<" "<<phi_values[55]<<" "<<matrVectProdD[55]<<" "<<dphi_dn_values[55]<<std::endl;
 
   //from here on, we compute the multipole expansions contributions
 
@@ -978,14 +1121,27 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       // contain at least one node (the local and multipole expansion will be finally evaluated
       // at the nodes positions)
 
+      // TODO WE COULD SPLIT THIS LOOP OVER THE BLOCKS OVER ALL THE PROCESSORS, THEN DO A TRILINOS.ADD WITH
+      // DIFFERENT MAPS. HERE WE NEED A FULL ONE.
       for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
         {
+
           //pcout<<"Block "<<jj<<std::endl;
           unsigned int jj =  dofs_filled_blocks[level][k];
           OctreeBlock<dim> *block1 =  blocks[jj];
           unsigned int block1Parent = block1->GetParentId();
           std::vector <unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
-
+          bool on_process = false;
+          for(auto ind : nodesBlk1Ids)
+          {
+            if(this_cpu_set.is_element(ind))
+            {
+              on_process = true;
+              break;
+            }
+          }
+          if(on_process)
+          {
 
           // here we get parent contribution to local expansion and transfer it in current
           // block: this operation requires a local expansion translation, implemented
@@ -997,6 +1153,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
           // for each block, loop over all sublevels in his NN list (this is because if a
           // block remains childless BEFORE the last level, at this point we need to compute
           // all its contributions up to the bottom level)
+
 
           for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
             {
@@ -1012,6 +1169,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
               // of blocks bigger than current block had already been considered in
               // the direct integrals method (the bounds of the local and multipole
               // expansion do not hold in such case)
+
 
               for (std::set <unsigned int>::iterator pos1 = nonIntList.lower_bound(startBlockLevel); pos1 != nonIntList.upper_bound(endBlockLevel);  pos1++) // loop over NNs of NNs and add them to intList
                 {
@@ -1075,7 +1233,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
 
             } // end loop over all sublevels in  nonIntlist
-
+          }//end if for m2l flags
         } // end loop over blocks of each level
 
     } // end loop over levels
@@ -1083,6 +1241,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
   // finally, when the loop over levels is done, we need to evaluate local expansions of all
   // childless blocks, at each block node(s)
+
+  // TODO SPLIT THIS LOOP OVER ALL PROCESSORS THEN COMMUNICATE.
+  // if(this_mpi_process==0)
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
 
     {
@@ -1093,9 +1254,12 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       // loop over nodes of block
       for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
         {
-          Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
-          matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
-          matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+          if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
+          {
+            Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+            matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
+            matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+          }
         } // end loop over nodes
 
     } // end loop over childless blocks
@@ -1111,8 +1275,15 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       }
   //////////////////////////////*/
 
+  // std::cout<<matrVectProdN[23]<<" "<<matrVectProdD[23]<<std::endl;
 
-
+  // TODO I WOULD COMMUNICATE HERE, AT THE END OF ALL THINGS
+  // TrilinosWrappers::MPI::Vector Ndummy(matrVectProdN_in.locally_owned_elements(), mpi_communicator);
+  // TrilinosWrappers::MPI::Vector Ddummy(matrVectProdD_in.locally_owned_elements(), mpi_communicator);
+  // Ndummy = matrVectProdN;
+  // Ddummy = matrVectProdD;
+  // matrVectProdN_in.add( Ndummy);
+  // matrVectProdD_in.add( Ddummy);
 
   pcout<<"...done computing multipole matrix-vector products"<<std::endl;
 
@@ -1123,84 +1294,105 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 // class, along with the constraint matrix of the bem problem
 
 template <int dim>
-TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
+TrilinosWrappers::PreconditionAMG &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
 {
-
+  TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
+  // IndexSet this_cpu_set(alpha.locally_owned_elements());
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
     {
-      if (c.is_constrained(i))
-        {
-          //cout<<i<<"  (c):"<<endl;
-          // constrained nodes entries are taken from the bem problem constraint matrix
-          final_prec_sparsity_pattern.add(i,i);
-          const std::vector< std::pair < unsigned int, double > >
-          *entries = c.get_constraint_entries (i);
-          for (unsigned int j=0; j< entries->size(); ++j)
-            final_prec_sparsity_pattern.add(i,(*entries)[j].first);
-        }
-      else
-        {
-          //cout<<i<<"  (nc): ";
-          // other nodes entries are taken from the unconstrained preconditioner matrix
-          for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-            {
-              if (init_prec_sparsity_pattern.exists(i,j))
-                {
-                  final_prec_sparsity_pattern.add(i,j);
-                  //cout<<j<<" ";
-                }
-            }
-          //cout<<endl;
-        }
+      if(this_cpu_set.is_element(i))
+      {
+        if (c.is_constrained(i))
+          {
+            //cout<<i<<"  (c):"<<endl;
+            // constrained nodes entries are taken from the bem problem constraint matrix
+            final_prec_sparsity_pattern.add(i,i);
+            const std::vector< std::pair < unsigned int, double > >
+            *entries = c.get_constraint_entries (i);
+            for (unsigned int j=0; j< entries->size(); ++j)
+              final_prec_sparsity_pattern.add(i,(*entries)[j].first);
+          }
+        else
+          {
+            //cout<<i<<"  (nc): ";
+            // other nodes entries are taken from the unconstrained preconditioner matrix
+            for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+              {
+                if (init_prec_sparsity_pattern.exists(i,j))
+                  {
+                    final_prec_sparsity_pattern.add(i,j);
+                    //cout<<j<<" ";
+                  }
+              }
+            //cout<<endl;
+          }
+      }
     }
+
 
   final_prec_sparsity_pattern.compress();
   final_preconditioner.reinit(final_prec_sparsity_pattern);
 
-
+  // std::cout<<"ok prec sparsity pattern"<<std::endl;
   // now we assemble the final preconditioner matrix: the loop works
   // exactly like the previous one
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
-    if (c.is_constrained(i))
-      {
-        final_preconditioner.set(i,i,1);
-        //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
-        // constrainednodes entries are taken from the bem problem constraint matrix
-        const std::vector< std::pair < unsigned int, double > >
-        *entries = c.get_constraint_entries (i);
-        for (unsigned int j=0; j< entries->size(); ++j)
-          {
-            final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
-            //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
-          }
-      }
-    else
-      {
-        // other nodes entries are taken from the unconstrained preconditioner matrix
-        for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-          {
-            // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
-            if (init_prec_sparsity_pattern.exists(i,j))
-              {
-                final_preconditioner.set(i,j,init_preconditioner(i,j));
-                //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
-              }
-          }
-      }
+  {
+    if(this_cpu_set.is_element(i))
+    {
+      if (c.is_constrained(i))
+        {
+          final_preconditioner.set(i,i,1);
+          //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+          // constrainednodes entries are taken from the bem problem constraint matrix
+          const std::vector< std::pair < unsigned int, double > >
+          *entries = c.get_constraint_entries (i);
+          for (unsigned int j=0; j< entries->size(); ++j)
+            {
+              final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
+              //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
+            }
+        }
+      else
+        {
+          // other nodes entries are taken from the unconstrained preconditioner matrix
+          for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+            {
+              // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
+              if (init_prec_sparsity_pattern.exists(i,j))
+                {
+                  final_preconditioner.set(i,j,init_preconditioner(i,j));
+                  //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
+                }
+            }
+
+        }
+    }
+  }
+  // std::cout<<"now alpha"<<std::endl;
   // finally, we have to add the alpha values on the diagonal, whenever dealing with a
   // neumann (in such nodes the potential phi is an unknown) and non constrained node
 
   for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
-    if ( (*dirichlet_nodes)(i) == 0 && !c.is_constrained(i))
+  {
+    if(this_cpu_set.is_element(i))
+    {
+      if ( (*dirichlet_nodes)(i) == 0 && !(c.is_constrained(i)))
+        {
+          final_preconditioner.add(i,i,alpha(i));
+          //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+        }
+      else // this is just to avoid a deadlock. we need a better strategy
       {
-        final_preconditioner.add(i,i,alpha(i));
-        //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+        final_preconditioner.add(i,i,0);
       }
+    }
+  }
 
   //preconditioner.print_formatted(pcout,4,true,0," 0 ",1.);
   preconditioner.initialize(final_preconditioner);
@@ -1404,7 +1596,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 {
 
   pcout<<"Generating octree blocking... "<<std::endl;
-
+  TimeMonitor LocalTimer(*ListCreat);
   // @sect5{BEMProblem::generate_double_nodes_set}
 
   // The following is the function

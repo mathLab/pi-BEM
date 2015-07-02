@@ -62,6 +62,25 @@ Driver<dim>::~Driver()
 
 
 template <int dim>
+void Driver<dim>::declare_parameters (ParameterHandler &prm)
+{
+  prm.declare_entry("Set Global Refinement", "true",
+                    Patterns::Bool());
+
+
+}
+
+template <int dim>
+void Driver<dim>::parse_parameters (ParameterHandler &prm)
+{
+  bool porocone;
+  global_refinement = prm.get_bool("Set Global Refinement");
+
+
+}
+
+
+template <int dim>
 void Driver<dim>::run()
 {
   {
@@ -70,7 +89,10 @@ void Driver<dim>::run()
       TimeMonitor LocalTimer(*MeshTime);
       //computational_domain.create_initial_mesh();
       computational_domain.read_domain();
-      computational_domain.refine_and_resize(computational_domain.n_cycles);
+      if(global_refinement)
+        computational_domain.refine_and_resize(computational_domain.n_cycles);
+      else
+        computational_domain.conditional_refine_and_resize(computational_domain.n_cycles);
       //computational_domain.generate_octree_blocking();
     }
 
@@ -80,7 +102,7 @@ void Driver<dim>::run()
       boundary_conditions.solve_problem();
     }
 
-    std::string filename = ( boundary_conditions.output_file_name + ".vtk" );
+    std::string filename = ( boundary_conditions.output_file_name);
     boundary_conditions.compute_errors();
     boundary_conditions.output_results(filename);
     // }

@@ -72,16 +72,22 @@
 #include "../include/bem_problem.h"
 #include "../include/computational_domain.h"
 
+#include "parsed_data_out.h"
 
 template <int dim>
 class BoundaryConditions : public ParameterAcceptor
 {
 public:
-  BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem, const MPI_Comm comm = MPI_COMM_WORLD) :
+    BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem, const MPI_Comm comm = MPI_COMM_WORLD) :
     wind(dim), comp_dom(comp_dom), bem(bem),
     mpi_communicator (comm),
     n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
-    this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
+    this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
+    pcout(std::cout,
+          (this_mpi_process
+           == 0)),
+    data_out_scalar("Scalar data out", "vtu"),
+    data_out_vector("Vector data out", "vtu")
   {
     dofs_number = 0,
     output_frequency = 1;
@@ -98,7 +104,7 @@ public:
 
   void solve_problem();
 
-  void output_results(const std::string) const;
+  void output_results(const std::string);
 
   void compute_errors();
 
@@ -133,6 +139,12 @@ private:
   unsigned int this_mpi_process;
 
   IndexSet this_cpu_set;
+
+  ConditionalOStream pcout;
+
+  ParsedDataOut<dim-1, dim> data_out_scalar;
+  ParsedDataOut<dim-1, dim> data_out_vector;
+
 };
 
 #endif

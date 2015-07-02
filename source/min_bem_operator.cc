@@ -56,17 +56,17 @@ void Operator::MinBEMOperator<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, co
 
   dst = 0;
 
-  // TrilinosWrappers::MPI::Vector dirichlet_nodes(this_cpu_set,mpi_communicator);
+  TrilinosWrappers::MPI::Vector dirichlet_nodes(this_cpu_set,mpi_communicator);
   TrilinosWrappers::MPI::Vector other_nodes(this_cpu_set,mpi_communicator);
 
-  // dirichlet_nodes = *op_fma.dirichlet_nodes;
+  dirichlet_nodes = *op_fma.dirichlet_nodes;
   for ( unsigned int i=0; i<op_fma.dirichlet_nodes->size(); ++i)
     {
-      other_nodes(i) = (double)(((int)(*op_fma.dirichlet_nodes)(i)+1)%2);
+      other_nodes(i) = (double)(((int)dirichlet_nodes(i)+1)%2);
     }
 
   serv_phi.scale(other_nodes);
-  serv_dphi_dn.scale(*op_fma.dirichlet_nodes);
+  serv_dphi_dn.scale(dirichlet_nodes);
 
   op_fma.generate_multipole_expansions(serv_phi,serv_dphi_dn);
   op_fma.multipole_matr_vect_products(serv_phi,serv_dphi_dn,matrVectProdN,matrVectProdD);
@@ -98,17 +98,17 @@ void Operator::MinBEMOperator<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &d
   dst = 0;
 
   // COSTRUIRE SURFACE E OTHER NODES!!!
-  // TrilinosWrappers::MPI::Vector dirichlet_nodes(*op_fma.dirichlet_nodes);
+  TrilinosWrappers::MPI::Vector dirichlet_nodes(this_cpu_set,mpi_communicator);
   TrilinosWrappers::MPI::Vector other_nodes(this_cpu_set,mpi_communicator);
 
-  // std::cout<<dirichlet_nodes.size()<< " " <<op_fma.dirichlet_nodes->size()<<std::endl;
+  dirichlet_nodes = *op_fma.dirichlet_nodes;
   for ( unsigned int i=0; i<op_fma.dirichlet_nodes->size(); ++i)
     {
-      other_nodes(i) = (double)(((int)(*op_fma.dirichlet_nodes)(i)+1)%2);
+      other_nodes(i) = (double)(((int)dirichlet_nodes(i)+1)%2);
     }
 
   serv_phi.scale(other_nodes);
-  serv_dphi_dn.scale(*op_fma.dirichlet_nodes);
+  serv_dphi_dn.scale(dirichlet_nodes);
 
   op_fma.generate_multipole_expansions(serv_phi,serv_dphi_dn);
   op_fma.multipole_matr_vect_products(serv_phi,serv_dphi_dn,matrVectProdN,matrVectProdD);

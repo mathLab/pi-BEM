@@ -1054,12 +1054,12 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   cc(*this, constraints,constr_cpu_set,mpi_communicator);
 
 
-  cc.distribute_rhs(system_rhs);
-  vmult(sol,system_rhs);
-  Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Schizofrenia???"));
-  cc.vmult(sol,system_rhs);
-  Assert(sol.locally_owned_elements()==system_rhs.locally_owned_elements(),ExcMessage("IndexSet a muzzo..."));
-  Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Ma boh..."));
+  // cc.distribute_rhs(system_rhs);
+  // vmult(sol,system_rhs);
+  // Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Schizofrenia???"));
+  // cc.vmult(sol,system_rhs);
+  // Assert(sol.locally_owned_elements()==system_rhs.locally_owned_elements(),ExcMessage("IndexSet a muzzo..."));
+  // Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Ma boh..."));
 
 
   if (solution_method == "Direct")
@@ -1078,6 +1078,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
       // solver.solve (cc, sol, system_rhs, PreconditionIdentity());
     }
 
+    cc.apply_constraint(sol);
   //pcout<<"sol = [";
   //for (unsigned int i = 0; i < dh.n_dofs(); i++)
   //    pcout<<sol(i)<<"; ";

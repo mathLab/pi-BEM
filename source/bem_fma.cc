@@ -2146,7 +2146,7 @@ void BEMFMA<dim>::generate_octree_blocking()
           // here we decide if a block is to be placed in the parent
           // or childless list
           //if (blockNumNodes + blockNumQuadPoints - numDoubleNodes < 2)
-          if (blockNumNodes - numDoubleNodes < 20)
+          if (blockNumNodes - numDoubleNodes < max_num_nodes_per_block)
             {
               numChildless += 1;
               childlessList.push_back(jj);

@@ -129,7 +129,7 @@ public:
   /// Method for the assembling of the
   /// sparse preconitioning matrix for FMA
 
-  TrilinosWrappers::PreconditionAMG &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
+  TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
 private:
 
@@ -229,7 +229,7 @@ private:
   /// the preconditioner to be passed to bem_problem
   /// contributi diretti del multipolo, assembla la parte
   /// diretta in una vera matrice.
-  TrilinosWrappers::PreconditionAMG preconditioner;
+  TrilinosWrappers::PreconditionILU preconditioner;
 
   unsigned int singular_quadrature_order;
 
@@ -241,6 +241,12 @@ private:
 
   unsigned int this_mpi_process;
 
+  /// maximum number of collocation points
+  /// that can be contained by a childless block:
+  /// if a block contains less nodes than this number
+  /// it is not further refined
+
+  unsigned int max_num_nodes_per_block;
 
   /// number of levels of the octree
   /// partitioning

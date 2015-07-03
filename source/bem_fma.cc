@@ -89,6 +89,8 @@ void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
   prm.enter_subsection("Octree Params");
   {
     prm.declare_entry("Number of Octree Levels", "10", Patterns::Integer());
+
+    prm.declare_entry("Maximum Number of Collocation Points per Childless Block", "20", Patterns::Integer());
   }
   prm.leave_subsection();
 
@@ -106,6 +108,7 @@ void BEMFMA<dim>::parse_parameters (ParameterHandler &prm)
   prm.enter_subsection("Octree Params");
   {
     num_octree_levels = prm.get_integer("Number of Octree Levels");
+    max_num_nodes_per_block = prm.get_integer("Maximum Number of Collocation Points per Childless Block");
   }
   prm.leave_subsection();
 
@@ -1294,7 +1297,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 // class, along with the constraint matrix of the bem problem
 
 template <int dim>
-TrilinosWrappers::PreconditionAMG &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
+TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
 {
   TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
@@ -2143,7 +2146,7 @@ void BEMFMA<dim>::generate_octree_blocking()
           // here we decide if a block is to be placed in the parent
           // or childless list
           //if (blockNumNodes + blockNumQuadPoints - numDoubleNodes < 2)
-          if (blockNumNodes - numDoubleNodes < 2)
+          if (blockNumNodes - numDoubleNodes < max_num_nodes_per_block)
             {
               numChildless += 1;
               childlessList.push_back(jj);

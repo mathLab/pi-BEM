@@ -192,17 +192,20 @@ void BEMProblem<dim>::reinit()
   serv_tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
   // TrilinosWrappers::SparsityPattern for the BEM matricesreinitialization
-  full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
-  for (unsigned int i=0; i<n_dofs; ++i)
-    if (this_cpu_set.is_element(i))
-      {
-        for (unsigned int j=0; j<n_dofs; ++j)
-          full_sparsity_pattern.add(i,j);
-      }
+  if(solution_method == "Direct")
+  {
+    full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
+    for (unsigned int i=0; i<n_dofs; ++i)
+      if (this_cpu_set.is_element(i))
+        {
+          for (unsigned int j=0; j<n_dofs; ++j)
+            full_sparsity_pattern.add(i,j);
+        }
 
-  full_sparsity_pattern.compress();
-  neumann_matrix.reinit(full_sparsity_pattern);
-  dirichlet_matrix.reinit(full_sparsity_pattern);
+    full_sparsity_pattern.compress();
+    neumann_matrix.reinit(full_sparsity_pattern);
+    dirichlet_matrix.reinit(full_sparsity_pattern);
+  }
   preconditioner_band = 100;
   preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
   is_preconditioner_initialized = false;

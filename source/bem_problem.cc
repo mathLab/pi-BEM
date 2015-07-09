@@ -32,6 +32,7 @@ RCP<Time> NormalsTime = TimeMonitor::getNewTimer("Normals Time");
 RCP<Time> SurfaceGradientTime = TimeMonitor::getNewTimer("SurfaceGradientTime Time");
 RCP<Time> GradientTime = TimeMonitor::getNewTimer("Gradient Time");
 RCP<Time> LacSolveTime = TimeMonitor::getNewTimer("LAC Solve Time");
+RCP<Time> ReinitTime = TimeMonitor::getNewTimer("BEM Reinitialisation Time");
 
 // @sect4{BEMProblem::BEMProblem and
 // BEMProblem::read_parameters}
@@ -86,6 +87,7 @@ template <int dim>
 void BEMProblem<dim>::reinit()
 {
 
+  TimeMonitor LocalTimer(*ReinitTime);
 
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);

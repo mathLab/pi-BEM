@@ -63,6 +63,15 @@ private:
   const unsigned int subdomain_id;
 };
 
+#include "Teuchos_TimeMonitor.hpp"
+
+using Teuchos::Time;
+using Teuchos::TimeMonitor;
+using Teuchos::RCP;
+
+RCP<Time> PrepareTime = TimeMonitor::getNewTimer("PrepareBEMVectors");
+RCP<Time> ErrorsTime = TimeMonitor::getNewTimer("Errors");
+RCP<Time> OutputTimer = TimeMonitor::getNewTimer("Output");
 
 template <int dim>
 void BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
@@ -226,7 +235,7 @@ void BoundaryConditions<dim>:: solve_problem()
 template <int dim>
 void BoundaryConditions<dim>::prepare_bem_vectors()
 {
-
+  TimeMonitor LocalTimer(*PrepareTime);
   // bem.compute_normals();
   const unsigned int n_dofs =  bem.dh.n_dofs();
 
@@ -327,6 +336,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
 template <int dim>
 void BoundaryConditions<dim>::compute_errors()
 {
+  TimeMonitor LocalTimer(*ErrorsTime);
 
   // We still need to communicate our results to compute the errors.
   bem.compute_gradients(phi,dphi_dn);
@@ -398,6 +408,7 @@ void BoundaryConditions<dim>::compute_errors()
 template <int dim>
 void BoundaryConditions<dim>::output_results(const std::string filename)
 {
+  TimeMonitor LocalTimer(*OutputTimer);
 
   // At the time being the output is not running in parallel with saks
   // const Vector<double> localized_phi (phi);

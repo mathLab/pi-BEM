@@ -1262,6 +1262,8 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
         {
           if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
           {
+            TimeMonitor LocalTimer(*LocEval);
+
             Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
             matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
             matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);

@@ -1213,9 +1213,10 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                   //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
                   unsigned int block2Id = *pos1;
                   //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
+                  TimeMonitor LocalTimer(*LocEval);
+
                   for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
                     {
-                      TimeMonitor LocalTimer(*LocEval);
                       Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
                       matrVectProdD(nodesBlk1Ids[ii]) += blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
                       matrVectProdN(nodesBlk1Ids[ii]) += blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);

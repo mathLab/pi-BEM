@@ -32,6 +32,7 @@ RCP<Time> MultInt = TimeMonitor::getNewTimer("Multipole Integral Time");
 RCP<Time> ListCreat = TimeMonitor::getNewTimer("Octree Generation Time");
 RCP<Time> DirInt = TimeMonitor::getNewTimer("Direct Integral Time");
 RCP<Time> PrecondTime = TimeMonitor::getNewTimer("FMA_preconditioner Time");
+RCP<Time> LocEval = TimeMonitor::getNewTimer("Local Evaluation Time");
 
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
@@ -1214,6 +1215,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                   //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
                   for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
                     {
+                      TimeMonitor LocalTimer(*LocEval);
                       Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
                       matrVectProdD(nodesBlk1Ids[ii]) += blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
                       matrVectProdN(nodesBlk1Ids[ii]) += blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);

@@ -818,13 +818,13 @@ void BEMFMA<dim>::multipole_integrals()
   };
   // now we start looping on the childless blocks to perform the integrals
 
-  // Threads::TaskGroup<> group_generate_integral;
-  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
-  //   group_generate_integral += Threads::new_task ( static_cast<void (*)(const unsigned int, const unsigned int, const BEMFMA<dim> *)> (f_generate_multipole_integral), kk, dofs_per_cell, this);
-  // group_generate_integral.join_all();
-
+  Threads::TaskGroup<> group_generate_integral;
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
-    f_generate_multipole_integral(kk, dofs_per_cell, this);
+    group_generate_integral += Threads::new_task ( static_cast<void (*)(const unsigned int, const unsigned int, const BEMFMA<dim> *)> (f_generate_multipole_integral), kk, dofs_per_cell, this);
+  group_generate_integral.join_all();
+
+  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  //   f_generate_multipole_integral(kk, dofs_per_cell, this);
   // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
   //
   //   {

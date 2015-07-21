@@ -762,7 +762,7 @@ void BEMFMA<dim>::multipole_integrals()
               ExcMessage("The code in this function can only be used for "
                          "the usual Q1 elements."));
 
-  auto f_generate_multipole_integral = [] (unsigned int kk, const BEMFMA<dim> *foo_fma, const unsigned int dofs_per_cell){
+  auto f_generate_multipole_integral = [] (const unsigned int kk, const unsigned int dofs_per_cell, const BEMFMA<dim> *foo_fma){
 
 
     unsigned int blockId =  foo_fma->childlessList[kk];
@@ -792,7 +792,7 @@ void BEMFMA<dim>::multipole_integrals()
 
         // the vectors are now initialized with an empty multipole expansion
         // centered in the current block center
-        for (unsigned int j=0; j<foo_fma->fma_fe->dofs_per_cell; ++j)
+        for (unsigned int j=0; j<dofs_per_cell; ++j)
           {
             foo_fma->elemMultipoleExpansionsKer1[blockId][cell][j] =
               MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
@@ -818,8 +818,13 @@ void BEMFMA<dim>::multipole_integrals()
   };
   // now we start looping on the childless blocks to perform the integrals
 
+  // Threads::TaskGroup<> group_generate_integral;
+  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  //   group_generate_integral += Threads::new_task ( static_cast<void (*)(const unsigned int, const unsigned int, const BEMFMA<dim> *)> (f_generate_multipole_integral), kk, dofs_per_cell, this);
+  // group_generate_integral.join_all();
+
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
-    f_generate_multipole_integral(kk, this, dofs_per_cell);
+    f_generate_multipole_integral(kk, dofs_per_cell, this);
   // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
   //
   //   {

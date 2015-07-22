@@ -2122,14 +2122,12 @@ void BEMFMA<dim>::generate_octree_blocking()
 
           // here we get the number of nodes in the block
           std::vector<unsigned int> nodesId = blocks[jj]->GetBlockNodeList();
-          int blockNumNodes = (int) nodesId.size();
+          double blockNumNodes = 0.0;
 
           // now we compute the number of the nodes that are double of others
-          int numDoubleNodes = 0;
           for (unsigned int kk = 0; kk < nodesId.size();  kk++)
             {
-              int a = (int) (*double_nodes_set)[nodesId[kk]].size();
-              numDoubleNodes += a - 1;
+              blockNumNodes += 1.0/(double((*double_nodes_set)[nodesId[kk]].size()));
             }
 
           // here we compute the number of quad points in the block
@@ -2146,7 +2144,7 @@ void BEMFMA<dim>::generate_octree_blocking()
           // here we decide if a block is to be placed in the parent
           // or childless list
           //if (blockNumNodes + blockNumQuadPoints - numDoubleNodes < 2)
-          if (blockNumNodes - numDoubleNodes < max_num_nodes_per_block)
+          if (round(blockNumNodes) <= max_num_nodes_per_block)
             {
               numChildless += 1;
               childlessList.push_back(jj);

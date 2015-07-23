@@ -48,7 +48,7 @@ LocalExpansion::LocalExpansion(const LocalExpansion &other)
   this->mExp_to_lExp_Coeff = other.mExp_to_lExp_Coeff;
   this->center = other.center;
   this->_L_n_m = new std::complex <double>[(this->p+1)*(this->p+2)/2];
-  memcpy(this->_L_n_m, other.GetCoeffs(), (this->p+1)*(this->p+2)/2);
+  memcpy(this->_L_n_m, other.GetCoeffs(), sizeof(std::complex <double>)*(this->p+1)*(this->p+2)/2);
   this->is_zero = other.is_zero;
 }
 
@@ -67,7 +67,7 @@ LocalExpansion &LocalExpansion::operator=( const LocalExpansion &other )
   this->mExp_to_lExp_Coeff = other.mExp_to_lExp_Coeff;
   this->center = other.center;
   this->_L_n_m = new std::complex <double>[(this->p+1)*(this->p+2)/2];
-  memcpy(this->_L_n_m, other.GetCoeffs(), (this->p+1)*(this->p+2)/2);
+  memcpy(this->_L_n_m, other.GetCoeffs(), sizeof(std::complex <double>)*(this->p+1)*(this->p+2)/2);
   this->is_zero = other.is_zero;
   return *this;
 }

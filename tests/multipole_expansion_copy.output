@@ -1,0 +1,9 @@
+
+DEAL::Charge 1 of intensity 0.100000 is located at point (2.80000 3.00000 3.00000)
+DEAL::Charge 2 of intensity 0.400000 is located at point (3.00000 2.80000 3.00000)
+DEAL::Charge 3 of intensity 1.00000 is located at point (3.00000 3.00000 2.80000)
+DEAL::Charge 4 of intensity 0.200000 is located at point (3.20000 3.00000 3.00000)
+DEAL::Charge 5 of intensity 0.700000 is located at point (3.00000 3.00000 3.20000)
+DEAL::Original and copied multipole  are created. 
+DEAL::
+DEAL::Total difference between original and copied multipole expansion entries: (0.00000,0.00000)

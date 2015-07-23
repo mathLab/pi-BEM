@@ -822,6 +822,10 @@ void BEMFMA<dim>::multipole_integrals()
               MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
             copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j] =
               MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
+            copy_data.foo_fma->elemMultipoleExpansionsKer1[blockId][cell][j] =
+              MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
+            copy_data.foo_fma->elemMultipoleExpansionsKer2[blockId][cell][j] =
+              MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
           }
 
         // the contribution of each quadrature node (which can be seen as a
@@ -836,14 +840,16 @@ void BEMFMA<dim>::multipole_integrals()
               {
                 copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q], copy_data.foo_fma->quadNormals.at(cell)[q]);
                 copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q]);
+                copy_data.foo_fma->elemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q], copy_data.foo_fma->quadNormals.at(cell)[q]);
+                copy_data.foo_fma->elemMultipoleExpansionsKer2[blockId][cell][j].Add( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q]);
               }
           } // end loop on cell quadrature points in the block
         }
   };
 
   auto f_copier_multipole_integral = [] (const multipole_data &copy_data){
-    copy_data.foo_fma->elemMultipoleExpansionsKer1.clear();
-    copy_data.foo_fma->elemMultipoleExpansionsKer2.clear();
+    // copy_data.foo_fma->elemMultipoleExpansionsKer1.clear();
+    // copy_data.foo_fma->elemMultipoleExpansionsKer2.clear();
     copy_data.foo_fma->elemMultipoleExpansionsKer1 = copy_data.myelemMultipoleExpansionsKer1;//copy_data.myelemMultipoleExpansionsKer1.insert(copy_data.myelemMultipoleExpansionsKer1.begin(), copy_data.myelemMultipoleExpansionsKer1.end());
     copy_data.foo_fma->elemMultipoleExpansionsKer2 = copy_data.myelemMultipoleExpansionsKer1;//.insert(copy_data.myelemMultipoleExpansionsKer2.begin(), copy_data.myelemMultipoleExpansionsKer2.end());
   };

@@ -19,7 +19,7 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
-
+#include <deal.II/base/work_stream.h>
 #include <cmath>
 #include <iostream>
 #include <fstream>

@@ -50,6 +50,8 @@ MultipoleExpansion &MultipoleExpansion::operator=( const MultipoleExpansion &oth
   this->p=other.p;
   this->assLegFunction = other.assLegFunction;
   this->center = other.center;
+  if (_M_n_m != NULL)
+    delete [] _M_n_m;
   this->_M_n_m = new std::complex <double>[(this->p+1)*(this->p+2)/2];
   memcpy(this->_M_n_m, other.GetCoeffs(), (this->p+1)*(this->p+2)/2);
   this->is_zero = other.is_zero;

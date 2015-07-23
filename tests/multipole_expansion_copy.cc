@@ -79,7 +79,7 @@ int main ()
   std::complex <double> total_difference(0.0,0.0);
   for (unsigned int i=0; i<(truncation_order+1)*(truncation_order+2)/2; ++i)
       {
-      total_difference += fabs(old_multipole_values[i]-new_multipole_values[i]);
+      total_difference += abs(old_multipole_values[i]-new_multipole_values[i]);
       }
 
   deallog<<std::endl;

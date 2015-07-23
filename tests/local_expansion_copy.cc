@@ -91,7 +91,7 @@ int main ()
   std::complex <double> total_difference(0.0,0.0);
   for (unsigned int i=0; i<(truncation_order+1)*(truncation_order+2)/2; ++i)
       {
-      total_difference += fabs(old_local_values[i]-new_local_values[i]);
+      total_difference += abs(old_local_values[i]-new_local_values[i]);
       }
 
   deallog<<std::endl;

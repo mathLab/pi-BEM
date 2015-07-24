@@ -32,6 +32,7 @@ RCP<Time> MultInt = TimeMonitor::getNewTimer("Multipole Integral Time");
 RCP<Time> ListCreat = TimeMonitor::getNewTimer("Octree Generation Time");
 RCP<Time> DirInt = TimeMonitor::getNewTimer("Direct Integral Time");
 RCP<Time> PrecondTime = TimeMonitor::getNewTimer("FMA_preconditioner Time");
+RCP<Time> LocEval = TimeMonitor::getNewTimer("Local Evaluation Time");
 
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
@@ -754,77 +755,182 @@ void BEMFMA<dim>::multipole_integrals()
 
   // we set a useful integer variable and perform some check
 
-  const unsigned int dofs_per_cell = fma_fe->dofs_per_cell;
 
+  const unsigned int dofs_per_cell = fma_fe->dofs_per_cell;
 
   AssertThrow(dofs_per_cell == GeometryInfo<dim-1>::vertices_per_cell,
               ExcMessage("The code in this function can only be used for "
                          "the usual Q1 elements."));
 
-  // now we start looping on the childless blocks to perform the integrals
-  for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  struct MultipoleScratch{};
 
-    {
-      //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
-      //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
+  struct MultipoleData{
 
-      // we get the current block and its Id, and then we
-      // compute its center, which is needed to construct the
-      // multipole expansion in which we store the integrals
+    MultipoleData(const BEMFMA<dim> *in_fma){
+      myelemMultipoleExpansionsKer1.clear();
+      myelemMultipoleExpansionsKer2.clear();
+      foo_fma = in_fma;
+    };
 
-      unsigned int blockId =  childlessList[kk];
-      OctreeBlock<dim> *block =  blocks[blockId];
-      double delta = block->GetDelta();
-      Point<dim> deltaHalf;
-      for (unsigned int i=0; i<dim; i++)
-        deltaHalf(i) = delta/2.;
-      Point<dim> blockCenter = block->GetPMin()+deltaHalf;
+    MultipoleData(const MultipoleData &in_data){
+      myelemMultipoleExpansionsKer1 = in_data.myelemMultipoleExpansionsKer1;
+      myelemMultipoleExpansionsKer2 = in_data.myelemMultipoleExpansionsKer2;
+      foo_fma = in_data.foo_fma;
+    };
 
-      // at this point, we get the list of quad nodes for the current block,
-      // and loop over it
-      std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
+    ~MultipoleData(){
+      foo_fma = NULL;
+    }
 
-      typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-      for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-        {
-          // for each cell in the list, we get the list of its quad nodes
-          // present in the current block
-          cell_it cell = (*it).first;
-          std::vector <unsigned int> &cellQuadPoints = (*it).second;
+    std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > myelemMultipoleExpansionsKer1;
+    std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > myelemMultipoleExpansionsKer2;
+    mutable const BEMFMA<dim> *foo_fma;
+  };
 
-          // the vectors in the structures that we have previously cleared
-          // neet to be resized
-          elemMultipoleExpansionsKer1[blockId][cell].resize(dofs_per_cell);
-          elemMultipoleExpansionsKer2[blockId][cell].resize(dofs_per_cell);
+  auto f_worker_multipole_integral = [] (std::vector<unsigned int>::iterator blocky, MultipoleScratch &foo, MultipoleData &copy_data, const unsigned int dofs_per_cell){
+    unsigned int blockId =  *blocky;
+    OctreeBlock<dim> *block =  copy_data.foo_fma->blocks[blockId];
+    double delta = block->GetDelta();
+    Point<dim> deltaHalf;
+    for (unsigned int i=0; i<dim; i++)
+      deltaHalf(i) = delta/2.;
+    Point<dim> blockCenter = block->GetPMin()+deltaHalf;
 
-          // the vectors are now initialized with an empty multipole expansion
-          // centered in the current block center
-          for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-            {
-              elemMultipoleExpansionsKer1[blockId][cell][j] =
-                MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
-              elemMultipoleExpansionsKer2[blockId][cell][j] =
-                MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
-            }
+    // at this point, we get the list of quad nodes for the current block,
+    // and loop over it
+    std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
 
-          // the contribution of each quadrature node (which can be seen as a
-          // source with a certain strength) is introduced in the
-          // multipole expansion with the appropriate methods (AddNormDer
-          // for neumann matrix integrals, Add for dirichlet matrix
-          // integrals)
-          for (unsigned int k=0; k<cellQuadPoints.size(); ++k)
-            {
-              unsigned int q = cellQuadPoints[k];
-              for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                {
-                  elemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( quadShapeFunValues[cell][q][j]* quadJxW[cell][q]/4/numbers::PI, quadPoints[cell][q], quadNormals[cell][q]);
-                  elemMultipoleExpansionsKer2[blockId][cell][j].Add( quadShapeFunValues[cell][q][j]* quadJxW[cell][q]/4/numbers::PI, quadPoints[cell][q]);
+    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+      {
+        // for each cell in the list, we get the list of its quad nodes
+        // present in the current block
+        cell_it cell = (*it).first;
+        std::vector <unsigned int> &cellQuadPoints = (*it).second;
+
+        // the vectors in the structures that we have previously cleared
+        // neet to be resized
+        copy_data.myelemMultipoleExpansionsKer1[blockId][cell].resize(dofs_per_cell);
+        copy_data.myelemMultipoleExpansionsKer2[blockId][cell].resize(dofs_per_cell);
+
+        // std::map <cell_it, std::vector <MultipoleExpansion > > *foo_ker1
+        // the vectors are now initialized with an empty multipole expansion
+        // centered in the current block center
+        for (unsigned int j=0; j<dofs_per_cell; ++j)
+          {
+            copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j] =
+              MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
+            copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j] =
+              MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
+          }
+
+        // the contribution of each quadrature node (which can be seen as a
+        // source with a certain strength) is introduced in the
+        // multipole expansion with the appropriate methods (AddNormDer
+        // for neumann matrix integrals, Add for dirichlet matrix
+        // integrals)
+        for (unsigned int k=0; k<cellQuadPoints.size(); ++k)
+          {
+            unsigned int q = cellQuadPoints[k];
+            for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+              {
+                copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q], copy_data.foo_fma->quadNormals.at(cell)[q]);
+                copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q]);
                 }
-            } // end loop on cell quadrature points in the block
+          } // end loop on cell quadrature points in the block
+        }
+  };
 
-        } // end loop over cells in the block
+  auto f_copier_multipole_integral = [] (const MultipoleData &copy_data){
+    copy_data.foo_fma->elemMultipoleExpansionsKer1.insert(copy_data.myelemMultipoleExpansionsKer1.begin(), copy_data.myelemMultipoleExpansionsKer1.end());
+    copy_data.foo_fma->elemMultipoleExpansionsKer2.insert(copy_data.myelemMultipoleExpansionsKer2.begin(), copy_data.myelemMultipoleExpansionsKer2.end());
+  };
 
-    } // fine loop sui blocchi childless
+  MultipoleScratch foo_scratch;
+  MultipoleData copy_data(this);
+
+  // for(std::vector<unsigned int>::iterator kk = childlessList.begin(); kk <  childlessList.end(); kk++)
+  // {
+  //   f_worker_multipole_integral(kk, foo_scratch, copy_data, dofs_per_cell);
+  // }
+  // f_copier_multipole_integral(copy_data);
+
+  WorkStream::run(childlessList.begin(),
+                  childlessList.end(),
+                  std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,
+                    MultipoleScratch &, MultipoleData &, const unsigned int)>
+                  (f_worker_multipole_integral), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, dofs_per_cell),
+                  static_cast<void (*)(const MultipoleData &)>(f_copier_multipole_integral),
+                  foo_scratch,
+                  copy_data);
+
+
+  
+  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  //   f_generate_multipole_integral(kk, dofs_per_cell, this);
+  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  //
+  //   {
+  //     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
+  //     //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
+  //
+  //     // we get the current block and its Id, and then we
+  //     // compute its center, which is needed to construct the
+  //     // multipole expansion in which we store the integrals
+  //
+  //     unsigned int blockId =  childlessList[kk];
+  //     OctreeBlock<dim> *block =  blocks[blockId];
+  //     double delta = block->GetDelta();
+  //     Point<dim> deltaHalf;
+  //     for (unsigned int i=0; i<dim; i++)
+  //       deltaHalf(i) = delta/2.;
+  //     Point<dim> blockCenter = block->GetPMin()+deltaHalf;
+  //
+  //     // at this point, we get the list of quad nodes for the current block,
+  //     // and loop over it
+  //     std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
+  //
+  //     typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+  //       {
+  //         // for each cell in the list, we get the list of its quad nodes
+  //         // present in the current block
+  //         cell_it cell = (*it).first;
+  //         std::vector <unsigned int> &cellQuadPoints = (*it).second;
+  //
+  //         // the vectors in the structures that we have previously cleared
+  //         // neet to be resized
+  //         elemMultipoleExpansionsKer1[blockId][cell].resize(dofs_per_cell);
+  //         elemMultipoleExpansionsKer2[blockId][cell].resize(dofs_per_cell);
+  //
+  //         // the vectors are now initialized with an empty multipole expansion
+  //         // centered in the current block center
+  //         for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //           {
+  //             elemMultipoleExpansionsKer1[blockId][cell][j] =
+  //               MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
+  //             elemMultipoleExpansionsKer2[blockId][cell][j] =
+  //               MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
+  //           }
+  //
+  //         // the contribution of each quadrature node (which can be seen as a
+  //         // source with a certain strength) is introduced in the
+  //         // multipole expansion with the appropriate methods (AddNormDer
+  //         // for neumann matrix integrals, Add for dirichlet matrix
+  //         // integrals)
+  //         for (unsigned int k=0; k<cellQuadPoints.size(); ++k)
+  //           {
+  //             unsigned int q = cellQuadPoints[k];
+  //             for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //               {
+  //                 elemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( quadShapeFunValues[cell][q][j]* quadJxW[cell][q]/4/numbers::PI, quadPoints[cell][q], quadNormals[cell][q]);
+  //                 elemMultipoleExpansionsKer2[blockId][cell][j].Add( quadShapeFunValues[cell][q][j]* quadJxW[cell][q]/4/numbers::PI, quadPoints[cell][q]);
+  //               }
+  //           } // end loop on cell quadrature points in the block
+  //
+  //       } // end loop over cells in the block
+  //
+  //   } // fine loop sui blocchi childless
 
 
 
@@ -1212,6 +1318,8 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                   //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
                   unsigned int block2Id = *pos1;
                   //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
+                  TimeMonitor LocalTimer(*LocEval);
+
                   for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
                     {
                       Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
@@ -1259,6 +1367,8 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
         {
           if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
           {
+            TimeMonitor LocalTimer(*LocEval);
+
             Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
             matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
             matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);

@@ -379,221 +379,530 @@ void BEMFMA<dim>::direct_integrals()
   prec_dirichlet_matrix.reinit(init_prec_sparsity_pattern);
   init_preconditioner.reinit(init_prec_sparsity_pattern);
 
+
+  struct DirectChildlessScratchData { };
+
+  // Basically we are applying a local to global operation so we need only great care in the copy.
+  struct DirectChildlessCopyData {
+
+    DirectChildlessCopyData(const BEMFMA<dim> *dummy_fma){
+      // each thread will hold a local copy of Multipole expansions. here they are initialized in a very
+      // dumb way, but they're always overwritten so...
+      foo_fma = dummy_fma;
+    };
+
+    // The working copy constructor for the copy structure
+    DirectChildlessCopyData(const DirectChildlessCopyData &in_vec){
+      foo_fma = in_vec.foo_fma;
+      vec_local_neumann_matrix_row_i = in_vec.vec_local_neumann_matrix_row_i;
+      vec_local_dirichlet_matrix_row_i = in_vec.vec_local_dirichlet_matrix_row_i;
+      vec_local_dof_indices = in_vec.vec_local_dof_indices;
+      vec_node_index = in_vec.vec_node_index;
+    };
+
+    // The Destructor needs to make foo_fma to point to NULL (for this reason it is mutable const)
+    ~DirectChildlessCopyData(){
+      foo_fma = NULL;
+    };
+
+
+    // The pointer we use to copy everything back.
+    mutable const BEMFMA<dim> *foo_fma;
+
+    std::vector<Vector<double> >  vec_local_neumann_matrix_row_i;
+    std::vector<Vector<double> >  vec_local_dirichlet_matrix_row_i;
+    std::vector<std::vector<unsigned int> > vec_local_dof_indices;
+    std::vector<unsigned int> vec_node_index;
+    std::vector<unsigned int> vec_start_helper;
+  };
+
+
+  // The worker function, it computes the direct integral checking that the dofs belong to the IndexSet of the processor.
+  auto f_worker_direct_childless = [] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
+    //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
+    //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
+
+    // this is the Id of the block
+    copy_data.vec_local_dof_indices.resize(0);
+    copy_data.vec_local_neumann_matrix_row_i.resize(0);
+    copy_data.vec_local_dirichlet_matrix_row_i.resize(0);
+    copy_data.vec_node_index.resize(0);
+    copy_data.vec_start_helper.resize(0);
+    unsigned int blockId =  copy_data.foo_fma->childlessList[*block_it];
+    // and this is the block pointer
+    OctreeBlock<dim> *block1 =  copy_data.foo_fma->blocks[blockId];
+    // we get the block node list
+    const std::vector <unsigned int> &block1Nodes = block1->GetBlockNodeList();
+
+    // if a block has no nodes (if it only contains quad points), there is nothing to do
+    // if instead there are nodes, we start integrating
+    if  (block1Nodes.size() > 0)
+      {
+        // we first get all the blocks in the intList of the current block (block1)
+        // and loop over these blocks, to create a list of ALL the quadrature points that
+        // lie in the interaction list blocks: these quad points have to be integrated
+        // directly. the list of direct quad points has to be a std::map of std::set of
+        // integers, meaning that to each cell, we associate a std::set containing all
+        // the direct quad point ids
+        unsigned int intListNumLevs = block1->GetIntListSize();
+        std::set <unsigned int> block1IntList = block1->GetIntList(intListNumLevs-1);
+
+        std::map <cell_it,std::set<unsigned int> > directQuadPoints;
+        for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
+          {
+            // now for each block block2 we get the list of quad points
+            OctreeBlock<dim> *block2 =  copy_data.foo_fma->blocks[*pos];
+            std::map <cell_it, std::vector<unsigned int> >
+            blockQuadPointsList = block2->GetBlockQuadPointsList();
+
+            // we now loop among the cells of the list and for each cell we loop
+            // among its quad points, to copy them into the direct quad points list
+            typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+            for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+              {
+                for (unsigned int i=0; i<(*it).second.size(); i++)
+                  {
+                    directQuadPoints[(*it).first].insert((*it).second[i]);
+
+                    /*//////////this is for a check///////////////////
+                    for (unsigned int kk=0; kk<block1Nodes.size(); kk++)
+                           integralCheck[block1Nodes[kk]][(*it).first] += 1;
+                    ///////////////////////////*/
+                  }
+              }
+          }
+        // we are now ready to go: for each node, we know which quad points are to be
+        // treated directly, and for each node, we will now perform the integral.
+        // we then start looping on the nodes of the block
+        unsigned int helper_index = 0;
+        for (unsigned int i=0; i<block1Nodes.size(); i++)
+          {
+            unsigned int nodeIndex = block1Nodes[i];
+
+            if(copy_data.foo_fma->this_cpu_set.is_element(nodeIndex))
+            {
+              copy_data.vec_node_index.push_back(nodeIndex);
+              copy_data.vec_start_helper.push_back(helper_index);
+
+              typename std::map <cell_it, std::set<unsigned int> >::iterator it;
+              // we loop on the list of quad points to be treated directly
+              for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
+                {
+                  // the vectors with the local integrals for the cell must first
+                  // be zeroed
+                  copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (copy_data.foo_fma->fma_fe->dofs_per_cell));
+                  copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (copy_data.foo_fma->fma_fe->dofs_per_cell));
+
+                  // we get the first entry of the map, i.e. the cell pointer
+                  // and we check if the cell contains the current node, to
+                  // decide if singular of regular quadrature is to be used
+                  cell_it cell = (*it).first;
+                  copy_data.vec_local_dof_indices.push_back(std::vector<unsigned int> (copy_data.foo_fma->fma_fe->dofs_per_cell));
+                  cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
+
+                  // we copy the cell quad points in this set
+                  std::set<unsigned int> &cellQuadPoints = (*it).second;
+                  bool is_singular = false;
+                  unsigned int singular_index = numbers::invalid_unsigned_int;
+
+                  for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+                    if ( (*(copy_data.foo_fma->double_nodes_set))[nodeIndex].count(copy_data.vec_local_dof_indices.back()[j]) > 0)
+                      {
+                        singular_index = j;
+                        is_singular = true;
+                        break;
+                      }
+                  // first case: the current node does not belong to the current cell:
+                  // we use regular quadrature
+                  if (is_singular == false)
+                    {
+                      //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+                      //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+                      //pcout<<std::endl;
+
+                      // we start looping on the quad points of the cell: *pos will be the
+                      // index of the quad point
+                      for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+                        {
+                          // here we compute the distance R between the node and the quad point
+
+                          //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
+                          Point<dim> D;
+                          double s;
+
+                          const Tensor<1, dim> R =  copy_data.foo_fma->quadPoints.at(cell)[*pos] - support_points[nodeIndex];
+                          LaplaceKernel::kernels(R, D, s);
+
+                          // and here are the integrals for each of the degrees of freedom of the cell: note
+                          // how the quadrature values (position, normals, jacobianXweight, shape functions)
+                          // are taken from the precomputed ones in ComputationalDomain class
+                          for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+                            {
+                              copy_data.vec_local_neumann_matrix_row_i.back()(j) += ( ( D *
+                                                                   copy_data.foo_fma->quadNormals.at(cell)[*pos] ) *
+                                                                 copy_data.foo_fma->quadShapeFunValues.at(cell)[*pos][j] *
+                                                                 copy_data.foo_fma->quadJxW.at(cell)[*pos] );
+                              copy_data.vec_local_dirichlet_matrix_row_i.back()(j) += ( s *
+                                                                   copy_data.foo_fma->quadShapeFunValues.at(cell)[*pos][j] *
+                                                                   copy_data.foo_fma->quadJxW.at(cell)[*pos] );
+                              //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
+                              //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
+                              //pcout<< quadJxW[cell][*pos]<<std::endl;
+                              // std::cout<<D<<std::endl<<" "<<copy_data.foo_fma->quadNormals.at(cell)[*pos]<<std::endl;
+                              // std::cout<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<" "<<copy_data.vec_local_dirichlet_matrix_row_i.back()(j)<<std::endl;
+                            }
+                        }
+
+                    } // end if
+                  else
+                    {
+                      // after some checks, we have to create the singular quadrature:
+                      // here the quadrature points of the cell will be IGNORED,
+                      // and the singular quadrature points are instead used.
+                      // the 3d and 2d quadrature rules are different
+
+                      // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
+                      Assert(singular_index != numbers::invalid_unsigned_int,
+                             ExcInternalError());
+
+                      const Quadrature<dim-1> *
+                      singular_quadrature
+                        = (dim == 2
+                           ?
+                           dynamic_cast<Quadrature<dim-1>*>(
+                             &sing_quadratures[singular_index])
+                           :
+                           (dim == 3
+                            ?
+                            dynamic_cast<Quadrature<dim-1>*>(
+                              &sing_quadratures[singular_index])
+                            :
+                            0));
+                      Assert(singular_quadrature, ExcInternalError());
+
+                      // once the singular quadrature has been created, we employ it
+                      // to create the corresponding fe_values
+
+                      FEValues<dim-1,dim> fe_v_singular (*(copy_data.foo_fma->fma_mapping), *(copy_data.foo_fma->fma_fe), *(singular_quadrature),
+                                                         update_jacobians |
+                                                         update_values |
+                                                         update_cell_normal_vectors |
+                                                         update_quadrature_points );
+
+                      fe_v_singular.reinit(cell);
+
+                      // here are the vectors of the quad points and normals vectors
+
+                      const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                      const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
+
+
+                      // and here is the integrals computation: note how in this case the
+                      // values for shape functions & co. are not taken from the precomputed
+                      // ones in ComputationalDomain class
+
+                      for (unsigned int q=0; q<singular_quadrature->size(); ++q)
+                        {
+                          Point<dim> D;
+                          double s;
+
+                          const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
+                          LaplaceKernel::kernels(R, D, s);
+                          for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+                            {
+                              copy_data.vec_local_neumann_matrix_row_i.back()(j) += (( D *
+                                                                  singular_normals[q]) *
+                                                                fe_v_singular.shape_value(j,q) *
+                                                                fe_v_singular.JxW(q) );
+
+                              copy_data.vec_local_dirichlet_matrix_row_i.back()(j) += ( s   *
+                                                                   fe_v_singular.shape_value(j,q) *
+                                                                   fe_v_singular.JxW(q) );
+                            }
+                        }
+                      if (dim==2)
+                        delete singular_quadrature;
+
+                    } // end else
+
+                    helper_index += 1;
+
+
+                } // end loop on cells of the intList
+            } // end check on this_cpu_set
+          } // end loop over nodes of block1
+      } // end if (nodes in block > 0)
+
+  };
+
+  // The copier function, it copies the value from the local array to the global matrix
+  auto f_copier_direct_childless = [this] (const  DirectChildlessCopyData &copy_data){
+    // Finally, we need to add
+    // the contributions of the
+    // current cell to the
+    // global matrix.
+    if(copy_data.vec_node_index.size()>0)
+    {
+      std::cout<<"BOIA: "<<std::endl;
+      for(auto fdj : copy_data.vec_start_helper)
+        std::cout<<fdj<<" ";
+      std::cout<<std::endl;
+
+      for(unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
+      {
+        // std::cout<<"index: "<< copy_data.vec_node_index[ii]<<std::endl;
+        unsigned int foo_start = copy_data.vec_start_helper[ii];
+        unsigned int foo_end = copy_data.vec_local_dof_indices[ii].size();
+        if(ii < copy_data.vec_node_index.size()-1)
+          foo_end = copy_data.vec_start_helper[ii+1];
+        // std::cout<<"!!!!! "<<ii<<" "<<copy_data.vec_node_index.size()<<" "<<foo_start<<" "<<foo_end<<" "<<copy_data.vec_local_dof_indices[ii].size()<<std::endl;
+        for(unsigned int kk=foo_start; kk<foo_end;++kk)
+        {
+          // std::cout<<"pippo"<<kk<<std::endl;
+          for (unsigned int j=0; j< fma_fe->dofs_per_cell; ++j)
+            {
+                this->prec_neumann_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                if ((*( dirichlet_nodes))(copy_data.vec_local_dof_indices[kk][j]) > 0.8)
+                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],-copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                else
+                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j], copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                // std::cout<<copy_data.vec_local_neumann_matrix_row_i[kk][j]<<" ";
+                // std::cout<<copy_data.vec_local_dirichlet_matrix_row_i[kk][j]<<" "<<std::endl;
+            }
+        }//end loop on everything in the non int list of the node of the block
+      }//end loop on nodes in block
+    }
+
+  };
+
+  DirectChildlessScratchData direct_childless_scratch_data;
+  DirectChildlessCopyData direct_childless_copy_data(this);
+
+  WorkStream::run(childlessList.begin(),
+                  childlessList.end(),
+                  std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,
+                    DirectChildlessScratchData &, DirectChildlessCopyData &, const std::vector<Point<dim> > &, std::vector<QTelles<dim-1> > &)>
+                  (f_worker_direct_childless), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
+                  f_copier_direct_childless,
+                  direct_childless_scratch_data,
+                  direct_childless_copy_data);
+
   Point<dim> D;
   double s;
 
   // here we finally start computing the direct integrals: we
   // first loop among the childless blocks
 
-  for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
-
-    {
-      //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
-      //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
-
-      // this is the Id of the block
-      unsigned int blockId =  childlessList[kk];
-      // and this is the block pointer
-      OctreeBlock<dim> *block1 =  blocks[blockId];
-      // we get the block node list
-      const std::vector <unsigned int> &block1Nodes = block1->GetBlockNodeList();
-
-      // if a block has no nodes (if it only contains quad points), there is nothing to do
-      // if instead there are nodes, we start integrating
-      if  (block1Nodes.size() > 0)
-        {
-          // we first get all the blocks in the intList of the current block (block1)
-          // and loop over these blocks, to create a list of ALL the quadrature points that
-          // lie in the interaction list blocks: these quad points have to be integrated
-          // directly. the list of direct quad points has to be a std::map of std::set of
-          // integers, meaning that to each cell, we associate a std::set containing all
-          // the direct quad point ids
-          unsigned int intListNumLevs = block1->GetIntListSize();
-          std::set <unsigned int> block1IntList = block1->GetIntList(intListNumLevs-1);
-
-          std::map <cell_it,std::set<unsigned int> > directQuadPoints;
-          for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
-            {
-              // now for each block block2 we get the list of quad points
-              OctreeBlock<dim> *block2 =  blocks[*pos];
-              std::map <cell_it, std::vector<unsigned int> >
-              blockQuadPointsList = block2->GetBlockQuadPointsList();
-
-              // we now loop among the cells of the list and for each cell we loop
-              // among its quad points, to copy them into the direct quad points list
-              typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-              for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-                {
-                  for (unsigned int i=0; i<(*it).second.size(); i++)
-                    {
-                      directQuadPoints[(*it).first].insert((*it).second[i]);
-
-                      /*//////////this is for a check///////////////////
-                      for (unsigned int kk=0; kk<block1Nodes.size(); kk++)
-                             integralCheck[block1Nodes[kk]][(*it).first] += 1;
-                      ///////////////////////////*/
-                    }
-                }
-            }
-          // we are now ready to go: for each node, we know which quad points are to be
-          // treated directly, and for each node, we will now perform the integral.
-          // we then start looping on the nodes of the block
-          for (unsigned int i=0; i<block1Nodes.size(); i++)
-            {
-              unsigned int nodeIndex = block1Nodes[i];
-              if(this_cpu_set.is_element(nodeIndex))
-              {
-                typename std::map <cell_it, std::set<unsigned int> >::iterator it;
-                // we loop on the list of quad points to be treated directly
-                for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
-                  {
-                    // the vectors with the local integrals for the cell must first
-                    // be zeroed
-                    local_neumann_matrix_row_i = 0;
-                    local_dirichlet_matrix_row_i = 0;
-
-                    // we get the first entry of the map, i.e. the cell pointer
-                    // and we check if the cell contains the current node, to
-                    // decide if singular of regular quadrature is to be used
-                    cell_it cell = (*it).first;
-                    cell->get_dof_indices(local_dof_indices);
-
-                    // we copy the cell quad points in this set
-                    std::set<unsigned int> &cellQuadPoints = (*it).second;
-                    bool is_singular = false;
-                    unsigned int singular_index = numbers::invalid_unsigned_int;
-
-                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                      if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
-                        {
-                          singular_index = j;
-                          is_singular = true;
-                          break;
-                        }
-                    // first case: the current node does not belong to the current cell:
-                    // we use regular quadrature
-                    if (is_singular == false)
-                      {
-                        //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
-                        //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
-                        //pcout<<std::endl;
-
-                        // we start looping on the quad points of the cell: *pos will be the
-                        // index of the quad point
-                        for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
-                          {
-                            // here we compute the distance R between the node and the quad point
-
-                            //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
-                            const Tensor<1, dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
-                            LaplaceKernel::kernels(R, D, s);
-
-                            // and here are the integrals for each of the degrees of freedom of the cell: note
-                            // how the quadrature values (position, normals, jacobianXweight, shape functions)
-                            // are taken from the precomputed ones in ComputationalDomain class
-                            for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                              {
-                                local_neumann_matrix_row_i(j) += ( ( D *
-                                                                     quadNormals[cell][*pos] ) *
-                                                                   quadShapeFunValues[cell][*pos][j] *
-                                                                   quadJxW[cell][*pos] );
-                                local_dirichlet_matrix_row_i(j) += ( s *
-                                                                     quadShapeFunValues[cell][*pos][j] *
-                                                                     quadJxW[cell][*pos] );
-                                //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
-                                //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
-                                //pcout<< quadJxW[cell][*pos]<<std::endl;
-                              }
-                          }
-                      } // end if
-                    else
-                      {
-                        // after some checks, we have to create the singular quadrature:
-                        // here the quadrature points of the cell will be IGNORED,
-                        // and the singular quadrature points are instead used.
-                        // the 3d and 2d quadrature rules are different
-
-                        // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
-                        Assert(singular_index != numbers::invalid_unsigned_int,
-                               ExcInternalError());
-
-                        const Quadrature<dim-1> *
-                        singular_quadrature
-                          = (dim == 2
-                             ?
-                             dynamic_cast<Quadrature<dim-1>*>(
-                               &sing_quadratures[singular_index])
-                             :
-                             (dim == 3
-                              ?
-                              dynamic_cast<Quadrature<dim-1>*>(
-                                &sing_quadratures[singular_index])
-                              :
-                              0));
-                        Assert(singular_quadrature, ExcInternalError());
-
-                        // once the singular quadrature has been created, we employ it
-                        // to create the corresponding fe_values
-
-                        FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
-                                                           update_jacobians |
-                                                           update_values |
-                                                           update_cell_normal_vectors |
-                                                           update_quadrature_points );
-
-                        fe_v_singular.reinit(cell);
-
-                        // here are the vectors of the quad points and normals vectors
-
-                        const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
-                        const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
-
-
-                        // and here is the integrals computation: note how in this case the
-                        // values for shape functions & co. are not taken from the precomputed
-                        // ones in ComputationalDomain class
-
-                        for (unsigned int q=0; q<singular_quadrature->size(); ++q)
-                          {
-                            const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
-                            LaplaceKernel::kernels(R, D, s);
-                            for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                              {
-                                local_neumann_matrix_row_i(j) += (( D *
-                                                                    singular_normals[q]) *
-                                                                  fe_v_singular.shape_value(j,q) *
-                                                                  fe_v_singular.JxW(q) );
-
-                                local_dirichlet_matrix_row_i(j) += ( s   *
-                                                                     fe_v_singular.shape_value(j,q) *
-                                                                     fe_v_singular.JxW(q) );
-                              }
-                          }
-                        if (dim==2)
-                          delete singular_quadrature;
-
-                      } // end else
-
-                    // Finally, we need to add
-                    // the contributions of the
-                    // current cell to the
-                    // global matrix.
-
-                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                      {
-                          prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                          prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-                          if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                            init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                          else
-                            init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
-                      }
-
-                  } // end loop on cells of the intList
-              }
-            } // end loop over nodes of block1
-        } // end if (nodes in block > 0)
-    } // end loop over childless blocks
+  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  //
+  //   {
+  //     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
+  //     //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
+  //
+  //     // this is the Id of the block
+  //     unsigned int blockId =  childlessList[kk];
+  //     // and this is the block pointer
+  //     OctreeBlock<dim> *block1 =  blocks[blockId];
+  //     // we get the block node list
+  //     const std::vector <unsigned int> &block1Nodes = block1->GetBlockNodeList();
+  //
+  //     // if a block has no nodes (if it only contains quad points), there is nothing to do
+  //     // if instead there are nodes, we start integrating
+  //     if  (block1Nodes.size() > 0)
+  //       {
+  //         // we first get all the blocks in the intList of the current block (block1)
+  //         // and loop over these blocks, to create a list of ALL the quadrature points that
+  //         // lie in the interaction list blocks: these quad points have to be integrated
+  //         // directly. the list of direct quad points has to be a std::map of std::set of
+  //         // integers, meaning that to each cell, we associate a std::set containing all
+  //         // the direct quad point ids
+  //         unsigned int intListNumLevs = block1->GetIntListSize();
+  //         std::set <unsigned int> block1IntList = block1->GetIntList(intListNumLevs-1);
+  //
+  //         std::map <cell_it,std::set<unsigned int> > directQuadPoints;
+  //         for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
+  //           {
+  //             // now for each block block2 we get the list of quad points
+  //             OctreeBlock<dim> *block2 =  blocks[*pos];
+  //             std::map <cell_it, std::vector<unsigned int> >
+  //             blockQuadPointsList = block2->GetBlockQuadPointsList();
+  //
+  //             // we now loop among the cells of the list and for each cell we loop
+  //             // among its quad points, to copy them into the direct quad points list
+  //             typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+  //               {
+  //                 for (unsigned int i=0; i<(*it).second.size(); i++)
+  //                   {
+  //                     directQuadPoints[(*it).first].insert((*it).second[i]);
+  //
+  //                     /*//////////this is for a check///////////////////
+  //                     for (unsigned int kk=0; kk<block1Nodes.size(); kk++)
+  //                            integralCheck[block1Nodes[kk]][(*it).first] += 1;
+  //                     ///////////////////////////*/
+  //                   }
+  //               }
+  //           }
+  //         // we are now ready to go: for each node, we know which quad points are to be
+  //         // treated directly, and for each node, we will now perform the integral.
+  //         // we then start looping on the nodes of the block
+  //         for (unsigned int i=0; i<block1Nodes.size(); i++)
+  //           {
+  //             unsigned int nodeIndex = block1Nodes[i];
+  //             if(this_cpu_set.is_element(nodeIndex))
+  //             {
+  //               typename std::map <cell_it, std::set<unsigned int> >::iterator it;
+  //               // we loop on the list of quad points to be treated directly
+  //               for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
+  //                 {
+  //                   // the vectors with the local integrals for the cell must first
+  //                   // be zeroed
+  //                   local_neumann_matrix_row_i = 0;
+  //                   local_dirichlet_matrix_row_i = 0;
+  //
+  //                   // we get the first entry of the map, i.e. the cell pointer
+  //                   // and we check if the cell contains the current node, to
+  //                   // decide if singular of regular quadrature is to be used
+  //                   cell_it cell = (*it).first;
+  //                   cell->get_dof_indices(local_dof_indices);
+  //
+  //                   // we copy the cell quad points in this set
+  //                   std::set<unsigned int> &cellQuadPoints = (*it).second;
+  //                   bool is_singular = false;
+  //                   unsigned int singular_index = numbers::invalid_unsigned_int;
+  //
+  //                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                     if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
+  //                       {
+  //                         singular_index = j;
+  //                         is_singular = true;
+  //                         break;
+  //                       }
+  //                   // first case: the current node does not belong to the current cell:
+  //                   // we use regular quadrature
+  //                   if (is_singular == false)
+  //                     {
+  //                       //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+  //                       //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+  //                       //pcout<<std::endl;
+  //
+  //                       // we start looping on the quad points of the cell: *pos will be the
+  //                       // index of the quad point
+  //                       for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+  //                         {
+  //                           // here we compute the distance R between the node and the quad point
+  //
+  //                           //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
+  //                           const Tensor<1, dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
+  //                           LaplaceKernel::kernels(R, D, s);
+  //
+  //                           // and here are the integrals for each of the degrees of freedom of the cell: note
+  //                           // how the quadrature values (position, normals, jacobianXweight, shape functions)
+  //                           // are taken from the precomputed ones in ComputationalDomain class
+  //                           for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                             {
+  //                               local_neumann_matrix_row_i(j) += ( ( D *
+  //                                                                    quadNormals[cell][*pos] ) *
+  //                                                                  quadShapeFunValues[cell][*pos][j] *
+  //                                                                  quadJxW[cell][*pos] );
+  //                               local_dirichlet_matrix_row_i(j) += ( s *
+  //                                                                    quadShapeFunValues[cell][*pos][j] *
+  //                                                                    quadJxW[cell][*pos] );
+  //                               //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
+  //                               //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
+  //                               //pcout<< quadJxW[cell][*pos]<<std::endl;
+  //                             }
+  //                         }
+  //                     } // end if
+  //                   else
+  //                     {
+  //                       // after some checks, we have to create the singular quadrature:
+  //                       // here the quadrature points of the cell will be IGNORED,
+  //                       // and the singular quadrature points are instead used.
+  //                       // the 3d and 2d quadrature rules are different
+  //
+  //                       // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON QUELLO NUOVO PER STOKES
+  //                       Assert(singular_index != numbers::invalid_unsigned_int,
+  //                              ExcInternalError());
+  //
+  //                       const Quadrature<dim-1> *
+  //                       singular_quadrature
+  //                         = (dim == 2
+  //                            ?
+  //                            dynamic_cast<Quadrature<dim-1>*>(
+  //                              &sing_quadratures[singular_index])
+  //                            :
+  //                            (dim == 3
+  //                             ?
+  //                             dynamic_cast<Quadrature<dim-1>*>(
+  //                               &sing_quadratures[singular_index])
+  //                             :
+  //                             0));
+  //                       Assert(singular_quadrature, ExcInternalError());
+  //
+  //                       // once the singular quadrature has been created, we employ it
+  //                       // to create the corresponding fe_values
+  //
+  //                       FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
+  //                                                          update_jacobians |
+  //                                                          update_values |
+  //                                                          update_cell_normal_vectors |
+  //                                                          update_quadrature_points );
+  //
+  //                       fe_v_singular.reinit(cell);
+  //
+  //                       // here are the vectors of the quad points and normals vectors
+  //
+  //                       const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+  //                       const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
+  //
+  //
+  //                       // and here is the integrals computation: note how in this case the
+  //                       // values for shape functions & co. are not taken from the precomputed
+  //                       // ones in ComputationalDomain class
+  //
+  //                       for (unsigned int q=0; q<singular_quadrature->size(); ++q)
+  //                         {
+  //                           const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
+  //                           LaplaceKernel::kernels(R, D, s);
+  //                           for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                             {
+  //                               local_neumann_matrix_row_i(j) += (( D *
+  //                                                                   singular_normals[q]) *
+  //                                                                 fe_v_singular.shape_value(j,q) *
+  //                                                                 fe_v_singular.JxW(q) );
+  //
+  //                               local_dirichlet_matrix_row_i(j) += ( s   *
+  //                                                                    fe_v_singular.shape_value(j,q) *
+  //                                                                    fe_v_singular.JxW(q) );
+  //                             }
+  //                         }
+  //                       if (dim==2)
+  //                         delete singular_quadrature;
+  //
+  //                     } // end else
+  //
+  //                   // Finally, we need to add
+  //                   // the contributions of the
+  //                   // current cell to the
+  //                   // global matrix.
+  //
+  //                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                     {
+  //                         prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+  //                         prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+  //                         if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+  //                           init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+  //                         else
+  //                           init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+  //                     }
+  //
+  //                 } // end loop on cells of the intList
+  //             }
+  //           } // end loop over nodes of block1
+  //       } // end if (nodes in block > 0)
+  //   } // end loop over childless blocks
 
 
   // as said, the direct integrals must not be computed only for the

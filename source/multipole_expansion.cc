@@ -156,52 +156,66 @@ void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3
 }
 
 
-void MultipoleExpansion::Add(const MultipoleExpansion &child) //translation of a multipole to its parent center
+void MultipoleExpansion::Add(const MultipoleExpansion &other) //translation of a multipole to its parent center
 
 {
-  if (child.is_zero)
+  if (other.is_zero)
     {
-      this->is_zero = this->is_zero & child.is_zero;
+      this->is_zero = this->is_zero & other.is_zero;
     }
   else
     {
       this->is_zero = false;
       FullMatrix<double> &A_n_m = this->GetA_n_m();
-      dealii::Point<3> blockRelPos = child.center + (-1.0*this->center);
-      double rho = sqrt(blockRelPos.square());
-      double cos_alpha_ = blockRelPos(2)/rho;
-      double beta = atan2(blockRelPos(1),blockRelPos(0));
+      if (other.center.distance(this->center) > 1e-7)
+         {
 
-      std::complex <double> imUnit(0.,1.);
+         dealii::Point<3> blockRelPos = other.center + (-1.0*this->center);
+         double rho = sqrt(blockRelPos.square());
+         double cos_alpha_ = blockRelPos(2)/rho;
+         double beta = atan2(blockRelPos(1),blockRelPos(0));
 
-      double P_nn_mm;
+         std::complex <double> imUnit(0.,1.);
 
-      for (int n = 0; n < int(this->p)+1 ; n++)
+         double P_nn_mm;
+
+         for (int n = 0; n < int(this->p)+1 ; n++)
+           {
+             for (int m = 0; m < n+1 ; m++)
+               {
+               std::complex <double> z(0.,0.);
+                 for (int nn = 0; nn < n+1 ; nn++)
+                   {
+                     for (int mm = -1*nn; mm < nn+1 ; mm++)
+                       {
+                         if (abs(m-mm) >  n-nn)
+                           {
+                           }
+                         else
+                           {
+                             std::complex <double> a = std::complex<double>((other.GetCoeff(abs(n-nn),abs(m-mm))).real(),GSL_SIGN(m-mm)*
+                                                                            (other.GetCoeff(abs(n-nn),abs(m-mm))).imag());
+                             P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn,abs(mm),cos_alpha_);
+                             double realFact = P_nn_mm * pow(rho,double(nn)) * A_n_m(abs(nn),abs(mm)) *
+                                               A_n_m(abs(n-nn),abs(m-mm)) / A_n_m(abs(n),abs(m));
+                             realFact *= (pow(imUnit, double(abs(m)-abs(mm)-abs(m-mm)))).real();
+                             z += realFact*(a*exp(std::complex <double>(0.,-mm*beta)));
+                           }
+                       }
+                   }
+                 this->AddToCoeff(n,m,z);
+               }
+           }
+        }
+      else
         {
-          for (int m = 0; m < n+1 ; m++)
-            {
-              std::complex <double> z(0.,0.);
-              for (int nn = 0; nn < n+1 ; nn++)
-                {
-                  for (int mm = -1*nn; mm < nn+1 ; mm++)
-                    {
-                      if (abs(m-mm) >  n-nn)
-                        {
-                        }
-                      else
-                        {
-                          std::complex <double> a = std::complex<double>((child.GetCoeff(abs(n-nn),abs(m-mm))).real(),GSL_SIGN(m-mm)*
-                                                                         (child.GetCoeff(abs(n-nn),abs(m-mm))).imag());
-                          P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn,abs(mm),cos_alpha_);
-                          double realFact = P_nn_mm * pow(rho,double(nn)) * A_n_m(abs(nn),abs(mm)) *
-                                            A_n_m(abs(n-nn),abs(m-mm)) / A_n_m(abs(n),abs(m));
-                          realFact *= (pow(imUnit, double(abs(m)-abs(mm)-abs(m-mm)))).real();
-                          z += realFact*(a*exp(std::complex <double>(0.,-mm*beta)));
-                        }
-                    }
-                }
-              this->AddToCoeff(n,m,z);
-            }
+        for (int n = 0; n < int(this->p)+1 ; n++)
+          {
+            for (int m = 0; m < n+1 ; m++)
+              {
+                this->AddToCoeff(n,m,other.GetCoeff(n,m));
+              }
+          }
         }
     }
 }
@@ -239,5 +253,3 @@ double MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
   return fieldValue.real();
 
 }
-
-

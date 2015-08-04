@@ -547,8 +547,8 @@ void BEMFMA<dim>::direct_integrals()
                               copy_data.vec_local_dirichlet_matrix_row_i.back()(j) += ( s *
                                                                    copy_data.foo_fma->quadShapeFunValues.at(cell)[*pos][j] *
                                                                    copy_data.foo_fma->quadJxW.at(cell)[*pos] );
-                              if(std::abs(copy_data.vec_local_neumann_matrix_row_i.back()(j))<1e-12)
-                                std::cout<<D<<" "<< copy_data.foo_fma->quadNormals.at(cell)[*pos]<<" "<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<std::endl;
+                              // if(std::abs(copy_data.vec_local_neumann_matrix_row_i.back()(j))<1e-12)
+                              //   std::cout<<D<<" "<< copy_data.foo_fma->quadNormals.at(cell)[*pos]<<" "<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<std::endl;
                               //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
                               //pcout<< quadJxW[cell][*pos]<<std::endl;
                               // std::cout<<D<<std::endl<<" "<<copy_data.foo_fma->quadNormals.at(cell)[*pos]<<std::endl;
@@ -662,17 +662,23 @@ void BEMFMA<dim>::direct_integrals()
         for(unsigned int kk=foo_start; kk<foo_end;++kk)
         {
           // std::cout<<"pippo"<<kk<<std::endl;
-          for (unsigned int j=0; j< fma_fe->dofs_per_cell; ++j)
+          std::cout<<std::endl<<"Index : "<<copy_data.vec_node_index[ii]<<" "<<std::endl;
+          for (unsigned int j=0; j< this->fma_fe->dofs_per_cell; ++j)
             {
+                std::cout<<copy_data.vec_local_dof_indices[kk][j]<<" "<<copy_data.vec_local_neumann_matrix_row_i[kk](j) <<" "<<copy_data.vec_local_dirichlet_matrix_row_i[kk](j)<<" ";
                 this->prec_neumann_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
-                this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
-                if ((*( dirichlet_nodes))(copy_data.vec_local_dof_indices[kk][j]) > 0.8)
-                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],-copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
+                if ((*(this->dirichlet_nodes))(copy_data.vec_local_dof_indices[kk][j]) > 0.8)
+                {
+                  //  std::cout<<"DIANE"<<std::endl;
+                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],-copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
+                 }
                 else
                    this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j], copy_data.vec_local_neumann_matrix_row_i[kk](j));
-                // std::cout<<copy_data.vec_local_neumann_matrix_row_i[kk][j]<<" ";
+                //  std::cout<<this->init_preconditioner(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j])<<" ";
                 // std::cout<<copy_data.vec_local_dirichlet_matrix_row_i[kk][j]<<" "<<std::endl;
             }
+            // std::cout<<std::endl;
         }//end loop on everything in the non int list of the node of the block
       }//end loop on nodes in block
     }

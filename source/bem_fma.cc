@@ -646,26 +646,22 @@ void BEMFMA<dim>::direct_integrals()
     // global matrix.
     if(copy_data.vec_node_index.size()>0)
     {
-      std::cout<<"Sizes of vec_node_index and vec_start_helper: "<<copy_data.vec_node_index.size()<<" "<<copy_data.vec_start_helper.size()<<std::endl;
+      //std::cout<<"Sizes of vec_node_index and vec_start_helper: "<<copy_data.vec_node_index.size()<<" "<<copy_data.vec_start_helper.size()<<std::endl;
       // for(auto fdj : copy_data.vec_start_helper)
       //   std::cout<<fdj<<" ";
-      std::cout<<std::endl;
+      
 
       for(unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
       {
-        // std::cout<<"index: "<< copy_data.vec_node_index[ii]<<std::endl;
         unsigned int foo_start = copy_data.vec_start_helper[ii];
-        unsigned int foo_end = copy_data.vec_local_dof_indices[ii].size();
+        unsigned int foo_end = copy_data.vec_local_dof_indices.size();
         if(ii < copy_data.vec_node_index.size()-1)
           foo_end = copy_data.vec_start_helper[ii+1];
-        // std::cout<<"!!!!! "<<ii<<" "<<copy_data.vec_node_index.size()<<" "<<foo_start<<" "<<foo_end<<" "<<copy_data.vec_local_dof_indices[ii].size()<<std::endl;
+
         for(unsigned int kk=foo_start; kk<foo_end;++kk)
         {
-          // std::cout<<"pippo"<<kk<<std::endl;
-          std::cout<<std::endl<<"Index : "<<copy_data.vec_node_index[ii]<<" "<<std::endl;
           for (unsigned int j=0; j< this->fma_fe->dofs_per_cell; ++j)
             {
-                std::cout<<copy_data.vec_local_dof_indices[kk][j]<<" "<<copy_data.vec_local_neumann_matrix_row_i[kk](j) <<" "<<copy_data.vec_local_dirichlet_matrix_row_i[kk](j)<<" ";
                 this->prec_neumann_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
                 this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
                 if ((*(this->dirichlet_nodes))(copy_data.vec_local_dof_indices[kk][j]) > 0.8)
@@ -678,6 +674,8 @@ void BEMFMA<dim>::direct_integrals()
                 //  std::cout<<this->init_preconditioner(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j])<<" ";
                 // std::cout<<copy_data.vec_local_dirichlet_matrix_row_i[kk][j]<<" "<<std::endl;
             }
+
+
             // std::cout<<std::endl;
         }//end loop on everything in the non int list of the node of the block
       }//end loop on nodes in block
@@ -687,7 +685,6 @@ void BEMFMA<dim>::direct_integrals()
 
   DirectChildlessScratchData direct_childless_scratch_data;
   DirectChildlessCopyData direct_childless_copy_data(this);
-  std::cout<<"size of childlessList : "<<childlessList.size()<<std::endl;
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
                   std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,

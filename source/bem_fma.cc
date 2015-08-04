@@ -1376,6 +1376,248 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     }
 
 
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+
+  // The scratch data is nothing
+  struct DescendScratchData { };
+
+  // Basically we are applying a local to global operation so we need only great care in the copy.
+  struct DescendCopyData {
+
+    DescendCopyData(const BEMFMA<dim> *dummy_fma){
+      // each thread will hold a local copy of Multipole expansions. here they are initialized in a very
+      // dumb way, but they're always overwritten so...
+      Point<dim> zero;
+      LocalExpansion dummy(dummy_fma->trunc_order, zero, &(dummy_fma->assLegFunction));
+      blockLocalExpansionKer1 = dummy;
+      blockLocalExpansionKer2 = dummy;
+
+      foo_fma = dummy_fma;
+      // we declare some familiar variables that will be useful in the method
+      //support_points.resize(dummy_fma->fma_dh->n_dofs());
+      //DoFTools::map_dofs_to_support_points<dim-1, dim>( *(dummy_fma->fma_mapping),
+      //                                              *(dummy_fma->fma_dh), support_points);
+    };
+
+    // The working copy constructor for the copy structure
+    DescendCopyData(const DescendCopyData &in_vec){
+      blockLocalExpansionKer1 = in_vec.blockLocalExpansionKer1;
+      blockLocalExpansionKer2 = in_vec.blockLocalExpansionKer2;
+      foo_fma = in_vec.foo_fma;
+      start = in_vec.start;
+    };
+
+    // The Destructor needs to make foo_fma to point to NULL (for this reason it is mutable const)
+    ~DescendCopyData(){
+      foo_fma = NULL;
+    };
+
+    unsigned int start;
+    unsigned int blockId;
+    LocalExpansion blockLocalExpansionKer1;
+    LocalExpansion blockLocalExpansionKer2;
+    Vector<double> matrVectorProductContributionKer1;
+    Vector<double> matrVectorProductContributionKer2;
+    std::vector<unsigned int> nodesBlk1Ids; 
+    // The pointer we use to copy everything back.
+    mutable const BEMFMA<dim> *foo_fma;
+
+  };
+
+
+  // The worker function, it copies the value from the memory at a certain level to local array in copy.data
+  auto f_worker_Descend = [] (typename std::vector<unsigned int>::iterator block_id_it, DescendScratchData &scratch, DescendCopyData &copy_data, unsigned int start, std::vector<Point<dim> > &support_points){
+    unsigned int kk = *block_id_it;
+    OctreeBlock<dim> *block_it = copy_data.foo_fma->blocks[kk];
+
+    Point<dim> zero;
+    LocalExpansion dummy(copy_data.foo_fma->trunc_order, zero, &(copy_data.foo_fma->assLegFunction));
+    copy_data.blockLocalExpansionKer1 = dummy;
+    copy_data.blockLocalExpansionKer2 = dummy;
+    copy_data.start = start;
+    copy_data.blockId = kk;
+    // copy_data.local_level_indices[kk] = start + kk;
+//*****************definire chi e' on_process qui
+
+         //pcout<<"Block "<<jj<<std::endl;
+    unsigned int level=0;
+    for (unsigned int lev = 0; lev <  copy_data.foo_fma->num_octree_levels + 1;  lev++)
+        {
+        //std::cout<<copy_data.foo_fma->startLevel[lev]<<"  "<<kk<<"  "<<copy_data.foo_fma->endLevel[lev]<<std::endl;
+        if (kk >= copy_data.foo_fma->startLevel[lev] &&
+            kk <= copy_data.foo_fma->endLevel[lev])
+           {
+           level = lev;
+           break;
+           }
+        }
+
+    unsigned int startBlockLevel =  copy_data.foo_fma->startLevel[level];
+    unsigned int endBlockLevel =  copy_data.foo_fma->endLevel[level];
+    unsigned int jj =  copy_data.foo_fma->dofs_filled_blocks[level][kk-startBlockLevel];
+    std::vector <unsigned int> nodesBlk1Ids = block_it->GetBlockNodeList();
+    bool on_process = false;
+    for(auto ind : nodesBlk1Ids)
+       {
+       if(copy_data.foo_fma->this_cpu_set.is_element(ind))
+         {
+         on_process = true;
+         break;
+         }
+       }  
+    copy_data.nodesBlk1Ids = nodesBlk1Ids;
+    copy_data.matrVectorProductContributionKer1.reinit(nodesBlk1Ids.size());
+    copy_data.matrVectorProductContributionKer2.reinit(nodesBlk1Ids.size());
+
+    if (on_process )
+       {
+       std::cout<<"Level: "<<level<<" "<<kk<<"("<<jj<<")  "<<nodesBlk1Ids.size()<<"  "<<startBlockLevel<<std::endl;
+       // the local expansion of the parent must be translated down into the current block 
+       unsigned int parentId =  block_it->GetParentId();
+       copy_data.blockLocalExpansionKer1.Add(copy_data.foo_fma->blockLocalExpansionsKer1.at(parentId));
+       copy_data.blockLocalExpansionKer2.Add(copy_data.foo_fma->blockLocalExpansionsKer2.at(parentId));
+
+
+       for (unsigned int subLevel = 0; subLevel < block_it->NumNearNeighLevels();  subLevel++)
+           {
+           // we get the nonIntList of each block
+
+           std::set <unsigned int> nonIntList = block_it->GetNonIntList(subLevel);
+           std::set <cell_it> nonIntListElemsBlk1;
+
+           // we start converting into local expansions, all the multipole expansions
+           // of all the blocks in nonIntList, that are of the same size (level) of the
+           // current block. To perform the conversion, we use another member of the
+           // LocalExpansion class. Note that all the contributions to the integrals
+           // of blocks bigger than current block had already been considered in
+           // the direct integrals method (the bounds of the local and multipole
+           // expansion do not hold in such case)
+
+
+           for (std::set <unsigned int>::iterator pos1 = nonIntList.lower_bound(startBlockLevel); pos1 != nonIntList.upper_bound(endBlockLevel);  pos1++) // loop over NNs of NNs and add them to intList
+                {
+                  //std::cout<<"NonIntListPart2 Blocks: "<<*pos1<<" "<<std::endl;
+                  unsigned int block2Id = *pos1;
+                  copy_data.blockLocalExpansionKer1.Add(copy_data.foo_fma->blockMultipoleExpansionsKer1[block2Id]);
+                  copy_data.blockLocalExpansionKer2.Add(copy_data.foo_fma->blockMultipoleExpansionsKer2[block2Id]);
+
+                  /*////////this is for a check///////////////////////
+                    OctreeBlock<dim>* block2 =  blocks[block2Id];
+                  std::vector<unsigned int> nodesBlk1Ids = (*block_it)->GetBlockNodeList();
+                  std::map <cell_it, std::vector<unsigned int> >
+                                    blockQuadPointsList = block2->GetBlockQuadPointsList();
+                                    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                                          for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+                                        {
+                                  for (unsigned int i=0; i<(*it).second.size(); i++)
+                                      {
+                                      for (unsigned int kk=0; kk<nodesBlk1Ids.size(); kk++)
+                                         integralCheck[nodesBlk1Ids[kk]][(*it).first] += 1;
+                          }
+                                              }
+                                          ////////////////////////////*/
+                } // end loop over well separated blocks of the same size (level)
+
+
+              // loop over well separated blocks of the smaller size (level)-----> use multipoles without local expansions
+
+              // we now have to loop over blocks in the nonIntList that are smaller than the current
+              // blocks: in this case the bound for the conversion of a multipole into local expansion
+              // do not hold, but the bound for the evaluation of the multipole expansions does hold:
+              // thus, we will simply evaluate the multipole expansions of such blocks for each node in
+              // the clock
+
+              for (std::set <unsigned int>::iterator pos1 = nonIntList.upper_bound(endBlockLevel); pos1 != nonIntList.end();  pos1++)
+                {
+                  //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
+                  unsigned int block2Id = *pos1;
+                  //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
+                  TimeMonitor LocalTimer(*LocEval);
+
+                  for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of (*block_it)
+                    {
+                      Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+                      copy_data.matrVectorProductContributionKer1(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
+                      copy_data.matrVectorProductContributionKer2(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);
+
+                      /*//////this is for a check/////////////////////////
+                            OctreeBlock<dim>* block2 =  blocks[block2Id];
+                            std::map <cell_it, std::vector<unsigned int> >
+                                              blockQuadPointsList = block2->GetBlockQuadPointsList();
+                                              typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                                                    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+                                                  {
+                                            for (unsigned int i=0; i<(*it).second.size(); i++)
+                                                {
+                                             integralCheck[nodesBlk1Ids[ii]][(*it).first] += 1;
+                                    }
+                                                        }
+                                                    ////////////////////////////*/
+                    }
+                } // end loop over well separated blocks of smaller size (level)
+
+
+            } // end loop over all sublevels in  nonIntlist    
+
+
+       }
+
+    //std::cout<<"After Add: "<<copy_data.blockLocalExpansionKer1.GetCoeff(5, 1)<<" "<<copy_data.blockLocalExpansionKer2.GetCoeff(5, 1)<<std::endl;
+  };
+
+  // The copier function, it copies the value from the local array to the parent blocks
+  auto f_copier_Descend = [&matrVectProdD, &matrVectProdN] (const  DescendCopyData &copy_data){
+
+        copy_data.foo_fma->blockLocalExpansionsKer1.at(copy_data.blockId).Add(copy_data.blockLocalExpansionKer1);
+        copy_data.foo_fma->blockLocalExpansionsKer2.at(copy_data.blockId).Add(copy_data.blockLocalExpansionKer2);
+
+       for (unsigned int i=0; i<copy_data.nodesBlk1Ids.size(); ++i)
+           {
+           matrVectProdD(copy_data.nodesBlk1Ids[i]) += copy_data.matrVectorProductContributionKer2(i);
+           matrVectProdN(copy_data.nodesBlk1Ids[i]) += copy_data.matrVectorProductContributionKer1(i);
+           }
+
+
+  };
+  // so, here we loop over levels, starting form lower levels (bigger blocks)
+  for (unsigned int level = 1; level <  num_octree_levels + 1;  level++)
+    {
+
+      unsigned int startBlockLevel =  startLevel[level];
+      unsigned int endBlockLevel =  endLevel[level];
+
+      // to reduce computational cost, we decide to loop on the list of blocks which
+      // contain at least one node (the local and multipole expansion will be finally evaluated
+      // at the nodes positions)
+
+      // TODO WE COULD SPLIT THIS LOOP OVER THE BLOCKS OVER ALL THE PROCESSORS, THEN DO A TRILINOS.ADD WITH
+      // DIFFERENT MAPS. HERE WE NEED A FULL ONE.
+
+
+        DescendScratchData sample_scratch;
+
+        DescendCopyData sample_copy(this);
+
+        // std::cout<<level<<std::endl;
+        // std::cout<<"worker"<<std::endl;
+        //for (unsigned int i=startLevel[level]; i<endLevel[level]+1; ++i)
+        //    std::cout<<i<<"  (********)"<<std::endl;
+        if(endLevel[level]>=startLevel[level])
+          WorkStream::run(dofs_filled_blocks[level].begin(),
+                          dofs_filled_blocks[level].end(),
+                          std_cxx11::bind(f_copier_Descend, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, startBlockLevel),
+                          (f_copier_Descend),
+                          sample_scratch,
+                          sample_copy);
+
+    }
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+/*
   // here the descending phase of the algorithm begins: we will start from the top level, and loop
   // on each block of each level: all the needed multipole integrals contributions must be
   // introduced in each specific block local expansion. to do this, for each block, we first need to
@@ -1420,7 +1662,6 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
           }
           if(on_process)
           {
-
           // here we get parent contribution to local expansion and transfer it in current
           // block: this operation requires a local expansion translation, implemented
           // in a specific LocalExpansion class member
@@ -1456,21 +1697,21 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                   blockLocalExpansionsKer1[jj].Add(blockMultipoleExpansionsKer1[block2Id]);
                   blockLocalExpansionsKer2[jj].Add(blockMultipoleExpansionsKer2[block2Id]);
 
-                  /*////////this is for a check///////////////////////
-                    OctreeBlock<dim>* block2 =  blocks[block2Id];
-                  std::vector<unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
-                  std::map <cell_it, std::vector<unsigned int> >
-                                    blockQuadPointsList = block2->GetBlockQuadPointsList();
-                                    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-                                          for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-                                        {
-                                  for (unsigned int i=0; i<(*it).second.size(); i++)
-                                      {
-                                      for (unsigned int kk=0; kk<nodesBlk1Ids.size(); kk++)
-                                         integralCheck[nodesBlk1Ids[kk]][(*it).first] += 1;
-                          }
-                                              }
-                                          ////////////////////////////*/
+                 ////////this is for a check///////////////////////
+                 //   OctreeBlock<dim>* block2 =  blocks[block2Id];
+                 // std::vector<unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
+                 // std::map <cell_it, std::vector<unsigned int> >
+                  //                  blockQuadPointsList = block2->GetBlockQuadPointsList();
+                 //                   typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                 //                         for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+                  //                      {
+                 //                 for (unsigned int i=0; i<(*it).second.size(); i++)
+                 //                     {
+                 //                     for (unsigned int kk=0; kk<nodesBlk1Ids.size(); kk++)
+                 //                        integralCheck[nodesBlk1Ids[kk]][(*it).first] += 1;
+                 //         }
+                 //                             }
+                                          ////////////////////////////
                 } // end loop over well separated blocks of the same size (level)
 
 
@@ -1495,19 +1736,19 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                       matrVectProdD(nodesBlk1Ids[ii]) += blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
                       matrVectProdN(nodesBlk1Ids[ii]) += blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);
 
-                      /*//////this is for a check/////////////////////////
-                            OctreeBlock<dim>* block2 =  blocks[block2Id];
-                            std::map <cell_it, std::vector<unsigned int> >
-                                              blockQuadPointsList = block2->GetBlockQuadPointsList();
-                                              typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-                                                    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-                                                  {
-                                            for (unsigned int i=0; i<(*it).second.size(); i++)
-                                                {
-                                             integralCheck[nodesBlk1Ids[ii]][(*it).first] += 1;
-                                    }
-                                                        }
-                                                    ////////////////////////////*/
+                      //////this is for a check/////////////////////////
+                       //     OctreeBlock<dim>* block2 =  blocks[block2Id];
+                       //     std::map <cell_it, std::vector<unsigned int> >
+                       //                       blockQuadPointsList = block2->GetBlockQuadPointsList();
+                       //                       typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                       //                             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+                       //                           {
+                       //                     for (unsigned int i=0; i<(*it).second.size(); i++)
+                       //                         {
+                       //                      integralCheck[nodesBlk1Ids[ii]][(*it).first] += 1;
+                       //             }
+                       //                                 }
+                                                    ////////////////////////////
                     }
                 } // end loop over well separated blocks of smaller size (level)
 
@@ -1518,7 +1759,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
     } // end loop over levels
 
-
+*/
   // finally, when the loop over levels is done, we need to evaluate local expansions of all
   // childless blocks, at each block node(s)
 

@@ -438,6 +438,7 @@ void BEMFMA<dim>::direct_integrals()
     // if instead there are nodes, we start integrating
     if  (block1Nodes.size() > 0)
       {
+        std::cout<<"Nodes in childless block : "<<block1Nodes.size()<<std::endl;
         // we first get all the blocks in the intList of the current block (block1)
         // and loop over these blocks, to create a list of ALL the quadrature points that
         // lie in the interaction list blocks: these quad points have to be integrated
@@ -643,9 +644,9 @@ void BEMFMA<dim>::direct_integrals()
     // global matrix.
     if(copy_data.vec_node_index.size()>0)
     {
-      std::cout<<"BOIA: "<<std::endl;
-      for(auto fdj : copy_data.vec_start_helper)
-        std::cout<<fdj<<" ";
+      std::cout<<"Sizes of vec_node_index and vec_start_helper: "<<copy_data.vec_node_index.size()<<" "<<copy_data.vec_start_helper.size()<<std::endl;
+      // for(auto fdj : copy_data.vec_start_helper)
+      //   std::cout<<fdj<<" ";
       std::cout<<std::endl;
 
       for(unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
@@ -678,11 +679,11 @@ void BEMFMA<dim>::direct_integrals()
 
   DirectChildlessScratchData direct_childless_scratch_data;
   DirectChildlessCopyData direct_childless_copy_data(this);
-
+  std::cout<<"size of childlessList : "<<childlessList.size()<<std::endl;
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
                   std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,
-                    DirectChildlessScratchData &, DirectChildlessCopyData &, const std::vector<Point<dim> > &, std::vector<QTelles<dim-1> > &)>
+                  DirectChildlessScratchData &, DirectChildlessCopyData &, const std::vector<Point<dim> > &, std::vector<QTelles<dim-1> > &)>
                   (f_worker_direct_childless), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
                   f_copier_direct_childless,
                   direct_childless_scratch_data,

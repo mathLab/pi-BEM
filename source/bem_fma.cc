@@ -418,7 +418,7 @@ void BEMFMA<dim>::direct_integrals()
 
 
   // The worker function, it computes the direct integral checking that the dofs belong to the IndexSet of the processor.
-  auto f_worker_direct_childless_non_int_list = [] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
+  auto f_worker_direct_childless_non_int_list = [this] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
     //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
 
@@ -429,9 +429,9 @@ void BEMFMA<dim>::direct_integrals()
     copy_data.vec_node_index.resize(0);
     copy_data.vec_start_helper.resize(0);
     unsigned int blockId =  *block_it;
-    // unsigned int blockId =  copy_data.foo_fma->childlessList[block_it];
+    // unsigned int blockId =  this->childlessList[block_it];
     // and this is the block pointer
-    OctreeBlock<dim> *block1 =  copy_data.foo_fma->blocks[blockId];
+    OctreeBlock<dim> *block1 =  this->blocks[blockId];
     // we get the block node list
     const std::vector <unsigned int> &block1Nodes = block1->GetBlockNodeList();
 
@@ -453,7 +453,7 @@ void BEMFMA<dim>::direct_integrals()
         for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
           {
             // now for each block block2 we get the list of quad points
-            OctreeBlock<dim> *block2 =  copy_data.foo_fma->blocks[*pos];
+            OctreeBlock<dim> *block2 =  this->blocks[*pos];
             std::map <cell_it, std::vector<unsigned int> >
             blockQuadPointsList = block2->GetBlockQuadPointsList();
 
@@ -481,7 +481,7 @@ void BEMFMA<dim>::direct_integrals()
           {
             unsigned int nodeIndex = block1Nodes[i];
 
-            if(copy_data.foo_fma->this_cpu_set.is_element(nodeIndex))
+            if(this->this_cpu_set.is_element(nodeIndex))
             {
               copy_data.vec_node_index.push_back(nodeIndex);
               copy_data.vec_start_helper.push_back(helper_index);
@@ -492,14 +492,14 @@ void BEMFMA<dim>::direct_integrals()
                 {
                   // the vectors with the local integrals for the cell must first
                   // be zeroed
-                  copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (copy_data.foo_fma->fma_fe->dofs_per_cell));
-                  copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (copy_data.foo_fma->fma_fe->dofs_per_cell));
+                  copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
+                  copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
 
                   // we get the first entry of the map, i.e. the cell pointer
                   // and we check if the cell contains the current node, to
                   // decide if singular of regular quadrature is to be used
                   cell_it cell = (*it).first;
-                  copy_data.vec_local_dof_indices.push_back(std::vector<unsigned int> (copy_data.foo_fma->fma_fe->dofs_per_cell));
+                  copy_data.vec_local_dof_indices.push_back(std::vector<unsigned int> (this->fma_fe->dofs_per_cell));
                   cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
 
                   // we copy the cell quad points in this set
@@ -507,8 +507,8 @@ void BEMFMA<dim>::direct_integrals()
                   bool is_singular = false;
                   unsigned int singular_index = numbers::invalid_unsigned_int;
 
-                  for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
-                    if ( (*(copy_data.foo_fma->double_nodes_set))[nodeIndex].count(copy_data.vec_local_dof_indices.back()[j]) > 0)
+                  for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
+                    if ( (*(this->double_nodes_set))[nodeIndex].count(copy_data.vec_local_dof_indices.back()[j]) > 0)
                       {
                         singular_index = j;
                         is_singular = true;
@@ -532,26 +532,26 @@ void BEMFMA<dim>::direct_integrals()
                           Point<dim> D;
                           double s;
 
-                          const Tensor<1, dim> R =  copy_data.foo_fma->quadPoints.at(cell)[*pos] - support_points[nodeIndex];
+                          const Tensor<1, dim> R =  this->quadPoints.at(cell)[*pos] - support_points[nodeIndex];
                           LaplaceKernel::kernels(R, D, s);
 
                           // and here are the integrals for each of the degrees of freedom of the cell: note
                           // how the quadrature values (position, normals, jacobianXweight, shape functions)
                           // are taken from the precomputed ones in ComputationalDomain class
-                          for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+                          for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
                             {
                               copy_data.vec_local_neumann_matrix_row_i.back()(j) += ( ( D *
-                                                                   copy_data.foo_fma->quadNormals.at(cell)[*pos] ) *
-                                                                 copy_data.foo_fma->quadShapeFunValues.at(cell)[*pos][j] *
-                                                                 copy_data.foo_fma->quadJxW.at(cell)[*pos] );
+                                                                   this->quadNormals.at(cell)[*pos] ) *
+                                                                 this->quadShapeFunValues.at(cell)[*pos][j] *
+                                                                 this->quadJxW.at(cell)[*pos] );
                               copy_data.vec_local_dirichlet_matrix_row_i.back()(j) += ( s *
-                                                                   copy_data.foo_fma->quadShapeFunValues.at(cell)[*pos][j] *
-                                                                   copy_data.foo_fma->quadJxW.at(cell)[*pos] );
+                                                                   this->quadShapeFunValues.at(cell)[*pos][j] *
+                                                                   this->quadJxW.at(cell)[*pos] );
                               // if(std::abs(copy_data.vec_local_neumann_matrix_row_i.back()(j))<1e-12)
-                              //   std::cout<<D<<" "<< copy_data.foo_fma->quadNormals.at(cell)[*pos]<<" "<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<std::endl;
+                              //   std::cout<<D<<" "<< this->quadNormals.at(cell)[*pos]<<" "<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<std::endl;
                               //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
                               //pcout<< quadJxW[cell][*pos]<<std::endl;
-                              // std::cout<<D<<std::endl<<" "<<copy_data.foo_fma->quadNormals.at(cell)[*pos]<<std::endl;
+                              // std::cout<<D<<std::endl<<" "<<this->quadNormals.at(cell)[*pos]<<std::endl;
                               // std::cout<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<" "<<copy_data.vec_local_dirichlet_matrix_row_i.back()(j)<<std::endl;
                             }
                         }
@@ -586,7 +586,7 @@ void BEMFMA<dim>::direct_integrals()
                       // once the singular quadrature has been created, we employ it
                       // to create the corresponding fe_values
 
-                      FEValues<dim-1,dim> fe_v_singular (*(copy_data.foo_fma->fma_mapping), *(copy_data.foo_fma->fma_fe), *(singular_quadrature),
+                      FEValues<dim-1,dim> fe_v_singular (*(this->fma_mapping), *(this->fma_fe), *(singular_quadrature),
                                                          update_jacobians |
                                                          update_values |
                                                          update_cell_normal_vectors |
@@ -611,7 +611,7 @@ void BEMFMA<dim>::direct_integrals()
 
                           const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
                           LaplaceKernel::kernels(R, D, s);
-                          for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+                          for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
                             {
                               copy_data.vec_local_neumann_matrix_row_i.back()(j) += (( D *
                                                                   singular_normals[q]) *
@@ -639,7 +639,7 @@ void BEMFMA<dim>::direct_integrals()
   };
 
   // The copier function, it copies the value from the local array to the global matrix
-  auto f_copier_direct_childless_non_int_list = [this] (const  DirectChildlessCopyData &copy_data){
+  auto f_copier_direct = [this] (const  DirectChildlessCopyData &copy_data){
     // Finally, we need to add
     // the contributions of the
     // current cell to the
@@ -687,15 +687,14 @@ void BEMFMA<dim>::direct_integrals()
   DirectChildlessCopyData direct_childless_copy_data(this);
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
-                  std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,
-                  DirectChildlessScratchData &, DirectChildlessCopyData &, const std::vector<Point<dim> > &, std::vector<QTelles<dim-1> > &)>
-                  (f_worker_direct_childless_non_int_list), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
-                  f_copier_direct_childless_non_int_list,
+                  std_cxx11::bind(f_worker_direct_childless_non_int_list, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
+                  f_copier_direct,
                   direct_childless_scratch_data,
                   direct_childless_copy_data);
 
 
   auto f_worker_direct_bigger_blocks = [this] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel){
+
     copy_data.vec_local_dof_indices.resize(0);
     copy_data.vec_local_neumann_matrix_row_i.resize(0);
     copy_data.vec_local_dirichlet_matrix_row_i.resize(0);
@@ -811,48 +810,6 @@ void BEMFMA<dim>::direct_integrals()
 
   };
 
-  auto f_copier_direct_bigger_blocks = [this] (const DirectChildlessCopyData &copy_data){
-    // Finally, we need to add
-    // the contributions of the
-    // current cell to the
-    // global matrix.
-    if(copy_data.vec_node_index.size()>0)
-    {
-      //std::cout<<"Sizes of vec_node_index and vec_start_helper: "<<copy_data.vec_node_index.size()<<" "<<copy_data.vec_start_helper.size()<<std::endl;
-      // for(auto fdj : copy_data.vec_start_helper)
-      //   std::cout<<fdj<<" ";
-
-
-      for(unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
-      {
-        unsigned int foo_start = copy_data.vec_start_helper[ii];
-        unsigned int foo_end = copy_data.vec_local_dof_indices.size();
-        if(ii < copy_data.vec_node_index.size()-1)
-          foo_end = copy_data.vec_start_helper[ii+1];
-
-        for(unsigned int kk=foo_start; kk<foo_end;++kk)
-        {
-          for (unsigned int j=0; j< this->fma_fe->dofs_per_cell; ++j)
-            {
-                this->prec_neumann_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
-                this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
-                if ((*(this->dirichlet_nodes))(copy_data.vec_local_dof_indices[kk][j]) > 0.8)
-                {
-                  //  std::cout<<"DIANE"<<std::endl;
-                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],-copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
-                 }
-                else
-                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j], copy_data.vec_local_neumann_matrix_row_i[kk](j));
-                //  std::cout<<this->init_preconditioner(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j])<<" ";
-                // std::cout<<copy_data.vec_local_dirichlet_matrix_row_i[kk][j]<<" "<<std::endl;
-            }
-
-
-            // std::cout<<std::endl;
-        }//end loop on everything in the non int list of the node of the block
-      }//end loop on nodes in block
-    }
-  };
 
 
   for (unsigned int level = 1; level <  num_octree_levels + 1;  level++) // loop over levels
@@ -864,7 +821,7 @@ void BEMFMA<dim>::direct_integrals()
       WorkStream::run(dofs_filled_blocks[level].begin(),
                       dofs_filled_blocks[level].end(),
                       std_cxx11::bind(f_worker_direct_bigger_blocks, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, startBlockLevel),
-                      f_copier_direct_bigger_blocks,
+                      f_copier_direct,
                       direct_bigger_scratch_data,
                       direct_bigger_copy_data);
 

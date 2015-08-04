@@ -380,20 +380,18 @@ void BEMFMA<dim>::direct_integrals()
   init_preconditioner.reinit(init_prec_sparsity_pattern);
 
 
-  struct DirectChildlessScratchData { };
+  struct DirectScratchData { };
 
   // Basically we are applying a local to global operation so we need only great care in the copy.
-  struct DirectChildlessCopyData {
+  struct DirectCopyData {
 
-    DirectChildlessCopyData(const BEMFMA<dim> *dummy_fma){
+    DirectCopyData(){
       // each thread will hold a local copy of Multipole expansions. here they are initialized in a very
       // dumb way, but they're always overwritten so...
-      foo_fma = dummy_fma;
     };
 
     // The working copy constructor for the copy structure
-    DirectChildlessCopyData(const DirectChildlessCopyData &in_vec){
-      foo_fma = in_vec.foo_fma;
+    DirectCopyData(const DirectCopyData &in_vec){
       vec_local_neumann_matrix_row_i = in_vec.vec_local_neumann_matrix_row_i;
       vec_local_dirichlet_matrix_row_i = in_vec.vec_local_dirichlet_matrix_row_i;
       vec_local_dof_indices = in_vec.vec_local_dof_indices;
@@ -401,13 +399,11 @@ void BEMFMA<dim>::direct_integrals()
     };
 
     // The Destructor needs to make foo_fma to point to NULL (for this reason it is mutable const)
-    ~DirectChildlessCopyData(){
-      foo_fma = NULL;
+    ~DirectCopyData(){
     };
 
 
     // The pointer we use to copy everything back.
-    mutable const BEMFMA<dim> *foo_fma;
 
     std::vector<Vector<double> >  vec_local_neumann_matrix_row_i;
     std::vector<Vector<double> >  vec_local_dirichlet_matrix_row_i;
@@ -418,7 +414,7 @@ void BEMFMA<dim>::direct_integrals()
 
 
   // The worker function, it computes the direct integral checking that the dofs belong to the IndexSet of the processor.
-  auto f_worker_direct_childless_non_int_list = [this] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
+  auto f_worker_direct_childless_non_int_list = [this] (typename std::vector<unsigned int>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
     //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
 
@@ -639,7 +635,7 @@ void BEMFMA<dim>::direct_integrals()
   };
 
   // The copier function, it copies the value from the local array to the global matrix
-  auto f_copier_direct = [this] (const  DirectChildlessCopyData &copy_data){
+  auto f_copier_direct = [this] (const  DirectCopyData &copy_data){
     // Finally, we need to add
     // the contributions of the
     // current cell to the
@@ -683,8 +679,8 @@ void BEMFMA<dim>::direct_integrals()
 
   };
 
-  DirectChildlessScratchData direct_childless_scratch_data;
-  DirectChildlessCopyData direct_childless_copy_data(this);
+  DirectScratchData direct_childless_scratch_data;
+  DirectCopyData direct_childless_copy_data;
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
                   std_cxx11::bind(f_worker_direct_childless_non_int_list, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
@@ -693,7 +689,7 @@ void BEMFMA<dim>::direct_integrals()
                   direct_childless_copy_data);
 
 
-  auto f_worker_direct_bigger_blocks = [this] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel){
+  auto f_worker_direct_bigger_blocks = [this] (typename std::vector<unsigned int>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel){
 
     copy_data.vec_local_dof_indices.resize(0);
     copy_data.vec_local_neumann_matrix_row_i.resize(0);
@@ -816,8 +812,8 @@ void BEMFMA<dim>::direct_integrals()
 
     {
       unsigned int startBlockLevel =  startLevel[level];
-      DirectChildlessScratchData direct_bigger_scratch_data;
-      DirectChildlessCopyData direct_bigger_copy_data(this);
+      DirectScratchData direct_bigger_scratch_data;
+      DirectCopyData direct_bigger_copy_data;
       WorkStream::run(dofs_filled_blocks[level].begin(),
                       dofs_filled_blocks[level].end(),
                       std_cxx11::bind(f_worker_direct_bigger_blocks, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, startBlockLevel),

@@ -428,7 +428,8 @@ void BEMFMA<dim>::direct_integrals()
     copy_data.vec_local_dirichlet_matrix_row_i.resize(0);
     copy_data.vec_node_index.resize(0);
     copy_data.vec_start_helper.resize(0);
-    unsigned int blockId =  copy_data.foo_fma->childlessList[*block_it];
+    unsigned int blockId =  *block_it;
+    // unsigned int blockId =  copy_data.foo_fma->childlessList[block_it];
     // and this is the block pointer
     OctreeBlock<dim> *block1 =  copy_data.foo_fma->blocks[blockId];
     // we get the block node list
@@ -438,7 +439,7 @@ void BEMFMA<dim>::direct_integrals()
     // if instead there are nodes, we start integrating
     if  (block1Nodes.size() > 0)
       {
-        std::cout<<"Nodes in childless block : "<<block1Nodes.size()<<std::endl;
+        // std::cout<<"Nodes in childless block : "<<block1Nodes.size()<<std::endl;
         // we first get all the blocks in the intList of the current block (block1)
         // and loop over these blocks, to create a list of ALL the quadrature points that
         // lie in the interaction list blocks: these quad points have to be integrated
@@ -546,7 +547,8 @@ void BEMFMA<dim>::direct_integrals()
                               copy_data.vec_local_dirichlet_matrix_row_i.back()(j) += ( s *
                                                                    copy_data.foo_fma->quadShapeFunValues.at(cell)[*pos][j] *
                                                                    copy_data.foo_fma->quadJxW.at(cell)[*pos] );
-                              //pcout<<D<<" "<< quadNormals[cell][*pos]<<" ";
+                              if(std::abs(copy_data.vec_local_neumann_matrix_row_i.back()(j))<1e-12)
+                                std::cout<<D<<" "<< copy_data.foo_fma->quadNormals.at(cell)[*pos]<<" "<<copy_data.vec_local_neumann_matrix_row_i.back()(j)<<std::endl;
                               //pcout<< quadShapeFunValues[cell][*pos][j]<<" ";
                               //pcout<< quadJxW[cell][*pos]<<std::endl;
                               // std::cout<<D<<std::endl<<" "<<copy_data.foo_fma->quadNormals.at(cell)[*pos]<<std::endl;
@@ -687,7 +689,7 @@ void BEMFMA<dim>::direct_integrals()
                   (f_worker_direct_childless), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
                   f_copier_direct_childless,
                   direct_childless_scratch_data,
-                  direct_childless_copy_data);
+                  direct_childless_copy_data,1);
 
   Point<dim> D;
   double s;

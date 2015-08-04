@@ -418,7 +418,7 @@ void BEMFMA<dim>::direct_integrals()
 
 
   // The worker function, it computes the direct integral checking that the dofs belong to the IndexSet of the processor.
-  auto f_worker_direct_childless = [] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
+  auto f_worker_direct_childless_non_int_list = [] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures){
     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
     //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
 
@@ -639,7 +639,7 @@ void BEMFMA<dim>::direct_integrals()
   };
 
   // The copier function, it copies the value from the local array to the global matrix
-  auto f_copier_direct_childless = [this] (const  DirectChildlessCopyData &copy_data){
+  auto f_copier_direct_childless_non_int_list = [this] (const  DirectChildlessCopyData &copy_data){
     // Finally, we need to add
     // the contributions of the
     // current cell to the
@@ -649,7 +649,7 @@ void BEMFMA<dim>::direct_integrals()
       //std::cout<<"Sizes of vec_node_index and vec_start_helper: "<<copy_data.vec_node_index.size()<<" "<<copy_data.vec_start_helper.size()<<std::endl;
       // for(auto fdj : copy_data.vec_start_helper)
       //   std::cout<<fdj<<" ";
-      
+
 
       for(unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
       {
@@ -689,13 +689,187 @@ void BEMFMA<dim>::direct_integrals()
                   childlessList.end(),
                   std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,
                   DirectChildlessScratchData &, DirectChildlessCopyData &, const std::vector<Point<dim> > &, std::vector<QTelles<dim-1> > &)>
-                  (f_worker_direct_childless), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
-                  f_copier_direct_childless,
+                  (f_worker_direct_childless_non_int_list), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
+                  f_copier_direct_childless_non_int_list,
                   direct_childless_scratch_data,
-                  direct_childless_copy_data,1);
+                  direct_childless_copy_data);
 
-  Point<dim> D;
-  double s;
+
+  auto f_worker_direct_bigger_blocks = [this] (typename std::vector<unsigned int>::iterator block_it, DirectChildlessScratchData &scratch, DirectChildlessCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel){
+    copy_data.vec_local_dof_indices.resize(0);
+    copy_data.vec_local_neumann_matrix_row_i.resize(0);
+    copy_data.vec_local_dirichlet_matrix_row_i.resize(0);
+    copy_data.vec_node_index.resize(0);
+    copy_data.vec_start_helper.resize(0);
+
+    unsigned int blockId = *block_it;
+    OctreeBlock<dim> *block1 =  this->blocks[ blockId];
+    const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
+    unsigned int helper_index = 0;
+    for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
+      {
+        // for each block containing nodes, loop over all sublevels in his NN list (this is because if a
+        // block remains childless BEFORE the last level, at this point we need to compute
+        // all its contributions up to the bottom level)
+
+        unsigned int nodeIndex = nodesBlk1Ids[i];
+        copy_data.vec_node_index.push_back(nodeIndex);
+        copy_data.vec_start_helper.push_back(helper_index);
+
+        if(this->this_cpu_set.is_element(nodeIndex))//(m2l_flags[level][jj]==this_mpi_process)
+        {
+
+        std::map <cell_it,std::set<unsigned int> > directQuadPoints;
+
+        for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+          {
+            const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
+
+            // loop over well separated blocks of higher size (level)-----> in this case
+            //we must use direct evaluation (luckily being childless they only contain 1 element)
+            for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
+              {
+                OctreeBlock<dim> *block2 =  this->blocks[*pos];
+                std::map <cell_it, std::vector<unsigned int> >
+                blockQuadPointsList = block2->GetBlockQuadPointsList();
+                typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+                  {
+                    for (unsigned int ii=0; ii<(*it).second.size(); ii++)
+                      {
+                        directQuadPoints[(*it).first].insert((*it).second[ii]);
+
+                        /*////////this is for a check/////////////////////
+                                   integralCheck[nodesBlk1Ids[i]][(*it).first] += 1;
+                                    ////////////////////////////*/
+                      }
+                  }
+              } // end loop over blocks of a sublevel of nonIntList
+          } // end loop over sublevels
+
+        typename std::map <cell_it, std::set<unsigned int> >::iterator it;
+        for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
+          {
+            // the vectors with the local integrals for the cell must first
+            // be zeroed
+            copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
+            copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
+
+            // we get the first entry of the map, i.e. the cell pointer
+            // here the quadrature is regular as the cell is well
+            // separated
+            cell_it cell = (*it).first;
+            copy_data.vec_local_dof_indices.push_back(std::vector<unsigned int> (this->fma_fe->dofs_per_cell));
+            cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
+
+            // we copy the cell quad points in this set
+            std::set<unsigned int> &cellQuadPoints = (*it).second;
+
+            //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+            //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+            //pcout<<std::endl;
+
+            // we start looping on the quad points of the cell: *pos will be the
+            // index of the quad point
+            for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+              {
+                // here we compute the distance R between the node and the quad point
+                const Tensor<1,dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
+                Point<dim> D;
+                double s;
+
+                LaplaceKernel::kernels(R, D, s);
+
+                // and here are the integrals for each of the degrees of freedom of the cell: note
+                // how the quadrature values (position, normals, jacobianXweight, shape functions)
+                // are taken from the precomputed ones in ComputationalDomain class
+
+                for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                  {
+                    copy_data.vec_local_neumann_matrix_row_i.back()(j) += ( ( D *
+                                                         this->quadNormals[cell][*pos] ) *
+                                                       this->quadShapeFunValues[cell][*pos][j] *
+                                                       this->quadJxW[cell][*pos] );
+                    copy_data.vec_local_dirichlet_matrix_row_i.back()(j) += ( s *
+                                                         this->quadShapeFunValues[cell][*pos][j] *
+                                                         this->quadJxW[cell][*pos] );
+
+                  } // end loop over the dofs in the cell
+              } // end loop over the quad points in a cell
+              helper_index += 1;
+            // Finally, we need to add
+            // the contributions of the
+            // current cell to the
+            // global matrix.
+
+
+
+          } // end loop over quad points in the direct quad points list
+        }// end check on proc
+
+      } // end loop over nodes in a block
+
+  };
+
+  auto f_copier_direct_bigger_blocks = [this] (const DirectChildlessCopyData &copy_data){
+    // Finally, we need to add
+    // the contributions of the
+    // current cell to the
+    // global matrix.
+    if(copy_data.vec_node_index.size()>0)
+    {
+      //std::cout<<"Sizes of vec_node_index and vec_start_helper: "<<copy_data.vec_node_index.size()<<" "<<copy_data.vec_start_helper.size()<<std::endl;
+      // for(auto fdj : copy_data.vec_start_helper)
+      //   std::cout<<fdj<<" ";
+
+
+      for(unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
+      {
+        unsigned int foo_start = copy_data.vec_start_helper[ii];
+        unsigned int foo_end = copy_data.vec_local_dof_indices.size();
+        if(ii < copy_data.vec_node_index.size()-1)
+          foo_end = copy_data.vec_start_helper[ii+1];
+
+        for(unsigned int kk=foo_start; kk<foo_end;++kk)
+        {
+          for (unsigned int j=0; j< this->fma_fe->dofs_per_cell; ++j)
+            {
+                this->prec_neumann_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
+                if ((*(this->dirichlet_nodes))(copy_data.vec_local_dof_indices[kk][j]) > 0.8)
+                {
+                  //  std::cout<<"DIANE"<<std::endl;
+                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],-copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
+                 }
+                else
+                   this->init_preconditioner.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j], copy_data.vec_local_neumann_matrix_row_i[kk](j));
+                //  std::cout<<this->init_preconditioner(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j])<<" ";
+                // std::cout<<copy_data.vec_local_dirichlet_matrix_row_i[kk][j]<<" "<<std::endl;
+            }
+
+
+            // std::cout<<std::endl;
+        }//end loop on everything in the non int list of the node of the block
+      }//end loop on nodes in block
+    }
+  };
+
+
+  for (unsigned int level = 1; level <  num_octree_levels + 1;  level++) // loop over levels
+
+    {
+      unsigned int startBlockLevel =  startLevel[level];
+      DirectChildlessScratchData direct_bigger_scratch_data;
+      DirectChildlessCopyData direct_bigger_copy_data(this);
+      WorkStream::run(dofs_filled_blocks[level].begin(),
+                      dofs_filled_blocks[level].end(),
+                      std_cxx11::bind(f_worker_direct_bigger_blocks, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, startBlockLevel),
+                      f_copier_direct_bigger_blocks,
+                      direct_bigger_scratch_data,
+                      direct_bigger_copy_data);
+
+
+    }//end loop over octree levels
 
   // here we finally start computing the direct integrals: we
   // first loop among the childless blocks
@@ -919,124 +1093,124 @@ void BEMFMA<dim>::direct_integrals()
   // compute the direct integral contribution for the quadNodes in such
   // blocks
 
-  for (unsigned int level = 1; level <  num_octree_levels + 1;  level++) // loop over levels
-
-    {
-      unsigned int startBlockLevel =  startLevel[level];
-      // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
-      for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
-        {
-          OctreeBlock<dim> *block1 =  blocks[ dofs_filled_blocks[level][jj]];
-          const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
-
-          for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
-            {
-              // for each block containing nodes, loop over all sublevels in his NN list (this is because if a
-              // block remains childless BEFORE the last level, at this point we need to compute
-              // all its contributions up to the bottom level)
-              unsigned int nodeIndex = nodesBlk1Ids[i];
-              if(this_cpu_set.is_element(nodeIndex))//(m2l_flags[level][jj]==this_mpi_process)
-              {
-
-              std::map <cell_it,std::set<unsigned int> > directQuadPoints;
-
-              for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
-                {
-                  const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
-
-                  // loop over well separated blocks of higher size (level)-----> in this case
-                  //we must use direct evaluation (luckily being childless they only contain 1 element)
-                  for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
-                    {
-                      OctreeBlock<dim> *block2 =  blocks[*pos];
-                      std::map <cell_it, std::vector<unsigned int> >
-                      blockQuadPointsList = block2->GetBlockQuadPointsList();
-                      typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-                      for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-                        {
-                          for (unsigned int ii=0; ii<(*it).second.size(); ii++)
-                            {
-                              directQuadPoints[(*it).first].insert((*it).second[ii]);
-
-                              /*////////this is for a check/////////////////////
-                                         integralCheck[nodesBlk1Ids[i]][(*it).first] += 1;
-                                          ////////////////////////////*/
-                            }
-                        }
-                    } // end loop over blocks of a sublevel of nonIntList
-                } // end loop over sublevels
-
-              typename std::map <cell_it, std::set<unsigned int> >::iterator it;
-              for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
-                {
-                  // the vectors with the local integrals for the cell must first
-                  // be zeroed
-                  local_neumann_matrix_row_i = 0;
-                  local_dirichlet_matrix_row_i = 0;
-
-                  // we get the first entry of the map, i.e. the cell pointer
-                  // here the quadrature is regular as the cell is well
-                  // separated
-                  cell_it cell = (*it).first;
-                  cell->get_dof_indices(local_dof_indices);
-                  // we copy the cell quad points in this set
-                  std::set<unsigned int> &cellQuadPoints = (*it).second;
-
-                  //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
-                  //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
-                  //pcout<<std::endl;
-
-                  // we start looping on the quad points of the cell: *pos will be the
-                  // index of the quad point
-                  for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
-                    {
-                      // here we compute the distance R between the node and the quad point
-                      const Tensor<1,dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
-                      LaplaceKernel::kernels(R, D, s);
-
-                      // and here are the integrals for each of the degrees of freedom of the cell: note
-                      // how the quadrature values (position, normals, jacobianXweight, shape functions)
-                      // are taken from the precomputed ones in ComputationalDomain class
-
-                      for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                        {
-                          local_neumann_matrix_row_i(j) += ( ( D *
-                                                               quadNormals[cell][*pos] ) *
-                                                             quadShapeFunValues[cell][*pos][j] *
-                                                             quadJxW[cell][*pos] );
-                          local_dirichlet_matrix_row_i(j) += ( s *
-                                                               quadShapeFunValues[cell][*pos][j] *
-                                                               quadJxW[cell][*pos] );
-
-                        } // end loop over the dofs in the cell
-                    } // end loop over the quad points in a cell
-
-                  // Finally, we need to add
-                  // the contributions of the
-                  // current cell to the
-                  // global matrix.
-
-                  for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
-                    {
-                      // if(this_cpu_set.is_element(local_dof_indices[j]))
-                      // {
-                        prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
-                        prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
-
-                        if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
-                        else
-                          init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
-                      // }
-                    }
-
-
-                } // end loop over quad points in the direct quad points list
-              }// end check on proc
-
-            } // end loop over nodes in a block
-        }// end loop over block of a level
-    }//end loop over octree levels
+  // for (unsigned int level = 1; level <  num_octree_levels + 1;  level++) // loop over levels
+  //
+  //   {
+  //     unsigned int startBlockLevel =  startLevel[level];
+  //     // !!! Io spezzerei qui per poi comunicare alla fine (se vogliamo, ma questo viene chiamato poche volte).
+  //     for (unsigned int jj = 0; jj <  dofs_filled_blocks[level].size();  jj++) // loop over blocks of each level
+  //       {
+  //         OctreeBlock<dim> *block1 =  blocks[ dofs_filled_blocks[level][jj]];
+  //         const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
+  //
+  //         for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
+  //           {
+  //             // for each block containing nodes, loop over all sublevels in his NN list (this is because if a
+  //             // block remains childless BEFORE the last level, at this point we need to compute
+  //             // all its contributions up to the bottom level)
+  //             unsigned int nodeIndex = nodesBlk1Ids[i];
+  //             if(this_cpu_set.is_element(nodeIndex))//(m2l_flags[level][jj]==this_mpi_process)
+  //             {
+  //
+  //             std::map <cell_it,std::set<unsigned int> > directQuadPoints;
+  //
+  //             for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+  //               {
+  //                 const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
+  //
+  //                 // loop over well separated blocks of higher size (level)-----> in this case
+  //                 //we must use direct evaluation (luckily being childless they only contain 1 element)
+  //                 for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
+  //                   {
+  //                     OctreeBlock<dim> *block2 =  blocks[*pos];
+  //                     std::map <cell_it, std::vector<unsigned int> >
+  //                     blockQuadPointsList = block2->GetBlockQuadPointsList();
+  //                     typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //                     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+  //                       {
+  //                         for (unsigned int ii=0; ii<(*it).second.size(); ii++)
+  //                           {
+  //                             directQuadPoints[(*it).first].insert((*it).second[ii]);
+  //
+  //                             /*////////this is for a check/////////////////////
+  //                                        integralCheck[nodesBlk1Ids[i]][(*it).first] += 1;
+  //                                         ////////////////////////////*/
+  //                           }
+  //                       }
+  //                   } // end loop over blocks of a sublevel of nonIntList
+  //               } // end loop over sublevels
+  //
+  //             typename std::map <cell_it, std::set<unsigned int> >::iterator it;
+  //             for (it = directQuadPoints.begin(); it != directQuadPoints.end(); it++)
+  //               {
+  //                 // the vectors with the local integrals for the cell must first
+  //                 // be zeroed
+  //                 local_neumann_matrix_row_i = 0;
+  //                 local_dirichlet_matrix_row_i = 0;
+  //
+  //                 // we get the first entry of the map, i.e. the cell pointer
+  //                 // here the quadrature is regular as the cell is well
+  //                 // separated
+  //                 cell_it cell = (*it).first;
+  //                 cell->get_dof_indices(local_dof_indices);
+  //                 // we copy the cell quad points in this set
+  //                 std::set<unsigned int> &cellQuadPoints = (*it).second;
+  //
+  //                 //pcout<<"Node "<<i<<"  Elem "<<cell<<" (Direct) Nodes: ";
+  //                 //for(unsigned int j=0; j<fe.dofs_per_cell; ++j) pcout<<" "<<local_dof_indices[j];
+  //                 //pcout<<std::endl;
+  //
+  //                 // we start looping on the quad points of the cell: *pos will be the
+  //                 // index of the quad point
+  //                 for (std::set<unsigned int>::iterator pos=cellQuadPoints.begin(); pos!=cellQuadPoints.end(); pos++)
+  //                   {
+  //                     // here we compute the distance R between the node and the quad point
+  //                     const Tensor<1,dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
+  //                     LaplaceKernel::kernels(R, D, s);
+  //
+  //                     // and here are the integrals for each of the degrees of freedom of the cell: note
+  //                     // how the quadrature values (position, normals, jacobianXweight, shape functions)
+  //                     // are taken from the precomputed ones in ComputationalDomain class
+  //
+  //                     for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                       {
+  //                         local_neumann_matrix_row_i(j) += ( ( D *
+  //                                                              quadNormals[cell][*pos] ) *
+  //                                                            quadShapeFunValues[cell][*pos][j] *
+  //                                                            quadJxW[cell][*pos] );
+  //                         local_dirichlet_matrix_row_i(j) += ( s *
+  //                                                              quadShapeFunValues[cell][*pos][j] *
+  //                                                              quadJxW[cell][*pos] );
+  //
+  //                       } // end loop over the dofs in the cell
+  //                   } // end loop over the quad points in a cell
+  //
+  //                 // Finally, we need to add
+  //                 // the contributions of the
+  //                 // current cell to the
+  //                 // global matrix.
+  //
+  //                 for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                   {
+  //                     // if(this_cpu_set.is_element(local_dof_indices[j]))
+  //                     // {
+  //                       prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
+  //                       prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
+  //
+  //                       if ((*dirichlet_nodes)(local_dof_indices[j]) > 0.8)
+  //                         init_preconditioner.add(nodeIndex,local_dof_indices[j],-local_dirichlet_matrix_row_i(j));
+  //                       else
+  //                         init_preconditioner.add(nodeIndex,local_dof_indices[j], local_neumann_matrix_row_i(j));
+  //                     // }
+  //                   }
+  //
+  //
+  //               } // end loop over quad points in the direct quad points list
+  //             }// end check on proc
+  //
+  //           } // end loop over nodes in a block
+  //       }// end loop over block of a level
+  //   }//end loop over octree levels
 
 
 

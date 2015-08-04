@@ -865,7 +865,7 @@ void BEMFMA<dim>::multipole_integrals()
                   copy_data);
 
 
-  
+
   // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
   //   f_generate_multipole_integral(kk, dofs_per_cell, this);
   // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
@@ -1060,63 +1060,123 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 // we loop on blocks and for each of them we create an empty multipole expansion
 // centered in the block center
 
-  for (unsigned int ii = 0; ii <  num_blocks ; ii++)
+    auto f_creation = [] (unsigned int ii, const BEMFMA<dim> *foo_fma) {
 
-    {
-      delta =  blocks[ii]->GetDelta();
-      Point<dim> deltaHalf;
-      for (unsigned int i=0; i<dim; i++)
-        deltaHalf(i) = delta/2.;
+        double delta = foo_fma->blocks[ii]->GetDelta();
+        Point<dim> deltaHalf;
+        for (unsigned int i=0; i<dim; i++)
+          deltaHalf(i) = delta/2.;
 
-      Point<dim> blockCenter =  blocks[ii]->GetPMin()+deltaHalf;
+        Point<dim> blockCenter =  foo_fma->blocks[ii]->GetPMin()+deltaHalf;
+        foo_fma->blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+        foo_fma->blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+    };
 
-      blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
-      blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
-    }
+    Threads::TaskGroup<> group_creation;
+    for (unsigned int ii = 0; ii <  num_blocks ; ii++)
+      group_creation += Threads::new_task ( static_cast<void (*)(unsigned int, const BEMFMA<dim> *)> (f_creation), ii, this);
+    group_creation.join_all();
+      //  Threads::Task<>  Threads::new_task
+    // {
+    //   delta =  blocks[ii]->GetDelta();
+    //   Point<dim> deltaHalf;
+    //   for (unsigned int i=0; i<dim; i++)
+    //     deltaHalf(i) = delta/2.;
+    //
+    //   Point<dim> blockCenter =  blocks[ii]->GetPMin()+deltaHalf;
+    //
+    //   blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
+    //   blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
+    // }
 
 // we now begin the rising phase of the algorithm: starting from the lowest block levels (childless blocks)
 // we get all the values of the multipole integrals and aggregate them in the multipole expansion for
 // each blocks
 
+
+  auto f_childless_creation = [] (unsigned int kk, const BEMFMA<dim> *foo_fma, const Vector<double> &phi_values, const Vector<double> &dphi_dn_values) {
+
+    // for each block we get the center and the quad points
+
+    unsigned int blockId =  foo_fma->childlessList[kk];
+    OctreeBlock<dim> *block =  foo_fma->blocks[blockId];
+
+    double delta =  foo_fma->blocks[blockId]->GetDelta();
+    Point<dim> deltaHalf;
+    for (unsigned int i=0; i<dim; i++)
+      deltaHalf(i) = delta/2.;
+    //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
+
+    std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
+
+    // we loop on the cells of the quad points in the block: remember that for each cell with a node in the
+    // block, we had created a set of dofs_per_cell multipole expansion, representing
+    // the (partial) integral on each cell
+
+    std::vector<unsigned int> my_local_dof_indices(foo_fma->fma_fe->dofs_per_cell);
+
+    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+      {
+        cell_it cell = (*it).first;
+        cell->get_dof_indices(my_local_dof_indices);
+
+        // for each cell we get the dof_indices, and add to the block multipole expansion,
+        // the integral previously computed, multiplied by the phi or dphi_dn value at the
+        // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
+        // created for this purpose
+
+        for (unsigned int jj=0; jj < foo_fma->fma_fe->dofs_per_cell; ++jj)
+          {
+            foo_fma->blockMultipoleExpansionsKer2.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(my_local_dof_indices[jj]));
+            foo_fma->blockMultipoleExpansionsKer1.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(my_local_dof_indices[jj]));
+          }
+      } //end loop ond block elements
+  };
+
+  Threads::TaskGroup<> group_childless_creation;
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+    // f_childless_creation(kk,this,phi_values,dphi_dn_values);
+    group_childless_creation += Threads::new_task ( static_cast<void (*)(unsigned int, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
+  group_childless_creation.join_all();
 
-    {
+    // {
 
-      // for each block we get the center and the quad points
-
-      unsigned int blockId =  childlessList[kk];
-      OctreeBlock<dim> *block =  blocks[blockId];
-
-      delta =  blocks[blockId]->GetDelta();
-      Point<dim> deltaHalf;
-      for (unsigned int i=0; i<dim; i++)
-        deltaHalf(i) = delta/2.;
-      //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
-
-      std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
-
-      // we loop on the cells of the quad points in the block: remember that for each cell with a node in the
-      // block, we had created a set of dofs_per_cell multipole expansion, representing
-      // the (partial) integral on each cell
-
-      typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-      for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-        {
-          cell_it cell = (*it).first;
-          cell->get_dof_indices(local_dof_indices);
-
-          // for each cell we get the dof_indices, and add to the block multipole expansion,
-          // the integral previously computed, multiplied by the phi or dphi_dn value at the
-          // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
-          // created for this purpose
-
-          for (unsigned int jj=0; jj < fma_fe->dofs_per_cell; ++jj)
-            {
-              blockMultipoleExpansionsKer2.at(blockId).Add(elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(local_dof_indices[jj]));
-              blockMultipoleExpansionsKer1.at(blockId).Add(elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(local_dof_indices[jj]));
-            }
-        } //end loop ond block elements
-    } // end loop on childless blocks
+      // // for each block we get the center and the quad points
+      //
+      // unsigned int blockId =  childlessList[kk];
+      // OctreeBlock<dim> *block =  blocks[blockId];
+      //
+      // delta =  blocks[blockId]->GetDelta();
+      // Point<dim> deltaHalf;
+      // for (unsigned int i=0; i<dim; i++)
+      //   deltaHalf(i) = delta/2.;
+      // //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
+      //
+      // std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
+      //
+      // // we loop on the cells of the quad points in the block: remember that for each cell with a node in the
+      // // block, we had created a set of dofs_per_cell multipole expansion, representing
+      // // the (partial) integral on each cell
+      //
+      // typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+      // for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+      //   {
+      //     cell_it cell = (*it).first;
+      //     cell->get_dof_indices(local_dof_indices);
+      //
+      //     // for each cell we get the dof_indices, and add to the block multipole expansion,
+      //     // the integral previously computed, multiplied by the phi or dphi_dn value at the
+      //     // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
+      //     // created for this purpose
+      //
+      //     for (unsigned int jj=0; jj < fma_fe->dofs_per_cell; ++jj)
+      //       {
+      //         blockMultipoleExpansionsKer2.at(blockId).Add(elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(local_dof_indices[jj]));
+      //         blockMultipoleExpansionsKer1.at(blockId).Add(elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(local_dof_indices[jj]));
+      //       }
+      //   } //end loop ond block elements
+    // } // end loop on childless blocks
 
 
 // now all the lower level blocks have a multipole expansion containing the contribution to the integrals
@@ -1126,6 +1186,71 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
 // we loop the levels starting from the bottom one
 
+  // The scratch data is nothing
+  struct AscendScratchData { };
+
+  // Basically we are applying a local to global operation so we need only great care in the copy.
+  struct AscendCopyData {
+
+    AscendCopyData(const BEMFMA<dim> *dummy_fma){
+      // each thread will hold a local copy of Multipole expansions. here they are initialized in a very
+      // dumb way, but they're always overwritten so...
+      Point<dim> zero;
+      MultipoleExpansion dummy(dummy_fma->trunc_order, zero, &(dummy_fma->assLegFunction));
+      translatedBlockMultipoleExpansionKer1 = dummy;
+      translatedBlockMultipoleExpansionKer2 = dummy;
+      foo_fma = dummy_fma;
+    };
+
+    // The working copy constructor for the copy structure
+    AscendCopyData(const AscendCopyData &in_vec){
+      translatedBlockMultipoleExpansionKer1 = in_vec.translatedBlockMultipoleExpansionKer1;
+      translatedBlockMultipoleExpansionKer2 = in_vec.translatedBlockMultipoleExpansionKer2;
+      foo_fma = in_vec.foo_fma;
+      start = in_vec.start;
+    };
+
+    // The Destructor needs to make foo_fma to point to NULL (for this reason it is mutable const)
+    ~AscendCopyData(){
+      foo_fma = NULL;
+    };
+
+    unsigned int start;
+    unsigned int parentId;
+    MultipoleExpansion translatedBlockMultipoleExpansionKer1;
+    MultipoleExpansion translatedBlockMultipoleExpansionKer2;
+    // The pointer we use to copy everything back.
+    mutable const BEMFMA<dim> *foo_fma;
+  };
+
+
+  // The worker function, it copies the value from the memory at a certain level to local array in copy.data
+  auto f_worker_ascend = [] (typename std::vector<OctreeBlock<dim> *>::iterator block_it, AscendScratchData &scratch, AscendCopyData &copy_data, unsigned int start){
+    unsigned int kk = std::distance(copy_data.foo_fma->blocks.begin(), block_it);
+
+    Point<dim> zero;
+    MultipoleExpansion dummy(copy_data.foo_fma->trunc_order, zero, &(copy_data.foo_fma->assLegFunction));
+    copy_data.translatedBlockMultipoleExpansionKer1 = dummy;
+    copy_data.translatedBlockMultipoleExpansionKer2 = dummy;
+    copy_data.start = start;
+    // copy_data.local_level_indices[kk] = start + kk;
+    copy_data.parentId =  (*block_it)->GetParentId();
+    copy_data.translatedBlockMultipoleExpansionKer1.SetCenter(copy_data.foo_fma->blockMultipoleExpansionsKer1.at(copy_data.parentId).GetCenter());
+    copy_data.translatedBlockMultipoleExpansionKer2.SetCenter(copy_data.foo_fma->blockMultipoleExpansionsKer2.at(copy_data.parentId).GetCenter());
+    //std::cout<<"Before Add: "<<copy_data.translatedBlockMultipoleExpansionKer1.GetCoeff(5, 1)<<" "<<copy_data.translatedBlockMultipoleExpansionKer2.GetCoeff(5, 1)<<std::endl;
+
+    copy_data.translatedBlockMultipoleExpansionKer1.Add(copy_data.foo_fma->blockMultipoleExpansionsKer1.at(kk));
+    copy_data.translatedBlockMultipoleExpansionKer2.Add(copy_data.foo_fma->blockMultipoleExpansionsKer2.at(kk));
+    //std::cout<<"After Add: "<<copy_data.translatedBlockMultipoleExpansionKer1.GetCoeff(5, 1)<<" "<<copy_data.translatedBlockMultipoleExpansionKer2.GetCoeff(5, 1)<<std::endl;
+  };
+
+  // The copier function, it copies the value from the local array to the parent blocks
+  auto f_copier_ascend = [] (const  AscendCopyData &copy_data){
+
+        copy_data.foo_fma->blockMultipoleExpansionsKer1.at(copy_data.parentId).Add(copy_data.translatedBlockMultipoleExpansionKer1);
+        copy_data.foo_fma->blockMultipoleExpansionsKer2.at(copy_data.parentId).Add(copy_data.translatedBlockMultipoleExpansionKer2);
+
+  };
   for (unsigned int level =  num_octree_levels; level > 0; level--)
 
     {
@@ -1134,15 +1259,59 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
       // pcout<<"processing level "<<level <<"  of  "<< num_octree_levels<<std::endl;
 
-      for (unsigned int kk =  startLevel[level]; kk <  endLevel[level]+1; kk++)
+      // AscendScratchData sample_scratch;
+      //
+      // std::cout<<endLevel[level]<<startLevel[level]<<std::endl;
+      // AscendCopyData sample_copy(endLevel[level]-startLevel[level]+1, this);
+      //
 
-        {
-          unsigned int parentId =  blocks[kk]->GetParentId();
+        AscendScratchData sample_scratch;
 
-          blockMultipoleExpansionsKer1.at(parentId).Add(blockMultipoleExpansionsKer1.at(kk));
-          blockMultipoleExpansionsKer2.at(parentId).Add(blockMultipoleExpansionsKer2.at(kk));
+        AscendCopyData sample_copy(this);
 
-        } // end loop over blocks of a level
+        // std::cout<<level<<std::endl;
+        // std::cout<<"worker"<<std::endl;
+        //for (unsigned int i=startLevel[level]; i<endLevel[level]+1; ++i)
+        //    std::cout<<i<<"  (********)"<<std::endl;
+        if(endLevel[level]>=startLevel[level])
+          WorkStream::run(blocks.begin()+startLevel[level],
+                          blocks.begin()+endLevel[level]+1,
+                          std_cxx11::bind(static_cast<void (*)(typename std::vector<OctreeBlock<dim> *>::iterator,
+                            AscendScratchData &, AscendCopyData &, unsigned int)>
+                          (f_worker_ascend), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startLevel[level]),
+                          static_cast<void (*)(const AscendCopyData &)>(f_copier_ascend),
+                          sample_scratch,
+                          sample_copy);
+
+        // for (typename std::vector<OctreeBlock<dim> *>::iterator blocky=blocks.begin()+startLevel[level]; blocky<blocks.begin()+endLevel[level]+1; ++blocky)
+        //
+        //   {
+        //     f_worker_ascend(blocky, sample_scratch, sample_copy, startLevel[level]);
+        //   }
+        //   f_copier_ascend(sample_copy);
+
+        // for (unsigned int kk =  startLevel[level]; kk <  endLevel[level]+1; kk++)
+        //
+        //   {
+        //     unsigned int parentId =  blocks[kk]->GetParentId();
+        //     std::cout<<kk<<std::endl;
+        //
+        //     blockMultipoleExpansionsKer1.at(parentId).Add(sample_copy.local_level_indicesblockMultipoleExpansionKer1.at(kk-startLevel[level]));
+        //     blockMultipoleExpansionsKer2.at(parentId).Add(sample_copy.local_level_indicesblockMultipoleExpansionKer2.at(kk-startLevel[level]));
+        //
+        //   } // end loop over blocks of a level
+
+
+        // for (unsigned int kk =  startLevel[level]; kk <  endLevel[level]+1; kk++)
+        //
+        //   {
+        //     unsigned int parentId =  blocks[kk]->GetParentId();
+        //     std::cout<<kk<<std::endl;
+        //
+        //     blockMultipoleExpansionsKer1.at(parentId).Add(blockMultipoleExpansionsKer1.at(kk));
+        //     blockMultipoleExpansionsKer2.at(parentId).Add(blockMultipoleExpansionsKer2.at(kk));
+        //
+        //   } // end loop over blocks of a level
 
     } // end loop over levels
 

@@ -1433,10 +1433,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   auto f_worker_Descend = [] (std::vector<unsigned int>::const_iterator block_it_id, DescendScratchData &scratch, DescendCopyData &copy_data, const unsigned int start, const std::vector<Point<dim> > &support_points){
     // unsigned int kk = std::distance(copy_data.foo_fma->blocks.begin(), block_it);
 
-    Point<dim> zero;
-    LocalExpansion dummy(copy_data.foo_fma->trunc_order, zero, &(copy_data.foo_fma->assLegFunction));
-    copy_data.blockLocalExpansionKer1 = dummy;
-    copy_data.blockLocalExpansionKer2 = dummy;
+
     copy_data.start = start;
     copy_data.blockId = *block_it_id;
     unsigned int kk = *block_it_id;
@@ -1444,7 +1441,11 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     block_it = copy_data.foo_fma->blocks[*block_it_id];
     // copy_data.local_level_indices[kk] = start + kk;
 //*****************definire chi e' on_process qui
-
+    Point<dim> center = copy_data.foo_fma->blockLocalExpansionsKer1.at(kk).GetCenter();
+    LocalExpansion dummy(copy_data.foo_fma->trunc_order, center, &(copy_data.foo_fma->assLegFunction));
+    copy_data.blockLocalExpansionKer1 = dummy;
+    copy_data.blockLocalExpansionKer2 = dummy;
+    //std::cout<<copy_data.blockLocalExpansionKer1.GetCoeff(5,1)<<" "<<copy_data.blockLocalExpansionKer2.GetCoeff(5,1)<<std::endl;
          //pcout<<"Block "<<jj<<std::endl;
     unsigned int level=0;
     for (unsigned int lev = 0; lev <  copy_data.foo_fma->num_octree_levels + 1;  lev++)
@@ -1477,7 +1478,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
     if (on_process )
        {
-       std::cout<<"Level: "<<level<<" "<<kk<<"("<<jj<<")  "<<nodesBlk1Ids.size()<<"  "<<startBlockLevel<<std::endl;
+       //std::cout<<"Level: "<<level<<" "<<kk<<"("<<jj<<")  "<<nodesBlk1Ids.size()<<"  "<<startBlockLevel<<std::endl;
        // the local expansion of the parent must be translated down into the current block
        unsigned int parentId =  block_it->GetParentId();
        copy_data.blockLocalExpansionKer1.Add(copy_data.foo_fma->blockLocalExpansionsKer1.at(parentId));
@@ -1541,10 +1542,10 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                   TimeMonitor LocalTimer(*LocEval);
 
                   for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of (*block_it)
-                    {
+                    { //std::cout<<nodesBlk1Ids.at(ii)<<std::endl;
                       const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
-                      copy_data.matrVectorProductContributionKer1(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
-                      copy_data.matrVectorProductContributionKer2(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);
+                      copy_data.matrVectorProductContributionKer1(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);
+                      copy_data.matrVectorProductContributionKer2(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
 
                       /*//////this is for a check/////////////////////////
                             OctreeBlock<dim>* block2 =  blocks[block2Id];

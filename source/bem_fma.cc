@@ -1422,7 +1422,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     LocalExpansion blockLocalExpansionKer2;
     Vector<double> matrVectorProductContributionKer1;
     Vector<double> matrVectorProductContributionKer2;
-    std::vector<unsigned int> nodesBlk1Ids; 
+    std::vector<unsigned int> nodesBlk1Ids;
     // The pointer we use to copy everything back.
     mutable const BEMFMA<dim> *foo_fma;
 
@@ -1430,15 +1430,18 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
 
   // The worker function, it copies the value from the memory at a certain level to local array in copy.data
-  auto f_worker_Descend = [] (typename std::vector<OctreeBlock<dim> *>::iterator block_it, DescendScratchData &scratch, DescendCopyData &copy_data, unsigned int start, std::vector<Point<dim> > &support_points){
-    unsigned int kk = std::distance(copy_data.foo_fma->blocks.begin(), block_it);
+  auto f_worker_Descend = [] (std::vector<unsigned int>::const_iterator block_it_id, DescendScratchData &scratch, DescendCopyData &copy_data, const unsigned int start, const std::vector<Point<dim> > &support_points){
+    // unsigned int kk = std::distance(copy_data.foo_fma->blocks.begin(), block_it);
 
     Point<dim> zero;
     LocalExpansion dummy(copy_data.foo_fma->trunc_order, zero, &(copy_data.foo_fma->assLegFunction));
     copy_data.blockLocalExpansionKer1 = dummy;
     copy_data.blockLocalExpansionKer2 = dummy;
     copy_data.start = start;
-    copy_data.blockId = kk;
+    copy_data.blockId = *block_it_id;
+    unsigned int kk = *block_it_id;
+    OctreeBlock<dim> *block_it;
+    block_it = copy_data.foo_fma->blocks[*block_it_id];
     // copy_data.local_level_indices[kk] = start + kk;
 //*****************definire chi e' on_process qui
 
@@ -1458,7 +1461,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     unsigned int startBlockLevel =  copy_data.foo_fma->startLevel[level];
     unsigned int endBlockLevel =  copy_data.foo_fma->endLevel[level];
     unsigned int jj =  copy_data.foo_fma->dofs_filled_blocks[level][kk-startBlockLevel];
-    std::vector <unsigned int> nodesBlk1Ids = (*block_it)->GetBlockNodeList();
+    std::vector <unsigned int> nodesBlk1Ids = block_it->GetBlockNodeList();
     bool on_process = false;
     for(auto ind : nodesBlk1Ids)
        {
@@ -1467,7 +1470,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
          on_process = true;
          break;
          }
-       }  
+       }
     copy_data.nodesBlk1Ids = nodesBlk1Ids;
     copy_data.matrVectorProductContributionKer1.reinit(nodesBlk1Ids.size());
     copy_data.matrVectorProductContributionKer2.reinit(nodesBlk1Ids.size());
@@ -1475,17 +1478,17 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     if (on_process )
        {
        std::cout<<"Level: "<<level<<" "<<kk<<"("<<jj<<")  "<<nodesBlk1Ids.size()<<"  "<<startBlockLevel<<std::endl;
-       // the local expansion of the parent must be translated down into the current block 
-       unsigned int parentId =  (*block_it)->GetParentId();
+       // the local expansion of the parent must be translated down into the current block
+       unsigned int parentId =  block_it->GetParentId();
        copy_data.blockLocalExpansionKer1.Add(copy_data.foo_fma->blockLocalExpansionsKer1.at(parentId));
        copy_data.blockLocalExpansionKer2.Add(copy_data.foo_fma->blockLocalExpansionsKer2.at(parentId));
 
 
-       for (unsigned int subLevel = 0; subLevel < (*block_it)->NumNearNeighLevels();  subLevel++)
+       for (unsigned int subLevel = 0; subLevel < block_it->NumNearNeighLevels();  subLevel++)
            {
            // we get the nonIntList of each block
 
-           std::set <unsigned int> nonIntList = (*block_it)->GetNonIntList(subLevel);
+           std::set <unsigned int> nonIntList = block_it->GetNonIntList(subLevel);
            std::set <cell_it> nonIntListElemsBlk1;
 
            // we start converting into local expansions, all the multipole expansions
@@ -1539,7 +1542,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
                   for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of (*block_it)
                     {
-                      Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+                      const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
                       copy_data.matrVectorProductContributionKer1(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer2[block2Id].Evaluate(nodeBlk1);
                       copy_data.matrVectorProductContributionKer2(ii) += copy_data.foo_fma->blockMultipoleExpansionsKer1[block2Id].Evaluate(nodeBlk1);
 
@@ -1560,7 +1563,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                 } // end loop over well separated blocks of smaller size (level)
 
 
-            } // end loop over all sublevels in  nonIntlist    
+            } // end loop over all sublevels in  nonIntlist
 
 
        }
@@ -1606,12 +1609,12 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
         //for (unsigned int i=startLevel[level]; i<endLevel[level]+1; ++i)
         //    std::cout<<i<<"  (********)"<<std::endl;
         if(endLevel[level]>=startLevel[level])
-          WorkStream::run(blocks.begin()+startLevel[level],
-                          blocks.begin()+endLevel[level]+1,
-                          std_cxx11::bind(static_cast<void (*)(typename std::vector<OctreeBlock<dim> *>::iterator,
-                            DescendScratchData &, DescendCopyData &, unsigned int, std::vector<Point<dim> >&)>
-                          (f_worker_Descend), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startLevel[level],support_points),
-                          (f_copier_Descend),
+          WorkStream::run(dofs_filled_blocks[level].begin(),
+                          dofs_filled_blocks[level].end(),
+                          std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::const_iterator,
+                            DescendScratchData &, DescendCopyData &, const unsigned int, const std::vector<Point<dim> > &)>
+                          (f_worker_Descend), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startBlockLevel, support_points),
+                          f_copier_Descend,
                           sample_scratch,
                           sample_copy);
 

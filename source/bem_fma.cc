@@ -1461,7 +1461,6 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
     unsigned int startBlockLevel =  copy_data.foo_fma->startLevel[level];
     unsigned int endBlockLevel =  copy_data.foo_fma->endLevel[level];
-    unsigned int jj =  copy_data.foo_fma->dofs_filled_blocks[level][kk-startBlockLevel];
     std::vector <unsigned int> nodesBlk1Ids = block_it->GetBlockNodeList();
     bool on_process = false;
     for(auto ind : nodesBlk1Ids)

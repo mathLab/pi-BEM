@@ -1524,27 +1524,52 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
   // TODO SPLIT THIS LOOP OVER ALL PROCESSORS THEN COMMUNICATE.
   // if(this_mpi_process==0)
-  for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  auto f_local_evaluation = [] (unsigned int kk, TrilinosWrappers::MPI::Vector & matrVectProdD, TrilinosWrappers::MPI::Vector & matrVectProdN, const BEMFMA<dim> *foo_fma, const std::vector<Point<dim> > & support_points) {
 
-    {
-      unsigned int block1Id =  childlessList[kk];
-      OctreeBlock<dim> *block1 =  blocks[block1Id];
-      std::vector <unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
+    unsigned int block1Id =  foo_fma->childlessList[kk];
+    OctreeBlock<dim> *block1 =  foo_fma->blocks[block1Id];
+    std::vector <unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
 
-      // loop over nodes of block
-      for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
+    // loop over nodes of block
+    for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
+      {
+        if(foo_fma->this_cpu_set.is_element(nodesBlk1Ids[ii]))
         {
-          if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
-          {
-            TimeMonitor LocalTimer(*LocEval);
+          //TimeMonitor LocalTimer(*LocEval);
 
-            Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
-            matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
-            matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
-          }
-        } // end loop over nodes
+          const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+          matrVectProdD(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
+          matrVectProdN(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+        }
+      } // end loop over nodes
+  };
 
-    } // end loop over childless blocks
+  Threads::TaskGroup<> group_local_evaluation;
+  for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+    group_local_evaluation += Threads::new_task ( static_cast<void (*)(unsigned int, TrilinosWrappers::MPI::Vector &, TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *, const std::vector<Point<dim> > &)> (f_local_evaluation), kk, matrVectProdD, matrVectProdN, this, support_points);
+  group_local_evaluation.join_all();
+
+  // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
+  //
+  //   {
+  //     unsigned int block1Id =  childlessList[kk];
+  //     OctreeBlock<dim> *block1 =  blocks[block1Id];
+  //     std::vector <unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
+  //
+  //     // loop over nodes of block
+  //     for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
+  //       {
+  //         if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
+  //         {
+  //           TimeMonitor LocalTimer(*LocEval);
+  //
+  //           Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+  //           matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
+  //           matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+  //         }
+  //       } // end loop over nodes
+  //
+  //   } // end loop over childless blocks
 
   /*////////this is for a check//////////////////////
   for (unsigned int i = 0; i < fma_dh->n_dofs(); i++)

@@ -2430,6 +2430,8 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   for (unsigned int ii = 0; ii <  fma_dh->n_dofs() ; ii++)
     prec_filler += Threads::new_task ( static_cast<void (*)(unsigned int, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const BEMFMA<dim> *)> (f_sparsity_filler), ii, final_preconditioner, c, this);
   prec_filler.join_all();
+
+  std::cout<<"compress 1"<<std::endl;
   final_preconditioner.compress(VectorOperation::insert);
 
   auto f_alpha_adder = [] (unsigned int i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &alpha, const BEMFMA<dim> *foo_fma){
@@ -2453,6 +2455,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
     alpha_adder += Threads::new_task ( static_cast<void (*)(unsigned int, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *)> (f_alpha_adder), ii, final_preconditioner, c, alpha, this);
   alpha_adder.join_all();
   final_preconditioner.compress(VectorOperation::add);
+  std::cout<<"compress 2"<<std::endl;
 
   // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
   //   {

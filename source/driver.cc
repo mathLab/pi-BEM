@@ -89,7 +89,7 @@ void Driver<dim>::run()
       TimeMonitor LocalTimer(*MeshTime);
       //computational_domain.create_initial_mesh();
       computational_domain.read_domain();
-      if(global_refinement)
+      if (global_refinement)
         computational_domain.refine_and_resize(computational_domain.n_cycles);
       else
         computational_domain.conditional_refine_and_resize(computational_domain.n_cycles);

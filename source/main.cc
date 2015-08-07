@@ -25,7 +25,7 @@ int main (int argc, char *argv[])
   try
     {
       unsigned int threads;
-      if(argc == 1)
+      if (argc == 1)
         threads = numbers::invalid_unsigned_int;
       else
         threads = atoi(argv[1]);

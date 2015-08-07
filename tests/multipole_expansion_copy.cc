@@ -64,7 +64,7 @@ int main ()
 
 
   // to test a multipole expansion copy, we create a new multipole and then copy
-  // the original multipole content into the new expension. we test 
+  // the original multipole content into the new expension. we test
   // both the assignement through = to an uninitialized expansion, and that
   // on an initialized one
   MultipoleExpansion new_multipole(truncation_order, center, alf_ptr);
@@ -78,9 +78,9 @@ int main ()
   deallog<<"Original and copied multipole  are created. "<<std::endl;
   std::complex <double> total_difference(0.0,0.0);
   for (unsigned int i=0; i<(truncation_order+1)*(truncation_order+2)/2; ++i)
-      {
+    {
       total_difference += abs(old_multipole_values[i]-new_multipole_values[i]);
-      }
+    }
 
   deallog<<std::endl;
   deallog<<"Total difference between original and copied multipole expansion entries: "<<total_difference<<std::endl;

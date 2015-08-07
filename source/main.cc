@@ -24,7 +24,12 @@ int main (int argc, char *argv[])
 {
   try
     {
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, numbers::invalid_unsigned_int);
+      unsigned int threads;
+      if(argc == 1)
+        threads = numbers::invalid_unsigned_int;
+      else
+        threads = atoi(argv[1]);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, threads);
 
       Driver<3> driver;
 

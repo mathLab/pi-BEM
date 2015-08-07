@@ -62,6 +62,11 @@ public:
     return this->center;
   }
 
+  inline void SetCenter(const dealii::Point<3> &new_center)
+  {
+    this->center = new_center;
+  }
+
   inline FullMatrix<double> GetA_n_m() const
   {
     return this->A_n_m;

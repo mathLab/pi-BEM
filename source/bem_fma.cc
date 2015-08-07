@@ -2326,36 +2326,62 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
   // IndexSet this_cpu_set(alpha.locally_owned_elements());
-  for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
-    {
-      if (this_cpu_set.is_element(i))
-        {
-          if (c.is_constrained(i))
-            {
-              //cout<<i<<"  (c):"<<endl;
-              // constrained nodes entries are taken from the bem problem constraint matrix
-              final_prec_sparsity_pattern.add(i,i);
-              const std::vector< std::pair < unsigned int, double > >
-              *entries = c.get_constraint_entries (i);
-              for (unsigned int j=0; j< entries->size(); ++j)
-                final_prec_sparsity_pattern.add(i,(*entries)[j].first);
-            }
-          else
-            {
-              //cout<<i<<"  (nc): ";
-              // other nodes entries are taken from the unconstrained preconditioner matrix
-              for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-                {
-                  if (init_prec_sparsity_pattern.exists(i,j))
-                    {
-                      final_prec_sparsity_pattern.add(i,j);
-                      //cout<<j<<" ";
-                    }
-                }
-              //cout<<endl;
-            }
-        }
-    }
+  // auto f_sparsity_creation = [] (unsigned int i, TrilinosWrappers::SparsityPattern &const BEMFMA<dim> *foo_fma)
+  // {
+  //
+  //   double delta = foo_fma->blocks[ii]->GetDelta();
+  //   Point<dim> deltaHalf;
+  //   for (unsigned int i=0; i<dim; i++)
+  //     deltaHalf(i) = delta/2.;
+  //
+  //   Point<dim> blockCenter =  foo_fma->blocks[ii]->GetPMin()+deltaHalf;
+  //   foo_fma->blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+  //   foo_fma->blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+  // };
+  //
+  // Threads::TaskGroup<> group_creation;
+  // for (unsigned int ii = 0; ii <  num_blocks ; ii++)
+  //   group_creation += Threads::new_task ( static_cast<void (*)(unsigned int, const BEMFMA<dim> *)> (f_creation), ii, this);
+  // group_creation.join_all();
+
+  std::vector<unsigned int> this_cpu_index_vector(this_cpu_set.n_elements());
+  this_cpu_set.fill_index_vector(this_cpu_index_vector);
+  IndexSet full_index_set;
+  full_index_set.set_size(fma_dh->n_dofs());
+  full_index_set.add_range(0, fma_dh->n_dofs());
+  std::vector<unsigned int> full_index_vector(full_index_set.n_elements());
+  full_index_set.fill_index_vector(full_index_vector);
+  c.add_entries_local_to_global(this_cpu_index_vector, full_index_vector, final_prec_sparsity_pattern);
+  // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  //   {
+  //     if (this_cpu_set.is_element(i))
+  //       {
+  //         if (c.is_constrained(i))
+  //           {
+  //             //cout<<i<<"  (c):"<<endl;
+  //             // constrained nodes entries are taken from the bem problem constraint matrix
+  //             final_prec_sparsity_pattern.add(i,i);
+  //             const std::vector< std::pair < unsigned int, double > >
+  //             *entries = c.get_constraint_entries (i);
+  //             for (unsigned int j=0; j< entries->size(); ++j)
+  //               final_prec_sparsity_pattern.add(i,(*entries)[j].first);
+  //           }
+  //         else
+  //           {
+  //             //cout<<i<<"  (nc): ";
+  //             // other nodes entries are taken from the unconstrained preconditioner matrix
+  //             for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+  //               {
+  //                 if (init_prec_sparsity_pattern.exists(i,j))
+  //                   {
+  //                     final_prec_sparsity_pattern.add(i,j);
+  //                     //cout<<j<<" ";
+  //                   }
+  //               }
+  //             //cout<<endl;
+  //           }
+  //       }
+  //   }
 
 
   final_prec_sparsity_pattern.compress();
@@ -2364,58 +2390,122 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // std::cout<<"ok prec sparsity pattern"<<std::endl;
   // now we assemble the final preconditioner matrix: the loop works
   // exactly like the previous one
-  for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
-    {
-      if (this_cpu_set.is_element(i))
-        {
-          if (c.is_constrained(i))
-            {
-              final_preconditioner.set(i,i,1);
-              //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
-              // constrainednodes entries are taken from the bem problem constraint matrix
-              const std::vector< std::pair < unsigned int, double > >
-              *entries = c.get_constraint_entries (i);
-              for (unsigned int j=0; j< entries->size(); ++j)
-                {
-                  final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
-                  //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
-                }
-            }
-          else
-            {
-              // other nodes entries are taken from the unconstrained preconditioner matrix
-              for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-                {
-                  // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
-                  if (init_prec_sparsity_pattern.exists(i,j))
-                    {
-                      final_preconditioner.set(i,j,init_preconditioner(i,j));
-                      //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
-                    }
-                }
 
-            }
+  auto f_sparsity_filler = [] (unsigned int i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const BEMFMA<dim> *foo_fma)
+  {
+    if (foo_fma->this_cpu_set.is_element(i))
+      {
+        if (c.is_constrained(i))
+          {
+            final_preconditioner.set(i,i,1);
+            //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+            // constrainednodes entries are taken from the bem problem constraint matrix
+            const std::vector< std::pair < unsigned int, double > >
+            *entries = c.get_constraint_entries (i);
+            for (unsigned int j=0; j< entries->size(); ++j)
+              {
+                final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
+                //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
+              }
+          }
+        else
+          {
+            // other nodes entries are taken from the unconstrained preconditioner matrix
+            for (unsigned int j=0; j<foo_fma->fma_dh->n_dofs(); ++j)
+              {
+                // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
+                if (foo_fma->init_prec_sparsity_pattern.exists(i,j))
+                  {
+                    final_preconditioner.set(i,j,foo_fma->init_preconditioner(i,j));
+                    // foo_fma->pcout<<i<<" "<<j<<" "<<foo_fma->init_preconditioner(i,j)<<std::endl;
+                  }
+              }
+
+          }
+
+      }
+  };
+
+  Threads::TaskGroup<> prec_filler;
+  for (unsigned int ii = 0; ii <  fma_dh->n_dofs() ; ii++)
+    prec_filler += Threads::new_task ( static_cast<void (*)(unsigned int, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const BEMFMA<dim> *)> (f_sparsity_filler), ii, final_preconditioner, c, this);
+  prec_filler.join_all();
+  final_preconditioner.compress(VectorOperation::insert);
+
+  auto f_alpha_adder = [] (unsigned int i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &alpha, const BEMFMA<dim> *foo_fma){
+    if (foo_fma->this_cpu_set.is_element(i))
+    {
+      if ( (*(foo_fma->dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
+        {
+          final_preconditioner.add(i,i,alpha(i));
+          //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+        }
+      else // this is just to avoid a deadlock. we need a better strategy
+        {
+          final_preconditioner.add(i,i,0);
         }
     }
-  // std::cout<<"now alpha"<<std::endl;
-  // finally, we have to add the alpha values on the diagonal, whenever dealing with a
-  // neumann (in such nodes the potential phi is an unknown) and non constrained node
 
-  for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
-    {
-      if (this_cpu_set.is_element(i))
-        {
-          if ( (*dirichlet_nodes)(i) == 0 && !(c.is_constrained(i)))
-            {
-              final_preconditioner.add(i,i,alpha(i));
-              //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
-            }
-          else // this is just to avoid a deadlock. we need a better strategy
-            {
-              final_preconditioner.add(i,i,0);
-            }
-        }
-    }
+  };
+
+  Threads::TaskGroup<> alpha_adder;
+  for (unsigned int ii = 0; ii <  fma_dh->n_dofs() ; ii++)
+    alpha_adder += Threads::new_task ( static_cast<void (*)(unsigned int, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *)> (f_alpha_adder), ii, final_preconditioner, c, alpha, this);
+  alpha_adder.join_all();
+  final_preconditioner.compress(VectorOperation::add);
+
+  // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  //   {
+  //     if (this_cpu_set.is_element(i))
+  //       {
+  //         if (c.is_constrained(i))
+  //           {
+  //             final_preconditioner.set(i,i,1);
+  //             //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+  //             // constrainednodes entries are taken from the bem problem constraint matrix
+  //             const std::vector< std::pair < unsigned int, double > >
+  //             *entries = c.get_constraint_entries (i);
+  //             for (unsigned int j=0; j< entries->size(); ++j)
+  //               {
+  //                 final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
+  //                 //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
+  //               }
+  //           }
+  //         else
+  //           {
+  //             // other nodes entries are taken from the unconstrained preconditioner matrix
+  //             for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+  //               {
+  //                 // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
+  //                 if (init_prec_sparsity_pattern.exists(i,j))
+  //                   {
+  //                     final_preconditioner.set(i,j,init_preconditioner(i,j));
+  //                     //pcout<<i<<" "<<j<<" "<<init_preconditioner(i,j)<<std::endl;
+  //                   }
+  //               }
+  //
+  //           }
+  //       }
+  //   }
+  // // std::cout<<"now alpha"<<std::endl;
+  // // finally, we have to add the alpha values on the diagonal, whenever dealing with a
+  // // neumann (in such nodes the potential phi is an unknown) and non constrained node
+  //
+  // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  //   {
+  //     if (this_cpu_set.is_element(i))
+  //       {
+  //         if ( (*dirichlet_nodes)(i) == 0 && !(c.is_constrained(i)))
+  //           {
+  //             final_preconditioner.add(i,i,alpha(i));
+  //             //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+  //           }
+  //         else // this is just to avoid a deadlock. we need a better strategy
+  //           {
+  //             final_preconditioner.add(i,i,0);
+  //           }
+  //       }
+  //   }
 
   //preconditioner.print_formatted(pcout,4,true,0," 0 ",1.);
   preconditioner.initialize(final_preconditioner);

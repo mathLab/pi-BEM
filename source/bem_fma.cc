@@ -2323,6 +2323,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
+  final_prec_sparsity_pattern=init_prec_sparsity_pattern;
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
   // IndexSet this_cpu_set(alpha.locally_owned_elements());
@@ -2366,20 +2367,20 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
               for (unsigned int j=0; j< entries->size(); ++j)
                 final_prec_sparsity_pattern.add(i,(*entries)[j].first);
             }
-          else
-            {
-              //cout<<i<<"  (nc): ";
-              // other nodes entries are taken from the unconstrained preconditioner matrix
-              for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-                {
-                  if (init_prec_sparsity_pattern.exists(i,j))
-                    {
-                      final_prec_sparsity_pattern.add(i,j);
-                      //cout<<j<<" ";
-                    }
-                }
-              //cout<<endl;
-            }
+          // else
+          //   {
+          //     //cout<<i<<"  (nc): ";
+          //     // other nodes entries are taken from the unconstrained preconditioner matrix
+          //     for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+          //       {
+          //         if (init_prec_sparsity_pattern.exists(i,j))
+          //           {
+          //             final_prec_sparsity_pattern.add(i,j);
+          //             //cout<<j<<" ";
+          //           }
+          //       }
+          //     //cout<<endl;
+          //   }
         }
     }
 

@@ -2323,7 +2323,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
   final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
-  final_prec_sparsity_pattern=init_prec_sparsity_pattern;
+
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
   // IndexSet this_cpu_set(alpha.locally_owned_elements());
@@ -2347,43 +2347,114 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
 
   // std::vector<unsigned int> this_cpu_index_vector(this_cpu_set.n_elements());
   // this_cpu_set.fill_index_vector(this_cpu_index_vector);
+
   // IndexSet full_index_set;
   // full_index_set.set_size(fma_dh->n_dofs());
   // full_index_set.add_range(0, fma_dh->n_dofs());
   // std::vector<unsigned int> full_index_vector(full_index_set.n_elements());
   // full_index_set.fill_index_vector(full_index_vector);
   // c.add_entries_local_to_global(this_cpu_index_vector, full_index_vector, final_prec_sparsity_pattern);
-  for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+  //   {
+  //     if (this_cpu_set.is_element(i))
+  //       {
+  //         if (c.is_constrained(i))
+  //           {
+  //             //cout<<i<<"  (c):"<<endl;
+  //             // constrained nodes entries are taken from the bem problem constraint matrix
+  //             final_prec_sparsity_pattern.add(i,i);
+  //             const std::vector< std::pair < unsigned int, double > >
+  //             *entries = c.get_constraint_entries (i);
+  //             for (unsigned int j=0; j< entries->size(); ++j)
+  //               final_prec_sparsity_pattern.add(i,(*entries)[j].first);
+  //           }
+  //         else
+  //           {
+  //             //cout<<i<<"  (nc): ";
+  //             // other nodes entries are taken from the unconstrained preconditioner matrix
+  //             for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+  //               {
+  //                 if (init_prec_sparsity_pattern.exists(i,j))
+  //                   {
+  //                     final_prec_sparsity_pattern.add(i,j);
+  //                     //cout<<j<<" ";
+  //                   }
+  //               }
+  //             //cout<<endl;
+  //           }
+  //       }
+  //   }
+
+  struct PrecScratch{};
+  struct PrecCopy{
+    PrecCopy(){
+      row = numbers::invalid_unsigned_int;
+      sparsity_row.resize(0);
+    };
+    PrecCopy(const PrecCopy & in_copy){
+      row=in_copy.row;
+      sparsity_row=in_copy.sparsity_row;
+    };
+    unsigned int row;
+    std::vector<unsigned int> sparsity_row;
+  };
+  auto f_worker_prec = [this, &c](unsigned int i, PrecScratch &foo_data, PrecCopy &copy_data){
+      copy_data.sparsity_row.resize(0);
+      // unsigned int i = *index_it;
+      if(this->this_cpu_set.is_element(i))
+      {
+        copy_data.row = i;
+        if (c.is_constrained(i))
+          {
+            //cout<<i<<"  (c):"<<endl;
+            // constrained nodes entries are taken from the bem problem constraint matrix
+            copy_data.sparsity_row.push_back(i);
+            const std::vector< std::pair < unsigned int, double > >
+            *entries = c.get_constraint_entries (i);
+            for (unsigned int j=0; j< entries->size(); ++j)
+              copy_data.sparsity_row.push_back((*entries)[j].first);
+            // std::cout<<"demonio proco";
+
+          }
+        else
+          {
+            //cout<<i<<"  (nc): ";
+            // other nodes entries are taken from the unconstrained preconditioner matrix
+            for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+              {
+                if (this->init_prec_sparsity_pattern.exists(i,j))
+                  {
+                    copy_data.sparsity_row.push_back(j);
+                    // std::cout<<"boia"<<j<<" ";
+                  }
+              }
+            //cout<<endl;
+          }
+          // std::cout<<copy_data.sparsity_row.size()<<std::endl;
+
+      }
+
+
+
+  };
+
+  auto f_copier_prec = [this](const PrecCopy &copy_data){
+    // std::cout<<"COPY"<<std::endl;
+    if(this->this_cpu_set.is_element(copy_data.row))
     {
-      if (this_cpu_set.is_element(i))
-        {
-          if (c.is_constrained(i))
-            {
-              //cout<<i<<"  (c):"<<endl;
-              // constrained nodes entries are taken from the bem problem constraint matrix
-              final_prec_sparsity_pattern.add(i,i);
-              const std::vector< std::pair < unsigned int, double > >
-              *entries = c.get_constraint_entries (i);
-              for (unsigned int j=0; j< entries->size(); ++j)
-                final_prec_sparsity_pattern.add(i,(*entries)[j].first);
-            }
-          // else
-          //   {
-          //     //cout<<i<<"  (nc): ";
-          //     // other nodes entries are taken from the unconstrained preconditioner matrix
-          //     for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-          //       {
-          //         if (init_prec_sparsity_pattern.exists(i,j))
-          //           {
-          //             final_prec_sparsity_pattern.add(i,j);
-          //             //cout<<j<<" ";
-          //           }
-          //       }
-          //     //cout<<endl;
-          //   }
-        }
+      // std::cout<<copy_data.row<<" "<<copy_data.sparsity_row.size()<<std::endl;
+      for(unsigned int i=0; i<copy_data.sparsity_row.size(); ++i)
+      {
+        this->final_prec_sparsity_pattern.add(copy_data.row, copy_data.sparsity_row[i]);
+        // std::cout<<copy_data.row<<" "<<i<<std::endl;
+      }
     }
 
+  };
+
+  PrecCopy foo_copy;
+  PrecScratch foo_scratch;
+  WorkStream::run(0,fma_dh->n_dofs(),f_worker_prec,f_copier_prec,foo_scratch,foo_copy);
 
   final_prec_sparsity_pattern.compress();
   std::cout<<final_prec_sparsity_pattern.n_nonzero_elements()<<std::endl;

@@ -2344,47 +2344,48 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   //   group_creation += Threads::new_task ( static_cast<void (*)(unsigned int, const BEMFMA<dim> *)> (f_creation), ii, this);
   // group_creation.join_all();
 
-  std::vector<unsigned int> this_cpu_index_vector(this_cpu_set.n_elements());
-  this_cpu_set.fill_index_vector(this_cpu_index_vector);
-  IndexSet full_index_set;
-  full_index_set.set_size(fma_dh->n_dofs());
-  full_index_set.add_range(0, fma_dh->n_dofs());
-  std::vector<unsigned int> full_index_vector(full_index_set.n_elements());
-  full_index_set.fill_index_vector(full_index_vector);
-  c.add_entries_local_to_global(this_cpu_index_vector, full_index_vector, final_prec_sparsity_pattern);
-  // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
-  //   {
-  //     if (this_cpu_set.is_element(i))
-  //       {
-  //         if (c.is_constrained(i))
-  //           {
-  //             //cout<<i<<"  (c):"<<endl;
-  //             // constrained nodes entries are taken from the bem problem constraint matrix
-  //             final_prec_sparsity_pattern.add(i,i);
-  //             const std::vector< std::pair < unsigned int, double > >
-  //             *entries = c.get_constraint_entries (i);
-  //             for (unsigned int j=0; j< entries->size(); ++j)
-  //               final_prec_sparsity_pattern.add(i,(*entries)[j].first);
-  //           }
-  //         else
-  //           {
-  //             //cout<<i<<"  (nc): ";
-  //             // other nodes entries are taken from the unconstrained preconditioner matrix
-  //             for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-  //               {
-  //                 if (init_prec_sparsity_pattern.exists(i,j))
-  //                   {
-  //                     final_prec_sparsity_pattern.add(i,j);
-  //                     //cout<<j<<" ";
-  //                   }
-  //               }
-  //             //cout<<endl;
-  //           }
-  //       }
-  //   }
+  // std::vector<unsigned int> this_cpu_index_vector(this_cpu_set.n_elements());
+  // this_cpu_set.fill_index_vector(this_cpu_index_vector);
+  // IndexSet full_index_set;
+  // full_index_set.set_size(fma_dh->n_dofs());
+  // full_index_set.add_range(0, fma_dh->n_dofs());
+  // std::vector<unsigned int> full_index_vector(full_index_set.n_elements());
+  // full_index_set.fill_index_vector(full_index_vector);
+  // c.add_entries_local_to_global(this_cpu_index_vector, full_index_vector, final_prec_sparsity_pattern);
+  for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
+    {
+      if (this_cpu_set.is_element(i))
+        {
+          if (c.is_constrained(i))
+            {
+              //cout<<i<<"  (c):"<<endl;
+              // constrained nodes entries are taken from the bem problem constraint matrix
+              final_prec_sparsity_pattern.add(i,i);
+              const std::vector< std::pair < unsigned int, double > >
+              *entries = c.get_constraint_entries (i);
+              for (unsigned int j=0; j< entries->size(); ++j)
+                final_prec_sparsity_pattern.add(i,(*entries)[j].first);
+            }
+          else
+            {
+              //cout<<i<<"  (nc): ";
+              // other nodes entries are taken from the unconstrained preconditioner matrix
+              for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+                {
+                  if (init_prec_sparsity_pattern.exists(i,j))
+                    {
+                      final_prec_sparsity_pattern.add(i,j);
+                      //cout<<j<<" ";
+                    }
+                }
+              //cout<<endl;
+            }
+        }
+    }
 
 
   final_prec_sparsity_pattern.compress();
+  std::cout<<final_prec_sparsity_pattern.n_nonzero_elements()<<std::endl;
   final_preconditioner.reinit(final_prec_sparsity_pattern);
 
   // std::cout<<"ok prec sparsity pattern"<<std::endl;
@@ -2455,6 +2456,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
     alpha_adder += Threads::new_task ( static_cast<void (*)(unsigned int, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *)> (f_alpha_adder), ii, final_preconditioner, c, alpha, this);
   alpha_adder.join_all();
   final_preconditioner.compress(VectorOperation::add);
+  final_preconditioner.compress(VectorOperation::insert);
   std::cout<<"compress 2"<<std::endl;
 
   // for (unsigned int i=0; i < fma_dh->n_dofs(); i++)
@@ -2511,7 +2513,9 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   //   }
 
   //preconditioner.print_formatted(pcout,4,true,0," 0 ",1.);
+
   preconditioner.initialize(final_preconditioner);
+  std::cout<<"compress 2"<<std::endl;
 
   return preconditioner;
 }

@@ -216,81 +216,187 @@ void BEMFMA<dim>::direct_integrals()
   // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
   init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
-  for (unsigned int kk = 0; kk < childlessList.size(); kk++)
-    {
-      // for each block in the childless
-      // list we get the list of nodes and
-      // we check if it contains nodes:
-      // if no nodes are contained there is
-      // nothing to do
+  struct InitPrecScratch{};
 
-      unsigned int blockId = childlessList[kk];
+  struct InitPrecCopy{
+    std::vector<unsigned int> block_indices;
+    std::vector<std::vector<unsigned int> > col_indices;
+  };
 
-      OctreeBlock<dim> *block1 =  blocks[blockId];
+  auto f_init_prec_childless_worker = [this] (unsigned int kk, InitPrecScratch &foo, InitPrecCopy &copy_data){
 
-      std::vector <unsigned int> block1Nodes = block1->GetBlockNodeList();
+    copy_data.block_indices.resize(0);
+    copy_data.col_indices.resize(0);
+    // for each block in the childless
+    // list we get the list of nodes and
+    // we check if it contains nodes:
+    // if no nodes are contained there is
+    // nothing to do
 
-      if  (block1Nodes.size() > 0)
-        {
+    unsigned int blockId = this->childlessList[kk];
 
-          // if block1 contains nodes,
-          // we need to get all the quad points
-          // in the intList blocks of block1
-          // (such quad points will be used for
-          // direct integrals)
+    OctreeBlock<dim> *block1 =  this->blocks[blockId];
 
-          unsigned int intListSubLevs = block1->GetIntListSize();
-          const std::set<unsigned int> &block1IntList = block1->GetIntList(intListSubLevs-1);
+    std::vector <unsigned int> block1Nodes = block1->GetBlockNodeList();
 
-          // in this set we will put all the
-          // dofs of the cell to whom
-          // the quad points belong
+    std::vector<unsigned int> local_dof_indices(this->fma_fe->dofs_per_cell);
+    if  (block1Nodes.size() > 0)
+      {
 
-          std::set<unsigned int> directNodes;
+        // if block1 contains nodes,
+        // we need to get all the quad points
+        // in the intList blocks of block1
+        // (such quad points will be used for
+        // direct integrals)
 
-          // start looping on the intList
-          // blocks (block2 here)
+        unsigned int intListSubLevs = block1->GetIntListSize();
+        const std::set<unsigned int> &block1IntList = block1->GetIntList(intListSubLevs-1);
 
-          for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
-            {
-              OctreeBlock<dim> *block2 =  blocks[*pos];
-              std::map <cell_it, std::vector<unsigned int> >
-              blockQuadPointsList = block2->GetBlockQuadPointsList();
+        // in this set we will put all the
+        // dofs of the cell to whom
+        // the quad points belong
 
-              // get the list of quad points
-              // in block2 and loop on it
+        std::set<unsigned int> directNodes;
 
-              typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-              for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-                {
-                  // the key of the map (*it.first pointer) is
-                  // the cell of the quad point: we will
-                  // get its dofs and put them in the set
-                  // of direct nodes
+        // start looping on the intList
+        // blocks (block2 here)
 
-                  cell_it cell = (*it).first;//pcout<<cell<<"  end "<<(*blockQuadPointsList.end()).first<<std::endl;
-                  cell->get_dof_indices(local_dof_indices);
-                  for (unsigned int j = 0; j < dofs_per_cell; j++)
-                    directNodes.insert(local_dof_indices[j]);
-                }
-            }
-          // the loop over blocks in intList
-          // is over: for all the nodes in
-          // block1, we know nodes in directNodes
-          // list have direct integrals, so
-          // we use them to create the
-          // direct contributions matrices
-          // sparsity pattern
+        for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
+          {
+            OctreeBlock<dim> *block2 =  this->blocks[*pos];
+            std::map <cell_it, std::vector<unsigned int> >
+            blockQuadPointsList = block2->GetBlockQuadPointsList();
 
-          for (unsigned int i = 0; i < block1Nodes.size(); i++)
-            if (this_cpu_set.is_element(block1Nodes[i]))
-              for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-                {
-                  init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
-                }
-        }
+            // get the list of quad points
+            // in block2 and loop on it
 
-    }
+            typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+            for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+              {
+                // the key of the map (*it.first pointer) is
+                // the cell of the quad point: we will
+                // get its dofs and put them in the set
+                // of direct nodes
+
+                cell_it cell = (*it).first;//pcout<<cell<<"  end "<<(*blockQuadPointsList.end()).first<<std::endl;
+                cell->get_dof_indices(local_dof_indices);
+                for (unsigned int j = 0; j < this->fma_fe->dofs_per_cell; j++)
+                  directNodes.insert(local_dof_indices[j]);
+              }
+          }
+        // the loop over blocks in intList
+        // is over: for all the nodes in
+        // block1, we know nodes in directNodes
+        // list have direct integrals, so
+        // we use them to create the
+        // direct contributions matrices
+        // sparsity pattern
+
+        for (unsigned int i = 0; i < block1Nodes.size(); i++)
+          if (this_cpu_set.is_element(block1Nodes[i]))
+          {
+            copy_data.block_indices.push_back(block1Nodes[i]);
+            copy_data.col_indices.push_back(std::vector<unsigned int>());
+            for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+              {
+                copy_data.col_indices.back().push_back(*pos);
+                // init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+              }
+          }
+          // std::cout<<copy_data.col_indices.size()<<" "<<copy_data.block_indices.size()<<std::endl;
+      }
+
+  };
+
+  auto f_init_prec_copier = [this] (const InitPrecCopy &copy_data) {
+
+    for(unsigned int i=0; i<copy_data.col_indices.size(); ++i)
+      {
+        for(unsigned int j=0; j<copy_data.col_indices[i].size(); ++j)
+          this->init_prec_sparsity_pattern.add(copy_data.block_indices[i], copy_data.col_indices[i][j]);
+      }
+
+  };
+
+  InitPrecScratch foo_scratch;
+  InitPrecCopy foo_copy;
+  WorkStream::run(0, childlessList.size(), f_init_prec_childless_worker, f_init_prec_copier, foo_scratch, foo_copy);
+
+  // for (unsigned int kk = 0; kk < childlessList.size(); kk++)
+  //   {
+  //     // for each block in the childless
+  //     // list we get the list of nodes and
+  //     // we check if it contains nodes:
+  //     // if no nodes are contained there is
+  //     // nothing to do
+  //
+  //     unsigned int blockId = childlessList[kk];
+  //
+  //     OctreeBlock<dim> *block1 =  blocks[blockId];
+  //
+  //     std::vector <unsigned int> block1Nodes = block1->GetBlockNodeList();
+  //
+  //     if  (block1Nodes.size() > 0)
+  //       {
+  //
+  //         // if block1 contains nodes,
+  //         // we need to get all the quad points
+  //         // in the intList blocks of block1
+  //         // (such quad points will be used for
+  //         // direct integrals)
+  //
+  //         unsigned int intListSubLevs = block1->GetIntListSize();
+  //         const std::set<unsigned int> &block1IntList = block1->GetIntList(intListSubLevs-1);
+  //
+  //         // in this set we will put all the
+  //         // dofs of the cell to whom
+  //         // the quad points belong
+  //
+  //         std::set<unsigned int> directNodes;
+  //
+  //         // start looping on the intList
+  //         // blocks (block2 here)
+  //
+  //         for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
+  //           {
+  //             OctreeBlock<dim> *block2 =  blocks[*pos];
+  //             std::map <cell_it, std::vector<unsigned int> >
+  //             blockQuadPointsList = block2->GetBlockQuadPointsList();
+  //
+  //             // get the list of quad points
+  //             // in block2 and loop on it
+  //
+  //             typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+  //               {
+  //                 // the key of the map (*it.first pointer) is
+  //                 // the cell of the quad point: we will
+  //                 // get its dofs and put them in the set
+  //                 // of direct nodes
+  //
+  //                 cell_it cell = (*it).first;//pcout<<cell<<"  end "<<(*blockQuadPointsList.end()).first<<std::endl;
+  //                 cell->get_dof_indices(local_dof_indices);
+  //                 for (unsigned int j = 0; j < dofs_per_cell; j++)
+  //                   directNodes.insert(local_dof_indices[j]);
+  //               }
+  //           }
+  //         // the loop over blocks in intList
+  //         // is over: for all the nodes in
+  //         // block1, we know nodes in directNodes
+  //         // list have direct integrals, so
+  //         // we use them to create the
+  //         // direct contributions matrices
+  //         // sparsity pattern
+  //
+  //         for (unsigned int i = 0; i < block1Nodes.size(); i++)
+  //           if (this_cpu_set.is_element(block1Nodes[i]))
+  //             for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+  //               {
+  //                 init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+  //               }
+  //       }
+  //
+  //   }
 
   // unfortunately, the direct integrals must not be computed only for the
   // quadPoints in the intList: if a bigger block is in the nonIntList of
@@ -306,64 +412,129 @@ void BEMFMA<dim>::direct_integrals()
       // dofs_filled_blocks =  dofs_filled_blocks[level];
       unsigned int startBlockLevel =  startLevel[level];
 
-      // we loop over blocks of each level
+      auto f_init_prec_level_worker = [this, &startBlockLevel, &level] (unsigned int jj, InitPrecScratch &foo, InitPrecCopy &copy_data){
+        copy_data.block_indices.resize(0);
+        copy_data.col_indices.resize(0);
 
-      for (unsigned int jj = 0; jj < dofs_filled_blocks[level].size();  jj++)
-        {
-          OctreeBlock<dim> *block1 =  blocks[dofs_filled_blocks[level][jj]];
-          const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
+        OctreeBlock<dim> *block1 =  this->blocks[this->dofs_filled_blocks[level][jj]];
+        const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
+        std::vector<unsigned int> local_dof_indices(this->fma_fe->dofs_per_cell);
+        // again, no need to perform next operations if block has no nodes
 
-          // again, no need to perform next operations if block has no nodes
-
-          if  (nodesBlk1Ids.size() > 0)// !!!CHECK, IT SEEMS TO BE USELESS
-            {
-              // for each block containing nodes, loop over all sublevels in his NN list (this is because if a
-              // block remains childless BEFORE the last level, at this point we need to compute
-              // all its contributions up to the bottom level)
+        if  (nodesBlk1Ids.size() > 0)// !!!CHECK, IT SEEMS TO BE USELESS
+          {
+            // for each block containing nodes, loop over all sublevels in his NN list (this is because if a
+            // block remains childless BEFORE the last level, at this point we need to compute
+            // all its contributions up to the bottom level)
 
 
-              for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
-                {
+            for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+              {
 
-                  // in this vectors we are saving the nodes needing direct integrals
+                // in this vectors we are saving the nodes needing direct integrals
 
-                  std::set <unsigned int> directNodes;
-                  const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
+                std::set <unsigned int> directNodes;
+                const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
 
-                  // loop over well separated blocks of higher size (level): in this case
-                  // we must use direct evaluation: for each block we get the quad points
-                  // list
-                  for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
+                // loop over well separated blocks of higher size (level): in this case
+                // we must use direct evaluation: for each block we get the quad points
+                // list
+                for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
+                  {
+                    OctreeBlock<dim> *block2 =  this->blocks[*pos];
+                    std::map <cell_it, std::vector<unsigned int> >
+                    blockQuadPointsList = block2->GetBlockQuadPointsList();
+
+                    // we loop on the cells of the quad blocks (*it.first pointer)
+                    // and put their dofs in the direct list
+
+                    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+                      {
+                        cell_it cell = (*it).first;
+                        cell->get_dof_indices(local_dof_indices);
+                        for (unsigned int j = 0; j < this->fma_fe->dofs_per_cell; j++)
+                          directNodes.insert(local_dof_indices[j]);
+                      }
+                  } // end loop over blocks of a sublevel of nonIntList
+
+                // we use the nodes in directList, to create the sparsity pattern
+
+                for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
+                  {
+                    if (this_cpu_set.is_element(nodesBlk1Ids[i]))
                     {
-                      OctreeBlock<dim> *block2 =  blocks[*pos];
-                      std::map <cell_it, std::vector<unsigned int> >
-                      blockQuadPointsList = block2->GetBlockQuadPointsList();
-
-                      // we loop on the cells of the quad blocks (*it.first pointer)
-                      // and put their dofs in the direct list
-
-                      typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
-                      for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
-                        {
-                          cell_it cell = (*it).first;
-                          cell->get_dof_indices(local_dof_indices);
-                          for (unsigned int j = 0; j < dofs_per_cell; j++)
-                            directNodes.insert(local_dof_indices[j]);
-                        }
-                    } // end loop over blocks of a sublevel of nonIntList
-
-                  // we use the nodes in directList, to create the sparsity pattern
-
-                  for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
-                    {
-                      if (this_cpu_set.is_element(nodesBlk1Ids[i]))
-                        for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-                          init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
+                      copy_data.block_indices.push_back(nodesBlk1Ids[i]);
+                      copy_data.col_indices.push_back(std::vector<unsigned int> ());
+                      for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+                        copy_data.col_indices.back().push_back(*pos);
                     }
+                  }
 
-                } // end loop over sublevels
-            } // end if: is there any node in the block?
-        }// end loop over block of a level
+              } // end loop over sublevels
+          } // end if: is there any node in the block?
+      };
+      // we loop over blocks of each level
+      InitPrecScratch level_scratch;
+      InitPrecCopy level_copy;
+      WorkStream::run(0, dofs_filled_blocks[level].size(), f_init_prec_level_worker, f_init_prec_copier, level_scratch, level_copy);
+
+      // for (unsigned int jj = 0; jj < dofs_filled_blocks[level].size();  jj++)
+      //   {
+      //     OctreeBlock<dim> *block1 =  blocks[dofs_filled_blocks[level][jj]];
+      //     const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
+      //
+      //     // again, no need to perform next operations if block has no nodes
+      //
+      //     if  (nodesBlk1Ids.size() > 0)// !!!CHECK, IT SEEMS TO BE USELESS
+      //       {
+      //         // for each block containing nodes, loop over all sublevels in his NN list (this is because if a
+      //         // block remains childless BEFORE the last level, at this point we need to compute
+      //         // all its contributions up to the bottom level)
+      //
+      //
+      //         for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+      //           {
+      //
+      //             // in this vectors we are saving the nodes needing direct integrals
+      //
+      //             std::set <unsigned int> directNodes;
+      //             const std::set <unsigned int> &nonIntList = block1->GetNonIntList(subLevel);
+      //
+      //             // loop over well separated blocks of higher size (level): in this case
+      //             // we must use direct evaluation: for each block we get the quad points
+      //             // list
+      //             for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
+      //               {
+      //                 OctreeBlock<dim> *block2 =  blocks[*pos];
+      //                 std::map <cell_it, std::vector<unsigned int> >
+      //                 blockQuadPointsList = block2->GetBlockQuadPointsList();
+      //
+      //                 // we loop on the cells of the quad blocks (*it.first pointer)
+      //                 // and put their dofs in the direct list
+      //
+      //                 typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+      //                 for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+      //                   {
+      //                     cell_it cell = (*it).first;
+      //                     cell->get_dof_indices(local_dof_indices);
+      //                     for (unsigned int j = 0; j < dofs_per_cell; j++)
+      //                       directNodes.insert(local_dof_indices[j]);
+      //                   }
+      //               } // end loop over blocks of a sublevel of nonIntList
+      //
+      //             // we use the nodes in directList, to create the sparsity pattern
+      //
+      //             for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
+      //               {
+      //                 if (this_cpu_set.is_element(nodesBlk1Ids[i]))
+      //                   for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+      //                     init_prec_sparsity_pattern.add(nodesBlk1Ids[i],*pos);
+      //               }
+      //
+      //           } // end loop over sublevels
+      //       } // end if: is there any node in the block?
+      //   }// end loop over block of a level
     }//end loop over octree levels
 
 

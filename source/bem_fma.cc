@@ -216,14 +216,16 @@ void BEMFMA<dim>::direct_integrals()
   // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
   init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
-  struct InitPrecScratch{};
+  struct InitPrecScratch {};
 
-  struct InitPrecCopy{
+  struct InitPrecCopy
+  {
     std::vector<unsigned int> block_indices;
     std::vector<std::vector<unsigned int> > col_indices;
   };
 
-  auto f_init_prec_childless_worker = [this] (unsigned int kk, InitPrecScratch &foo, InitPrecCopy &copy_data){
+  auto f_init_prec_childless_worker = [this] (unsigned int kk, InitPrecScratch &foo, InitPrecCopy &copy_data)
+  {
 
     copy_data.block_indices.resize(0);
     copy_data.col_indices.resize(0);
@@ -294,25 +296,26 @@ void BEMFMA<dim>::direct_integrals()
 
         for (unsigned int i = 0; i < block1Nodes.size(); i++)
           if (this_cpu_set.is_element(block1Nodes[i]))
-          {
-            copy_data.block_indices.push_back(block1Nodes[i]);
-            copy_data.col_indices.push_back(std::vector<unsigned int>());
-            for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-              {
-                copy_data.col_indices.back().push_back(*pos);
-                // init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
-              }
-          }
-          // std::cout<<copy_data.col_indices.size()<<" "<<copy_data.block_indices.size()<<std::endl;
+            {
+              copy_data.block_indices.push_back(block1Nodes[i]);
+              copy_data.col_indices.push_back(std::vector<unsigned int>());
+              for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+                {
+                  copy_data.col_indices.back().push_back(*pos);
+                  // init_prec_sparsity_pattern.add(block1Nodes[i],*pos);
+                }
+            }
+        // std::cout<<copy_data.col_indices.size()<<" "<<copy_data.block_indices.size()<<std::endl;
       }
 
   };
 
-  auto f_init_prec_copier = [this] (const InitPrecCopy &copy_data) {
+  auto f_init_prec_copier = [this] (const InitPrecCopy &copy_data)
+  {
 
-    for(unsigned int i=0; i<copy_data.col_indices.size(); ++i)
+    for (unsigned int i=0; i<copy_data.col_indices.size(); ++i)
       {
-        for(unsigned int j=0; j<copy_data.col_indices[i].size(); ++j)
+        for (unsigned int j=0; j<copy_data.col_indices[i].size(); ++j)
           this->init_prec_sparsity_pattern.add(copy_data.block_indices[i], copy_data.col_indices[i][j]);
       }
 
@@ -412,7 +415,8 @@ void BEMFMA<dim>::direct_integrals()
       // dofs_filled_blocks =  dofs_filled_blocks[level];
       unsigned int startBlockLevel =  startLevel[level];
 
-      auto f_init_prec_level_worker = [this, &startBlockLevel, &level] (unsigned int jj, InitPrecScratch &foo, InitPrecCopy &copy_data){
+      auto f_init_prec_level_worker = [this, &startBlockLevel, &level] (unsigned int jj, InitPrecScratch &foo, InitPrecCopy &copy_data)
+      {
         copy_data.block_indices.resize(0);
         copy_data.col_indices.resize(0);
 
@@ -463,12 +467,12 @@ void BEMFMA<dim>::direct_integrals()
                 for (unsigned int i = 0; i < nodesBlk1Ids.size(); i++)
                   {
                     if (this_cpu_set.is_element(nodesBlk1Ids[i]))
-                    {
-                      copy_data.block_indices.push_back(nodesBlk1Ids[i]);
-                      copy_data.col_indices.push_back(std::vector<unsigned int> ());
-                      for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
-                        copy_data.col_indices.back().push_back(*pos);
-                    }
+                      {
+                        copy_data.block_indices.push_back(nodesBlk1Ids[i]);
+                        copy_data.col_indices.push_back(std::vector<unsigned int> ());
+                        for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
+                          copy_data.col_indices.back().push_back(*pos);
+                      }
                   }
 
               } // end loop over sublevels
@@ -2556,23 +2560,27 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   //       }
   //   }
 
-  struct PrecScratch{};
-  struct PrecCopy{
-    PrecCopy(){
+  struct PrecScratch {};
+  struct PrecCopy
+  {
+    PrecCopy()
+    {
       row = numbers::invalid_unsigned_int;
       sparsity_row.resize(0);
     };
-    PrecCopy(const PrecCopy & in_copy){
+    PrecCopy(const PrecCopy &in_copy)
+    {
       row=in_copy.row;
       sparsity_row=in_copy.sparsity_row;
     };
     unsigned int row;
     std::vector<unsigned int> sparsity_row;
   };
-  auto f_worker_prec = [this, &c](unsigned int i, PrecScratch &foo_data, PrecCopy &copy_data){
-      copy_data.sparsity_row.resize(0);
-      // unsigned int i = *index_it;
-      if(this->this_cpu_set.is_element(i))
+  auto f_worker_prec = [this, &c](unsigned int i, PrecScratch &foo_data, PrecCopy &copy_data)
+  {
+    copy_data.sparsity_row.resize(0);
+    // unsigned int i = *index_it;
+    if (this->this_cpu_set.is_element(i))
       {
         copy_data.row = i;
         if (c.is_constrained(i))
@@ -2601,7 +2609,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
               }
             //cout<<endl;
           }
-          // std::cout<<copy_data.sparsity_row.size()<<std::endl;
+        // std::cout<<copy_data.sparsity_row.size()<<std::endl;
 
       }
 
@@ -2609,17 +2617,18 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
 
   };
 
-  auto f_copier_prec = [this](const PrecCopy &copy_data){
+  auto f_copier_prec = [this](const PrecCopy &copy_data)
+  {
     // std::cout<<"COPY"<<std::endl;
-    if(this->this_cpu_set.is_element(copy_data.row))
-    {
-      // std::cout<<copy_data.row<<" "<<copy_data.sparsity_row.size()<<std::endl;
-      for(unsigned int i=0; i<copy_data.sparsity_row.size(); ++i)
+    if (this->this_cpu_set.is_element(copy_data.row))
       {
-        this->final_prec_sparsity_pattern.add(copy_data.row, copy_data.sparsity_row[i]);
-        // std::cout<<copy_data.row<<" "<<i<<std::endl;
+        // std::cout<<copy_data.row<<" "<<copy_data.sparsity_row.size()<<std::endl;
+        for (unsigned int i=0; i<copy_data.sparsity_row.size(); ++i)
+          {
+            this->final_prec_sparsity_pattern.add(copy_data.row, copy_data.sparsity_row[i]);
+            // std::cout<<copy_data.row<<" "<<i<<std::endl;
+          }
       }
-    }
 
   };
 
@@ -2678,19 +2687,20 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   std::cout<<"compress 1"<<std::endl;
   final_preconditioner.compress(VectorOperation::insert);
 
-  auto f_alpha_adder = [] (unsigned int i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &alpha, const BEMFMA<dim> *foo_fma){
+  auto f_alpha_adder = [] (unsigned int i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &alpha, const BEMFMA<dim> *foo_fma)
+  {
     if (foo_fma->this_cpu_set.is_element(i))
-    {
-      if ( (*(foo_fma->dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
-        {
-          final_preconditioner.add(i,i,alpha(i));
-          //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
-        }
-      else // this is just to avoid a deadlock. we need a better strategy
-        {
-          final_preconditioner.add(i,i,0);
-        }
-    }
+      {
+        if ( (*(foo_fma->dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
+          {
+            final_preconditioner.add(i,i,alpha(i));
+            //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+          }
+        else // this is just to avoid a deadlock. we need a better strategy
+          {
+            final_preconditioner.add(i,i,0);
+          }
+      }
 
   };
 

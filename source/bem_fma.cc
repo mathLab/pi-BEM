@@ -140,6 +140,9 @@ void BEMFMA<dim>::direct_integrals()
   // quadrature to be used
 
 
+  // We compute a vector containing all the possible
+  // singular quadratures. We need them to properly treat the direct contributions among
+  // nodes on the same block.
   std::vector<QTelles<dim-1> > sing_quadratures;
   for (unsigned int i=0; i<fma_fe->dofs_per_cell; ++i)
     sing_quadratures.push_back
@@ -216,14 +219,28 @@ void BEMFMA<dim>::direct_integrals()
   // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
   init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
+  // In the following we use WorkStream to parallelise, through TBB, the setting up
+  // of the initial preconditioner that does not consider any constraint.
+  // We define two structs that are needed: the first one is empty since we have decided to use
+  // the capture of lambda functions to let the worker know what it needs. The second one
+  // instead is filled by each worker and passed down by reference to the copier that manage any racing conditions
+  // copying properly the computed data where they belong.
   struct InitPrecScratch {};
 
+  // Every copier needs to thing, the global indices of the row associated with each block and the indices of the coloumns to be
+  // added to each row of the sparsity pattern.
   struct InitPrecCopy
   {
     std::vector<unsigned int> block_indices;
     std::vector<std::vector<unsigned int> > col_indices;
   };
 
+  // The worker function uses the capture to know the actual state of the BEMFMA<dim> class.
+  // In this way we can perform the computation
+  // of the column to be added at each row quite straigtforwardly. Since all the
+  // workers must be able to run in parallel we must be sure that no racing condition occurs.
+  // We use the global IndexSet this_cpu_set to know if we the computation belogs to the actual processor
+  // or not, thus using a MPI strategy.
   auto f_init_prec_childless_worker = [this] (unsigned int kk, InitPrecScratch &foo, InitPrecCopy &copy_data)
   {
 
@@ -310,6 +327,8 @@ void BEMFMA<dim>::direct_integrals()
 
   };
 
+  // The copier function uses the InitPrecCopy structure to know the global indices to add to
+  // the global initial sparsity pattern. We use once again the capture to access the global memory.
   auto f_init_prec_copier = [this] (const InitPrecCopy &copy_data)
   {
 
@@ -2794,14 +2813,15 @@ void BEMFMA<dim>::compute_geometry_cache()
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *fma_mapping,
                                                     *fma_dh, support_points);
 
-  for (unsigned int i=0; i<fma_dh->n_dofs(); ++i)
-    {
-      for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
-        {
-          //pcout<<"i "<<i<<" ("<<support_points[i]<<")  j "<<j<<" ("<<support_points[j]<<")  distance "<<support_points[i].distance(support_points[j])<<std::endl;
-        }
+  // for (unsigned int i=0; i<fma_dh->n_dofs(); ++i)
+  //   {
+  //     for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+  //       {
+  //         //pcout<<"i "<<i<<" ("<<support_points[i]<<")  j "<<j<<" ("<<support_points[j]<<")  distance "<<support_points[i].distance(support_points[j])<<std::endl;
+  //       }
+  //
+  //   }
 
-    }
   // for the gradient dofs finding coupled
   // dofs is a little bit difficult, as the
   // gradient is a vectorial function: usually
@@ -2964,17 +2984,18 @@ void BEMFMA<dim>::compute_geometry_cache()
   pcout<<"...done"<<std::endl;
 
 }
+
+
+  // The following is the function
+  // which creates the octree blocking
+  // for the fast multipole algorithm
+
 template <int dim>
 void BEMFMA<dim>::generate_octree_blocking()
 {
 
   pcout<<"Generating octree blocking... "<<std::endl;
   TimeMonitor LocalTimer(*ListCreat);
-  // @sect5{BEMProblem::generate_double_nodes_set}
-
-  // The following is the function
-  // which creates the octree blocking
-  // for the fast multipole algorithm
 
 
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());

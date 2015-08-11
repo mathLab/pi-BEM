@@ -241,9 +241,12 @@ void BEMFMA<dim>::direct_integrals()
   // workers must be able to run in parallel we must be sure that no racing condition occurs.
   // We use the global IndexSet this_cpu_set to know if we the computation belogs to the actual processor
   // or not, thus using a MPI strategy.
+  // In this function we compute the sparisity pattern due to the contributions of the blocks that
+  // are in the childlessList.
   auto f_init_prec_childless_worker = [this] (unsigned int kk, InitPrecScratch &foo, InitPrecCopy &copy_data)
   {
 
+    // We resize everything to be sure to compute, and then copy only the needed data.
     copy_data.block_indices.resize(0);
     copy_data.col_indices.resize(0);
     // for each block in the childless
@@ -340,6 +343,8 @@ void BEMFMA<dim>::direct_integrals()
 
   };
 
+  // We need to create two empty structures that will be copied by WorkStream and passed
+  // to each worker-copier to compute the sparsity pattern for blocks in the childlessList.
   InitPrecScratch foo_scratch;
   InitPrecCopy foo_copy;
   WorkStream::run(0, childlessList.size(), f_init_prec_childless_worker, f_init_prec_copier, foo_scratch, foo_copy);
@@ -434,6 +439,9 @@ void BEMFMA<dim>::direct_integrals()
       // dofs_filled_blocks =  dofs_filled_blocks[level];
       unsigned int startBlockLevel =  startLevel[level];
 
+      // For each level we need again WorkStream to compute the entries in the sparisity pattern that belong to block that are
+      // in the nonIntList of the current block but that are of greater size.
+      // Once again we use IndexSet to know if we the node in the block belong to the current proccesor.
       auto f_init_prec_level_worker = [this, &startBlockLevel, &level] (unsigned int jj, InitPrecScratch &foo, InitPrecCopy &copy_data)
       {
         copy_data.block_indices.resize(0);
@@ -497,7 +505,7 @@ void BEMFMA<dim>::direct_integrals()
               } // end loop over sublevels
           } // end if: is there any node in the block?
       };
-      // we loop over blocks of each level
+      // we loop over blocks of each level. We call WorkStream with the same copier as before.
       InitPrecScratch level_scratch;
       InitPrecCopy level_copy;
       WorkStream::run(0, dofs_filled_blocks[level].size(), f_init_prec_level_worker, f_init_prec_copier, level_scratch, level_copy);
@@ -574,9 +582,16 @@ void BEMFMA<dim>::direct_integrals()
   init_preconditioner.reinit(init_prec_sparsity_pattern);
 
 
+  // We need to set up the parallel assembling of the direct contributions in our FMA. Once again we don't use
+  // any scratch data. We use the capture of lambda functions or additional parameter to let the worker know what it needs
+  // to properly compute the near field interactions.
   struct DirectScratchData { };
 
-  // Basically we are applying a local to global operation so we need only great care in the copy.
+  // Basically we are applying a local to global operation so we need only great care in the copy. We need
+  // to memorise any contribution associated with any node in the block. For this reason we use vectors of vectors
+  // that we dynamically build up. We need also to memorise the dof_indices associated with such nodes in order to
+  // copy these contributions properly in the global memory.
+
   struct DirectCopyData
   {
 
@@ -612,6 +627,9 @@ void BEMFMA<dim>::direct_integrals()
 
 
   // The worker function, it computes the direct integral checking that the dofs belong to the IndexSet of the processor.
+  // As we did for the preconditioner we firstly compute all the direct contributions associated with the blocks in the
+  // childlessList and we secondly we will take care of all the blocks in the nonIntList that does not respect the
+  // bounds for the multipole expansion.
   auto f_worker_direct_childless_non_int_list = [this] (typename std::vector<unsigned int>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures)
   {
     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
@@ -833,7 +851,9 @@ void BEMFMA<dim>::direct_integrals()
 
   };
 
-  // The copier function, it copies the value from the local array to the global matrix
+  // The copier function, it copies the value from the local array to the global matrix. The copier function is
+  // composed by three nested for loops and neeeds to copy all the contributions of all the nodes of the block
+  // the worker has taken care off.
   auto f_copier_direct = [this] (const  DirectCopyData &copy_data)
   {
     // Finally, we need to add
@@ -849,6 +869,8 @@ void BEMFMA<dim>::direct_integrals()
 
         for (unsigned int ii=0; ii<copy_data.vec_node_index.size(); ++ii)
           {
+
+            // We need the helper function to know the proper contributions associated with each block
             unsigned int foo_start = copy_data.vec_start_helper[ii];
             unsigned int foo_end = copy_data.vec_local_dof_indices.size();
             if (ii < copy_data.vec_node_index.size()-1)
@@ -881,6 +903,9 @@ void BEMFMA<dim>::direct_integrals()
 
   DirectScratchData direct_childless_scratch_data;
   DirectCopyData direct_childless_copy_data;
+
+  // Since our worker function needs an additional paramenter we need to perform a bind to let WorkStream see
+  // a function requiring only 3 arguments
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
                   std_cxx11::bind(f_worker_direct_childless_non_int_list, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
@@ -888,7 +913,8 @@ void BEMFMA<dim>::direct_integrals()
                   direct_childless_scratch_data,
                   direct_childless_copy_data);
 
-
+  // We need a worker function that takes care of
+  // all the blocks in the nonIntlist of a block that are bigger than the block itslef.
   auto f_worker_direct_bigger_blocks = [this] (typename std::vector<unsigned int>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel)
   {
 
@@ -1013,6 +1039,10 @@ void BEMFMA<dim>::direct_integrals()
 
     {
       unsigned int startBlockLevel =  startLevel[level];
+
+      // For every level we need to run on all the blocks and check for bigger
+      // blocks in their nonIntLists. Once again we need a bind to define the proper
+      // 3 arguments function needed by WorkStream.
       DirectScratchData direct_bigger_scratch_data;
       DirectCopyData direct_bigger_copy_data;
       WorkStream::run(dofs_filled_blocks[level].begin(),

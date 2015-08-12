@@ -1402,7 +1402,8 @@ void BEMFMA<dim>::direct_integrals()
 }
 
 
-
+// The following function set up the structure needed to generate the multipole
+// expansions with a Boundary Element Method.
 template <int dim>
 void BEMFMA<dim>::multipole_integrals()
 {
@@ -1435,39 +1436,44 @@ void BEMFMA<dim>::multipole_integrals()
               ExcMessage("The code in this function can only be used for "
                          "the usual Q1 elements."));
 
+  // We need to set up elemMultipoleExpansionsKer1 and elemMultipoleExpansionsKer2
+  // these are quite complicated objects so we need great care. Since the creation
+  // of new elements inside a map is not thread safe we need to use WorkStream to
+  // ensure that everything is set up properly.
+  // Basically we just need to set up a structure so we can allow for an empty Scratch.
+  // The WorkStream will replace a loop over the childlessList that used to set up all the
+  // structure. All the workers need to create their own multipole structures and then let
+  // the copiers copy everything in the global memory  using the capture of the lambda functions.
   struct MultipoleScratch {};
 
   struct MultipoleData
   {
 
-    MultipoleData(const BEMFMA<dim> *in_fma)
+    MultipoleData()
     {
       myelemMultipoleExpansionsKer1.clear();
       myelemMultipoleExpansionsKer2.clear();
-      foo_fma = in_fma;
     };
 
     MultipoleData(const MultipoleData &in_data)
     {
       myelemMultipoleExpansionsKer1 = in_data.myelemMultipoleExpansionsKer1;
       myelemMultipoleExpansionsKer2 = in_data.myelemMultipoleExpansionsKer2;
-      foo_fma = in_data.foo_fma;
     };
 
     ~MultipoleData()
     {
-      foo_fma = NULL;
     }
-
+    // The local element multipole exapansions that the workers will fill.
     std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > myelemMultipoleExpansionsKer1;
     std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > myelemMultipoleExpansionsKer2;
-    mutable const BEMFMA<dim> *foo_fma;
   };
 
-  auto f_worker_multipole_integral = [] (std::vector<unsigned int>::iterator blocky, MultipoleScratch &foo, MultipoleData &copy_data, const unsigned int dofs_per_cell)
+  // The worker lambda function that sets up the local structures.
+  auto f_worker_multipole_integral = [this, dofs_per_cell] (std::vector<unsigned int>::iterator blocky, MultipoleScratch &foo, MultipoleData &copy_data)//, const unsigned int dofs_per_cell)
   {
     unsigned int blockId =  *blocky;
-    OctreeBlock<dim> *block =  copy_data.foo_fma->blocks[blockId];
+    OctreeBlock<dim> *block =  this->blocks[blockId];
     double delta = block->GetDelta();
     Point<dim> deltaHalf;
     for (unsigned int i=0; i<dim; i++)
@@ -1497,9 +1503,9 @@ void BEMFMA<dim>::multipole_integrals()
         for (unsigned int j=0; j<dofs_per_cell; ++j)
           {
             copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j] =
-              MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
+              MultipoleExpansion(this->trunc_order, blockCenter, &(this->assLegFunction));
             copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j] =
-              MultipoleExpansion(copy_data.foo_fma->trunc_order, blockCenter, &(copy_data.foo_fma->assLegFunction));
+              MultipoleExpansion(this->trunc_order, blockCenter, &(this->assLegFunction));
           }
 
         // the contribution of each quadrature node (which can be seen as a
@@ -1510,36 +1516,29 @@ void BEMFMA<dim>::multipole_integrals()
         for (unsigned int k=0; k<cellQuadPoints.size(); ++k)
           {
             unsigned int q = cellQuadPoints[k];
-            for (unsigned int j=0; j<copy_data.foo_fma->fma_fe->dofs_per_cell; ++j)
+            for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
               {
-                copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q], copy_data.foo_fma->quadNormals.at(cell)[q]);
-                copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add( copy_data.foo_fma->quadShapeFunValues.at(cell)[q][j] * copy_data.foo_fma->quadJxW.at(cell)[q]/4/numbers::PI, copy_data.foo_fma->quadPoints.at(cell)[q]);
+                copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( this->quadShapeFunValues.at(cell)[q][j] * this->quadJxW.at(cell)[q]/4/numbers::PI, this->quadPoints.at(cell)[q], this->quadNormals.at(cell)[q]);
+                copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add( this->quadShapeFunValues.at(cell)[q][j] * this->quadJxW.at(cell)[q]/4/numbers::PI, this->quadPoints.at(cell)[q]);
               }
           } // end loop on cell quadrature points in the block
       }
   };
 
-  auto f_copier_multipole_integral = [] (const MultipoleData &copy_data)
+  // The copier function copies the local structures in the global memory.
+  auto f_copier_multipole_integral = [this] (const MultipoleData &copy_data)
   {
-    copy_data.foo_fma->elemMultipoleExpansionsKer1.insert(copy_data.myelemMultipoleExpansionsKer1.begin(), copy_data.myelemMultipoleExpansionsKer1.end());
-    copy_data.foo_fma->elemMultipoleExpansionsKer2.insert(copy_data.myelemMultipoleExpansionsKer2.begin(), copy_data.myelemMultipoleExpansionsKer2.end());
+    this->elemMultipoleExpansionsKer1.insert(copy_data.myelemMultipoleExpansionsKer1.begin(), copy_data.myelemMultipoleExpansionsKer1.end());
+    this->elemMultipoleExpansionsKer2.insert(copy_data.myelemMultipoleExpansionsKer2.begin(), copy_data.myelemMultipoleExpansionsKer2.end());
   };
 
   MultipoleScratch foo_scratch;
-  MultipoleData copy_data(this);
-
-  // for(std::vector<unsigned int>::iterator kk = childlessList.begin(); kk <  childlessList.end(); kk++)
-  // {
-  //   f_worker_multipole_integral(kk, foo_scratch, copy_data, dofs_per_cell);
-  // }
-  // f_copier_multipole_integral(copy_data);
+  MultipoleData copy_data;
 
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
-                  std_cxx11::bind(static_cast<void (*)(typename std::vector<unsigned int>::iterator,
-                                                       MultipoleScratch &, MultipoleData &, const unsigned int)>
-                                  (f_worker_multipole_integral), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, dofs_per_cell),
-                  static_cast<void (*)(const MultipoleData &)>(f_copier_multipole_integral),
+                  f_worker_multipole_integral,
+                  f_copier_multipole_integral,
                   foo_scratch,
                   copy_data);
 
@@ -2550,8 +2549,8 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
 
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 
-  As before we will use the captures to simplify the calls of the worker copier mechanism.
-  For this reason we build an empty scratch structure.
+  // As before we will use the captures to simplify the calls of the worker copier mechanism.
+  // For this reason we build an empty scratch structure.
   struct PrecScratch {};
 
   // We need to fill a vector that memorise the entries of the row associated with the index we are treating.
@@ -2780,12 +2779,6 @@ template <int dim>
 void BEMFMA<dim>::compute_geometry_cache()
 {
   pcout<<"Generating geometry cache..."<<std::endl;
-
-  // @sect5{ComputationalDomain::generate_double_nodes_set}
-
-  // The following is the function
-  // which creates a set containing
-  // the double nodes.
 
 
   FESystem<dim-1,dim> gradient_fe(*fma_fe, dim);

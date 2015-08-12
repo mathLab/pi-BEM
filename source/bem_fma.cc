@@ -1615,6 +1615,8 @@ void BEMFMA<dim>::multipole_integrals()
   pcout<<"...done computing multipole integrals"<<std::endl;
 }
 
+// A helper function that we may use to know the overall nemuber of M2L operations
+// on each processor.
 template <int dim>
 void BEMFMA<dim>::compute_m2l_flags()
 {
@@ -1709,6 +1711,9 @@ void BEMFMA<dim>::compute_m2l_flags()
 }
 
 
+// The following function performs the ascending phase of the algorithm. We
+// need the values of the two traces of the solutions to fill the multipole
+// expansions and then to let them be translated along the octree.
 template <int dim>
 void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
 {
@@ -1738,6 +1743,9 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 // we loop on blocks and for each of them we create an empty multipole expansion
 // centered in the block center
 
+  // First of all we need to create all the empty expansiones for all the blocks. This is an
+  // embarassingly parallel operation that we can perform using the ThreadGroup strategy
+  // without requiring any synchronization time.
   auto f_creation = [] (unsigned int ii, const BEMFMA<dim> *foo_fma)
   {
 
@@ -1755,24 +1763,15 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   for (unsigned int ii = 0; ii <  num_blocks ; ii++)
     group_creation += Threads::new_task ( static_cast<void (*)(unsigned int, const BEMFMA<dim> *)> (f_creation), ii, this);
   group_creation.join_all();
-  //  Threads::Task<>  Threads::new_task
-  // {
-  //   delta =  blocks[ii]->GetDelta();
-  //   Point<dim> deltaHalf;
-  //   for (unsigned int i=0; i<dim; i++)
-  //     deltaHalf(i) = delta/2.;
-  //
-  //   Point<dim> blockCenter =  blocks[ii]->GetPMin()+deltaHalf;
-  //
-  //   blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
-  //   blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
-  // }
 
 // we now begin the rising phase of the algorithm: starting from the lowest block levels (childless blocks)
 // we get all the values of the multipole integrals and aggregate them in the multipole expansion for
 // each blocks
 
 
+  // We need to create the multipole expansions for all the blocks in the childlessList.
+  // Once again this is an embarassingly parallel operation. We set up a new ThreadGroup
+  // strategy to let all the blocks to run in parallel.
   auto f_childless_creation = [] (unsigned int kk, const BEMFMA<dim> *foo_fma, const Vector<double> &phi_values, const Vector<double> &dphi_dn_values)
   {
 
@@ -1816,7 +1815,6 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
   Threads::TaskGroup<> group_childless_creation;
   for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
-    // f_childless_creation(kk,this,phi_values,dphi_dn_values);
     group_childless_creation += Threads::new_task ( static_cast<void (*)(unsigned int, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
   group_childless_creation.join_all();
 
@@ -1862,9 +1860,11 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 // now all the lower level blocks have a multipole expansion containing the contribution to the integrals
 // of all the quad points in them: we now begin summing the child multipole expansion to the the parents
 // expansions: to do that we need to translate che children expansions to the parent block center: there
-// is a MultipoleExpansion clas for this too
+// is a MultipoleExpansion class for this too.
+// In this case we have to set up some syncrhonization since more blocks may have the same parent and
+// this would lead to race conditions among thread. For this reason we need WorkStream to copy all the
+// expansion up along the tree.
 
-// we loop the levels starting from the bottom one
 
   // The scratch data is nothing
   struct AscendScratchData { };

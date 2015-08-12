@@ -1872,8 +1872,8 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   // Basically we are applying a local to global operation so we need only great care in the copy.
   struct AscendCopyData
   {
-
-    AscendCopyData(const BEMFMA<dim> *dummy_fma)
+    // We need an input BEMFMA to set up the local MultipoleExpansion classes.
+    AscendCopyData(const BEMFMA<dim> * dummy_fma)
     {
       // each thread will hold a local copy of Multipole expansions. here they are initialized in a very
       // dumb way, but they're always overwritten so...
@@ -1881,7 +1881,6 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
       MultipoleExpansion dummy(dummy_fma->trunc_order, zero, &(dummy_fma->assLegFunction));
       translatedBlockMultipoleExpansionKer1 = dummy;
       translatedBlockMultipoleExpansionKer2 = dummy;
-      foo_fma = dummy_fma;
     };
 
     // The working copy constructor for the copy structure
@@ -1889,14 +1888,12 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
     {
       translatedBlockMultipoleExpansionKer1 = in_vec.translatedBlockMultipoleExpansionKer1;
       translatedBlockMultipoleExpansionKer2 = in_vec.translatedBlockMultipoleExpansionKer2;
-      foo_fma = in_vec.foo_fma;
       start = in_vec.start;
     };
 
     // The Destructor needs to make foo_fma to point to NULL (for this reason it is mutable const)
     ~AscendCopyData()
     {
-      foo_fma = NULL;
     };
 
     unsigned int start;
@@ -1904,68 +1901,59 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
     MultipoleExpansion translatedBlockMultipoleExpansionKer1;
     MultipoleExpansion translatedBlockMultipoleExpansionKer2;
     // The pointer we use to copy everything back.
-    mutable const BEMFMA<dim> *foo_fma;
   };
 
 
   // The worker function, it copies the value from the memory at a certain level to local array in copy.data
-  auto f_worker_ascend = [] (typename std::vector<OctreeBlock<dim> *>::iterator block_it, AscendScratchData &scratch, AscendCopyData &copy_data, unsigned int start)
+  auto f_worker_ascend = [this] (typename std::vector<OctreeBlock<dim> *>::iterator block_it, AscendScratchData &scratch, AscendCopyData &copy_data, unsigned int start)
   {
-    unsigned int kk = std::distance(copy_data.foo_fma->blocks.begin(), block_it);
+    unsigned int kk = std::distance(this->blocks.begin(), block_it);
 
     Point<dim> zero;
-    MultipoleExpansion dummy(copy_data.foo_fma->trunc_order, zero, &(copy_data.foo_fma->assLegFunction));
+    MultipoleExpansion dummy(this->trunc_order, zero, &(this->assLegFunction));
     copy_data.translatedBlockMultipoleExpansionKer1 = dummy;
     copy_data.translatedBlockMultipoleExpansionKer2 = dummy;
     copy_data.start = start;
     // copy_data.local_level_indices[kk] = start + kk;
     copy_data.parentId =  (*block_it)->GetParentId();
-    copy_data.translatedBlockMultipoleExpansionKer1.SetCenter(copy_data.foo_fma->blockMultipoleExpansionsKer1.at(copy_data.parentId).GetCenter());
-    copy_data.translatedBlockMultipoleExpansionKer2.SetCenter(copy_data.foo_fma->blockMultipoleExpansionsKer2.at(copy_data.parentId).GetCenter());
+    // We set the center to the parentId center.
+    copy_data.translatedBlockMultipoleExpansionKer1.SetCenter(this->blockMultipoleExpansionsKer1.at(copy_data.parentId).GetCenter());
+    copy_data.translatedBlockMultipoleExpansionKer2.SetCenter(this->blockMultipoleExpansionsKer2.at(copy_data.parentId).GetCenter());
     //std::cout<<"Before Add: "<<copy_data.translatedBlockMultipoleExpansionKer1.GetCoeff(5, 1)<<" "<<copy_data.translatedBlockMultipoleExpansionKer2.GetCoeff(5, 1)<<std::endl;
 
-    copy_data.translatedBlockMultipoleExpansionKer1.Add(copy_data.foo_fma->blockMultipoleExpansionsKer1.at(kk));
-    copy_data.translatedBlockMultipoleExpansionKer2.Add(copy_data.foo_fma->blockMultipoleExpansionsKer2.at(kk));
+    // We translate the children blocks to the local array.
+    copy_data.translatedBlockMultipoleExpansionKer1.Add(this->blockMultipoleExpansionsKer1.at(kk));
+    copy_data.translatedBlockMultipoleExpansionKer2.Add(this->blockMultipoleExpansionsKer2.at(kk));
     //std::cout<<"After Add: "<<copy_data.translatedBlockMultipoleExpansionKer1.GetCoeff(5, 1)<<" "<<copy_data.translatedBlockMultipoleExpansionKer2.GetCoeff(5, 1)<<std::endl;
   };
 
   // The copier function, it copies the value from the local array to the parent blocks
-  auto f_copier_ascend = [] (const  AscendCopyData &copy_data)
+  auto f_copier_ascend = [this] (const  AscendCopyData &copy_data)
   {
-
-    copy_data.foo_fma->blockMultipoleExpansionsKer1.at(copy_data.parentId).Add(copy_data.translatedBlockMultipoleExpansionKer1);
-    copy_data.foo_fma->blockMultipoleExpansionsKer2.at(copy_data.parentId).Add(copy_data.translatedBlockMultipoleExpansionKer2);
+    // Now we just need to copy on the real global memory. Since the center is the same
+    // we just need to add the value to the expansion wothout any further translation.
+    // The MultipoleExpansion class takes care of that automatically.
+    this->blockMultipoleExpansionsKer1.at(copy_data.parentId).Add(copy_data.translatedBlockMultipoleExpansionKer1);
+    this->blockMultipoleExpansionsKer2.at(copy_data.parentId).Add(copy_data.translatedBlockMultipoleExpansionKer2);
 
   };
   for (unsigned int level =  num_octree_levels; level > 0; level--)
 
     {
 
-      // for each block we add the (translated) multipole expansion to the the parent expansion
-
-      // pcout<<"processing level "<<level <<"  of  "<< num_octree_levels<<std::endl;
-
-      // AscendScratchData sample_scratch;
-      //
-      // std::cout<<endLevel[level]<<startLevel[level]<<std::endl;
-      // AscendCopyData sample_copy(endLevel[level]-startLevel[level]+1, this);
-      //
-
       AscendScratchData sample_scratch;
 
       AscendCopyData sample_copy(this);
 
-      // std::cout<<level<<std::endl;
-      // std::cout<<"worker"<<std::endl;
-      //for (unsigned int i=startLevel[level]; i<endLevel[level]+1; ++i)
-      //    std::cout<<i<<"  (********)"<<std::endl;
+      // We need to be sure that there actually are some blocks in the current
+      // level, then we need to loop over all blocks on the level and perform
+      // all the translations. We need a bind for the worker in order to deal with
+      // the additional unsigned int startLevel[level].
       if (endLevel[level]>=startLevel[level])
         WorkStream::run(blocks.begin()+startLevel[level],
                         blocks.begin()+endLevel[level]+1,
-                        std_cxx11::bind(static_cast<void (*)(typename std::vector<OctreeBlock<dim> *>::iterator,
-                                                             AscendScratchData &, AscendCopyData &, unsigned int)>
-                                        (f_worker_ascend), std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startLevel[level]),
-                        static_cast<void (*)(const AscendCopyData &)>(f_copier_ascend),
+                        std_cxx11::bind(f_worker_ascend, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startLevel[level]),
+                        f_copier_ascend,
                         sample_scratch,
                         sample_copy);
 

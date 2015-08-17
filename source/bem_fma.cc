@@ -1857,7 +1857,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   // } // end loop on childless blocks
 
 
-// now all the lower level blocks have a multipole expansion containing the contribution to the integrals
+// Now all the lower level blocks have a multipole expansion containing the contribution to the integrals
 // of all the quad points in them: we now begin summing the child multipole expansion to the the parents
 // expansions: to do that we need to translate che children expansions to the parent block center: there
 // is a MultipoleExpansion class for this too.
@@ -2222,11 +2222,11 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
             // loop over well separated blocks of the smaller size (level)-----> use multipoles without local expansions
 
-            // we now have to loop over blocks in the nonIntList that are smaller than the current
-            // blocks: in this case the bound for the conversion of a multipole into local expansion
-            // do not hold, but the bound for the evaluation of the multipole expansions does hold:
-            // thus, we will simply evaluate the multipole expansions of such blocks for each node in
-            // the clock
+            we now have to loop over blocks in the nonIntList that are smaller than the current
+            blocks: in this case the bound for the conversion of a multipole into local expansion
+            does not hold, but the bound for the evaluation of the multipole expansions does hold:
+            thus, we will simply evaluate the multipole expansions of such blocks for each node in
+            the block
 
             for (std::set <unsigned int>::iterator pos1 = nonIntList.upper_bound(endBlockLevel); pos1 != nonIntList.end();  pos1++)
               {

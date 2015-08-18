@@ -60,6 +60,7 @@
 #include<deal.II/numerics/data_out.h>
 #include<deal.II/numerics/vector_tools.h>
 #include<deal.II/numerics/solution_transfer.h>
+#include <deal.II/base/types.h>
 
 // And here are a few C++ standard header
 // files that we will need:

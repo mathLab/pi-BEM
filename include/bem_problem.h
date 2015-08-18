@@ -248,8 +248,8 @@ public:
   /// points associated with the degrees of
   /// freedom of its gradient (a vector field)
 
-  std::vector <std::set<unsigned int> >   double_nodes_set;
-  std::vector <std::set<unsigned int> >   gradient_double_nodes_set;
+  std::vector <std::set<types::global_dof_index> >   double_nodes_set;
+  std::vector <std::set<types::global_dof_index> >   gradient_double_nodes_set;
 
 
 

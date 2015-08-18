@@ -43,6 +43,8 @@
 
 #include <deal.II/base/conditional_ostream.h>
 
+#include <deal.II/base/types.h>
+
 // And here are a few C++ standard header files that we will need:
 #include <cmath>
 #include <iostream>
@@ -212,7 +214,7 @@ namespace MinFmm
     TrilinosWrappers::MPI::Vector dirichlet_nodes;
     TrilinosWrappers::MPI::Vector              dirichlet_values;
     TrilinosWrappers::MPI::Vector              neumann_values;
-    std::vector <std::set<unsigned int> >   double_nodes_set;
+    std::vector <std::set<types::global_dof_index> >   double_nodes_set;
     bool fmm_sol;
     ErrorHandler<2> eh;
     unsigned int n_mpi_processes;

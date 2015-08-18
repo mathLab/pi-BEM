@@ -104,7 +104,7 @@ void BEMProblem<dim>::reinit()
   DoFRenumbering::subdomain_wise (gradient_dh);
 
 
-  const unsigned int n_dofs =  dh.n_dofs();
+  const types::global_dof_index n_dofs =  dh.n_dofs();
 
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
 
@@ -126,11 +126,11 @@ void BEMProblem<dim>::reinit()
 
   // We need to enforce consistency between the non-ghosted IndexSets.
   // To be changed accordingly with the DoFRenumbering strategy.
-  for (unsigned int i=0; i<n_dofs; ++i)
+  for (types::global_dof_index i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)
       {
         this_cpu_set.add_index(i);
-        unsigned int dummy=sub_wise_to_original[i];
+        types::global_dof_index dummy=sub_wise_to_original[i];
         for (unsigned int idim=0; idim<dim; ++idim)
           {
             vector_this_cpu_set.add_index(vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy]);
@@ -197,10 +197,10 @@ void BEMProblem<dim>::reinit()
   if (solution_method == "Direct")
     {
       full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
-      for (unsigned int i=0; i<n_dofs; ++i)
+      for (types::global_dof_index i=0; i<n_dofs; ++i)
         if (this_cpu_set.is_element(i))
           {
-            for (unsigned int j=0; j<n_dofs; ++j)
+            for (types::global_dof_index j=0; j<n_dofs; ++j)
               full_sparsity_pattern.add(i,j);
           }
 
@@ -209,7 +209,7 @@ void BEMProblem<dim>::reinit()
       dirichlet_matrix.reinit(full_sparsity_pattern);
     }
   preconditioner_band = 100;
-  preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
+  preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (types::global_dof_index) preconditioner_band);
   is_preconditioner_initialized = false;
 
   dirichlet_nodes.reinit(this_cpu_set,mpi_communicator);
@@ -389,7 +389,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
     }
 
-  for (unsigned int i=0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     if (this_cpu_set.is_element(i))
       {
         dirichlet_nodes(i)=non_partitioned_dirichlet_nodes(i);
@@ -415,9 +415,9 @@ void BEMProblem<dim>::compute_double_nodes_set()
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping,
                                                     dh, support_points);
 
-  for (unsigned int i=0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
-      for (unsigned int j=0; j<dh.n_dofs(); ++j)
+      for (types::global_dof_index j=0; j<dh.n_dofs(); ++j)
         {
           if (support_points[i].distance(support_points[j]) < tol)
             {
@@ -441,7 +441,7 @@ void BEMProblem<dim>::compute_reordering_vectors()
   DoFRenumbering::compute_subdomain_wise(original_to_sub_wise, dh);
   DoFRenumbering::compute_subdomain_wise(vec_original_to_sub_wise, gradient_dh);
 
-  for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<gradient_dh.n_dofs(); ++i)
     {
       if (i<dh.n_dofs())
         {
@@ -560,7 +560,7 @@ void BEMProblem<dim>::assemble_system()
       // therefore check wether this is
       // the case, and we store which
       // one is the singular index:
-      for (unsigned int i=0; i<dh.n_dofs() ; ++i) //these must now be the locally owned dofs. the rest should stay the same
+      for (types::global_dof_index i=0; i<dh.n_dofs() ; ++i) //these must now be the locally owned dofs. the rest should stay the same
         {
           if (this_cpu_set.is_element(i))
             {
@@ -1155,7 +1155,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
 //////////////////////////////////
 
 
-  for (unsigned int i=0; i <dirichlet_nodes.size(); i++)
+  for (types::global_dof_index i=0; i <dirichlet_nodes.size(); i++)
     {
       if (this_cpu_set.is_element(i))
         {
@@ -1247,7 +1247,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
   // triple dofs
 
   // we start looping on the dofs
-  for (unsigned int i=0; i <tmp_rhs.size(); i++)
+  for (types::global_dof_index i=0; i <tmp_rhs.size(); i++)
     {
       // if (this_cpu_set.is_element(i))
       // {
@@ -1255,9 +1255,9 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
       // is the first dirichlet node in the set, and if no dirichlet node is there, we get the
       // first neumann node
 
-      std::set<unsigned int> doubles = double_nodes_set[i];
-      unsigned int firstOfDoubles = *doubles.begin();
-      for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
+      std::set<types::global_dof_index> doubles = double_nodes_set[i];
+      types::global_dof_index firstOfDoubles = *doubles.begin();
+      for (std::set<types::global_dof_index>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
         {
           // if(this_cpu_set.is_element(*it))
           if (localized_dirichlet_nodes(*it) == 1)
@@ -1280,7 +1280,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
           // matrix vector product we will put the potential value of the double node
           if (localized_dirichlet_nodes(i) == 1)
             {
-              for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
+              for (std::set<types::global_dof_index>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                 {
                   // if(this_cpu_set.is_element(*it))
                   {
@@ -1290,15 +1290,15 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                         // dphi_dn on the two (or more) sides is equal.
                         double normal_distance = 0;
 
-                        // unsigned int owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
-                        // unsigned int owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
+                        // types::global_dof_index owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
+                        // types::global_dof_index owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
 
                         for (unsigned int idim=0; idim < dim; ++idim)
                           {
-                            unsigned int dummy_1 = sub_wise_to_original[i];
-                            unsigned int dummy_2 = sub_wise_to_original[*it];
-                            unsigned int index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]); //gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
-                            unsigned int index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
+                            types::global_dof_index dummy_1 = sub_wise_to_original[i];
+                            types::global_dof_index dummy_2 = sub_wise_to_original[*it];
+                            types::global_dof_index index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]); //gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
+                            types::global_dof_index index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
                             normal_distance += localized_normals[index1] * localized_normals[index2];
                           }
                         normal_distance /= normal_distance;
@@ -1316,17 +1316,17 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                             double surf_it_norm_i = 0;
                             double surf_i_norm_it = 0;
 
-                            // unsigned int owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
-                            // unsigned int owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
+                            // types::global_dof_index owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
+                            // types::global_dof_index owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
 
                             // We no longer have a std::vector of Point<dim> so we need to perform the scalar product
                             for (unsigned int idim=0; idim < dim; ++idim)
                               {
-                                unsigned int dummy_1 = sub_wise_to_original[i];
-                                unsigned int dummy_2 = sub_wise_to_original[*it];
+                                types::global_dof_index dummy_1 = sub_wise_to_original[i];
+                                types::global_dof_index dummy_2 = sub_wise_to_original[*it];
 
-                                unsigned int index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]);//gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim;
-                                unsigned int index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;
+                                types::global_dof_index index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]);//gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim;
+                                types::global_dof_index index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it);//vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;
                                 norm_i_norm_it += localized_normals[index1]*localized_normals[index2];
                                 surf_it_norm_i += localized_surface_gradients[index2]*localized_normals[index1];
                                 surf_i_norm_it += localized_surface_gradients[index1]*localized_normals[index2];
@@ -1366,7 +1366,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
           // set, and the current double node
           if (localized_dirichlet_nodes(i) == 0)
             {
-              for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
+              for (std::set<types::global_dof_index>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                 {
                   c.add_line(*it);
                   c.add_entry(*it,i,1);
@@ -1381,7 +1381,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
 
   c_cpu_set.clear();
   c_cpu_set.set_size(this_cpu_set.size());
-  for (unsigned int i=0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
       if (this_cpu_set.is_element(i))
         {
@@ -1390,7 +1390,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
             {
               const std::vector< std::pair < types::global_dof_index, double > >
               *entries = c.get_constraint_entries (i);
-              for (unsigned int j=0; j< entries->size(); ++j)
+              for (types::global_dof_index j=0; j< entries->size(); ++j)
                 c_cpu_set.add_index((*entries)[j].first);
 
             }
@@ -1401,13 +1401,13 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
 
   /*
   pcout<<"CONSTAINT MATRIX CHECK "<<std::endl;
-    for (unsigned int i=0; i<dh.n_dofs(); ++i)
+    for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
         {
-        std::set <unsigned int> duplicates = double_nodes_set[i];
+        std::set <types::global_dof_index> duplicates = double_nodes_set[i];
         if (duplicates.size()>1)
            {
            pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" ("<<localized_dirichlet_nodes(i)<<") duplicates: ";
-           for (std::set<unsigned int>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
+           for (std::set<types::global_dof_index>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
                pcout<<" "<<*pos;
            pcout<<std::endl;
            }
@@ -1433,10 +1433,10 @@ void BEMProblem<dim>::assemble_preconditioner()
 
   if (is_preconditioner_initialized == false)
     {
-      for (int i=0; (unsigned int) i<dh.n_dofs(); ++i)
-        if (this_cpu_set.is_element((unsigned int) i))
-          for (int j=std::max(i-preconditioner_band/2,0); j<std::min(i+preconditioner_band/2,(int)dh.n_dofs()); ++j)
-            preconditioner_sparsity_pattern.add((unsigned int) i,(unsigned int) j);
+      for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
+        if (this_cpu_set.is_element((types::global_dof_index) i))
+          for (types::global_dof_index j=std::max<types::global_dof_index>(i-preconditioner_band/2,(types::global_dof_index)0); j<std::min<types::global_dof_index>(i+preconditioner_band/2,dh.n_dofs()); ++j)
+            preconditioner_sparsity_pattern.add((types::global_dof_index) i,(types::global_dof_index) j);
       preconditioner_sparsity_pattern.compress();
       band_system.reinit(preconditioner_sparsity_pattern);
       is_preconditioner_initialized = true;
@@ -1445,13 +1445,13 @@ void BEMProblem<dim>::assemble_preconditioner()
     band_system = 0;
 
 
-  for (int i=0; (unsigned int) i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
-      if (this_cpu_set.is_element((unsigned int) i))
+      if (this_cpu_set.is_element(i))
         {
           if (constraints.is_constrained(i))
-            band_system.add((unsigned int)i,(unsigned int) i, 1);
-          for (int j=std::max(i-preconditioner_band/2,0); j<std::min(i+preconditioner_band/2,(int)dh.n_dofs()); ++j)
+            band_system.add(i, i, 1);
+          for (types::global_dof_index j=std::max<types::global_dof_index>(i-preconditioner_band/2,(types::global_dof_index) 0); j<std::min<types::global_dof_index>(i+preconditioner_band/2,dh.n_dofs()); ++j)
             {
               if (constraints.is_constrained(i) == false)
                 {
@@ -1461,7 +1461,7 @@ void BEMProblem<dim>::assemble_preconditioner()
                       band_system.add(i,j,neumann_matrix(i,j));
 
                       if (i == j)
-                        band_system.add((unsigned int) i,(unsigned int) j, alpha(i));
+                        band_system.add(i, j, alpha(i));
 
                     }
                   else

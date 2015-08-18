@@ -2580,7 +2580,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
             //cout<<i<<"  (c):"<<endl;
             // constrained nodes entries are taken from the bem problem constraint matrix
             copy_data.sparsity_row.push_back(i);
-            const std::vector< std::pair < unsigned int, double > >
+            const std::vector< std::pair < types::global_dof_index, double > >
             *entries = c.get_constraint_entries (i);
             for (unsigned int j=0; j< entries->size(); ++j)
               copy_data.sparsity_row.push_back((*entries)[j].first);
@@ -2650,7 +2650,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
             final_preconditioner.set(i,i,1);
             //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
             // constrainednodes entries are taken from the bem problem constraint matrix
-            const std::vector< std::pair < unsigned int, double > >
+            const std::vector< std::pair < types::global_dof_index, double > >
             *entries = c.get_constraint_entries (i);
             for (unsigned int j=0; j< entries->size(); ++j)
               {
@@ -2722,7 +2722,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   //             final_preconditioner.set(i,i,1);
   //             //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
   //             // constrainednodes entries are taken from the bem problem constraint matrix
-  //             const std::vector< std::pair < unsigned int, double > >
+  //             const std::vector< std::pair < types::global_dof_index, double > >
   //             *entries = c.get_constraint_entries (i);
   //             for (unsigned int j=0; j< entries->size(); ++j)
   //               {

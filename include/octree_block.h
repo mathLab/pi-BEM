@@ -64,32 +64,32 @@ private :
 
   unsigned int level;
 
-  unsigned int parentId;
+  types::global_dof_index parentId;
 
   unsigned int numChildren;
 
-  unsigned int childrenId[8];
+  types::global_dof_index childrenId[8];
 
-  std::vector <std::set <unsigned int> > nearNeigh;
+  std::vector <std::set <types::global_dof_index> > nearNeigh;
 
-  std::vector <std::set <unsigned int> > intList;
+  std::vector <std::set <types::global_dof_index> > intList;
 
-  std::vector <std::set <unsigned int> > nonIntList;
+  std::vector <std::set <types::global_dof_index> > nonIntList;
 
   Point<dim> pMin;
 
   double delta;
 
-  std::vector <unsigned int> nodesId;
+  std::vector <types::global_dof_index> nodesId;
 
-  std::map <cell_it, std::vector<unsigned int> > quadPointsId;
+  std::map <cell_it, std::vector<types::global_dof_index> > quadPointsId;
 
 
 public:
 
   OctreeBlock();
 
-  OctreeBlock(unsigned int level, unsigned int parent, Point<dim> pMin, double delta);
+  OctreeBlock(unsigned int level, types::global_dof_index parent, Point<dim> pMin, double delta);
 
   OctreeBlock(const OctreeBlock<dim> &other);
 
@@ -97,57 +97,57 @@ public:
 
   void CopyContent(const  OctreeBlock *other);
 
-  void AddNode(unsigned int nodeId);
+  void AddNode(types::global_dof_index nodeId);
 
-  void AddQuadPoint(cell_it elemPointer, unsigned int quadPointId);
+  void AddQuadPoint(cell_it elemPointer, types::global_dof_index quadPointId);
 
-  std::vector <unsigned int> GetBlockNodeList() const;
+  std::vector <types::global_dof_index> GetBlockNodeList() const;
 
   void DelNodeList();
 
-  std::map <cell_it, std::vector<unsigned int> > GetBlockQuadPointsList() const;
+  std::map <cell_it, std::vector<types::global_dof_index> > GetBlockQuadPointsList() const;
 
   void DelQuadPointsList();
 
-  unsigned int GetBlockNodesNum() const;
+  types::global_dof_index GetBlockNodesNum() const;
 
   unsigned int GetBlockChildrenNum() const;
 
-  unsigned int GetParentId() const;
+  types::global_dof_index GetParentId() const;
 
-  void AddChild(unsigned int childId);
+  void AddChild(types::global_dof_index childId);
 
-  unsigned int GetChildId(unsigned int idInList) const;
+  types::global_dof_index GetChildId(unsigned int idInList) const;
 
   Point<dim> GetPMin() const;
 
   double GetDelta() const;
 
-  void AddNearNeigh(unsigned int sublevel, const unsigned int nnBlockId);
+  void AddNearNeigh(unsigned int sublevel, const types::global_dof_index nnBlockId);
 
   unsigned int NumNearNeigh(unsigned int sublevel) const;
 
   unsigned int NumNearNeighLevels() const;
 
-  std::set <unsigned int> GetNearNeighs(unsigned int sublevel) const;
+  std::set <types::global_dof_index> GetNearNeighs(unsigned int sublevel) const;
 
-  void AddBlockToIntList(unsigned int sublevel, const unsigned int intListBlockId);
+  void AddBlockToIntList(unsigned int sublevel, const types::global_dof_index intListBlockId);
 
-  unsigned int NumIntList(unsigned int sublevel) const;
+  types::global_dof_index NumIntList(unsigned int sublevel) const;
 
   unsigned int NumIntListLevels() const;
 
-  std::set <unsigned int> GetIntList(unsigned int sublevel) const;
+  std::set <types::global_dof_index> GetIntList(unsigned int sublevel) const;
 
-  std::vector<std::set <unsigned int> > GetIntList() const;
+  std::vector<std::set <types::global_dof_index> > GetIntList() const;
 
-  void AddBlockToNonIntList(unsigned int sublevel, const unsigned int intListBlockId);
+  void AddBlockToNonIntList(unsigned int sublevel, const types::global_dof_index intListBlockId);
 
   unsigned int NumNonIntList(unsigned int sublevel) const;
 
   unsigned int NumNonIntListLevels() const;
 
-  std::set <unsigned int> GetNonIntList(unsigned int sublevel) const;
+  std::set <types::global_dof_index> GetNonIntList(unsigned int sublevel) const;
 
   void SetNearNeighSize(unsigned int sublevels);
 
@@ -157,9 +157,9 @@ public:
 
   unsigned int GetNearNeighSize() const;
 
-  unsigned int GetIntListSize() const;
+  types::global_dof_index GetIntListSize() const;
 
-  unsigned int GetNonIntListSize() const;
+  types::global_dof_index GetNonIntListSize() const;
 
 };
 

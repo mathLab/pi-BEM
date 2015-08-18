@@ -255,7 +255,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
   endc = bem.dh.end();
 
   const unsigned int   dofs_per_cell   = bem.fe.dofs_per_cell;
-  std::vector<unsigned int> local_dof_indices (dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
   FEValues<dim-1,dim> fe_v(bem.mapping, bem.fe, *bem.quadrature,
                            update_values |
                            update_cell_normal_vectors |

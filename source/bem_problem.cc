@@ -1416,7 +1416,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
     for(unsigned int i=0; i<dh.n_dofs(); ++i)
       if( (constraints.is_constrained(i)) )
         {pcout<<"Proc: "<<this_mpi_process<<" i= "<<i<<" (";
-    const std::vector< std::pair < unsigned int, double > >
+    const std::vector< std::pair < types::global_dof_index, double > >
       * entries = constraints.get_constraint_entries (i);
           pcout<<entries->size()<<")  Entries:";
     for(unsigned int j=0; j< entries->size(); ++j)

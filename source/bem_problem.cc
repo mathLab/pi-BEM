@@ -329,8 +329,8 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
 
   non_partitioned_neumann_nodes.add(1);
-  std::vector<unsigned int> dofs(fe.dofs_per_cell);
-  std::vector<unsigned int> gradient_dofs(gradient_fe.dofs_per_cell);
+  std::vector<types::global_dof_index> dofs(fe.dofs_per_cell);
+  std::vector<types::global_dof_index> gradient_dofs(gradient_fe.dofs_per_cell);
 
   for (; cell != endc; ++cell)
     {
@@ -487,7 +487,7 @@ void BEMProblem<dim>::assemble_system()
 
   const unsigned int n_q_points = fe_v.n_quadrature_points;
 
-  std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
 
   // Unlike in finite element
   // methods, if we use a collocation
@@ -1388,7 +1388,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
           c_cpu_set.add_index(i);
           if (c.is_constrained(i))
             {
-              const std::vector< std::pair < unsigned int, double > >
+              const std::vector< std::pair < types::global_dof_index, double > >
               *entries = c.get_constraint_entries (i);
               for (unsigned int j=0; j< entries->size(); ++j)
                 c_cpu_set.add_index((*entries)[j].first);
@@ -1528,7 +1528,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
   const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
-  std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
+  std::vector<types::global_dof_index> vector_local_dof_indices (vector_dofs_per_cell);
 
 
   std::vector< Tensor<1,dim> > phi_surf_grads(vector_n_q_points);
@@ -1543,7 +1543,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-  std::vector<unsigned int> face_dofs(fe.dofs_per_face);
+  std::vector<types::global_dof_index> face_dofs(fe.dofs_per_face);
 
   Quadrature <dim-1> dummy_quadrature(fe.get_unit_support_points());
   FEValues<dim-1,dim> dummy_fe_v(mapping, fe, dummy_quadrature,
@@ -1552,7 +1552,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
                                  update_quadrature_points);
 
   const unsigned int   dofs_per_cell = fe.dofs_per_cell;
-  std::vector<unsigned int> local_dof_indices (dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
 
@@ -1665,7 +1665,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
   const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
-  std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
+  std::vector<types::global_dof_index> vector_local_dof_indices (vector_dofs_per_cell);
 
   std::vector< Tensor<1,dim> > phi_surf_grads(vector_n_q_points);
   std::vector<double> phi_norm_grads(vector_n_q_points);
@@ -1679,7 +1679,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-  std::vector<unsigned int> face_dofs(fe.dofs_per_face);
+  std::vector<types::global_dof_index> face_dofs(fe.dofs_per_face);
 
   Quadrature <dim-1> dummy_quadrature(fe.get_unit_support_points());
   FEValues<dim-1,dim> dummy_fe_v(mapping, fe, dummy_quadrature,
@@ -1688,7 +1688,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
                                  update_quadrature_points);
 
   const unsigned int   dofs_per_cell = fe.dofs_per_cell;
-  std::vector<unsigned int> local_dof_indices (dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
 
@@ -1790,7 +1790,7 @@ void BEMProblem<dim>::compute_normals()
 
   const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
 
-  std::vector<unsigned int> vector_local_dof_indices (vector_dofs_per_cell);
+  std::vector<types::global_dof_index> vector_local_dof_indices (vector_dofs_per_cell);
 
   std::vector<Vector<double> > q_vector_normals_solution(vector_n_q_points,
                                                          Vector<double>(dim));

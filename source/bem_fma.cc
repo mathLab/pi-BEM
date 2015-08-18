@@ -155,7 +155,7 @@ void BEMFMA<dim>::direct_integrals()
   // the computed local rows of the matrices
   // into the global matrices
 
-  std::vector<unsigned int> local_dof_indices(dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
   // vector to store parts of rows of neumann
   // and dirichlet matrix obtained in local
@@ -231,8 +231,8 @@ void BEMFMA<dim>::direct_integrals()
   // added to each row of the sparsity pattern.
   struct InitPrecCopy
   {
-    std::vector<unsigned int> block_indices;
-    std::vector<std::vector<unsigned int> > col_indices;
+    std::vector<types::global_dof_index> block_indices;
+    std::vector<std::vector<types::global_dof_index> > col_indices;
   };
 
   // The worker function uses the capture to know the actual state of the BEMFMA<dim> class.
@@ -261,7 +261,7 @@ void BEMFMA<dim>::direct_integrals()
 
     std::vector <unsigned int> block1Nodes = block1->GetBlockNodeList();
 
-    std::vector<unsigned int> local_dof_indices(this->fma_fe->dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indices(this->fma_fe->dofs_per_cell);
     if  (block1Nodes.size() > 0)
       {
 
@@ -286,13 +286,13 @@ void BEMFMA<dim>::direct_integrals()
         for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
           {
             OctreeBlock<dim> *block2 =  this->blocks[*pos];
-            std::map <cell_it, std::vector<unsigned int> >
+            std::map <cell_it, std::vector<types::global_dof_index> >
             blockQuadPointsList = block2->GetBlockQuadPointsList();
 
             // get the list of quad points
             // in block2 and loop on it
 
-            typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+            typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
               {
                 // the key of the map (*it.first pointer) is
@@ -318,7 +318,7 @@ void BEMFMA<dim>::direct_integrals()
           if (this_cpu_set.is_element(block1Nodes[i]))
             {
               copy_data.block_indices.push_back(block1Nodes[i]);
-              copy_data.col_indices.push_back(std::vector<unsigned int>());
+              copy_data.col_indices.push_back(std::vector<types::global_dof_index>());
               for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
                 {
                   copy_data.col_indices.back().push_back(*pos);
@@ -387,13 +387,13 @@ void BEMFMA<dim>::direct_integrals()
   //         for (std::set<unsigned int>::iterator pos = block1IntList.begin(); pos != block1IntList.end(); pos++)
   //           {
   //             OctreeBlock<dim> *block2 =  blocks[*pos];
-  //             std::map <cell_it, std::vector<unsigned int> >
+  //             std::map <cell_it, std::vector<types::global_dof_index> >
   //             blockQuadPointsList = block2->GetBlockQuadPointsList();
   //
   //             // get the list of quad points
   //             // in block2 and loop on it
   //
-  //             typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //             typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
   //             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
   //               {
   //                 // the key of the map (*it.first pointer) is
@@ -435,7 +435,7 @@ void BEMFMA<dim>::direct_integrals()
   for (unsigned int level = 1; level <  num_octree_levels + 1;  level++) // loop over levels
 
     {
-      // std::vector<unsigned int>
+      // std::vector<types::global_dof_index>
       // dofs_filled_blocks =  dofs_filled_blocks[level];
       unsigned int startBlockLevel =  startLevel[level];
 
@@ -449,7 +449,7 @@ void BEMFMA<dim>::direct_integrals()
 
         OctreeBlock<dim> *block1 =  this->blocks[this->dofs_filled_blocks[level][jj]];
         const std::vector <unsigned int> &nodesBlk1Ids = block1->GetBlockNodeList();
-        std::vector<unsigned int> local_dof_indices(this->fma_fe->dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices(this->fma_fe->dofs_per_cell);
         // again, no need to perform next operations if block has no nodes
 
         if  (nodesBlk1Ids.size() > 0)// !!!CHECK, IT SEEMS TO BE USELESS
@@ -473,13 +473,13 @@ void BEMFMA<dim>::direct_integrals()
                 for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
                   {
                     OctreeBlock<dim> *block2 =  this->blocks[*pos];
-                    std::map <cell_it, std::vector<unsigned int> >
+                    std::map <cell_it, std::vector<types::global_dof_index> >
                     blockQuadPointsList = block2->GetBlockQuadPointsList();
 
                     // we loop on the cells of the quad blocks (*it.first pointer)
                     // and put their dofs in the direct list
 
-                    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                    typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                       {
                         cell_it cell = (*it).first;
@@ -496,7 +496,7 @@ void BEMFMA<dim>::direct_integrals()
                     if (this_cpu_set.is_element(nodesBlk1Ids[i]))
                       {
                         copy_data.block_indices.push_back(nodesBlk1Ids[i]);
-                        copy_data.col_indices.push_back(std::vector<unsigned int> ());
+                        copy_data.col_indices.push_back(std::vector<types::global_dof_index> ());
                         for (std::set<unsigned int>::iterator pos = directNodes.begin(); pos != directNodes.end(); pos++)
                           copy_data.col_indices.back().push_back(*pos);
                       }
@@ -538,13 +538,13 @@ void BEMFMA<dim>::direct_integrals()
       //             for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
       //               {
       //                 OctreeBlock<dim> *block2 =  blocks[*pos];
-      //                 std::map <cell_it, std::vector<unsigned int> >
+      //                 std::map <cell_it, std::vector<types::global_dof_index> >
       //                 blockQuadPointsList = block2->GetBlockQuadPointsList();
       //
       //                 // we loop on the cells of the quad blocks (*it.first pointer)
       //                 // and put their dofs in the direct list
       //
-      //                 typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+      //                 typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
       //                 for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
       //                   {
       //                     cell_it cell = (*it).first;
@@ -620,9 +620,9 @@ void BEMFMA<dim>::direct_integrals()
 
     std::vector<Vector<double> >  vec_local_neumann_matrix_row_i;
     std::vector<Vector<double> >  vec_local_dirichlet_matrix_row_i;
-    std::vector<std::vector<unsigned int> > vec_local_dof_indices;
-    std::vector<unsigned int> vec_node_index;
-    std::vector<unsigned int> vec_start_helper;
+    std::vector<std::vector<types::global_dof_index> > vec_local_dof_indices;
+    std::vector<types::global_dof_index> vec_node_index;
+    std::vector<types::global_dof_index> vec_start_helper;
   };
 
 
@@ -630,7 +630,7 @@ void BEMFMA<dim>::direct_integrals()
   // As we did for the preconditioner we firstly compute all the direct contributions associated with the blocks in the
   // childlessList and we secondly we will take care of all the blocks in the nonIntList that does not respect the
   // bounds for the multipole expansion.
-  auto f_worker_direct_childless_non_int_list = [this] (typename std::vector<unsigned int>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures)
+  auto f_worker_direct_childless_non_int_list = [this] (typename std::vector<types::global_dof_index>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, std::vector<QTelles<dim-1> > &sing_quadratures)
   {
     //pcout<<"processing block "<<kk <<"  of  "<<cMesh->GetNumChildlessBlocks()<<std::endl;
     //pcout<<"block "<<cMesh->GetChildlessBlockId(kk) <<"  of  "<<cMesh->GetNumBlocks()<<"  in block list"<<std::endl;
@@ -667,12 +667,12 @@ void BEMFMA<dim>::direct_integrals()
           {
             // now for each block block2 we get the list of quad points
             OctreeBlock<dim> *block2 =  this->blocks[*pos];
-            std::map <cell_it, std::vector<unsigned int> >
+            std::map <cell_it, std::vector<types::global_dof_index> >
             blockQuadPointsList = block2->GetBlockQuadPointsList();
 
             // we now loop among the cells of the list and for each cell we loop
             // among its quad points, to copy them into the direct quad points list
-            typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+            typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
               {
                 for (unsigned int i=0; i<(*it).second.size(); i++)
@@ -712,7 +712,7 @@ void BEMFMA<dim>::direct_integrals()
                     // and we check if the cell contains the current node, to
                     // decide if singular of regular quadrature is to be used
                     cell_it cell = (*it).first;
-                    copy_data.vec_local_dof_indices.push_back(std::vector<unsigned int> (this->fma_fe->dofs_per_cell));
+                    copy_data.vec_local_dof_indices.push_back(std::vector<types::global_dof_index> (this->fma_fe->dofs_per_cell));
                     cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
 
                     // we copy the cell quad points in this set
@@ -915,7 +915,7 @@ void BEMFMA<dim>::direct_integrals()
 
   // We need a worker function that takes care of
   // all the blocks in the nonIntlist of a block that are bigger than the block itslef.
-  auto f_worker_direct_bigger_blocks = [this] (typename std::vector<unsigned int>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel)
+  auto f_worker_direct_bigger_blocks = [this] (typename std::vector<types::global_dof_index>::iterator block_it, DirectScratchData &scratch, DirectCopyData &copy_data, const std::vector<Point<dim> > &support_points, unsigned int startBlockLevel)
   {
 
     copy_data.vec_local_dof_indices.resize(0);
@@ -952,9 +952,9 @@ void BEMFMA<dim>::direct_integrals()
                 for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
                   {
                     OctreeBlock<dim> *block2 =  this->blocks[*pos];
-                    std::map <cell_it, std::vector<unsigned int> >
+                    std::map <cell_it, std::vector<types::global_dof_index> >
                     blockQuadPointsList = block2->GetBlockQuadPointsList();
-                    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                    typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                       {
                         for (unsigned int ii=0; ii<(*it).second.size(); ii++)
@@ -981,7 +981,7 @@ void BEMFMA<dim>::direct_integrals()
                 // here the quadrature is regular as the cell is well
                 // separated
                 cell_it cell = (*it).first;
-                copy_data.vec_local_dof_indices.push_back(std::vector<unsigned int> (this->fma_fe->dofs_per_cell));
+                copy_data.vec_local_dof_indices.push_back(std::vector<types::global_dof_index> (this->fma_fe->dofs_per_cell));
                 cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
 
                 // we copy the cell quad points in this set
@@ -1089,12 +1089,12 @@ void BEMFMA<dim>::direct_integrals()
   //           {
   //             // now for each block block2 we get the list of quad points
   //             OctreeBlock<dim> *block2 =  blocks[*pos];
-  //             std::map <cell_it, std::vector<unsigned int> >
+  //             std::map <cell_it, std::vector<types::global_dof_index> >
   //             blockQuadPointsList = block2->GetBlockQuadPointsList();
   //
   //             // we now loop among the cells of the list and for each cell we loop
   //             // among its quad points, to copy them into the direct quad points list
-  //             typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //             typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
   //             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
   //               {
   //                 for (unsigned int i=0; i<(*it).second.size(); i++)
@@ -1307,9 +1307,9 @@ void BEMFMA<dim>::direct_integrals()
   //                 for (std::set<unsigned int>::iterator pos = nonIntList.begin(); pos !=nonIntList.lower_bound(startBlockLevel); pos++)
   //                   {
   //                     OctreeBlock<dim> *block2 =  blocks[*pos];
-  //                     std::map <cell_it, std::vector<unsigned int> >
+  //                     std::map <cell_it, std::vector<types::global_dof_index> >
   //                     blockQuadPointsList = block2->GetBlockQuadPointsList();
-  //                     typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //                     typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
   //                     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
   //                       {
   //                         for (unsigned int ii=0; ii<(*it).second.size(); ii++)
@@ -1470,7 +1470,7 @@ void BEMFMA<dim>::multipole_integrals()
   };
 
   // The worker lambda function that sets up the local structures.
-  auto f_worker_multipole_integral = [this, dofs_per_cell] (std::vector<unsigned int>::iterator blocky, MultipoleScratch &foo, MultipoleData &copy_data)//, const unsigned int dofs_per_cell)
+  auto f_worker_multipole_integral = [this, dofs_per_cell] (std::vector<types::global_dof_index>::iterator blocky, MultipoleScratch &foo, MultipoleData &copy_data)//, const unsigned int dofs_per_cell)
   {
     unsigned int blockId =  *blocky;
     OctreeBlock<dim> *block =  this->blocks[blockId];
@@ -1484,7 +1484,7 @@ void BEMFMA<dim>::multipole_integrals()
     // and loop over it
     std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
 
-    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+    typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
       {
         // for each cell in the list, we get the list of its quad nodes
@@ -1568,7 +1568,7 @@ void BEMFMA<dim>::multipole_integrals()
   //     // and loop over it
   //     std::map <cell_it, std::vector <unsigned int> > blockQuadPointsList = block->GetBlockQuadPointsList();
   //
-  //     typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  //     typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
   //     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
   //       {
   //         // for each cell in the list, we get the list of its quad nodes
@@ -1622,8 +1622,8 @@ void BEMFMA<dim>::compute_m2l_flags()
 {
   pcout<<"Partitioning the descending phase Multipole2Local"<<std::endl;
   m2l_flags.resize(num_octree_levels+1);
-  std::vector<unsigned int> m2l_operations_per_level(num_octree_levels+1);
-  std::vector<std::vector<unsigned int> > m2l_operations_per_block(num_octree_levels+1);
+  std::vector<types::global_dof_index> m2l_operations_per_level(num_octree_levels+1);
+  std::vector<std::vector<types::global_dof_index> > m2l_operations_per_block(num_octree_levels+1);
   unsigned int my_total_operations=0;
 
   for (unsigned int level = 1; level <  num_octree_levels + 1;  level++)
@@ -1650,8 +1650,8 @@ void BEMFMA<dim>::compute_m2l_flags()
       unsigned int cumulative_check=0;
       unsigned int proc=0;
       unsigned int k=0;
-      std::vector<unsigned int> m2l_operations_per_proc(test);
-      std::vector<unsigned int> blocks_per_proc(test);
+      std::vector<types::global_dof_index> m2l_operations_per_proc(test);
+      std::vector<types::global_dof_index> blocks_per_proc(test);
       for (unsigned int k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
         {
           // m2l_operations_per_block[level][k] = 0;
@@ -1737,7 +1737,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
 // these two variables will be handy in the following
 
-  std::vector<unsigned int> local_dof_indices(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fma_fe->dofs_per_cell);
   double delta;
 
 // we loop on blocks and for each of them we create an empty multipole expansion
@@ -1792,9 +1792,9 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
     // block, we had created a set of dofs_per_cell multipole expansion, representing
     // the (partial) integral on each cell
 
-    std::vector<unsigned int> my_local_dof_indices(foo_fma->fma_fe->dofs_per_cell);
+    std::vector<types::global_dof_index> my_local_dof_indices(foo_fma->fma_fe->dofs_per_cell);
 
-    typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+    typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
     for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
       {
         cell_it cell = (*it).first;
@@ -1837,7 +1837,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   // // block, we had created a set of dofs_per_cell multipole expansion, representing
   // // the (partial) integral on each cell
   //
-  // typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+  // typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
   // for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
   //   {
   //     cell_it cell = (*it).first;
@@ -2030,7 +2030,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *fma_mapping,
                                                     *fma_dh, support_points);
-  std::vector<unsigned int> local_dof_indices(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fma_fe->dofs_per_cell);
   double delta;
 
 
@@ -2118,13 +2118,13 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
     LocalExpansion blockLocalExpansionKer2;
     Vector<double> matrVectorProductContributionKer1;
     Vector<double> matrVectorProductContributionKer2;
-    std::vector<unsigned int> nodesBlk1Ids;
+    std::vector<types::global_dof_index> nodesBlk1Ids;
 
   };
 
 
   // The worker function, it copies the value about the parent from the global memory at a certain level to local array in copy.data
-  auto f_worker_Descend = [this, &support_points] (std::vector<unsigned int>::const_iterator block_it_id, DescendScratchData &scratch, DescendCopyData &copy_data, const unsigned int start)
+  auto f_worker_Descend = [this, &support_points] (std::vector<types::global_dof_index>::const_iterator block_it_id, DescendScratchData &scratch, DescendCopyData &copy_data, const unsigned int start)
   {
     // unsigned int kk = std::distance(this->blocks.begin(), block_it);
 
@@ -2204,10 +2204,10 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
                 /*////////this is for a check///////////////////////
                   OctreeBlock<dim>* block2 =  blocks[block2Id];
-                std::vector<unsigned int> nodesBlk1Ids = (*block_it)->GetBlockNodeList();
-                std::map <cell_it, std::vector<unsigned int> >
+                std::vector<types::global_dof_index> nodesBlk1Ids = (*block_it)->GetBlockNodeList();
+                std::map <cell_it, std::vector<types::global_dof_index> >
                                   blockQuadPointsList = block2->GetBlockQuadPointsList();
-                                  typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                                  typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                                         for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                                       {
                                 for (unsigned int i=0; i<(*it).second.size(); i++)
@@ -2243,9 +2243,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
                     /*//////this is for a check/////////////////////////
                           OctreeBlock<dim>* block2 =  blocks[block2Id];
-                          std::map <cell_it, std::vector<unsigned int> >
+                          std::map <cell_it, std::vector<types::global_dof_index> >
                                             blockQuadPointsList = block2->GetBlockQuadPointsList();
-                                            typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                                            typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                                                   for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                                                 {
                                           for (unsigned int i=0; i<(*it).second.size(); i++)
@@ -2396,10 +2396,10 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
                    ////////this is for a check///////////////////////
                    //   OctreeBlock<dim>* block2 =  blocks[block2Id];
-                   // std::vector<unsigned int> nodesBlk1Ids = block1->GetBlockNodeList();
-                   // std::map <cell_it, std::vector<unsigned int> >
+                   // std::vector<types::global_dof_index> nodesBlk1Ids = block1->GetBlockNodeList();
+                   // std::map <cell_it, std::vector<types::global_dof_index> >
                     //                  blockQuadPointsList = block2->GetBlockQuadPointsList();
-                   //                   typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                   //                   typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                    //                         for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                     //                      {
                    //                 for (unsigned int i=0; i<(*it).second.size(); i++)
@@ -2435,9 +2435,9 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
                         //////this is for a check/////////////////////////
                          //     OctreeBlock<dim>* block2 =  blocks[block2Id];
-                         //     std::map <cell_it, std::vector<unsigned int> >
+                         //     std::map <cell_it, std::vector<types::global_dof_index> >
                          //                       blockQuadPointsList = block2->GetBlockQuadPointsList();
-                         //                       typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                         //                       typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                          //                             for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                          //                           {
                          //                     for (unsigned int i=0; i<(*it).second.size(); i++)
@@ -2566,7 +2566,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
       sparsity_row=in_copy.sparsity_row;
     };
     unsigned int row;
-    std::vector<unsigned int> sparsity_row;
+    std::vector<types::global_dof_index> sparsity_row;
   };
   auto f_worker_prec = [this, &c](unsigned int i, PrecScratch &foo_data, PrecCopy &copy_data)
   {
@@ -2817,8 +2817,8 @@ void BEMFMA<dim>::compute_geometry_cache()
   cell = fma_dh->begin_active(),
   endc = fma_dh->end();
 
-  std::vector<unsigned int> dofs(fma_fe->dofs_per_cell);
-  std::vector<unsigned int> gradient_dofs(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> dofs(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> gradient_dofs(fma_fe->dofs_per_cell);
   // mappa che associa ad ogni dof le celle cui esso appartiene
   dof_to_elems.clear();
 
@@ -3073,7 +3073,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 
   OctreeBlock<dim> *block = new OctreeBlock<dim>(0, 0, pMin, delta);
 
-  std::vector<unsigned int> local_dof_indices(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fma_fe->dofs_per_cell);
   cell_it
   cell = fma_dh->begin_active(),
   endc = fma_dh->end();
@@ -3254,7 +3254,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 
                 } //fine loop nodi del blocco
 
-              typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+              typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
               for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                 {
                   for (unsigned int pp = 0; pp < (*it).second.size(); pp++)
@@ -3333,9 +3333,9 @@ void BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
 
                       parent->AddChild(blocksCount);
-                      std::map <cell_it, std::vector<unsigned int> >
+                      std::map <cell_it, std::vector<types::global_dof_index> >
                       blockQuadPointsList = blocks[blocksCount]->GetBlockQuadPointsList();
-                      typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                      typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                       for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                         {
                           cell_it cell = (*it).first;
@@ -3344,7 +3344,7 @@ void BEMFMA<dim>::generate_octree_blocking()
                               quad_point_to_block[(*it).first][(*it).second[kk]].push_back(blocksCount);
                             }
                         }
-                      std::vector<unsigned int> blockNodesList = blocks[jj]->GetBlockNodeList();
+                      std::vector<types::global_dof_index> blockNodesList = blocks[jj]->GetBlockNodeList();
                       for (unsigned int k = 0; k < blockNodesList.size(); k++)
                         dof_to_block[blockNodesList[k]].push_back(jj);
 
@@ -3394,7 +3394,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 
                 } //fine loop nodi del blocco
 
-              typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+              typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
               for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                 {
                   for (unsigned int pp = 0; pp < (*it).second.size(); pp++)
@@ -3442,9 +3442,9 @@ void BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
 
                       parent->AddChild(blocksCount);
-                      std::map <cell_it, std::vector<unsigned int> >
+                      std::map <cell_it, std::vector<types::global_dof_index> >
                       blockQuadPointsList = blocks[blocksCount]->GetBlockQuadPointsList();
-                      typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                      typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                       for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
                         {
                           cell_it cell = (*it).first;
@@ -3453,7 +3453,7 @@ void BEMFMA<dim>::generate_octree_blocking()
                               quad_point_to_block[(*it).first][(*it).second[kk]].push_back(blocksCount);
                             }
                         }
-                      std::vector<unsigned int> blockNodesList = blocks[jj]->GetBlockNodeList();
+                      std::vector<types::global_dof_index> blockNodesList = blocks[jj]->GetBlockNodeList();
                       for (unsigned int k = 0; k < blockNodesList.size(); k++)
                         dof_to_block[blockNodesList[k]].push_back(jj);
 
@@ -3488,7 +3488,7 @@ void BEMFMA<dim>::generate_octree_blocking()
         {
 
           // here we get the number of nodes in the block
-          std::vector<unsigned int> nodesId = blocks[jj]->GetBlockNodeList();
+          std::vector<types::global_dof_index> nodesId = blocks[jj]->GetBlockNodeList();
           double blockNumNodes = 0.0;
 
           // now we compute the number of the nodes that are double of others
@@ -3499,9 +3499,9 @@ void BEMFMA<dim>::generate_octree_blocking()
 
           // here we compute the number of quad points in the block
           int blockNumQuadPoints = 0;
-          std::map <cell_it, std::vector<unsigned int> >
+          std::map <cell_it, std::vector<types::global_dof_index> >
           blockQuadPointsList = blocks[jj]->GetBlockQuadPointsList();
-          typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+          typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
           for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
             blockNumQuadPoints += (int) (*it).second.size();
           //pcout<<"Level "<<level<<" Block "<<jj<<"  nodes "<<blockNumNodes<<" + quadPoints "<<blockNumQuadPoints<<std::endl;
@@ -4031,8 +4031,8 @@ void BEMFMA<dim>::generate_octree_blocking()
                 pcout<<"Block "<<jj<<": Parent "<<block1->GetParentId();
                 pcout<<"  cubePlot(["<<block1->GetPMin()<<"],"<<block1->GetDelta()<<",'m')"<<std::endl;
                 pcout<<"Quad points of block "<<jj<<": "<<std::endl;
-                std::map <cell_it,std::vector<unsigned int> > quadPointsList = block1->GetBlockQuadPointsList();
-                typename std::map <cell_it, std::vector<unsigned int> >::iterator it;
+                std::map <cell_it,std::vector<types::global_dof_index> > quadPointsList = block1->GetBlockQuadPointsList();
+                typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
                                   for (it = quadPointsList.begin(); it != quadPointsList.end(); it++)
                                 {
                     pcout<<(*it).first<<"( ";

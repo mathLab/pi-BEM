@@ -20,6 +20,7 @@
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/base/work_stream.h>
+#include <deal.II/base/types.h>
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -304,7 +305,7 @@ private:
   /// block it belongs to
   /// for each level
 
-  std::map<unsigned int, std::vector<unsigned int> > dof_to_block;
+  std::map<unsigned int, std::vector<types::global_dof_index> > dof_to_block;
 
   /// a map associating each quad point to the
   /// block it belongs to for
@@ -345,7 +346,7 @@ private:
   /// a std::vector containing the list of
   /// parent blocks for each level
 
-  std::vector <std::vector<unsigned int> > parentList;
+  std::vector <std::vector<types::global_dof_index> > parentList;
 
   /// a std::map of std::vectors containing the
   /// list of quadrature points
@@ -373,13 +374,13 @@ private:
   /// the IDs of blocks with at least one dof,
   /// for each level
 
-  std::vector< std::vector<unsigned int> > dofs_filled_blocks;
+  std::vector< std::vector<types::global_dof_index> > dofs_filled_blocks;
 
   /// a std::vector containing std::vectors with
   /// the IDs of blocks with at least one
   /// quad point, for each level
 
-  std::vector< std::vector<unsigned int> > quad_points_filled_blocks;
+  std::vector< std::vector<types::global_dof_index> > quad_points_filled_blocks;
 
   ConditionalOStream pcout;
 

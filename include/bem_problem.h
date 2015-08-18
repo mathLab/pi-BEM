@@ -33,6 +33,8 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
 
+#include <deal.II/base/types.h>
+
 //#include <deal.II/lac/petsc_vector.h>
 //#include <deal.II/lac/petsc_parallel_vector.h>
 //#include <deal.II/lac/petsc_parallel_sparse_matrix.h>

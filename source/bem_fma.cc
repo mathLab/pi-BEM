@@ -2544,7 +2544,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
-  final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),125*fma_fe->dofs_per_cell);
+  final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),(types::global_dof_index) 125*fma_fe->dofs_per_cell);
 
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 

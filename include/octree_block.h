@@ -143,7 +143,7 @@ public:
 
   void AddBlockToNonIntList(unsigned int sublevel, const types::global_dof_index intListBlockId);
 
-  unsigned int NumNonIntList(unsigned int sublevel) const;
+  types::global_dof_index NumNonIntList(unsigned int sublevel) const;
 
   unsigned int NumNonIntListLevels() const;
 

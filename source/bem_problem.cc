@@ -88,15 +88,19 @@ void BEMProblem<dim>::reinit()
 {
 
   TimeMonitor LocalTimer(*ReinitTime);
-
+  std::cout<<"re-initializing scalar"<<std::endl;
   dh.distribute_dofs(fe);
+  std::cout<<"re-initializing vector"<<std::endl;
   gradient_dh.distribute_dofs(gradient_fe);
+  std::cout<<"distributed dofs"<<std::endl;
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
   // is subdomain_wise (step 17, 18)
   DoFRenumbering::component_wise (dh);
   DoFRenumbering::component_wise (gradient_dh);
+
+  std::cout<<"re-ordering vector"<<std::endl;
 
   compute_reordering_vectors();
 
@@ -126,6 +130,8 @@ void BEMProblem<dim>::reinit()
 
   // We need to enforce consistency between the non-ghosted IndexSets.
   // To be changed accordingly with the DoFRenumbering strategy.
+  std::cout<<"setting cpu_sets"<<std::endl;
+
   for (types::global_dof_index i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)
       {
@@ -1434,9 +1440,22 @@ void BEMProblem<dim>::assemble_preconditioner()
   if (is_preconditioner_initialized == false)
     {
       for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
-        if (this_cpu_set.is_element((types::global_dof_index) i))
-          for (types::global_dof_index j=std::max<types::global_dof_index>(i-preconditioner_band/2,(types::global_dof_index)0); j<std::min<types::global_dof_index>(i+preconditioner_band/2,dh.n_dofs()); ++j)
-            preconditioner_sparsity_pattern.add((types::global_dof_index) i,(types::global_dof_index) j);
+        if (this_cpu_set.is_element( i))
+        {
+          // types::global_dof_index start_helper, end_helper;
+          // if(i>preconditioner_band/2)
+          //   start_helper = i-preconditioner_band/2;
+          // else
+          //   start_helper = (types::global_dof_index) 0;
+          // if(i+preconditioner_band/2 < dh.n_dofs())
+          //   end_helper = i+preconditioner_band/2;
+          // else
+          //   end_helper = dh.n_dofs();
+          //   for(types::global_dof_index j=start_helper; j<end_helper; ++j)
+
+          for (types::global_dof_index j=std::max((types::global_dof_index)i-preconditioner_band/2,(types::global_dof_index)0); j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
+            preconditioner_sparsity_pattern.add(i,j);
+        }
       preconditioner_sparsity_pattern.compress();
       band_system.reinit(preconditioner_sparsity_pattern);
       is_preconditioner_initialized = true;
@@ -1451,7 +1470,18 @@ void BEMProblem<dim>::assemble_preconditioner()
         {
           if (constraints.is_constrained(i))
             band_system.add(i, i, 1);
-          for (types::global_dof_index j=std::max<types::global_dof_index>(i-preconditioner_band/2,(types::global_dof_index) 0); j<std::min<types::global_dof_index>(i+preconditioner_band/2,dh.n_dofs()); ++j)
+            // types::global_dof_index start_helper, end_helper;
+            // if(i>preconditioner_band/2)
+            //   start_helper = i-preconditioner_band/2;
+            // else
+            //   start_helper = (types::global_dof_index) 0;
+            // if(i+preconditioner_band/2 < dh.n_dofs())
+            //   end_helper = i+preconditioner_band/2;
+            // else
+            //   end_helper = dh.n_dofs();
+            // for(types::global_dof_index j=start_helper; j<end_helper; ++j)
+
+            for (types::global_dof_index j=std::max((types::global_dof_index)i-preconditioner_band/2,(types::global_dof_index)0); j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
             {
               if (constraints.is_constrained(i) == false)
                 {

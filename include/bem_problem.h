@@ -289,7 +289,7 @@ public:
 
   TrilinosWrappers::SparseMatrix band_system;
 
-  int preconditioner_band;
+  types::global_dof_index preconditioner_band;
 
   bool is_preconditioner_initialized;
 

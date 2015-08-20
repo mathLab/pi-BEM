@@ -83,15 +83,23 @@ public:
   /// Method computing the parts of the
   /// BEM system matrices in which the
   /// integrals have to be performed
-  /// directly. It also sets up the preconditioner.
+  /// directly. It also sets up the preconditioner. We
+  /// don't consider any constraints in this function.
+  /// We have set up the function to work with two levels
+  /// of parallelism, TBB and MPI. We build up the direct
+  /// contribution for all those block that doesn't satisfy
+  /// the accuracy bounds for multipole (and consequently)
+  /// local expansions.
   void direct_integrals();
 
   /// Method computing the multipole
   /// expansion containing the integrals
   /// values for each bottom level block.
   ///  It is called once for each
-  /// GMRES solved.
-
+  /// GMRES solved. This function set up
+  /// the structure to build the actual
+  /// multipoles associated with quadrature
+  /// points. For this reason it has to be called just once.
   void multipole_integrals();
 
   /// [TODO] TO BE MOVED INSIDE multipole_matr_vect_products and made private
@@ -100,8 +108,10 @@ public:
   ///  at the bottom level blocks, and then
   /// translated to their parent blocks up
   /// to the highest level. It is
-  /// called once per GMRES iteration.
-
+  /// called once per matrix-vector multiplication. We need to
+  /// ensure that the proper structure as been set through the
+  /// function multipole_integral(). We have chosen to use only
+  /// one level of parallelism inside this function: multithreading with TBB.
   void generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values) const;
 
   /// Descending phase of the FMA method. Local
@@ -110,8 +120,14 @@ public:
   /// to the bottom ones, where they are used
   /// to approximete the values of the
   /// integrals, i.e. the BEM matrix-vector
-  /// product values
-
+  /// product values.
+  /// This function is called once per every matrix-vector product.
+  /// We need to call this function after having generating the multipole expansions.
+  /// Since this function takes a considerable amount of time we have chosen to parallelise
+  /// it using multithreaded TBB on a single node and MPI to allow even a greater level of
+  /// parallelism. In this case we don't need any communication because we have made sure that
+  /// the multipole expansions are replicated on each node. Thus we can safely split the
+  /// descending phase.
   void multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
                                     TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
 
@@ -120,15 +136,27 @@ public:
 
   /// this methods creates the adaptive
   /// octree partitioning of the domain,
-  /// needed by the FMA algorithm
-
+  /// needed by the FMA algorithm.
+  /// Since it takes a very small relative amount of time, and it is
+  /// called just once in our program we have chosen not to parallelise it.
   void generate_octree_blocking();
 
+
+  // In this function we have grouped some geometrical computation that
+  // are useful for setting up the octree blocking. For example the maps
+  // containing the surrounding elements for each element, or the component
+  // associated with each vectorial degree of freedom.
   void compute_geometry_cache();
 
   /// Method for the assembling of the
-  /// sparse preconitioning matrix for FMA
-
+  /// sparse preconitioning matrix for FMA.
+  /// In this function we actually build up the final preconditioner taking great care of all the
+  /// constraints, through a constraint matrix, we need to impose on our system. We need the vector alpha to properly build up the
+  /// band of the BEM system we are going to invert (with ILU in this case).
+  /// This function takes a lot of time to properly compute the preconditioner sparsity pattern and fill it.
+  /// For this very reason we have taken great care in providing a double parallelisation strategy. Firstly we split
+  /// among different nodes the computations with MPI and then we use TBB to ensure a parallelisation between different
+  /// threads on multicore architectures.
   TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
 private:

@@ -112,50 +112,50 @@ void LocalExpansion::Add(const LocalExpansion &other) // translation of local ex
       if (other.center.distance(this->center) > 1e-7)
         {
 
-        dealii::Point<3> blockRelPos = other.GetCenter() + (-1.0*this->center);
-        double rho = sqrt(blockRelPos.square());
-        double cos_alpha_ = blockRelPos(2)/rho;
-        double beta = atan2(blockRelPos(1),blockRelPos(0));
+          dealii::Point<3> blockRelPos = other.GetCenter() + (-1.0*this->center);
+          double rho = sqrt(blockRelPos.square());
+          double cos_alpha_ = blockRelPos(2)/rho;
+          double beta = atan2(blockRelPos(1),blockRelPos(0));
 
-        double P_nn_mm;
+          double P_nn_mm;
 
-        for (int n = 0; n < int(p)+1 ; n++)
-          {
-            for (int m = 0; m < n+1 ; m++)
-              {
-                std::complex <double> z = std::complex <double>(0.,0.);
-                for (int nn = n; nn < int(p)+1 ; nn++)
-                  {
-                    double rhoFact = pow(rho,double(nn-n));
-                    for (int mm = -1*nn; mm < nn+1 ; mm++)
-                      {
-                        if (abs(mm-m) >  nn-n)
-                          {
-                          }
-                        else
-                          {
-                            std::complex <double> a = std::complex <double>(other.GetCoeff(abs(nn),abs(mm)).real(),
-                                                                            GSL_SIGN(mm)*other.GetCoeff(abs(nn),abs(mm)).imag());
-                            P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn-n,abs(mm-m),cos_alpha_);
-                            double realFact = P_nn_mm * rhoFact * lExp_to_lExp_Coeff[n][m][nn][mm];
-                            z += a*std::complex<double>(cos((mm-m)*beta),sin((mm-m)*beta))*realFact;
-                          }
-                      }
-                  }
+          for (int n = 0; n < int(p)+1 ; n++)
+            {
+              for (int m = 0; m < n+1 ; m++)
+                {
+                  std::complex <double> z = std::complex <double>(0.,0.);
+                  for (int nn = n; nn < int(p)+1 ; nn++)
+                    {
+                      double rhoFact = pow(rho,double(nn-n));
+                      for (int mm = -1*nn; mm < nn+1 ; mm++)
+                        {
+                          if (abs(mm-m) >  nn-n)
+                            {
+                            }
+                          else
+                            {
+                              std::complex <double> a = std::complex <double>(other.GetCoeff(abs(nn),abs(mm)).real(),
+                                                                              GSL_SIGN(mm)*other.GetCoeff(abs(nn),abs(mm)).imag());
+                              P_nn_mm =  this->assLegFunction->GetAssLegFunSph(nn-n,abs(mm-m),cos_alpha_);
+                              double realFact = P_nn_mm * rhoFact * lExp_to_lExp_Coeff[n][m][nn][mm];
+                              z += a*std::complex<double>(cos((mm-m)*beta),sin((mm-m)*beta))*realFact;
+                            }
+                        }
+                    }
 
-                this->AddToCoeff(n,m,z);
-              }
-          }
+                  this->AddToCoeff(n,m,z);
+                }
+            }
         }
       else
         {
-        for (int n = 0; n < int(this->p)+1 ; n++)
-          {
-            for (int m = 0; m < n+1 ; m++)
-              {
-                this->AddToCoeff(n,m,other.GetCoeff(n,m));
-              }
-          }
+          for (int n = 0; n < int(this->p)+1 ; n++)
+            {
+              for (int m = 0; m < n+1 ; m++)
+                {
+                  this->AddToCoeff(n,m,other.GetCoeff(n,m));
+                }
+            }
         }
       this->is_zero = false;
     }

@@ -181,7 +181,7 @@ void MinFmm::StepFMA<dim>::read_domain()
 
   tria.set_all_manifold_ids(1);
   tria.set_manifold(1, manifold);
-  if(initial_ref)
+  if (initial_ref)
     tria.refine_global(initial_ref);
 }
 
@@ -195,7 +195,7 @@ template <int dim>
 void MinFmm::StepFMA<dim>::refine_and_resize(bool ref)
 {
   // BEMFMA(dh, double_nodes_set, dirichlet_nodes, mapping);
-  if(ref)
+  if (ref)
     tria.refine_global(1);
 
   dh.distribute_dofs(fe);
@@ -553,37 +553,37 @@ void MinFmm::StepFMA<dim>::solve_system()
 template <int dim>
 void MinFmm::StepFMA<dim>::compute_errors(const unsigned int cycle)
 {
-  if(from_theory)
-  {
-    std::cout<<"using sak to compute the errors"<<std::endl;
-    eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
-    eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
-  }
-  else
-  {
-    if(!fmm_sol)
+  if (from_theory)
     {
-      save_direct_solution(n_cycles);
       std::cout<<"using sak to compute the errors"<<std::endl;
       eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
       eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
-
     }
-    else
+  else
     {
-      std::cout<<"using sak to compute the errors"<<std::endl;
-      Vector<double> phi_dummy(phi);
-      Vector<double> alpha_dummy(system_alpha);
-      Vector<double> phi_direct(phi_dummy.size());
-      Vector<double> alpha_dir(alpha_dummy.size());
-      read_direct_solution(n_cycles, phi_direct, alpha_dir);
-      phi_direct -= phi_dummy;
-      alpha_dir -= alpha_dummy;
-      eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
-      eh.error_from_exact(mapping, dh, alpha_dir, ZeroFunction<dim>(),1);
+      if (!fmm_sol)
+        {
+          save_direct_solution(n_cycles);
+          std::cout<<"using sak to compute the errors"<<std::endl;
+          eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+          eh.error_from_exact(mapping, dh, dphi_dn, exact_dphi_dn_solution,1);
 
+        }
+      else
+        {
+          std::cout<<"using sak to compute the errors"<<std::endl;
+          Vector<double> phi_dummy(phi);
+          Vector<double> alpha_dummy(system_alpha);
+          Vector<double> phi_direct(phi_dummy.size());
+          Vector<double> alpha_dir(alpha_dummy.size());
+          read_direct_solution(n_cycles, phi_direct, alpha_dir);
+          phi_direct -= phi_dummy;
+          alpha_dir -= alpha_dummy;
+          eh.error_from_exact(mapping, dh, phi, exact_phi_solution,0);
+          eh.error_from_exact(mapping, dh, alpha_dir, ZeroFunction<dim>(),1);
+
+        }
     }
-  }
 
 
 }
@@ -685,17 +685,17 @@ void MinFmm::StepFMA<dim>::read_direct_solution(const unsigned int cycle, Vector
 template<int dim>
 const Quadrature<dim-1> & MinFmm::StepFMA<dim>::get_singular_quadrature(const unsigned int index) const
 {
-    Assert(index < fe.dofs_per_cell,
-           ExcIndexRange(0, fe.dofs_per_cell, index));
+  Assert(index < fe.dofs_per_cell,
+         ExcIndexRange(0, fe.dofs_per_cell, index));
 
-    //static std::vector<QGaussOneOverR<2> > quadratures;
-    static std::vector<QTelles<dim-1> > quadratures;
-    if (quadratures.size() == 0)
-        for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
-            quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
-                                             fe.get_unit_support_points()[i]));
+  //static std::vector<QGaussOneOverR<2> > quadratures;
+  static std::vector<QTelles<dim-1> > quadratures;
+  if (quadratures.size() == 0)
+    for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+      quadratures.push_back(QTelles<dim-1>(singular_quadrature_order,
+                                           fe.get_unit_support_points()[i]));
 
-    return quadratures[index];
+  return quadratures[index];
 }
 
 //
@@ -939,7 +939,7 @@ void MinFmm::StepFMA<dim>::run_for_octree()
 
   for (unsigned int cycle=0; cycle<n_cycles_octree; ++cycle)
     {
-      if(cycle==0)
+      if (cycle==0)
         refine_and_resize();
       else
         refine_and_resize(false);

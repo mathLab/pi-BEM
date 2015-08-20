@@ -76,7 +76,7 @@ int main ()
   local.Add(multipole);
 
   // to test a multipole expansion copy, we create a new multipole and then copy
-  // the original multipole content into the new expension. we test 
+  // the original multipole content into the new expension. we test
   // both the assignement through = to an uninitialized expansion, and that
   // on an initialized one
   LocalExpansion new_local(truncation_order, center, alf_ptr);
@@ -90,9 +90,9 @@ int main ()
   deallog<<"Original and copied local expansions are created. "<<std::endl;
   std::complex <double> total_difference(0.0,0.0);
   for (unsigned int i=0; i<(truncation_order+1)*(truncation_order+2)/2; ++i)
-      {
+    {
       total_difference += abs(old_local_values[i]-new_local_values[i]);
-      }
+    }
 
   deallog<<std::endl;
   deallog<<"Total difference between original and copied local expansion entries: "<<total_difference<<std::endl;

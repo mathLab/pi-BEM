@@ -619,16 +619,16 @@ void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes
       pcout<<"Restoring mesh conformity on edges..."<<std::endl;
       pcout<<"cells before"<<tria.n_active_cells()<<std::endl;
       //pcout<<"dofs before: "<<dhh.n_dofs()<<std::endl;
-      unsigned int n_vertex=tria.n_vertices();
+      types::global_dof_index n_vertex=tria.n_vertices();
       auto all_vertices=tria.get_vertices();
 
       double tol=1e-7;
-      for (unsigned int i=0; i<n_vertex; ++i)
+      for (types::global_dof_index i=0; i<n_vertex; ++i)
         {
           if (vertex_on_boundary[i]==true && double_vertex_vector[i].size()>0)
             {
               std::vector<Point<dim> > nodes(GeometryInfo<dim-1>::vertices_per_face);
-              for (unsigned int kk=0; kk<vert_to_elems[i].size(); ++kk) //ogni faccia ha due estremi
+              for (types::global_dof_index kk=0; kk<vert_to_elems[i].size(); ++kk) //ogni faccia ha due estremi
                 {
                   auto cell = vert_to_elems[i][kk];//mi riconduco alla cella con il nodo non conforme
                   for (unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
@@ -693,16 +693,16 @@ void ComputationalDomain<dim>::compute_double_vertex_cache()
   pcout<<"Computing infos for the double_vertex"<<std::endl;
   double toll=1e-7;
   double_vertex_vector.clear();
-  unsigned int n_vertex=tria.n_vertices();
+  types::global_dof_index n_vertex=tria.n_vertices();
   double_vertex_vector.resize(n_vertex);
   vertex_on_boundary.resize(n_vertex);
   std::fill(vertex_on_boundary.begin(), vertex_on_boundary.end(),false);
 
   auto all_vertices=tria.get_vertices();
 
-  for (unsigned int i = 0; i<n_vertex; ++i)
+  for (types::global_dof_index i = 0; i<n_vertex; ++i)
     {
-      for (unsigned int j = 0; j<n_vertex; ++j)
+      for (types::global_dof_index j = 0; j<n_vertex; ++j)
         {
           if (all_vertices[i].distance(all_vertices[j])<=toll)
             {

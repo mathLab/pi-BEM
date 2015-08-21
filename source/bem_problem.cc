@@ -88,11 +88,8 @@ void BEMProblem<dim>::reinit()
 {
 
   TimeMonitor LocalTimer(*ReinitTime);
-  std::cout<<"re-initializing scalar"<<std::endl;
   dh.distribute_dofs(fe);
-  std::cout<<"re-initializing vector"<<std::endl;
   gradient_dh.distribute_dofs(gradient_fe);
-  std::cout<<"distributed dofs"<<std::endl;
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
@@ -100,7 +97,7 @@ void BEMProblem<dim>::reinit()
   DoFRenumbering::component_wise (dh);
   DoFRenumbering::component_wise (gradient_dh);
 
-  std::cout<<"re-ordering vector"<<std::endl;
+  pcout<<"re-ordering vector"<<std::endl;
 
   compute_reordering_vectors();
 
@@ -130,7 +127,7 @@ void BEMProblem<dim>::reinit()
 
   // We need to enforce consistency between the non-ghosted IndexSets.
   // To be changed accordingly with the DoFRenumbering strategy.
-  std::cout<<"setting cpu_sets"<<std::endl;
+  pcout<<"setting cpu_sets"<<std::endl;
 
   for (types::global_dof_index i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)
@@ -200,12 +197,14 @@ void BEMProblem<dim>::reinit()
   serv_tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
   // TrilinosWrappers::SparsityPattern for the BEM matricesreinitialization
+  pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
   if (solution_method == "Direct")
     {
       full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
       for (types::global_dof_index i=0; i<n_dofs; ++i)
         if (this_cpu_set.is_element(i))
           {
+            pcout<<i<<" ";
             for (types::global_dof_index j=0; j<n_dofs; ++j)
               full_sparsity_pattern.add(i,j);
           }
@@ -214,6 +213,7 @@ void BEMProblem<dim>::reinit()
       neumann_matrix.reinit(full_sparsity_pattern);
       dirichlet_matrix.reinit(full_sparsity_pattern);
     }
+  pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
   preconditioner_band = 100;
   preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (types::global_dof_index) preconditioner_band);
   is_preconditioner_initialized = false;
@@ -1483,6 +1483,7 @@ void BEMProblem<dim>::assemble_preconditioner()
             //   end_helper = dh.n_dofs();
             // for(types::global_dof_index j=start_helper; j<end_helper; ++j)
             types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
+
             for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
             {
               if (constraints.is_constrained(i) == false)

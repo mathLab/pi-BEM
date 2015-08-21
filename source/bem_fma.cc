@@ -2222,12 +2222,11 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
             // loop over well separated blocks of the smaller size (level)-----> use multipoles without local expansions
 
-            we now have to loop over blocks in the nonIntList that are smaller than the current
-            blocks: in this case the bound for the conversion of a multipole into local expansion
-            does not hold, but the bound for the evaluation of the multipole expansions does hold:
-            thus, we will simply evaluate the multipole expansions of such blocks for each node in
-            the block
-
+            // we now have to loop over blocks in the nonIntList that are smaller than the current
+            // blocks: in this case the bound for the conversion of a multipole into local expansion
+            // does not hold, but the bound for the evaluation of the multipole expansions does hold:
+            // thus, we will simply evaluate the multipole expansions of such blocks for each node in
+            // the block
             for (std::set <unsigned int>::iterator pos1 = nonIntList.upper_bound(endBlockLevel); pos1 != nonIntList.end();  pos1++)
               {
                 //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";

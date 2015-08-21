@@ -201,6 +201,7 @@ void BEMProblem<dim>::reinit()
   if (solution_method == "Direct")
     {
       // full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
+      pcout<<sizeof(this_cpu_set.size())<<" "<<sizeof(TrilinosWrappers::types::int_type(this_cpu_set.size()))<<std::endl;
       full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) n_dofs);
 
       for (types::global_dof_index i=0; i<n_dofs; ++i)

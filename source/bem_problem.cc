@@ -200,7 +200,9 @@ void BEMProblem<dim>::reinit()
   pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
   if (solution_method == "Direct")
     {
-      full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
+      // full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
+      full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) n_dofs);
+
       for (types::global_dof_index i=0; i<n_dofs; ++i)
         if (this_cpu_set.is_element(i))
           {
@@ -215,7 +217,7 @@ void BEMProblem<dim>::reinit()
     }
   pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
   preconditioner_band = 100;
-  preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (types::global_dof_index) preconditioner_band);
+  preconditioner_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) preconditioner_band);
   is_preconditioner_initialized = false;
 
   dirichlet_nodes.reinit(this_cpu_set,mpi_communicator);
@@ -249,7 +251,8 @@ void BEMProblem<dim>::reinit()
 
   // This is the only way we could create the SparsityPattern, through the Epetramap of an
   // existing vector.
-  vector_sparsity_pattern.reinit(helper.vector_partitioner(), helper.vector_partitioner());
+  // vector_sparsity_pattern.reinit(helper.vector_partitioner(), helper.vector_partitioner());
+  vector_sparsity_pattern.reinit(vector_this_cpu_set, vector_this_cpu_set, mpi_communicator);
   DoFTools::make_sparsity_pattern (gradient_dh, vector_sparsity_pattern, vector_constraints, true, this_mpi_process);
   vector_sparsity_pattern.compress();
 

@@ -217,7 +217,8 @@ void BEMFMA<dim>::direct_integrals()
   TrilinosWrappers::MPI::Vector helper(this_cpu_set, mpi_communicator);
   // TODO WHY IT DOES NOT WORK????
   // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
-  init_prec_sparsity_pattern.reinit(helper.vector_partitioner(),preconditioner_band);//,125*fma_fe->dofs_per_cell);
+  // init_prec_sparsity_pattern.reinit(helper.vector_partitioner(), preconditioner_band);//,125*fma_fe->dofs_per_cell);
+  init_prec_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, preconditioner_band);//,125*fma_fe->dofs_per_cell);
 
   // In the following we use WorkStream to parallelise, through TBB, the setting up
   // of the initial preconditioner that does not consider any constraint.
@@ -2544,7 +2545,8 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
-  final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),(types::global_dof_index) 125*fma_fe->dofs_per_cell);
+  // final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),(types::global_dof_index) 125*fma_fe->dofs_per_cell);
+  final_prec_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) 125*fma_fe->dofs_per_cell);
 
   //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
 

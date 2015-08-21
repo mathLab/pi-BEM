@@ -1439,6 +1439,7 @@ void BEMProblem<dim>::assemble_preconditioner()
 
   if (is_preconditioner_initialized == false)
     {
+      // pcout<<"Initialising preconditioner"<<std::endl;
       for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
         if (this_cpu_set.is_element( i))
         {
@@ -1452,8 +1453,9 @@ void BEMProblem<dim>::assemble_preconditioner()
           // else
           //   end_helper = dh.n_dofs();
           //   for(types::global_dof_index j=start_helper; j<end_helper; ++j)
-
-          for (types::global_dof_index j=std::max((types::global_dof_index)i-preconditioner_band/2,(types::global_dof_index)0); j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
+          // pcout<<start_helper<<" "<<std::min((types::global_dof_index)(i+preconditioner_band/2),(types::global_dof_index)dh.n_dofs())<<std::endl;
+          types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
+          for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)(i+preconditioner_band/2),(types::global_dof_index)dh.n_dofs()); ++j)
             preconditioner_sparsity_pattern.add(i,j);
         }
       preconditioner_sparsity_pattern.compress();
@@ -1480,8 +1482,8 @@ void BEMProblem<dim>::assemble_preconditioner()
             // else
             //   end_helper = dh.n_dofs();
             // for(types::global_dof_index j=start_helper; j<end_helper; ++j)
-
-            for (types::global_dof_index j=std::max((types::global_dof_index)i-preconditioner_band/2,(types::global_dof_index)0); j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
+            types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
+            for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
             {
               if (constraints.is_constrained(i) == false)
                 {

@@ -125,7 +125,7 @@ private:
 
   BEMProblem<dim> &bem;
 
-  unsigned int dofs_number;
+  types::global_dof_index dofs_number;
 
   unsigned int output_frequency;
 

@@ -204,7 +204,7 @@ void BoundaryConditions<dim>:: solve_problem()
   potential.set_time(0);
   wind.set_time(0);
 
-  const unsigned int n_dofs =  bem.dh.n_dofs();
+  const types::global_dof_index n_dofs =  bem.dh.n_dofs();
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association   (bem.dh,dofs_domain_association);
   this_cpu_set.clear();
@@ -237,7 +237,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
 {
   TimeMonitor LocalTimer(*PrepareTime);
   // bem.compute_normals();
-  const unsigned int n_dofs =  bem.dh.n_dofs();
+  const types::global_dof_index n_dofs =  bem.dh.n_dofs();
 
   phi.reinit(this_cpu_set,mpi_communicator);
   dphi_dn.reinit(this_cpu_set,mpi_communicator);
@@ -309,8 +309,8 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                     double tol = 1e-4;
                     for (unsigned int d=0; d<dim; ++d)
                       {
-                        unsigned int dummy = bem.sub_wise_to_original[local_dof_indices[j]];
-                        unsigned int vec_index = bem.vec_original_to_sub_wise[bem.gradient_dh.n_dofs()/dim*d+dummy];//bem.vector_start_per_process[this_mpi_process] + d*bem.this_cpu_set.n_elements() + local_dof_indices[j]-bem.start_per_process[this_mpi_process];//bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
+                        types::global_dof_index dummy = bem.sub_wise_to_original[local_dof_indices[j]];
+                        types::global_dof_index vec_index = bem.vec_original_to_sub_wise[bem.gradient_dh.n_dofs()/dim*d+dummy];//bem.vector_start_per_process[this_mpi_process] + d*bem.this_cpu_set.n_elements() + local_dof_indices[j]-bem.start_per_process[this_mpi_process];//bem.gradient_dh.n_dofs()/dim*d+local_dof_indices[j];//bem.vector_start_per_process[this_mpi_process]+((local_dof_indices[j]-bem.start_per_process[this_mpi_process])*dim+d); //local_dof_indices[j]*dim+d;
                         // std::cout<<this_mpi_process<<" "<<support_points[local_dof_indices[j]]<<" "<<vec_support_points[vec_index]<<std::endl;
                         Assert(bem.vector_this_cpu_set.is_element(vec_index), ExcMessage("vector cpu set and cpu set are inconsistent"));
                         // Assert(support_points[local_dof_indices[j]]==vec_support_points[vec_index], ExcMessage("the support points of dh and gradient_dh are different"));
@@ -369,8 +369,8 @@ void BoundaryConditions<dim>::compute_errors()
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double> > grads_nodes_errs(bem.dh.n_dofs(),Vector<double>(dim));
       wind.vector_value_list(support_points,grads_nodes_errs);
-      for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-        for (unsigned int d=0; d<dim; ++d)
+      for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
+        for (types::global_dof_index d=0; d<dim; ++d)
           vector_gradients_node_error(3*i+d) = grads_nodes_errs[i](d);
       vector_gradients_node_error*=-1.0;
       vector_gradients_node_error.add(1.,localized_gradient_solution);
@@ -378,7 +378,7 @@ void BoundaryConditions<dim>::compute_errors()
       Vector<double> phi_node_error(bem.dh.n_dofs());
       std::vector<double> phi_nodes_errs(bem.dh.n_dofs());
       potential.value_list(support_points,phi_nodes_errs);
-      for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
+      for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
         phi_node_error(i) = phi_nodes_errs[i];
 
       phi_node_error*=-1.0;
@@ -387,8 +387,8 @@ void BoundaryConditions<dim>::compute_errors()
 
       const double phi_max_error = phi_node_error.linfty_norm();
       const double grad_phi_max_error = vector_gradients_node_error.linfty_norm();
-      const unsigned int n_active_cells=comp_dom.tria.n_active_cells();
-      const unsigned int n_dofs=bem.dh.n_dofs();
+      const types::global_dof_index n_active_cells=comp_dom.tria.n_active_cells();
+      const types::global_dof_index n_dofs=bem.dh.n_dofs();
 
       pcout << "   Number of active cells:       "
             << n_active_cells

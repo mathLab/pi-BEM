@@ -274,7 +274,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
       cell->get_dof_indices(local_dof_indices);
 
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
-      const std::vector<Point<dim> > &normals = fe_v.get_normal_vectors();
+      const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
       exact_phi_solution.value_list(q_points, cell_phi);
       exact_dphi_dn_solution.value_list(q_points, cell_dphi_dn);
       for (types::global_dof_index i=0; i<dh.n_dofs() ; ++i)
@@ -332,7 +332,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
 
                   std::vector<double> singular_cell_dphi_dn( singular_quadrature.size());
 
-                  const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                  const std::vector<Tensor<1,dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
                   const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
                   exact_phi_solution.value_list(singular_q_points, singular_cell_dphi_dn);
@@ -397,7 +397,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
 
                   std::vector<double> singular_cell_phi( singular_quadrature.size());
 
-                  const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                  const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
                   const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
                   exact_phi_solution.value_list(singular_q_points, singular_cell_phi);

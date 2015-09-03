@@ -48,7 +48,7 @@ public:
 
   void Add(const MultipoleExpansion &child);
 
-  void AddNormDer(const double strength, const dealii::Point<3> &point, const dealii::Point<3> &normal);
+  void AddNormDer(const double strength, const dealii::Point<3> &point, const dealii::Tensor<1, 3> &normal);
 
   double Evaluate(const dealii::Point<3> &evalPoint);
 

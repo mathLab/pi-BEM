@@ -356,7 +356,8 @@ private:
   /// a std::map of std::vectors containing the
   /// list of normals at quadrature points
 
-  std::map <cell_it, std::vector <Point <dim> > > quadNormals;
+  // std::map <cell_it, std::vector <Point <dim> > > quadNormals;
+  std::map <cell_it, std::vector <Tensor <1, dim> > > quadNormals;
 
   /// a std::map of std::vectors containing the
   /// list of shape function values at

@@ -201,13 +201,12 @@ void BEMProblem<dim>::reinit()
   if (solution_method == "Direct")
     {
       // full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
-      pcout<<sizeof(this_cpu_set.size())<<" "<<sizeof(TrilinosWrappers::types::int_type(this_cpu_set.size()))<<std::endl;
+      // pcout<<sizeof(this_cpu_set.size())<<" "<<sizeof(TrilinosWrappers::types::int_type(this_cpu_set.size()))<<std::endl;
       full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) n_dofs);
 
       for (types::global_dof_index i=0; i<n_dofs; ++i)
         if (this_cpu_set.is_element(i))
           {
-            pcout<<i<<" ";
             for (types::global_dof_index j=0; j<n_dofs; ++j)
               full_sparsity_pattern.add(i,j);
           }
@@ -552,7 +551,7 @@ void BEMProblem<dim>::assemble_system()
       cell->get_dof_indices(local_dof_indices);
 
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
-      const std::vector<Point<dim> > &normals = fe_v.get_normal_vectors();
+      const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
 
       // We then form the integral over
       // the current cell for all
@@ -849,7 +848,7 @@ void BEMProblem<dim>::assemble_system()
 
                   fe_v_singular.reinit(cell);
 
-                  const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                  const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
                   const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
                   for (unsigned int q=0; q<singular_quadrature->size(); ++q)
@@ -1613,7 +1612,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
           vector_fe_v.reinit (vector_cell);
           local_gradients_matrix = 0;
           local_gradients_rhs = 0;
-          const std::vector<Point<dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
+          const std::vector<Tensor<1, dim> > &vector_node_normals = vector_fe_v.get_all_normal_vectors();
           fe_v.get_function_gradients(phi, phi_surf_grads);
           fe_v.get_function_values(dphi_dn, phi_norm_grads);
           unsigned int comp_i, comp_j;
@@ -1623,10 +1622,10 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
           for (unsigned int q=0; q<vector_n_q_points; ++q)
             {
-              Point<dim> node_normal_grad_dir(q_vector_normals_solution[q](0),
-                                              q_vector_normals_solution[q](1),
-                                              q_vector_normals_solution[q](2));
-              Point<dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
+              Tensor<1, dim> node_normal_grad_dir;
+              for(unsigned int i=0; i<dim; ++i)
+                node_normal_grad_dir[i] = q_vector_normals_solution[q][i];
+              Tensor<1, dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
               for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
                 {
                   comp_i = gradient_fe.system_to_component_index(i).first;
@@ -1641,7 +1640,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
                         }
                     }
                   local_gradients_rhs(i) += (vector_fe_v.shape_value(i, q)) *
-                                            gradient(comp_i) * vector_fe_v.JxW(q);
+                                            gradient[comp_i] * vector_fe_v.JxW(q);
                 }
             }
           vector_cell->get_dof_indices (vector_local_dof_indices);
@@ -1849,7 +1848,7 @@ void BEMProblem<dim>::compute_normals()
           vector_fe_v.reinit (vector_cell);
           local_normals_matrix = 0;
           local_normals_rhs = 0;
-          const std::vector<Point<dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
+          const std::vector<Tensor<1, dim> > &vector_node_normals = vector_fe_v.get_all_normal_vectors();
           unsigned int comp_i, comp_j;
 
           for (unsigned int q=0; q<vector_n_q_points; ++q)
@@ -1867,7 +1866,7 @@ void BEMProblem<dim>::compute_normals()
                       }
                   }
                 local_normals_rhs(i) += (vector_fe_v.shape_value(i, q)) *
-                                        vector_node_normals[q](comp_i) * vector_fe_v.JxW(q);
+                                        vector_node_normals[q][comp_i] * vector_fe_v.JxW(q);
               }
 
           vector_cell->get_dof_indices (vector_local_dof_indices);

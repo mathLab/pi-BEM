@@ -114,7 +114,7 @@ void MultipoleExpansion::Add(const double strength, const dealii::Point<3> &poin
 
 }
 
-void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3> &point, const dealii::Point<3> &normal)
+void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3> &point, const dealii::Tensor<1, 3> &normal)
 
 {
   if (strength == 0)
@@ -125,7 +125,7 @@ void MultipoleExpansion::AddNormDer(const double strength, const dealii::Point<3
       this->is_zero = false;
 
       dealii::Point<3> pointRelPos = point + (-1.0*this->center);
-      dealii::Point<3> normVersor = normal/sqrt(normal.square());
+      dealii::Tensor<1,3> normVersor = normal/sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);//normal.square());
       double rho = sqrt(pointRelPos.square());
       double dRhodN = (pointRelPos/rho)*normVersor;
       double beta = atan2(pointRelPos(1),pointRelPos(0));

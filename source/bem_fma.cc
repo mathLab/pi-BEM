@@ -810,7 +810,7 @@ void BEMFMA<dim>::direct_integrals()
 
                         // here are the vectors of the quad points and normals vectors
 
-                        const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                        const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
                         const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
 
@@ -3084,7 +3084,8 @@ void BEMFMA<dim>::generate_octree_blocking()
       fe_v.reinit(cell);
       const unsigned int n_q_points = fe_v.n_quadrature_points;
       quadPoints[cell] = fe_v.get_quadrature_points();
-      quadNormals[cell] = fe_v.get_normal_vectors();
+      // quadNormals[cell] = fe_v.get_normal_vectors();
+      quadNormals[cell] = fe_v.get_all_normal_vectors();
       quadJxW[cell].resize(n_q_points);
       quadShapeFunValues[cell].resize(n_q_points);
       for (unsigned int q=0; q<n_q_points; ++q)

@@ -127,6 +127,7 @@ void BEMProblem<dim>::reinit()
 
   // We need to enforce consistency between the non-ghosted IndexSets.
   // To be changed accordingly with the DoFRenumbering strategy.
+  pcout<<"you are using "<<sizeof(dh.n_dofs())<<" bytes indices"<<std::endl;
   pcout<<"setting cpu_sets"<<std::endl;
 
   for (types::global_dof_index i=0; i<n_dofs; ++i)
@@ -200,16 +201,14 @@ void BEMProblem<dim>::reinit()
   pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
   if (solution_method == "Direct")
     {
-      // full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
-      // pcout<<sizeof(this_cpu_set.size())<<" "<<sizeof(TrilinosWrappers::types::int_type(this_cpu_set.size()))<<std::endl;
-      full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) n_dofs);
+      full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator);
 
-      for (types::global_dof_index i=0; i<n_dofs; ++i)
-        if (this_cpu_set.is_element(i))
-          {
-            for (types::global_dof_index j=0; j<n_dofs; ++j)
-              full_sparsity_pattern.add(i,j);
-          }
+      for(auto i : this_cpu_set)
+      {
+        for (types::global_dof_index j=0; j<dh.n_dofs(); ++j)
+          full_sparsity_pattern.add(i,j);
+
+      }
 
       full_sparsity_pattern.compress();
       neumann_matrix.reinit(full_sparsity_pattern);

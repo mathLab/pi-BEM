@@ -203,12 +203,12 @@ void BEMProblem<dim>::reinit()
     {
       full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator);
 
-      for(auto i : this_cpu_set)
-      {
-        for (types::global_dof_index j=0; j<dh.n_dofs(); ++j)
-          full_sparsity_pattern.add(i,j);
+      for (auto i : this_cpu_set)
+        {
+          for (types::global_dof_index j=0; j<dh.n_dofs(); ++j)
+            full_sparsity_pattern.add(i,j);
 
-      }
+        }
 
       full_sparsity_pattern.compress();
       neumann_matrix.reinit(full_sparsity_pattern);
@@ -1444,22 +1444,22 @@ void BEMProblem<dim>::assemble_preconditioner()
       // pcout<<"Initialising preconditioner"<<std::endl;
       for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
         if (this_cpu_set.is_element( i))
-        {
-          // types::global_dof_index start_helper, end_helper;
-          // if(i>preconditioner_band/2)
-          //   start_helper = i-preconditioner_band/2;
-          // else
-          //   start_helper = (types::global_dof_index) 0;
-          // if(i+preconditioner_band/2 < dh.n_dofs())
-          //   end_helper = i+preconditioner_band/2;
-          // else
-          //   end_helper = dh.n_dofs();
-          //   for(types::global_dof_index j=start_helper; j<end_helper; ++j)
-          // pcout<<start_helper<<" "<<std::min((types::global_dof_index)(i+preconditioner_band/2),(types::global_dof_index)dh.n_dofs())<<std::endl;
-          types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
-          for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)(i+preconditioner_band/2),(types::global_dof_index)dh.n_dofs()); ++j)
-            preconditioner_sparsity_pattern.add(i,j);
-        }
+          {
+            // types::global_dof_index start_helper, end_helper;
+            // if(i>preconditioner_band/2)
+            //   start_helper = i-preconditioner_band/2;
+            // else
+            //   start_helper = (types::global_dof_index) 0;
+            // if(i+preconditioner_band/2 < dh.n_dofs())
+            //   end_helper = i+preconditioner_band/2;
+            // else
+            //   end_helper = dh.n_dofs();
+            //   for(types::global_dof_index j=start_helper; j<end_helper; ++j)
+            // pcout<<start_helper<<" "<<std::min((types::global_dof_index)(i+preconditioner_band/2),(types::global_dof_index)dh.n_dofs())<<std::endl;
+            types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
+            for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)(i+preconditioner_band/2),(types::global_dof_index)dh.n_dofs()); ++j)
+              preconditioner_sparsity_pattern.add(i,j);
+          }
       preconditioner_sparsity_pattern.compress();
       band_system.reinit(preconditioner_sparsity_pattern);
       is_preconditioner_initialized = true;
@@ -1474,19 +1474,19 @@ void BEMProblem<dim>::assemble_preconditioner()
         {
           if (constraints.is_constrained(i))
             band_system.add(i, i, 1);
-            // types::global_dof_index start_helper, end_helper;
-            // if(i>preconditioner_band/2)
-            //   start_helper = i-preconditioner_band/2;
-            // else
-            //   start_helper = (types::global_dof_index) 0;
-            // if(i+preconditioner_band/2 < dh.n_dofs())
-            //   end_helper = i+preconditioner_band/2;
-            // else
-            //   end_helper = dh.n_dofs();
-            // for(types::global_dof_index j=start_helper; j<end_helper; ++j)
-            types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
+          // types::global_dof_index start_helper, end_helper;
+          // if(i>preconditioner_band/2)
+          //   start_helper = i-preconditioner_band/2;
+          // else
+          //   start_helper = (types::global_dof_index) 0;
+          // if(i+preconditioner_band/2 < dh.n_dofs())
+          //   end_helper = i+preconditioner_band/2;
+          // else
+          //   end_helper = dh.n_dofs();
+          // for(types::global_dof_index j=start_helper; j<end_helper; ++j)
+          types::global_dof_index start_helper= ((i) > preconditioner_band/2) ? (i-preconditioner_band/2): ((types::global_dof_index)0);
 
-            for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
+          for (types::global_dof_index j=start_helper; j<std::min((types::global_dof_index)i+preconditioner_band/2,(types::global_dof_index)dh.n_dofs()); ++j)
             {
               if (constraints.is_constrained(i) == false)
                 {
@@ -1622,7 +1622,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
           for (unsigned int q=0; q<vector_n_q_points; ++q)
             {
               Tensor<1, dim> node_normal_grad_dir;
-              for(unsigned int i=0; i<dim; ++i)
+              for (unsigned int i=0; i<dim; ++i)
                 node_normal_grad_dir[i] = q_vector_normals_solution[q][i];
               Tensor<1, dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
               for (unsigned int i=0; i<vector_dofs_per_cell; ++i)

@@ -1873,7 +1873,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   struct AscendCopyData
   {
     // We need an input BEMFMA to set up the local MultipoleExpansion classes.
-    AscendCopyData(const BEMFMA<dim> * dummy_fma)
+    AscendCopyData(const BEMFMA<dim> *dummy_fma)
     {
       // each thread will hold a local copy of Multipole expansions. here they are initialized in a very
       // dumb way, but they're always overwritten so...
@@ -2962,9 +2962,9 @@ void BEMFMA<dim>::compute_geometry_cache()
 }
 
 
-  // The following is the function
-  // which creates the octree blocking
-  // for the fast multipole algorithm
+// The following is the function
+// which creates the octree blocking
+// for the fast multipole algorithm
 
 template <int dim>
 void BEMFMA<dim>::generate_octree_blocking()

@@ -73,7 +73,6 @@ void Driver<dim>::declare_parameters (ParameterHandler &prm)
 template <int dim>
 void Driver<dim>::parse_parameters (ParameterHandler &prm)
 {
-  bool porocone;
   global_refinement = prm.get_bool("Set Global Refinement");
 
 

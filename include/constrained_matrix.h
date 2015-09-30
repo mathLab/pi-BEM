@@ -22,6 +22,8 @@
 #include<deal.II/lac/pointer_matrix.h>
 #include<deal.II/lac/constraint_matrix.h>
 #include<deal.II/lac/vector_memory.h>
+#include <deal.II/base/types.h>
+
 #include <vector>
 #include <algorithm>
 
@@ -102,7 +104,7 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
          (src.locally_owned_elements().is_element(i)) )
       {
         dst(i) = src(i);
-        const std::vector< std::pair < unsigned int, double > >
+        const std::vector< std::pair < types::global_dof_index, double > >
         *entries = constraints.get_constraint_entries (i);
         for (unsigned int j=0; j< entries->size(); ++j)
           dst(i) -= (*entries)[j].second *

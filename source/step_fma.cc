@@ -200,14 +200,14 @@ void MinFmm::StepFMA<dim>::refine_and_resize(bool ref)
 
   dh.distribute_dofs(fe);
 
-  const unsigned int n_dofs =  dh.n_dofs();
+  const types::global_dof_index n_dofs =  dh.n_dofs();
 
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
   DoFTools::get_subdomain_association   (dh,dofs_domain_association);
   this_cpu_set.clear();
   this_cpu_set.set_size(n_dofs);
 
-  for (unsigned int i=0; i<n_dofs; ++i)
+  for (types::global_dof_index i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)
       {
         this_cpu_set.add_index(i);
@@ -224,10 +224,10 @@ void MinFmm::StepFMA<dim>::refine_and_resize(bool ref)
 
   tril_sp.reinit(this_cpu_set,this_cpu_set,mpi_communicator);
   // full_sparsity_pattern.reinit(sol.vector_partitioner(), n_dofs);
-  for (unsigned int i=0; i<n_dofs; ++i)
+  for (types::global_dof_index i=0; i<n_dofs; ++i)
     if (this_cpu_set.is_element(i))
       {
-        for (unsigned int j=0; j<n_dofs; ++j)
+        for (types::global_dof_index j=0; j<n_dofs; ++j)
           tril_sp.add(i,j);
       }
   // full_sparsity_pattern.compress();
@@ -274,10 +274,10 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
       cell->get_dof_indices(local_dof_indices);
 
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
-      const std::vector<Point<dim> > &normals = fe_v.get_normal_vectors();
+      const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
       exact_phi_solution.value_list(q_points, cell_phi);
       exact_dphi_dn_solution.value_list(q_points, cell_dphi_dn);
-      for (unsigned int i=0; i<dh.n_dofs() ; ++i)
+      for (types::global_dof_index i=0; i<dh.n_dofs() ; ++i)
         {
           local_matrix_row_i = 0;
 
@@ -332,7 +332,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
 
                   std::vector<double> singular_cell_dphi_dn( singular_quadrature.size());
 
-                  const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                  const std::vector<Tensor<1,dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
                   const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
                   exact_phi_solution.value_list(singular_q_points, singular_cell_dphi_dn);
@@ -397,7 +397,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
 
                   std::vector<double> singular_cell_phi( singular_quadrature.size());
 
-                  const std::vector<Point<dim> > &singular_normals = fe_v_singular.get_normal_vectors();
+                  const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
                   const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
                   exact_phi_solution.value_list(singular_q_points, singular_cell_phi);
@@ -438,7 +438,7 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
   ofs << system_alpha.linfty_norm() << " "<< system_alpha.l2_norm()<< std::endl;;
   ofs.close();
 
-  for (unsigned int i = 0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i = 0; i<dh.n_dofs(); ++i)
     system_matrix.add(i,i,system_alpha[i]);
 }
 
@@ -447,7 +447,7 @@ void MinFmm::StepFMA<dim>::compute_boundary_condition()
 {
   std::vector<Point<dim> > support_points(dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-  for (unsigned int i=0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
       if (support_points[i][0] < -4)
         dirichlet_nodes[i] = 1;
@@ -474,9 +474,9 @@ void MinFmm::StepFMA<dim>::compute_double_nodes_set()
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping,
                                                     dh, support_points);
 
-  for (unsigned int i=0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
-      for (unsigned int j=0; j<dh.n_dofs(); ++j)
+      for (types::global_dof_index j=0; j<dh.n_dofs(); ++j)
         {
           if (support_points[i].distance(support_points[j]) < tol)
             {
@@ -509,7 +509,7 @@ void MinFmm::StepFMA<dim>::solve_system()
       SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
       solver.solve (oppy, phi, system_rhs, PreconditionIdentity());
 
-      for (unsigned int i=0; i<dh.n_dofs(); ++i)
+      for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
         {
           if (dirichlet_nodes[i]==0)
             dphi_dn[i] = neumann_values[i];
@@ -524,7 +524,7 @@ void MinFmm::StepFMA<dim>::solve_system()
     {
       SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control);
       solver.solve (system_matrix, phi, system_rhs, PreconditionIdentity());
-      for (unsigned int i=0; i<dh.n_dofs(); ++i)
+      for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
         {
           if (dirichlet_nodes[i]==0)
             {

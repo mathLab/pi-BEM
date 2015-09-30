@@ -33,6 +33,8 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
 
+#include <deal.II/base/types.h>
+
 //#include <deal.II/lac/petsc_vector.h>
 //#include <deal.II/lac/petsc_parallel_vector.h>
 //#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
@@ -246,8 +248,8 @@ public:
   /// points associated with the degrees of
   /// freedom of its gradient (a vector field)
 
-  std::vector <std::set<unsigned int> >   double_nodes_set;
-  std::vector <std::set<unsigned int> >   gradient_double_nodes_set;
+  std::vector <std::set<types::global_dof_index> >   double_nodes_set;
+  std::vector <std::set<types::global_dof_index> >   gradient_double_nodes_set;
 
 
 
@@ -287,7 +289,7 @@ public:
 
   TrilinosWrappers::SparseMatrix band_system;
 
-  int preconditioner_band;
+  types::global_dof_index preconditioner_band;
 
   bool is_preconditioner_initialized;
 

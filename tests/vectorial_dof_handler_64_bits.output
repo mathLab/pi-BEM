@@ -1,0 +1,5 @@
+
+DEAL::Check on the DoFHandler with codim 1 FESystem and 64 bits indices
+DEAL::Distributing scalar dofs
+DEAL::Distributing vector dofs
+DEAL::Distributed dofs

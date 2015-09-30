@@ -17,7 +17,7 @@ OctreeBlock<dim>::OctreeBlock()
 
 
 template <int dim>
-OctreeBlock<dim>::OctreeBlock(unsigned int level, unsigned int parent, Point<dim> pMin, double delta)
+OctreeBlock<dim>::OctreeBlock(unsigned int level, types::global_dof_index parent, Point<dim> pMin, double delta)
 {
   this->parentId = parent;
   this->level = level;
@@ -38,7 +38,7 @@ OctreeBlock<dim>::OctreeBlock(const OctreeBlock<dim> &other)
   this->level = other.level;
   this->pMin = other.pMin;
   this->delta = other.delta;
-  for (unsigned int i=0; i < other.nodesId.size(); i++)
+  for (types::global_dof_index i=0; i < other.nodesId.size(); i++)
     this->nodesId.push_back(other.nodesId[i]);
   this->quadPointsId = other.quadPointsId;
   this->numChildren = other.numChildren;
@@ -68,7 +68,7 @@ void OctreeBlock<dim>::CopyContent(const OctreeBlock<dim> *other)
   this->level = other->level;
   this->pMin = other->pMin;
   this->delta = other->delta;
-  for (unsigned int i=0; i < other->nodesId.size(); i++)
+  for (types::global_dof_index i=0; i < other->nodesId.size(); i++)
     this->nodesId.push_back(other->nodesId[i]);
   this->quadPointsId = other->quadPointsId;
   this->numChildren = other->numChildren;
@@ -81,21 +81,21 @@ void OctreeBlock<dim>::CopyContent(const OctreeBlock<dim> *other)
 
 
 template <int dim>
-void OctreeBlock<dim>::AddNode(unsigned int nodeId)
+void OctreeBlock<dim>::AddNode(types::global_dof_index nodeId)
 {
   this->nodesId.push_back(nodeId);
 }
 
 
 template <int dim>
-void OctreeBlock<dim>::AddQuadPoint(cell_it elemPointer, unsigned int quadPointId)
+void OctreeBlock<dim>::AddQuadPoint(cell_it elemPointer, types::global_dof_index quadPointId)
 {
   this->quadPointsId[elemPointer].push_back(quadPointId);
 }
 
 
 template <int dim>
-inline std::vector <unsigned int> OctreeBlock<dim>::GetBlockNodeList() const
+inline std::vector <types::global_dof_index> OctreeBlock<dim>::GetBlockNodeList() const
 {
   return  this->nodesId;
 }
@@ -109,7 +109,7 @@ inline void OctreeBlock<dim>::DelNodeList()
 
 
 template <int dim>
-inline std::map <typename DoFHandler<dim-1,dim>::active_cell_iterator, std::vector<unsigned int> >
+inline std::map <typename DoFHandler<dim-1,dim>::active_cell_iterator, std::vector<types::global_dof_index> >
 OctreeBlock<dim>::GetBlockQuadPointsList() const
 {
   return  this->quadPointsId;
@@ -124,7 +124,7 @@ inline void OctreeBlock<dim>::DelQuadPointsList()
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::GetBlockNodesNum() const
+inline types::global_dof_index OctreeBlock<dim>::GetBlockNodesNum() const
 {
   return  this->nodesId.size();
 }
@@ -138,14 +138,14 @@ inline unsigned int OctreeBlock<dim>::GetBlockChildrenNum() const
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::GetParentId() const
+inline types::global_dof_index OctreeBlock<dim>::GetParentId() const
 {
   return this->parentId;
 }
 
 
 template <int dim>
-inline void OctreeBlock<dim>::AddChild(unsigned int childId)
+inline void OctreeBlock<dim>::AddChild(types::global_dof_index childId)
 {
   this->childrenId[numChildren] = childId;
   this->numChildren +=1;
@@ -153,7 +153,7 @@ inline void OctreeBlock<dim>::AddChild(unsigned int childId)
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::GetChildId(unsigned int idInList) const
+inline types::global_dof_index OctreeBlock<dim>::GetChildId(unsigned int idInList) const
 {
   return this->childrenId[idInList];
 }
@@ -174,7 +174,7 @@ inline double OctreeBlock<dim>::GetDelta() const
 
 
 template <int dim>
-inline void OctreeBlock<dim>::AddNearNeigh(unsigned int sublevel, const unsigned int nnBlockId)
+inline void OctreeBlock<dim>::AddNearNeigh(unsigned int sublevel, const types::global_dof_index nnBlockId)
 {
   (this->nearNeigh.at(sublevel)).insert(nnBlockId);
 }
@@ -195,21 +195,21 @@ inline unsigned int OctreeBlock<dim>::NumNearNeighLevels() const
 
 
 template <int dim>
-inline std::set <unsigned int> OctreeBlock<dim>::GetNearNeighs(unsigned int sublevel) const
+inline std::set <types::global_dof_index> OctreeBlock<dim>::GetNearNeighs(unsigned int sublevel) const
 {
   return this->nearNeigh.at(sublevel);
 }
 
 
 template <int dim>
-inline void OctreeBlock<dim>::AddBlockToIntList(unsigned int sublevel, const unsigned int intListBlockId)
+inline void OctreeBlock<dim>::AddBlockToIntList(unsigned int sublevel, const types::global_dof_index intListBlockId)
 {
   (this->intList.at(sublevel)).insert(intListBlockId);
 }
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::NumIntList(unsigned int sublevel) const
+inline types::global_dof_index OctreeBlock<dim>::NumIntList(unsigned int sublevel) const
 {
   return (this->intList.at(sublevel)).size();
 }
@@ -223,28 +223,28 @@ inline unsigned int OctreeBlock<dim>::NumIntListLevels() const
 
 
 template <int dim>
-inline std::set <unsigned int> OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
+inline std::set <types::global_dof_index> OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
 {
   return this->intList.at(sublevel);
 }
 
 
 template <int dim>
-inline std::vector<std::set <unsigned int> > OctreeBlock<dim>::GetIntList() const
+inline std::vector<std::set <types::global_dof_index> > OctreeBlock<dim>::GetIntList() const
 {
   return this->intList;
 }
 
 
 template <int dim>
-inline void OctreeBlock<dim>::AddBlockToNonIntList(unsigned int sublevel, const unsigned int intListBlockId)
+inline void OctreeBlock<dim>::AddBlockToNonIntList(unsigned int sublevel, const types::global_dof_index intListBlockId)
 {
   (this->nonIntList.at(sublevel)).insert(intListBlockId);
 }
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::NumNonIntList(unsigned int sublevel) const
+inline types::global_dof_index OctreeBlock<dim>::NumNonIntList(unsigned int sublevel) const
 {
   return (this->nonIntList.at(sublevel)).size();
 }
@@ -258,7 +258,7 @@ inline unsigned int OctreeBlock<dim>::NumNonIntListLevels() const
 
 
 template <int dim>
-inline std::set <unsigned int> OctreeBlock<dim>::GetNonIntList(unsigned int sublevel) const
+inline std::set <types::global_dof_index> OctreeBlock<dim>::GetNonIntList(unsigned int sublevel) const
 {
   return this->nonIntList.at(sublevel);
 }
@@ -293,14 +293,14 @@ inline unsigned int OctreeBlock<dim>::GetNearNeighSize() const
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::GetIntListSize() const
+inline types::global_dof_index OctreeBlock<dim>::GetIntListSize() const
 {
   return this->intList.size();
 }
 
 
 template <int dim>
-inline unsigned int OctreeBlock<dim>::GetNonIntListSize() const
+inline types::global_dof_index OctreeBlock<dim>::GetNonIntListSize() const
 {
   return this->nonIntList.size();
 }

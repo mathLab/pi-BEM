@@ -20,6 +20,7 @@
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/base/work_stream.h>
+#include <deal.II/base/types.h>
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -69,7 +70,7 @@ public:
   /// Mapping in the BEMFMA class. It also sets up some useful vector for,
   /// mixed boundary conditions and double nodes handling.
   void init_fma(const DoFHandler<dim-1,dim> &input_dh,
-                const std::vector<std::set<unsigned int> > &db_in,
+                const std::vector<std::set<types::global_dof_index> > &db_in,
                 const TrilinosWrappers::MPI::Vector &input_sn,
                 const Mapping<dim-1,dim> &input_mapping = StaticMappingQ1<dim-1, dim>::mapping);
 
@@ -213,7 +214,7 @@ private:
   /// blocks in which element's quad
   /// points lie.
 
-  mutable std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer1;
+  mutable std::map <types::global_dof_index, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer1;
 
   /// Structures where the Neumann
   /// matrix multipole
@@ -224,7 +225,7 @@ private:
   /// points lie.
 
 
-  mutable std::map <unsigned int, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer2;
+  mutable std::map <types::global_dof_index, std::map <cell_it, std::vector <MultipoleExpansion > > > elemMultipoleExpansionsKer2;
 
   /// Vector storing the Dirichlet
   /// integrals multipole expansions
@@ -288,12 +289,12 @@ private:
   /// a map associating each DoF with the cells
   /// it belongs to
 
-  std::map<unsigned int, std::vector<cell_it> > dof_to_elems;
+  std::map<types::global_dof_index, std::vector<cell_it> > dof_to_elems;
 
   /// a map associating each gradient DoF
   /// with the cells it belongs to
 
-  std::map<unsigned int, std::vector<cell_it> > gradient_dof_to_elems;
+  std::map<types::global_dof_index, std::vector<cell_it> > gradient_dof_to_elems;
 
   /// a vector associating each gradient DoF
   /// with the component it represents
@@ -304,13 +305,13 @@ private:
   /// block it belongs to
   /// for each level
 
-  std::map<unsigned int, std::vector<unsigned int> > dof_to_block;
+  std::map<types::global_dof_index, std::vector<types::global_dof_index> > dof_to_block;
 
   /// a map associating each quad point to the
   /// block it belongs to for
   /// each level
 
-  std::map<cell_it, std::vector<std::vector <unsigned int> > > quad_point_to_block;
+  std::map<cell_it, std::vector<std::vector <types::global_dof_index> > > quad_point_to_block;
 
   /// a map associating each cell with a std::set
   /// containing the surrounding
@@ -325,27 +326,27 @@ private:
 
   /// the total blocks number
 
-  unsigned int num_blocks;
+  types::global_dof_index num_blocks;
 
   /// the indices in the blocks vector, at which
   /// each of the levels start or end
 
-  std::vector <unsigned int> endLevel;
-  std::vector <unsigned int> startLevel;
+  std::vector <types::global_dof_index> endLevel;
+  std::vector <types::global_dof_index> startLevel;
 
   /// a list of the indices of all the childless
   /// blocks
 
-  std::vector <unsigned int> childlessList;
+  std::vector <types::global_dof_index> childlessList;
 
   /// a list of the number of parent blocks
   /// for each level
-  std::vector <unsigned int> numParent;
+  std::vector <types::global_dof_index> numParent;
 
   /// a std::vector containing the list of
   /// parent blocks for each level
 
-  std::vector <std::vector<unsigned int> > parentList;
+  std::vector <std::vector<types::global_dof_index> > parentList;
 
   /// a std::map of std::vectors containing the
   /// list of quadrature points
@@ -355,7 +356,8 @@ private:
   /// a std::map of std::vectors containing the
   /// list of normals at quadrature points
 
-  std::map <cell_it, std::vector <Point <dim> > > quadNormals;
+  // std::map <cell_it, std::vector <Point <dim> > > quadNormals;
+  std::map <cell_it, std::vector <Tensor <1, dim> > > quadNormals;
 
   /// a std::map of std::vectors containing the
   /// list of shape function values at
@@ -373,13 +375,13 @@ private:
   /// the IDs of blocks with at least one dof,
   /// for each level
 
-  std::vector< std::vector<unsigned int> > dofs_filled_blocks;
+  std::vector< std::vector<types::global_dof_index> > dofs_filled_blocks;
 
   /// a std::vector containing std::vectors with
   /// the IDs of blocks with at least one
   /// quad point, for each level
 
-  std::vector< std::vector<unsigned int> > quad_points_filled_blocks;
+  std::vector< std::vector<types::global_dof_index> > quad_points_filled_blocks;
 
   ConditionalOStream pcout;
 
@@ -388,9 +390,9 @@ private:
   shared_ptr<Quadrature<dim-1> > quadrature;
   SmartPointer<const Vector<double> > dirichlet_nodes;
   /// This should be erased by the usage of the constraint matrix.
-  const std::vector <std::set<unsigned int> >   *double_nodes_set;
+  const std::vector <std::set<types::global_dof_index> >   *double_nodes_set;
 
-  std::vector<std::vector<unsigned int> > m2l_flags;
+  std::vector<std::vector<types::global_dof_index> > m2l_flags;
   IndexSet this_cpu_set;
 
 };

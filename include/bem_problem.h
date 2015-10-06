@@ -81,7 +81,8 @@
 #include "../include/computational_domain.h"
 #include "../include/bem_fma.h"
 #include "../include/constrained_matrix.h"
-#include "parameter_acceptor.h"
+#include <deal2lkit/parameter_acceptor.h>
+#include <deal2lkit/utilities.h>
 
 
 #include <mpi.h>

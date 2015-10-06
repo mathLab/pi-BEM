@@ -16,7 +16,7 @@ void Operator::MinBEMOperator<dim>::set_alpha()
 {
   static TrilinosWrappers::MPI::Vector ones, zeros, dummy;
   ones.reinit(this_cpu_set,mpi_communicator);
-  ones.add(-1.);
+  vector_shift(ones, -1.);
   zeros.reinit(this_cpu_set,mpi_communicator);
   dummy.reinit(this_cpu_set,mpi_communicator);
   alpha.reinit(this_cpu_set,mpi_communicator);

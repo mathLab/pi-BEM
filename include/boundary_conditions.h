@@ -73,7 +73,8 @@
 #include "../include/bem_problem.h"
 #include "../include/computational_domain.h"
 
-#include "parsed_data_out.h"
+#include <deal2lkit/parsed_data_out.h>
+#include <deal2lkit/utilities.h>
 
 template <int dim>
 class BoundaryConditions : public ParameterAcceptor

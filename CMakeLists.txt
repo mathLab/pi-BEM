@@ -1,14 +1,14 @@
 ##
 # CMake script for large project, with one executable
 # and a library of objects, optionally
-# depending on dealii-sak.
+# depending on deal2lkit.
 #
 # The structure of the directory is assumed to be:
 # ./source: containing implementations and one file with "int main()"
 # ./include: containing all class declarations
 # ./tests: containing pairs of files: test.cc/test.output to test
 #
-# If you set the environemnt variable DEAL_II_SAK,
+# If you set the environemnt variable D2K_DIR,
 # everything will work out of the box
 ##
 
@@ -46,7 +46,7 @@ FIND_PACKAGE(deal.II 8.3 REQUIRED
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 PROJECT(${TARGET})
 
-SET(DEAL_II_SAK "$ENV{DEAL_II_SAK}" CACHE PATH "Path to dealii-sak")
+SET(D2K_DIR "$ENV{D2K_DIR}" CACHE PATH "Path to deal2lkit")
 
 # We one library and one target for each type of deal.II library
 # we found. If you compiled deal.II with both Release and Debug
@@ -71,15 +71,15 @@ FOREACH(_build_type ${_d2_build_types})
 	# Add all files, except the main file, to the library
 	ADD_LIBRARY(${_lib} SHARED ${_files})
 
-	# Look for dealii-sak. If not found, ignore it.
-	SET(_sak dealii-sak${${_build_type}_postfix})
-	MESSAGE("-- Looking for ${_sak} in ${DEAL_II_SAK}")
-	FIND_LIBRARY(SAK${_p} ${_sak} HINTS ${DEAL_II_SAK} PATH_SUFFIXES lib)
-	IF(NOT "${SAK${_p}}" STREQUAL "SAK${_p}-NOTFOUND")
-	    TARGET_LINK_LIBRARIES(${_lib} ${SAK${_p}})
-	    MESSAGE("-- Library ${_sak} found: ${SAK${_p}}")
+	# Look for deal2lkit. If not found, ignore it.
+	SET(_d2k deal2lkit${${_build_type}_postfix})
+	MESSAGE("-- Looking for ${_d2k} in ${D2K_DIR}")
+	FIND_LIBRARY(D2K${_p} ${_d2k} HINTS ${D2K_DIR} PATH_SUFFIXES lib)
+	IF(NOT "${D2K${_p}}" STREQUAL "D2K${_p}-NOTFOUND")
+	    TARGET_LINK_LIBRARIES(${_lib} ${D2K${_p}})
+	    MESSAGE("-- Library ${_d2k} found: ${D2K${_p}}")
 	ELSE()
-	    MESSAGE(WARNING "-- Library dealii-sak not found: ${SAK${_p}}")
+	    MESSAGE(WARNING "-- Library deal2lkit not found: ${D2K${_p}}")
 	ENDIF()
 
 	# Compile an executable only if required by the user
@@ -95,10 +95,12 @@ FOREACH(_build_type ${_d2_build_types})
     ENDIF()
 ENDFOREACH()
 
-INCLUDE_DIRECTORIES(${DEAL_II_SAK}/include)
+INCLUDE_DIRECTORIES(${D2K_DIR}/include)
 
-ADD_SUBDIRECTORY(tests)
-ENABLE_TESTING()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests AND ${ENABLE_APP_TESTING})
+  ADD_SUBDIRECTORY(tests)
+  ENABLE_TESTING()
+endif()
 
 
 # Doxygen

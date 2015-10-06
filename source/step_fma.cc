@@ -429,10 +429,10 @@ void MinFmm::StepFMA<dim>::assemble_direct_system()
     }
 
   TrilinosWrappers::MPI::Vector ones(this_cpu_set, mpi_communicator);
-  ones.add(-1.);
+  vector_shift(ones, -1.);
 
   system_matrix.vmult(system_alpha, ones);
-  system_alpha.add(1);
+  vector_shift(system_alpha, 1.);
   std::ofstream ofs;
   ofs.open ("direct_alpha.txt", std::ofstream::out | std::ofstream::app);
   ofs << system_alpha.linfty_norm() << " "<< system_alpha.l2_norm()<< std::endl;;
@@ -594,7 +594,7 @@ void MinFmm::StepFMA<dim>::save_direct_solution(const unsigned int cycle)
   std::string file_name1, file_name2;
   Vector<double> phi_dir(phi);
   Vector<double> alpha_dir(system_alpha);
-  alpha_dir.add(-1.);
+  vector_shift(alpha_dir, -1.);
   alpha_dir*=-1.;
   file_name1 = "direct_solution_" + Utilities::int_to_string(cycle) + ".bin";
   std::ofstream dir_sol (file_name1.c_str());

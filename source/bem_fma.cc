@@ -17,7 +17,6 @@
 
 #include "../include/bem_fma.h"
 #include "../include/laplace_kernel.h"
-#include "utilities.h"
 
 
 #include "Teuchos_TimeMonitor.hpp"

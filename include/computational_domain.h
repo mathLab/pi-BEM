@@ -60,7 +60,7 @@
 #include "../include/multipole_expansion.h"
 #include "../include/ass_leg_function.h"
 
-#include "parameter_acceptor.h"
+#include <deal2lkit/parameter_acceptor.h>
 #include <mpi.h>
 
 using namespace dealii;

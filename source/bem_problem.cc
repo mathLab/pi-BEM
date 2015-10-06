@@ -16,7 +16,6 @@
 
 #include "../include/bem_problem.h"
 #include "../include/laplace_kernel.h"
-
 #include <iostream>
 #include <iomanip>
 
@@ -336,7 +335,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
   endc = dh.end();
 
 
-  non_partitioned_neumann_nodes.add(1);
+  vector_shift(non_partitioned_neumann_nodes, 1.);
   std::vector<types::global_dof_index> dofs(fe.dofs_per_cell);
   std::vector<types::global_dof_index> gradient_dofs(gradient_fe.dofs_per_cell);
 
@@ -950,7 +949,7 @@ void BEMProblem<dim>::compute_alpha()
   if (ones.size() != dh.n_dofs())
     {
       ones.reinit(this_cpu_set,mpi_communicator);
-      ones.add(-1.);
+      vector_shift(ones, -1.);
       zeros.reinit(this_cpu_set,mpi_communicator);
       dummy.reinit(this_cpu_set,mpi_communicator);
     }
@@ -1021,7 +1020,7 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
   // in fully neumann bc case, we have to rescale the vector to have a zero mean
   // one
   if (dirichlet_nodes.linfty_norm() < 1e-10)
-    dst.add(-dst.l2_norm());
+    vector_shift(dst, -dst.l2_norm());
 
 }
 

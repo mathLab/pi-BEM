@@ -63,7 +63,7 @@
 #include "bem_fma.h"
 #include "boundary_conditions.h"
 #include "computational_domain.h"
-#include "parameter_acceptor.h"
+#include <deal2lkit/parameter_acceptor.h>
 using namespace dealii;
 
 //using namespace TrilinosWrappers::MPI::Vector;

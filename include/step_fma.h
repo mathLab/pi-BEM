@@ -53,12 +53,12 @@
 #include <mpi.h>
 #include "bem_fma.h"
 #include "min_bem_operator.h"
-#include "parsed_grid_generator.h"
-#include "parsed_finite_element.h"
-#include "parsed_function.h"
-#include "parsed_data_out.h"
-#include "error_handler.h"
-#include "utilities.h"
+#include <deal2lkit/parsed_grid_generator.h>
+#include <deal2lkit/parsed_finite_element.h>
+#include <deal2lkit/parsed_function.h>
+#include <deal2lkit/parsed_data_out.h>
+#include <deal2lkit/error_handler.h>
+#include <deal2lkit/utilities.h>
 // The last part of this preamble is to import everything in the dealii
 // namespace into the one into which everything in this program will go:
 namespace MinFmm

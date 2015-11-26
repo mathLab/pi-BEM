@@ -90,9 +90,10 @@ FOREACH(_build_type ${_d2_build_types})
 	    TARGET_LINK_LIBRARIES(${_exe} ${_lib})
 	    DEAL_II_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
 	ENDIF()
+
 	SET(TEST_LIBRARIES_${_BUILD_TYPE} ${_lib})
 	DEAL_II_SETUP_TARGET(${_lib} ${_BUILD_TYPE})
-    ENDIF()
+  ENDIF()
 ENDFOREACH()
 
 INCLUDE_DIRECTORIES(${D2K_DIR}/include)

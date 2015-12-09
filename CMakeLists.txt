@@ -35,7 +35,6 @@ IF(NOT "${_main}" STREQUAL "")
     )
 ENDIF()
 
-INCLUDE_DIRECTORIES(include)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
@@ -46,7 +45,11 @@ FIND_PACKAGE(deal.II 8.3 REQUIRED
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 PROJECT(${TARGET})
 
-SET(D2K_DIR "$ENV{D2K_DIR}" CACHE PATH "Path to deal2lkit")
+
+FIND_PACKAGE(deal2lkit 1.0 REQUIRED
+  HINTS ${D2K_DIR} $ENV{D2K_DIR} $ENV{DEAL2LKIT_DIR}
+  )
+D2K_INITIALIZE_CACHED_VARIABLES()
 
 # We one library and one target for each type of deal.II library
 # we found. If you compiled deal.II with both Release and Debug
@@ -60,8 +63,11 @@ FOREACH(_build_type ${_d2_build_types})
     # Postfix to use everywhere
     SET(_p "${${_build_type}_postfix}")
     # Only build this type, if deal.II was compiled with it.
-    IF(DEAL_II_BUILD_TYPE MATCHES "${_build_type}")
+    IF(CMAKE_BUILD_TYPE MATCHES "${_build_type}" AND
+       DEAL_II_BUILD_TYPE MATCHES "${_build_type}"  AND
+       D2K_BUILD_TYPE MATCHES "${_build_type}")
 	MESSAGE("-- Found ${_build_type} version of deal.II.")
+	MESSAGE("-- Found ${_build_type} version of deal2lkit.")
 
 	SET(_lib "${TARGET}-lib${_p}")
 	MESSAGE("-- Configuring library ${_lib}")
@@ -71,32 +77,22 @@ FOREACH(_build_type ${_d2_build_types})
 	# Add all files, except the main file, to the library
 	ADD_LIBRARY(${_lib} SHARED ${_files})
 
-	# Look for deal2lkit. If not found, ignore it.
-	SET(_d2k deal2lkit${${_build_type}_postfix})
-	MESSAGE("-- Looking for ${_d2k} in ${D2K_DIR}")
-	FIND_LIBRARY(D2K${_p} ${_d2k} HINTS ${D2K_DIR} PATH_SUFFIXES lib)
-	IF(NOT "${D2K${_p}}" STREQUAL "D2K${_p}-NOTFOUND")
-	    TARGET_LINK_LIBRARIES(${_lib} ${D2K${_p}})
-	    MESSAGE("-- Library ${_d2k} found: ${D2K${_p}}")
-	ELSE()
-	    MESSAGE(WARNING "-- Library deal2lkit not found: ${D2K${_p}}")
-	ENDIF()
-
 	# Compile an executable only if required by the user
 	IF(NOT "${_main}" STREQUAL "")
 	    SET(_exe "${TARGET}${${_build_type}_postfix}")
 	    MESSAGE("-- Configuring executable ${_exe}")
 	    ADD_EXECUTABLE(${_exe} ${_main})
 	    TARGET_LINK_LIBRARIES(${_exe} ${_lib})
-	    DEAL_II_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
+	    D2K_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
 	ENDIF()
 
-	SET(TEST_LIBRARIES_${_BUILD_TYPE} ${_lib})
-	DEAL_II_SETUP_TARGET(${_lib} ${_BUILD_TYPE})
+	D2K_SETUP_TARGET(${_lib} ${_BUILD_TYPE})
+  SET(TEST_LIBRARIES_${_BUILD_TYPE} ${_lib})
   ENDIF()
 ENDFOREACH()
 
 INCLUDE_DIRECTORIES(${D2K_DIR}/include)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests AND BEM_ENABLE_TESTING)
   ADD_SUBDIRECTORY(tests)

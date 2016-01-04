@@ -25,13 +25,13 @@ using Teuchos::Time;
 using Teuchos::TimeMonitor;
 using Teuchos::RCP;
 
-RCP<Time> ConstraintsTime = TimeMonitor::getNewTimer("Compute Constraints Time");
-RCP<Time> AssembleTime = TimeMonitor::getNewTimer("Assemble Time");
-RCP<Time> NormalsTime = TimeMonitor::getNewTimer("Normals Time");
-RCP<Time> SurfaceGradientTime = TimeMonitor::getNewTimer("SurfaceGradientTime Time");
-RCP<Time> GradientTime = TimeMonitor::getNewTimer("Gradient Time");
-RCP<Time> LacSolveTime = TimeMonitor::getNewTimer("LAC Solve Time");
-RCP<Time> ReinitTime = TimeMonitor::getNewTimer("BEM Reinitialisation Time");
+RCP<Time> ConstraintsTime = Teuchos::TimeMonitor::getNewTimer("Compute Constraints Time");
+RCP<Time> AssembleTime = Teuchos::TimeMonitor::getNewTimer("Assemble Time");
+RCP<Time> NormalsTime = Teuchos::TimeMonitor::getNewTimer("Normals Time");
+RCP<Time> SurfaceGradientTime = Teuchos::TimeMonitor::getNewTimer("SurfaceGradientTime Time");
+RCP<Time> GradientTime = Teuchos::TimeMonitor::getNewTimer("Gradient Time");
+RCP<Time> LacSolveTime = Teuchos::TimeMonitor::getNewTimer("LAC Solve Time");
+RCP<Time> ReinitTime = Teuchos::TimeMonitor::getNewTimer("BEM Reinitialisation Time");
 
 // @sect4{BEMProblem::BEMProblem and
 // BEMProblem::read_parameters}
@@ -86,7 +86,7 @@ template <int dim>
 void BEMProblem<dim>::reinit()
 {
 
-  TimeMonitor LocalTimer(*ReinitTime);
+  Teuchos::TimeMonitor LocalTimer(*ReinitTime);
   dh.distribute_dofs(fe);
   gradient_dh.distribute_dofs(gradient_fe);
 
@@ -461,7 +461,7 @@ void BEMProblem<dim>::compute_reordering_vectors()
 template <int dim>
 void BEMProblem<dim>::assemble_system()
 {
-  TimeMonitor LocalTimer(*AssembleTime);
+  Teuchos::TimeMonitor LocalTimer(*AssembleTime);
   pcout<<"(Directly) Assembling system matrices"<<std::endl;
 
   neumann_matrix = 0;
@@ -1081,7 +1081,7 @@ template <int dim>
 void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
                                    const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
-  TimeMonitor LocalTimer(*LacSolveTime);
+  Teuchos::TimeMonitor LocalTimer(*LacSolveTime);
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
                                                       SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
 
@@ -1224,7 +1224,7 @@ template <int dim>
 void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &tmp_rhs)
 
 {
-  TimeMonitor LocalTimer(*ConstraintsTime);
+  Teuchos::TimeMonitor LocalTimer(*ConstraintsTime);
   // We need both the normal vector and surface gradients to apply correctly dirichlet-dirichlet
   // double node constraints.
   // compute_normals();
@@ -1524,7 +1524,7 @@ void BEMProblem<dim>::assemble_preconditioner()
 template <int dim>
 void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glob_phi, const TrilinosWrappers::MPI::Vector &glob_dphi_dn)
 {
-  TimeMonitor LocalTimer(*GradientTime);
+  Teuchos::TimeMonitor LocalTimer(*GradientTime);
 
   // We need the solution to be stored on a parallel vector with ghost elements. We let
   // Trilinos take care of it.
@@ -1667,7 +1667,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 template <int dim>
 void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
-  TimeMonitor LocalTimer(*SurfaceGradientTime);
+  Teuchos::TimeMonitor LocalTimer(*SurfaceGradientTime);
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
   phi.reinit(tmp_rhs,false,true);
 
@@ -1800,7 +1800,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 template <int dim>
 void BEMProblem<dim>::compute_normals()
 {
-  TimeMonitor LocalTimer(*NormalsTime);
+  Teuchos::TimeMonitor LocalTimer(*NormalsTime);
   vector_normals_solution.reinit(vector_this_cpu_set,mpi_communicator);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;

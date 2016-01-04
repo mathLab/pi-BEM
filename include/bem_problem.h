@@ -88,6 +88,8 @@
 #include <mpi.h>
 
 using namespace dealii;
+using namespace deal2lkit;
+
 //using namespace TrilinosWrappers;
 //using namespace TrilinosWrappers::MPI;
 

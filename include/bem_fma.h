@@ -38,6 +38,7 @@ namespace Operator
 }
 
 using namespace dealii;
+using namespace deal2lkit;
 
 template <int dim>//, Type V>
 class BEMFMA : public ParameterAcceptor

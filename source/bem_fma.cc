@@ -25,13 +25,13 @@ using Teuchos::Time;
 using Teuchos::TimeMonitor;
 using Teuchos::RCP;
 
-RCP<Time> MatrVec = TimeMonitor::getNewTimer("Multipole MatrVec Products Time");
-RCP<Time> MultGen = TimeMonitor::getNewTimer("Multipole Generation Time");
-RCP<Time> MultInt = TimeMonitor::getNewTimer("Multipole Integral Time");
-RCP<Time> ListCreat = TimeMonitor::getNewTimer("Octree Generation Time");
-RCP<Time> DirInt = TimeMonitor::getNewTimer("Direct Integral Time");
-RCP<Time> PrecondTime = TimeMonitor::getNewTimer("FMA_preconditioner Time");
-RCP<Time> LocEval = TimeMonitor::getNewTimer("Local Evaluation Time");
+RCP<Time> MatrVec = Teuchos::TimeMonitor::getNewTimer("Multipole MatrVec Products Time");
+RCP<Time> MultGen = Teuchos::TimeMonitor::getNewTimer("Multipole Generation Time");
+RCP<Time> MultInt = Teuchos::TimeMonitor::getNewTimer("Multipole Integral Time");
+RCP<Time> ListCreat = Teuchos::TimeMonitor::getNewTimer("Octree Generation Time");
+RCP<Time> DirInt = Teuchos::TimeMonitor::getNewTimer("Direct Integral Time");
+RCP<Time> PrecondTime = Teuchos::TimeMonitor::getNewTimer("FMA_preconditioner Time");
+RCP<Time> LocEval = Teuchos::TimeMonitor::getNewTimer("Local Evaluation Time");
 
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
@@ -126,7 +126,7 @@ template <int dim>
 void BEMFMA<dim>::direct_integrals()
 {
   pcout<<"Computing direct integrals..."<<std::endl;
-  TimeMonitor LocalTimer(*DirInt);
+  Teuchos::TimeMonitor LocalTimer(*DirInt);
   // The following function performs
   // the direct integrals
   // for the fast multipole algorithm
@@ -1409,7 +1409,7 @@ void BEMFMA<dim>::multipole_integrals()
 {
 
   pcout<<"Computing multipole integrals..."<<std::endl;
-  TimeMonitor LocalTimer(*MultInt);
+  Teuchos::TimeMonitor LocalTimer(*MultInt);
   // we start clearing the two structures in which we will
   // store the integrals. these objects are quite complicated:
   // for each block we are going to get the portion of
@@ -1718,7 +1718,7 @@ template <int dim>
 void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
 {
   pcout<<"Generating multipole expansions..."<<std::endl;
-  TimeMonitor LocalTimer(*MultGen);
+  Teuchos::TimeMonitor LocalTimer(*MultGen);
   // TODO I DON'T KNOW IF WE CAN SPLIT THIS OPERATION, IN CASE THIS WOULD NOT BE EASY COMMUNICATION, WE WOULD NEED TO
   // COMMUNICATE THE ENTIRE CLASSES THAT HOLD THE MULTIPOLE<->LOCAL EXPANSIONS
   const Vector<double> phi_values(phi_values_in);
@@ -2001,7 +2001,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                                                TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
 {
   pcout<<"Computing multipole matrix-vector products... "<<std::endl;
-  TimeMonitor LocalTimer(*MatrVec);
+  Teuchos::TimeMonitor LocalTimer(*MatrVec);
   // we start re-initializing matrix-vector-product vectors
   // matrVectProdN = 0;
   // matrVectProdD = 0;
@@ -2232,7 +2232,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                 //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
                 types::global_dof_index block2Id = *pos1;
                 //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
-                TimeMonitor LocalTimer(*LocEval);
+                Teuchos::TimeMonitor LocalTimer(*LocEval);
 
                 for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of (*block_it)
                   {
@@ -2425,7 +2425,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
                     //pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
                     unsigned int block2Id = *pos1;
                     //std::vector <cell_it> elemBlk2Ids = block2.GetBlockElementsList();
-                    TimeMonitor LocalTimer(*LocEval);
+                    Teuchos::TimeMonitor LocalTimer(*LocEval);
 
                     for (unsigned int ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
                       {
@@ -2473,7 +2473,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       {
         if (foo_fma->this_cpu_set.is_element(nodesBlk1Ids[ii]))
           {
-            //TimeMonitor LocalTimer(*LocEval);
+            //Teuchos::TimeMonitor LocalTimer(*LocEval);
 
             const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
             matrVectProdD(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
@@ -2499,7 +2499,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   //       {
   //         if(this_cpu_set.is_element(nodesBlk1Ids[ii]))
   //         {
-  //           TimeMonitor LocalTimer(*LocEval);
+  //           Teuchos::TimeMonitor LocalTimer(*LocEval);
   //
   //           Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
   //           matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
@@ -2541,7 +2541,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 template <int dim>
 TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c )//TO BE CHANGED!!!
 {
-  TimeMonitor LocalTimer(*PrecondTime);
+  Teuchos::TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
   // final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),(types::global_dof_index) 125*fma_fe->dofs_per_cell);
@@ -2972,7 +2972,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 {
 
   pcout<<"Generating octree blocking... "<<std::endl;
-  TimeMonitor LocalTimer(*ListCreat);
+  Teuchos::TimeMonitor LocalTimer(*ListCreat);
 
 
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());

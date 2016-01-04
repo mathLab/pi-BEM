@@ -64,6 +64,7 @@
 #include <mpi.h>
 
 using namespace dealii;
+using namespace deal2lkit;
 
 template <int dim>
 class ComputationalDomain : public ParameterAcceptor

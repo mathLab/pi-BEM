@@ -8,10 +8,10 @@ using Teuchos::Time;
 using Teuchos::TimeMonitor;
 using Teuchos::RCP;
 
-RCP<Time> TotalTime = TimeMonitor::getNewTimer("Total Time");
-RCP<Time> MeshTime = TimeMonitor::getNewTimer("Mesh Time");
-RCP<Time> OutputTime = TimeMonitor::getNewTimer("Output Time");
-RCP<Time> SolveTime = TimeMonitor::getNewTimer("Solve Time");
+RCP<Time> TotalTime = Teuchos::TimeMonitor::getNewTimer("Total Time");
+RCP<Time> MeshTime = Teuchos::TimeMonitor::getNewTimer("Mesh Time");
+RCP<Time> OutputTime = Teuchos::TimeMonitor::getNewTimer("Output Time");
+RCP<Time> SolveTime = Teuchos::TimeMonitor::getNewTimer("Solve Time");
 
 using namespace std;
 
@@ -83,9 +83,9 @@ template <int dim>
 void Driver<dim>::run()
 {
   {
-    TimeMonitor LocalTimer(*TotalTime);
+    Teuchos::TimeMonitor LocalTimer(*TotalTime);
     {
-      TimeMonitor LocalTimer(*MeshTime);
+      Teuchos::TimeMonitor LocalTimer(*MeshTime);
       //computational_domain.create_initial_mesh();
       computational_domain.read_domain();
       if (global_refinement)
@@ -96,7 +96,7 @@ void Driver<dim>::run()
     }
 
     {
-      TimeMonitor LocalTimer(*SolveTime);
+      Teuchos::TimeMonitor LocalTimer(*SolveTime);
       bem_problem.reinit();
       boundary_conditions.solve_problem();
     }
@@ -107,7 +107,7 @@ void Driver<dim>::run()
     // }
   }
   // Write a summary of all timers
-  TimeMonitor::summarize();
+  Teuchos::TimeMonitor::summarize();
 }
 
 

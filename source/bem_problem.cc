@@ -1,17 +1,3 @@
-//----------------------------  step-34.cc  ---------------------------
-//    $Id: step-34.cc 18734 2009-04-25 13:36:48Z heltai $
-//    Version: $Name$
-//
-//    Copyright (C) 2009, 2010, 2011 by the deal.II authors
-//
-//    This file is subject to QPL and may not be  distributed
-//    without copyright and license information. Please refer
-//    to the file deal.II/doc/license.html for the  text  and
-//    further information on this license.
-//
-//    Authors: Luca Heltai, Cataldo Manigrasso
-//
-//----------------------------  step-34.cc  ---------------------------
 
 
 #include "../include/bem_problem.h"
@@ -70,8 +56,8 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
   comp_dom(comp_dom),
   // fe(fe_degree),
   // gradient_fe(FE_Q<dim-1,dim>(fe_degree), dim),
-  parsed_fe("Scalar FE"),
-  parsed_gradient_fe("Vectorial FE"),
+  parsed_fe("Scalar FE", "FE_Q(1)"),
+  parsed_gradient_fe("Vectorial FE", "FESystem[FE_Q(1)^3]","u,u,u",3),
   dh(comp_dom.tria),
   gradient_dh(comp_dom.tria),
   mapping(fe_degree),
@@ -502,7 +488,7 @@ void BEMProblem<dim>::assemble_system()
   const unsigned int n_q_points = fe_v.n_quadrature_points;
 
   std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
-
+  pcout<<fe->dofs_per_cell<<" "<<std::endl;
   // Unlike in finite element
   // methods, if we use a collocation
   // boundary element method, then in
@@ -608,7 +594,8 @@ void BEMProblem<dim>::assemble_system()
                     {
                       const Tensor<1,dim> R = q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, D, s);
-
+                      // if(support_points[i][0]==0.25&&support_points[i][1]==0.25)
+                      //   pcout<<"D "<<D<<" s "<<s<<" , ";
                       for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
                         {
                           local_neumann_matrix_row_i(j) += ( ( D *
@@ -1213,6 +1200,8 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
   if (solution_method == "Direct")
     {
       assemble_system();
+      // neumann_matrix.print(std::cout);
+      // dirichlet_matrix.print(std::cout);
     }
   else
     {

@@ -439,6 +439,8 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
   const Vector<double> localized_gradients (bem.vector_gradients_solution);
   const Vector<double> localized_surf_gradients (bem.vector_surface_gradients_solution);
   const Vector<double> localized_normals (bem.vector_normals_solution);
+  // localized_dphi_dn.print(std::cout);
+  // localized_phi.print(std::cout);
   if (this_mpi_process == 0)
     {
       std::string filename_scalar, filename_vector;

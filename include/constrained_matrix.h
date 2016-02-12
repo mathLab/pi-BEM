@@ -127,10 +127,12 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
 template<class VEC, class MATRIX>
 void ConstrainedOperator<VEC,MATRIX>::distribute_rhs(VEC &rhs) const
 {
-  for (unsigned int i=0; i<rhs.size(); ++i)
+  for (auto i : rhs.locally_owned_elements())
     if ( (constraints.is_constrained(i)) &&
          (rhs.locally_owned_elements().is_element(i)) )
       rhs(i) = constraints.get_inhomogeneity(i);
+    else
+      rhs(i) = rhs(i);
 }
 
 

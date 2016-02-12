@@ -245,10 +245,10 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
 
 
   std::vector<Point<dim> > support_points(n_dofs);
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( bem.mapping, bem.dh, support_points);
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
 
   std::vector<Point<dim> > vec_support_points(bem.gradient_dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( bem.mapping, bem.gradient_dh, vec_support_points);
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.gradient_dh, vec_support_points);
 
   cell_it
   cell = bem.dh.begin_active(),
@@ -256,7 +256,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
 
   const unsigned int   dofs_per_cell   = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-  FEValues<dim-1,dim> fe_v(bem.mapping, *bem.fe, *bem.quadrature,
+  FEValues<dim-1,dim> fe_v(*bem.mapping, *bem.fe, *bem.quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -348,7 +348,7 @@ void BoundaryConditions<dim>::compute_errors()
     {
       Vector<double> grad_difference_per_cell (comp_dom.tria.n_active_cells());
 
-      VectorTools::integrate_difference (bem.mapping, bem.gradient_dh, localized_gradient_solution,
+      VectorTools::integrate_difference (*bem.mapping, bem.gradient_dh, localized_gradient_solution,
                                          wind,
                                          grad_difference_per_cell,
                                          QGauss<(dim-1)>(2*bem.fe->degree+1),
@@ -356,7 +356,7 @@ void BoundaryConditions<dim>::compute_errors()
       const double grad_L2_error = grad_difference_per_cell.l2_norm();
 
       Vector<float> difference_per_cell (comp_dom.tria.n_active_cells());
-      VectorTools::integrate_difference (bem.mapping, bem.dh, localized_phi,
+      VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
                                          potential,
                                          difference_per_cell,
                                          QGauss<(dim-1)>(2*bem.fe->degree+1),
@@ -364,7 +364,7 @@ void BoundaryConditions<dim>::compute_errors()
       const double L2_error = difference_per_cell.l2_norm();
 
       std::vector<Point<dim> > support_points(bem.dh.n_dofs());
-      DoFTools::map_dofs_to_support_points<dim-1, dim>( bem.mapping, bem.dh, support_points);
+      DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
 
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double> > grads_nodes_errs(bem.dh.n_dofs(),Vector<double>(dim));
@@ -468,16 +468,16 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
       dataout_vector.add_data_vector(localized_normals, std::vector<std::string > (dim,"normals_at_nodes"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
 
 
-      dataout_scalar.build_patches(bem.mapping,
-                                   bem.mapping.get_degree(),
+      dataout_scalar.build_patches(*bem.mapping,
+                                   bem.mapping->get_degree(),
                                    DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
       std::ofstream file_scalar(filename_scalar.c_str());
 
       dataout_scalar.write_vtu(file_scalar);
 
-      dataout_vector.build_patches(bem.mapping,
-                                   bem.mapping.get_degree(),
+      dataout_vector.build_patches(*bem.mapping,
+                                   bem.mapping->get_degree(),
                                    DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
       std::ofstream file_vector(filename_vector.c_str());

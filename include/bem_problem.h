@@ -102,7 +102,6 @@ public:
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 
   BEMProblem(ComputationalDomain<dim> &comp_dom,
-             const unsigned int fe_degree,
              const MPI_Comm comm = MPI_COMM_WORLD);
 
   void solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers::MPI::Vector &dphi_dn,
@@ -245,7 +244,8 @@ public:
   /// with the free surface and boat mesh
   /// deformation
 
-  MappingQ<dim-1, dim>      mapping;
+  shared_ptr<MappingQ<dim-1, dim> >     mapping;
+  unsigned int mapping_degree;
   Vector<double> map_points;
 
 

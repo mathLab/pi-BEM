@@ -49,18 +49,15 @@ RCP<Time> ReinitTime = Teuchos::TimeMonitor::getNewTimer("BEM Reinitialisation T
 // the number of components.
 template <int dim>
 BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
-                            const unsigned int fe_degree,
+                            // const unsigned int fe_degree,
                             MPI_Comm comm)
   :
   pcout(std::cout),
   comp_dom(comp_dom),
-  // fe(fe_degree),
-  // gradient_fe(FE_Q<dim-1,dim>(fe_degree), dim),
   parsed_fe("Scalar FE", "FE_Q(1)"),
   parsed_gradient_fe("Vectorial FE", "FESystem[FE_Q(1)^3]","u,u,u",3),
   dh(comp_dom.tria),
   gradient_dh(comp_dom.tria),
-  mapping(fe_degree),
   mpi_communicator (comm),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
@@ -81,6 +78,8 @@ void BEMProblem<dim>::reinit()
 
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
+
+  mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
@@ -216,7 +215,7 @@ void BEMProblem<dim>::reinit()
   compute_dirichlet_and_neumann_dofs_vectors();
   compute_double_nodes_set();
 
-  fma.init_fma(dh, double_nodes_set, dirichlet_nodes, mapping);
+  fma.init_fma(dh, double_nodes_set, dirichlet_nodes, *mapping);
 
 
   // We need a TrilinosWrappers::MPI::Vector to reinit the SparsityPattern for
@@ -280,6 +279,8 @@ void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.declare_entry("Mapping Q Degree","1",Patterns::Integer());
+
 }
 
 template <int dim>
@@ -304,6 +305,8 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
     singular_quadrature_order = prm.get_integer("Singular quadrature order");
   }
   prm.leave_subsection();
+
+  mapping_degree = prm.get_integer("Mapping Q Degree");
 
 
 
@@ -412,7 +415,7 @@ void BEMProblem<dim>::compute_double_nodes_set()
   double_nodes_set.resize(dh.n_dofs());
   std::vector<Point<dim> > support_points(dh.n_dofs());
 
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping,
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping,
                                                     dh, support_points);
 
   for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
@@ -479,7 +482,7 @@ void BEMProblem<dim>::assemble_system()
   // precise, since the functions we
   // are integrating are not
   // polynomial functions.
-  FEValues<dim-1,dim> fe_v(mapping,*fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(*mapping,*fe, *quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -515,7 +518,7 @@ void BEMProblem<dim>::assemble_system()
   // of support points which will be
   // used in the local integrations:
   std::vector<Point<dim> > support_points(dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, dh, support_points);
 
 
   // After doing so, we can start the
@@ -832,7 +835,7 @@ void BEMProblem<dim>::assemble_system()
                         &sing_quadratures[singular_index]);
                   Assert(singular_quadrature, ExcInternalError());
 
-                  FEValues<dim-1,dim> fe_v_singular (mapping, *fe, *singular_quadrature,
+                  FEValues<dim-1,dim> fe_v_singular (*mapping, *fe, *singular_quadrature,
                                                      update_jacobians |
                                                      update_values |
                                                      update_cell_normal_vectors |
@@ -1103,6 +1106,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
 
 
   cc.distribute_rhs(system_rhs);
+  system_rhs.compress(VectorOperation::insert);
   // vmult(sol,system_rhs);
   // Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Schizofrenia???"));
   // cc.vmult(sol,system_rhs);
@@ -1543,14 +1547,14 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
 
   // The vector FEValues to used in the assemblage
-  FEValues<dim-1,dim> vector_fe_v(mapping, *gradient_fe, *quadrature,
+  FEValues<dim-1,dim> vector_fe_v(*mapping, *gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
   // The scalar FEValues to interpolate the known value of phi
-  FEValues<dim-1,dim> fe_v(mapping, *fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(*mapping, *fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -1572,11 +1576,11 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, dh, support_points);
   std::vector<types::global_dof_index> face_dofs(fe->dofs_per_face);
 
   Quadrature <dim-1> dummy_quadrature(fe->get_unit_support_points());
-  FEValues<dim-1,dim> dummy_fe_v(mapping, *fe, dummy_quadrature,
+  FEValues<dim-1,dim> dummy_fe_v(*mapping, *fe, dummy_quadrature,
                                  update_values | update_gradients |
                                  update_cell_normal_vectors |
                                  update_quadrature_points);
@@ -1681,13 +1685,13 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
 
 
-  FEValues<dim-1,dim> vector_fe_v(mapping, *gradient_fe, *quadrature,
+  FEValues<dim-1,dim> vector_fe_v(*mapping, *gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
-  FEValues<dim-1,dim> fe_v(mapping, *fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(*mapping, *fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -1708,11 +1712,11 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, dh, support_points);
   std::vector<types::global_dof_index> face_dofs(fe->dofs_per_face);
 
   Quadrature <dim-1> dummy_quadrature(fe->get_unit_support_points());
-  FEValues<dim-1,dim> dummy_fe_v(mapping, *fe, dummy_quadrature,
+  FEValues<dim-1,dim> dummy_fe_v(*mapping, *fe, dummy_quadrature,
                                  update_values | update_gradients |
                                  update_cell_normal_vectors |
                                  update_quadrature_points);
@@ -1810,7 +1814,7 @@ void BEMProblem<dim>::compute_normals()
 
 
 
-  FEValues<dim-1,dim> vector_fe_v(mapping, *gradient_fe, *quadrature,
+  FEValues<dim-1,dim> vector_fe_v(*mapping, *gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |

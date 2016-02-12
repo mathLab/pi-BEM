@@ -20,7 +20,7 @@ Driver<dim>::Driver() :
   pcout (std::cout),
   mpi_communicator (MPI_COMM_WORLD),
   computational_domain(mpi_communicator),
-  bem_problem(computational_domain,2,mpi_communicator),
+  bem_problem(computational_domain,mpi_communicator),
   boundary_conditions(computational_domain, bem_problem),
   prm(),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),

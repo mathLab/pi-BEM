@@ -68,9 +68,11 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
   :
   pcout(std::cout),
   comp_dom(comp_dom),
-  fe(fe_degree),
+  // fe(fe_degree),
+  // gradient_fe(FE_Q<dim-1,dim>(fe_degree), dim),
+  parsed_fe("Scalar FE"),
+  parsed_gradient_fe("Vectorial FE"),
   dh(comp_dom.tria),
-  gradient_fe(FE_Q<dim-1,dim>(fe_degree), dim),
   gradient_dh(comp_dom.tria),
   mapping(fe_degree),
   mpi_communicator (comm),
@@ -87,8 +89,12 @@ void BEMProblem<dim>::reinit()
 {
 
   Teuchos::TimeMonitor LocalTimer(*ReinitTime);
-  dh.distribute_dofs(fe);
-  gradient_dh.distribute_dofs(gradient_fe);
+
+  fe = parsed_fe();
+  gradient_fe = parsed_gradient_fe();
+
+  dh.distribute_dofs(*fe);
+  gradient_dh.distribute_dofs(*gradient_fe);
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
@@ -106,6 +112,7 @@ void BEMProblem<dim>::reinit()
 
   const types::global_dof_index n_dofs =  dh.n_dofs();
 
+  pcout<<dh.n_dofs()<<" "<<gradient_dh.n_dofs()<<std::endl;
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
 
   DoFTools::get_subdomain_association   (dh,dofs_domain_association);
@@ -336,8 +343,8 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
 
   vector_shift(non_partitioned_neumann_nodes, 1.);
-  std::vector<types::global_dof_index> dofs(fe.dofs_per_cell);
-  std::vector<types::global_dof_index> gradient_dofs(gradient_fe.dofs_per_cell);
+  std::vector<types::global_dof_index> dofs(fe->dofs_per_cell);
+  std::vector<types::global_dof_index> gradient_dofs(gradient_fe->dofs_per_cell);
 
   for (; cell != endc; ++cell)
     {
@@ -349,7 +356,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
               if (dummy == cell->material_id())
                 {
                   cell->get_dof_indices(dofs);
-                  for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+                  for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
                     {
                       non_partitioned_dirichlet_nodes(dofs[i]) = 1;
                       non_partitioned_neumann_nodes(dofs[i]) = 0;
@@ -362,7 +369,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
           if (!dirichlet)
             {
               cell->get_dof_indices(dofs);
-              // for(unsigned int i=0; i<fe.dofs_per_cell; ++i)
+              // for(unsigned int i=0; i<fe->dofs_per_cell; ++i)
               // {
               //   non_partitioned_neumann_nodes(dofs[i]) = 1;
               //   non_partitioned_dirichlet_nodes(dofs[i]) = 0;
@@ -376,7 +383,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
           //   {
           //     // This is a free surface node.
           //     cell->get_dof_indices(dofs);
-          //     for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+          //     for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
           //       {
           //         non_partitioned_dirichlet_nodes(dofs[i]) = 1;
           //         non_partitioned_neumann_nodes(dofs[i]) = 0;
@@ -385,7 +392,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
           //   }
           // else
           //   {
-          //     for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+          //     for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
           //       {
           //         cell->get_dof_indices(dofs);
           //         //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
@@ -470,10 +477,10 @@ void BEMProblem<dim>::assemble_system()
 
 
   std::vector<QTelles<dim-1> > sing_quadratures;
-  for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+  for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
     sing_quadratures.push_back
     (QTelles<dim-1>(singular_quadrature_order,
-                    fe.get_unit_support_points()[i]));
+                    fe->get_unit_support_points()[i]));
 
 
   // Next, we initialize an FEValues
@@ -486,7 +493,7 @@ void BEMProblem<dim>::assemble_system()
   // precise, since the functions we
   // are integrating are not
   // polynomial functions.
-  FEValues<dim-1,dim> fe_v(mapping,fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(mapping,*fe, *quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -494,7 +501,7 @@ void BEMProblem<dim>::assemble_system()
 
   const unsigned int n_q_points = fe_v.n_quadrature_points;
 
-  std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
 
   // Unlike in finite element
   // methods, if we use a collocation
@@ -506,14 +513,14 @@ void BEMProblem<dim>::assemble_system()
   // degree associated with support
   // point $i$) and the current
   // cell. This is done using a
-  // vector of fe.dofs_per_cell
+  // vector of fe->dofs_per_cell
   // elements, which will then be
   // distributed to the matrix in the
   // global row $i$. The following
   // object will hold this
   // information:
-  Vector<double>      local_neumann_matrix_row_i(fe.dofs_per_cell);
-  Vector<double>      local_dirichlet_matrix_row_i(fe.dofs_per_cell);
+  Vector<double>      local_neumann_matrix_row_i(fe->dofs_per_cell);
+  Vector<double>      local_dirichlet_matrix_row_i(fe->dofs_per_cell);
 
   // Now that we have checked that
   // the number of vertices is equal
@@ -577,7 +584,7 @@ void BEMProblem<dim>::assemble_system()
               bool is_singular = false;
               unsigned int singular_index = numbers::invalid_unsigned_int;
 
-              for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+              for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
                 //if(local_dof_indices[j] == i)
                 if (double_nodes_set[i].count(local_dof_indices[j]) > 0)
                   {
@@ -602,7 +609,7 @@ void BEMProblem<dim>::assemble_system()
                       const Tensor<1,dim> R = q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, D, s);
 
-                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+                      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
                         {
                           local_neumann_matrix_row_i(j) += ( ( D *
                                                                normals[q] ) *
@@ -838,7 +845,7 @@ void BEMProblem<dim>::assemble_system()
                         &sing_quadratures[singular_index]);
                   Assert(singular_quadrature, ExcInternalError());
 
-                  FEValues<dim-1,dim> fe_v_singular (mapping, fe, *singular_quadrature,
+                  FEValues<dim-1,dim> fe_v_singular (mapping, *fe, *singular_quadrature,
                                                      update_jacobians |
                                                      update_values |
                                                      update_cell_normal_vectors |
@@ -854,7 +861,7 @@ void BEMProblem<dim>::assemble_system()
                       const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, D, s);
 
-                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+                      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
                         {
                           local_neumann_matrix_row_i(j) += (( D *
                                                               singular_normals[q])                *
@@ -872,7 +879,7 @@ void BEMProblem<dim>::assemble_system()
               // the contributions of the
               // current cell to the
               // global matrix.
-              for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
+              for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
                 {
                   neumann_matrix.add(i,local_dof_indices[j],local_neumann_matrix_row_i(j));
                   dirichlet_matrix.add(i,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
@@ -1547,21 +1554,21 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
 
   // The vector FEValues to used in the assemblage
-  FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
+  FEValues<dim-1,dim> vector_fe_v(mapping, *gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
   // The scalar FEValues to interpolate the known value of phi
-  FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(mapping, *fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
                            update_quadrature_points |
                            update_JxW_values);
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
-  const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
+  const unsigned int   vector_dofs_per_cell   = gradient_fe->dofs_per_cell;
   std::vector<types::global_dof_index> vector_local_dof_indices (vector_dofs_per_cell);
 
 
@@ -1577,15 +1584,15 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-  std::vector<types::global_dof_index> face_dofs(fe.dofs_per_face);
+  std::vector<types::global_dof_index> face_dofs(fe->dofs_per_face);
 
-  Quadrature <dim-1> dummy_quadrature(fe.get_unit_support_points());
-  FEValues<dim-1,dim> dummy_fe_v(mapping, fe, dummy_quadrature,
+  Quadrature <dim-1> dummy_quadrature(fe->get_unit_support_points());
+  FEValues<dim-1,dim> dummy_fe_v(mapping, *fe, dummy_quadrature,
                                  update_values | update_gradients |
                                  update_cell_normal_vectors |
                                  update_quadrature_points);
 
-  const unsigned int   dofs_per_cell = fe.dofs_per_cell;
+  const unsigned int   dofs_per_cell = fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
@@ -1626,10 +1633,10 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
               Tensor<1, dim> gradient = vector_node_normals[q]*phi_norm_grads[q] + phi_surf_grads[q];
               for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
                 {
-                  comp_i = gradient_fe.system_to_component_index(i).first;
+                  comp_i = gradient_fe->system_to_component_index(i).first;
                   for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
                     {
-                      comp_j = gradient_fe.system_to_component_index(j).first;
+                      comp_j = gradient_fe->system_to_component_index(j).first;
                       if (comp_i == comp_j)
                         {
                           local_gradients_matrix(i,j) += vector_fe_v.shape_value(i,q)*
@@ -1685,20 +1692,20 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
 
 
-  FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
+  FEValues<dim-1,dim> vector_fe_v(mapping, *gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
-  FEValues<dim-1,dim> fe_v(mapping, fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(mapping, *fe, *quadrature,
                            update_values | update_gradients |
                            update_cell_normal_vectors |
                            update_quadrature_points |
                            update_JxW_values);
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
-  const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
+  const unsigned int   vector_dofs_per_cell   = gradient_fe->dofs_per_cell;
   std::vector<types::global_dof_index> vector_local_dof_indices (vector_dofs_per_cell);
 
   std::vector< Tensor<1,dim> > phi_surf_grads(vector_n_q_points);
@@ -1713,15 +1720,15 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
 
   std::vector<Point<dim> > support_points(dh.n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
-  std::vector<types::global_dof_index> face_dofs(fe.dofs_per_face);
+  std::vector<types::global_dof_index> face_dofs(fe->dofs_per_face);
 
-  Quadrature <dim-1> dummy_quadrature(fe.get_unit_support_points());
-  FEValues<dim-1,dim> dummy_fe_v(mapping, fe, dummy_quadrature,
+  Quadrature <dim-1> dummy_quadrature(fe->get_unit_support_points());
+  FEValues<dim-1,dim> dummy_fe_v(mapping, *fe, dummy_quadrature,
                                  update_values | update_gradients |
                                  update_cell_normal_vectors |
                                  update_quadrature_points);
 
-  const unsigned int   dofs_per_cell = fe.dofs_per_cell;
+  const unsigned int   dofs_per_cell = fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
   const unsigned int n_q_points = dummy_fe_v.n_quadrature_points;
   std::vector< Tensor<1,dim> > dummy_phi_surf_grads(n_q_points);
@@ -1757,10 +1764,10 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
               Tensor<1,dim> gradient = phi_surf_grads[q];
               for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
                 {
-                  comp_i = gradient_fe.system_to_component_index(i).first;
+                  comp_i = gradient_fe->system_to_component_index(i).first;
                   for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
                     {
-                      comp_j = gradient_fe.system_to_component_index(j).first;
+                      comp_j = gradient_fe->system_to_component_index(j).first;
                       if (comp_i == comp_j)
                         {
                           local_gradients_matrix(i,j) += vector_fe_v.shape_value(i,q)*
@@ -1814,7 +1821,7 @@ void BEMProblem<dim>::compute_normals()
 
 
 
-  FEValues<dim-1,dim> vector_fe_v(mapping, gradient_fe, *quadrature,
+  FEValues<dim-1,dim> vector_fe_v(mapping, *gradient_fe, *quadrature,
                                   update_values | update_gradients |
                                   update_cell_normal_vectors |
                                   update_quadrature_points |
@@ -1822,7 +1829,7 @@ void BEMProblem<dim>::compute_normals()
 
   const unsigned int vector_n_q_points = vector_fe_v.n_quadrature_points;
 
-  const unsigned int   vector_dofs_per_cell   = gradient_fe.dofs_per_cell;
+  const unsigned int   vector_dofs_per_cell   = gradient_fe->dofs_per_cell;
 
   std::vector<types::global_dof_index> vector_local_dof_indices (vector_dofs_per_cell);
 
@@ -1852,10 +1859,10 @@ void BEMProblem<dim>::compute_normals()
           for (unsigned int q=0; q<vector_n_q_points; ++q)
             for (unsigned int i=0; i<vector_dofs_per_cell; ++i)
               {
-                comp_i = gradient_fe.system_to_component_index(i).first;
+                comp_i = gradient_fe->system_to_component_index(i).first;
                 for (unsigned int j=0; j<vector_dofs_per_cell; ++j)
                   {
-                    comp_j = gradient_fe.system_to_component_index(j).first;
+                    comp_j = gradient_fe->system_to_component_index(j).first;
                     if (comp_i == comp_j)
                       {
                         local_normals_matrix(i,j) += vector_fe_v.shape_value(i,q)*

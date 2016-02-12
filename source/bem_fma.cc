@@ -1432,9 +1432,9 @@ void BEMFMA<dim>::multipole_integrals()
 
   const unsigned int dofs_per_cell = fma_fe->dofs_per_cell;
 
-  AssertThrow(dofs_per_cell == GeometryInfo<dim-1>::vertices_per_cell,
-              ExcMessage("The code in this function can only be used for "
-                         "the usual Q1 elements."));
+  // AssertThrow(dofs_per_cell == GeometryInfo<dim-1>::vertices_per_cell,
+  //             ExcMessage("The code in this function can only be used for "
+  //                        "the usual Q1 elements."));
 
   // We need to set up elemMultipoleExpansionsKer1 and elemMultipoleExpansionsKer2
   // these are quite complicated objects so we need great care. Since the creation

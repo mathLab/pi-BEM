@@ -254,9 +254,9 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
   cell = bem.dh.begin_active(),
   endc = bem.dh.end();
 
-  const unsigned int   dofs_per_cell   = bem.fe.dofs_per_cell;
+  const unsigned int   dofs_per_cell   = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-  FEValues<dim-1,dim> fe_v(bem.mapping, bem.fe, *bem.quadrature,
+  FEValues<dim-1,dim> fe_v(bem.mapping, *bem.fe, *bem.quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -269,7 +269,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);
       //const std::vector<Point<dim> > &node_normals = fe_v.get_cell_normal_vectors();////provv
-      for (unsigned int j=0; j<bem.fe.dofs_per_cell; ++j)
+      for (unsigned int j=0; j<bem.fe->dofs_per_cell; ++j)
         if (this_cpu_set.is_element(local_dof_indices[j]))
           {
             //bem.pcout<<cell<<" "<<cell->material_id()<<" ("<<node_normals[0]<<") "<<-normals_sys_solution(local_dof_indices[j])<<std::endl;
@@ -351,7 +351,7 @@ void BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference (bem.mapping, bem.gradient_dh, localized_gradient_solution,
                                          wind,
                                          grad_difference_per_cell,
-                                         QGauss<(dim-1)>(2*bem.fe.degree+1),
+                                         QGauss<(dim-1)>(2*bem.fe->degree+1),
                                          VectorTools::L2_norm);
       const double grad_L2_error = grad_difference_per_cell.l2_norm();
 
@@ -359,7 +359,7 @@ void BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference (bem.mapping, bem.dh, localized_phi,
                                          potential,
                                          difference_per_cell,
-                                         QGauss<(dim-1)>(2*bem.fe.degree+1),
+                                         QGauss<(dim-1)>(2*bem.fe->degree+1),
                                          VectorTools::L2_norm);
       const double L2_error = difference_per_cell.l2_norm();
 

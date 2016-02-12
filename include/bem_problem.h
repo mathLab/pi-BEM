@@ -82,6 +82,7 @@
 #include "../include/bem_fma.h"
 #include "../include/constrained_matrix.h"
 #include <deal2lkit/parameter_acceptor.h>
+#include <deal2lkit/parsed_finite_element.h>
 #include <deal2lkit/utilities.h>
 
 
@@ -227,10 +228,16 @@ public:
   ConditionalOStream pcout;
   ComputationalDomain<dim> &comp_dom;
 
-  FE_Q<dim-1,dim>                   fe;
+
+  ParsedFiniteElement<dim-1, dim> parsed_fe;
+  ParsedFiniteElement<dim-1, dim> parsed_gradient_fe;
+  FiniteElement<dim-1, dim> *fe;
+  FiniteElement<dim-1, dim> *gradient_fe;
   DoFHandler<dim-1,dim>             dh;
-  FESystem<dim-1,dim>      gradient_fe;
   DoFHandler<dim-1,dim>    gradient_dh;
+
+  // FE_Q<dim-1,dim>                   fe;
+  // FESystem<dim-1,dim>      gradient_fe;
 
 
 

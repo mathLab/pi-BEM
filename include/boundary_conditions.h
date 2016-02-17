@@ -110,6 +110,11 @@ public:
 
   void compute_errors();
 
+  const TrilinosWrappers::MPI::Vector & get_phi();
+
+  const TrilinosWrappers::MPI::Vector & get_dphi_dn();
+
+
   std::string output_file_name;
 
 private:

@@ -83,7 +83,9 @@
 #include "../include/constrained_matrix.h"
 #include <deal2lkit/parameter_acceptor.h>
 #include <deal2lkit/parsed_finite_element.h>
+#include <deal2lkit/parsed_grid_refinement.h>
 #include <deal2lkit/utilities.h>
+
 
 
 #include <mpi.h>
@@ -221,7 +223,7 @@ public:
 
   void compute_reordering_vectors();
 
-
+  void adaptive_refinement(const TrilinosWrappers::MPI::Vector &error_vector);
 
 
   ConditionalOStream pcout;
@@ -238,7 +240,7 @@ public:
   // FE_Q<dim-1,dim>                   fe;
   // FESystem<dim-1,dim>      gradient_fe;
 
-
+  ParsedGridRefinement pgr;
 
   /// An Eulerian Mapping is created to deal
   /// with the free surface and boat mesh

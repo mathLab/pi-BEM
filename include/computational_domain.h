@@ -30,6 +30,7 @@
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/tria_boundary_lib.h>
+#include <deal.II/grid/manifold_lib.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -113,6 +114,7 @@ public:
 
   void conditional_refine_and_resize(const unsigned int refinement_level);
 
+  void update_triangulation();
   /// Here are the members of the class:
   /// they are all public, as the upper level
   /// classes (bem_problem, bem_fma,
@@ -172,6 +174,7 @@ public:
   std::vector<std::vector<unsigned int> > double_vertex_vector;
   std::map<unsigned int, std::vector<typename Triangulation<dim-1,dim>::active_cell_iterator> > vert_to_elems;
   std::set<typename Triangulation<dim-1,dim>::active_cell_iterator> edge_cells;
+  Manifold<dim-1, dim> *manifold;
   ConditionalOStream pcout;
 
 

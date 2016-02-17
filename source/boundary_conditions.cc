@@ -216,7 +216,7 @@ void BoundaryConditions<dim>:: solve_problem()
   phi.reinit(this_cpu_set,mpi_communicator);
   dphi_dn.reinit(this_cpu_set,mpi_communicator);
   tmp_rhs.reinit(this_cpu_set,mpi_communicator);
-
+  pcout<<"Computing normal vector"<<std::endl;
   bem.compute_normals();
   prepare_bem_vectors();
 
@@ -229,6 +229,17 @@ void BoundaryConditions<dim>:: solve_problem()
 
 }
 
+template <int dim>
+const TrilinosWrappers::MPI::Vector & BoundaryConditions<dim>::get_phi()
+{
+    return phi;
+}
+
+template <int dim>
+const TrilinosWrappers::MPI::Vector & BoundaryConditions<dim>::get_dphi_dn()
+{
+    return dphi_dn;
+}
 
 
 
@@ -342,6 +353,8 @@ void BoundaryConditions<dim>::compute_errors()
   bem.compute_gradients(phi,dphi_dn);
   Vector<double> localized_gradient_solution(bem.vector_gradients_solution);//vector_gradients_solution
   Vector<double> localized_phi(phi);
+  Vector<double> localized_dphi_dn(dphi_dn);
+  Vector<double> localised_normals(bem.vector_normals_solution);
 
   // We let only the first processor do the error computations
   if (this_mpi_process == 0)
@@ -351,7 +364,7 @@ void BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference (*bem.mapping, bem.gradient_dh, localized_gradient_solution,
                                          wind,
                                          grad_difference_per_cell,
-                                         QGauss<(dim-1)>(2*bem.fe->degree+1),
+                                         QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
                                          VectorTools::L2_norm);
       const double grad_L2_error = grad_difference_per_cell.l2_norm();
 
@@ -359,7 +372,7 @@ void BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
                                          potential,
                                          difference_per_cell,
-                                         QGauss<(dim-1)>(2*bem.fe->degree+1),
+                                         QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
                                          VectorTools::L2_norm);
       const double L2_error = difference_per_cell.l2_norm();
 
@@ -369,9 +382,9 @@ void BoundaryConditions<dim>::compute_errors()
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double> > grads_nodes_errs(bem.dh.n_dofs(),Vector<double>(dim));
       wind.vector_value_list(support_points,grads_nodes_errs);
-      for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
-        for (types::global_dof_index d=0; d<dim; ++d)
-          vector_gradients_node_error(3*i+d) = grads_nodes_errs[i](d);
+      for (types::global_dof_index d=0; d<dim; ++d)
+        for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
+          vector_gradients_node_error(d*bem.dh.n_dofs()+i) = grads_nodes_errs[i](d);
       vector_gradients_node_error*=-1.0;
       vector_gradients_node_error.add(1.,localized_gradient_solution);
 
@@ -383,6 +396,19 @@ void BoundaryConditions<dim>::compute_errors()
 
       phi_node_error*=-1.0;
       phi_node_error.add(1.,localized_phi);
+
+      Vector<double> dphi_dn_node_error(bem.dh.n_dofs());
+      std::vector<Vector<double> > dphi_dn_nodes_errs(bem.dh.n_dofs(), Vector<double> (dim));
+      wind.vector_value_list(support_points,dphi_dn_nodes_errs);
+      for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
+      {
+        dphi_dn_node_error[i] = 0.;
+        for(unsigned int d=0; d<dim; ++d)
+          dphi_dn_node_error[i] += localised_normals[i+d*bem.dh.n_dofs()] * dphi_dn_nodes_errs[i][d];
+      }
+
+      dphi_dn_node_error*=-1.0;
+      dphi_dn_node_error.add(1.,localized_dphi_dn);
 
 
       const double phi_max_error = phi_node_error.linfty_norm();
@@ -400,8 +426,39 @@ void BoundaryConditions<dim>::compute_errors()
 
       pcout<<"Phi Nodes error L_inf norm: "<<phi_max_error<<std::endl;
       pcout<<"Phi Cells error L_2 norm: "<<L2_error<<std::endl;
+      pcout<<"dPhidN Nodes error L_inf norm: "<<dphi_dn_node_error.linfty_norm()<<std::endl;
+      pcout<<"dPhidN Nodes error L_2 norm: "<<dphi_dn_node_error.l2_norm()<<std::endl;
       pcout<<"Phi Nodes Gradient error L_inf norm: "<<grad_phi_max_error<<std::endl;
       pcout<<"Phi Cells Gradient  error L_2 norm: "<<grad_L2_error<<std::endl;
+
+      std::string filename_vector = "vector_error.vtu";
+      std::vector<DataComponentInterpretation::DataComponentInterpretation>
+      data_component_interpretation
+      (dim, DataComponentInterpretation::component_is_part_of_vector);
+      DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_vector;
+      dataout_vector.attach_dof_handler(bem.gradient_dh);
+      dataout_vector.add_data_vector(vector_gradients_node_error, std::vector<std::string > (dim,"phi_gradient_error"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
+
+      dataout_vector.build_patches(*bem.mapping,
+                                   bem.mapping->get_degree(),
+                                   DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+
+      std::ofstream file_vector(filename_vector.c_str());
+
+      dataout_vector.write_vtu(file_vector);
+
+      std::string filename_scalar = "scalar_error.vtu";
+      DataOut<dim-1, DoFHandler<dim-1, dim> > dataout_scalar;
+      dataout_scalar.attach_dof_handler(bem.dh);
+      dataout_scalar.add_data_vector(phi_node_error, std::vector<std::string > (1,"phi_error"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+      dataout_scalar.add_data_vector(dphi_dn_node_error, std::vector<std::string > (1,"dphi_dn_error"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+      dataout_scalar.build_patches(*bem.mapping,
+                                   bem.mapping->get_degree(),
+                                   DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
+
+      std::ofstream file_scalar(filename_scalar.c_str());
+      dataout_scalar.write_vtu(file_scalar);
+
     }
 }
 

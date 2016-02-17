@@ -84,21 +84,36 @@ void Driver<dim>::run()
 {
   {
     Teuchos::TimeMonitor LocalTimer(*TotalTime);
+    unsigned int local_refinement_cycles = 0;
     {
-      Teuchos::TimeMonitor LocalTimer(*MeshTime);
+      // Teuchos::TimeMonitor LocalTimer(*MeshTime);
       //computational_domain.create_initial_mesh();
       computational_domain.read_domain();
       if (global_refinement)
+      {
         computational_domain.refine_and_resize(computational_domain.n_cycles);
+      }
       else
-        computational_domain.conditional_refine_and_resize(computational_domain.n_cycles);
+      {
+        computational_domain.conditional_refine_and_resize(1);
+        local_refinement_cycles=computational_domain.n_cycles;
+      }
       //computational_domain.generate_octree_blocking();
     }
-
+    for(unsigned int i = 0; i<=local_refinement_cycles; ++i)
     {
-      Teuchos::TimeMonitor LocalTimer(*SolveTime);
-      bem_problem.reinit();
-      boundary_conditions.solve_problem();
+      {
+        Teuchos::TimeMonitor LocalTimer(*SolveTime);
+        bem_problem.reinit();
+        boundary_conditions.solve_problem();
+      }
+      if(!global_refinement && i<local_refinement_cycles)
+      {
+        // Compute error estimator and local refinement strategy
+        bem_problem.adaptive_refinement(boundary_conditions.get_phi());
+        computational_domain.update_triangulation();
+      }
+
     }
 
     std::string filename = ( boundary_conditions.output_file_name);

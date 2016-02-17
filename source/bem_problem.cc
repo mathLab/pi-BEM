@@ -2,6 +2,9 @@
 
 #include "../include/bem_problem.h"
 #include "../include/laplace_kernel.h"
+#include <deal.II/numerics/error_estimator.h>
+
+
 #include <iostream>
 #include <iomanip>
 
@@ -79,7 +82,8 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
 
-  mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
+  if(!mapping)
+    mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
@@ -1269,7 +1273,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
 
   ConstraintMatrix c_hn;
   DoFTools::make_hanging_node_constraints (dh,c_hn);
-
+  c_hn.close();
 
   std::vector<types::subdomain_id> dofs_domain_association(dh.n_dofs());
 
@@ -1405,6 +1409,15 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                 }
             }
         }
+      // else if(firstOfDoubles == *doubles.begin())
+      // {
+      //   for(std::set<types::global_dof_index>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
+      //     if(*it!=firstOfDoubles)
+      //       {
+      //         c.add_line(*it);
+      //         c.add_entry(*it,firstOfDoubles,1);
+      //       }
+      // }
       // }
     }
 
@@ -1912,6 +1925,30 @@ void BEMProblem<dim>::compute_normals()
   solver.solve (vector_normals_matrix, vector_normals_solution, vector_normals_rhs, PreconditionIdentity());
 
   vector_constraints.distribute(vector_normals_solution);
+
+}
+
+template<int dim>
+void BEMProblem<dim>::adaptive_refinement(const TrilinosWrappers::MPI::Vector &error_vector)
+{
+
+  Vector<float> estimated_error_per_cell (comp_dom.tria.n_active_cells());
+  Vector<double> helper(error_vector);
+
+  KellyErrorEstimator<dim-1, dim>::estimate (*mapping,
+                                             dh,
+                                             QGauss<dim-2> (3),
+                                             typename FunctionMap<dim>::type(),
+                                             helper,
+                                             estimated_error_per_cell);
+
+   pgr.mark_cells(estimated_error_per_cell, comp_dom.tria);
+  //  GridRefinement::refine_and_coarsen_fixed_number (comp_dom.tria,
+  //                                                  estimated_error_per_cell,
+  //                                                  refinement_threshold, coarsening_threshold);
+   comp_dom.tria.prepare_coarsening_and_refinement();
+   comp_dom.tria.execute_coarsening_and_refinement ();
+
 
 }
 

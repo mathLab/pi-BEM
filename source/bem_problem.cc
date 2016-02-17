@@ -410,7 +410,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 template <int dim>
 void BEMProblem<dim>::compute_double_nodes_set()
 {
-  double tol=1e-4;
+  double tol=1e-10;
   double_nodes_set.clear();
   double_nodes_set.resize(dh.n_dofs());
   std::vector<Point<dim> > support_points(dh.n_dofs());
@@ -418,9 +418,31 @@ void BEMProblem<dim>::compute_double_nodes_set()
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping,
                                                     dh, support_points);
 
-  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
+  typename DoFHandler<dim-1,dim>::active_cell_iterator
+	cell = dh.begin_active(),
+	endc = dh.end();
+  std::vector<types::global_dof_index> face_dofs(fe->dofs_per_face);
+
+  edge_set.clear();
+  edge_set.set_size(dh.n_dofs());
+
+  for(cell=dh.begin_active(); cell!=endc; ++cell)
+  {
+    for(unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
+      if( cell->face(f)->at_boundary() )
+      {
+        cell->face(f)->get_dof_indices(face_dofs);
+        for(unsigned int k=0; k<face_dofs.size(); ++k)
+          edge_set.add_index(face_dofs[k]);
+      }
+  }
+  edge_set.compress();
+
+  for(types::global_dof_index i=0; i<dh.n_dofs(); ++i)
+    double_nodes_set[i].insert(i);
+  for (auto i : edge_set)//(types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
-      for (types::global_dof_index j=0; j<dh.n_dofs(); ++j)
+      for (auto j : edge_set)
         {
           if (support_points[i].distance(support_points[j]) < tol)
             {
@@ -429,6 +451,7 @@ void BEMProblem<dim>::compute_double_nodes_set()
         }
 
     }
+
 
 
 }
@@ -1244,7 +1267,8 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
   // here we prepare the constraint matrix so as to account for the presence hanging
   // nodes
 
-  DoFTools::make_hanging_node_constraints (dh,c);
+  ConstraintMatrix c_hn;
+  DoFTools::make_hanging_node_constraints (dh,c_hn);
 
 
   std::vector<types::subdomain_id> dofs_domain_association(dh.n_dofs());
@@ -1384,6 +1408,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
       // }
     }
 
+  c.merge(c_hn);
   c.close();
 
   c_cpu_set.clear();

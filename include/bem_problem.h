@@ -332,6 +332,8 @@ public:
 
   IndexSet constr_cpu_set;
 
+  IndexSet edge_set;
+
   TrilinosWrappers::MPI::Vector vector_gradients_solution;
 
   TrilinosWrappers::MPI::Vector vector_surface_gradients_solution;

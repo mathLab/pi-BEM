@@ -64,7 +64,7 @@ ComputationalDomain<dim>::ComputationalDomain(MPI_Comm comm)
 template <int dim>
 ComputationalDomain<dim>::~ComputationalDomain()
 {
-  if(manifold)
+  if (manifold)
     delete manifold;
 
 }
@@ -235,13 +235,13 @@ void ComputationalDomain<dim>::read_domain()
   // gi.read_ucd (in);
   //
 
-  if(input_grid_name == "../utilities/coarse_sphere")
-  {
-    manifold = new SphericalManifold<dim-1, dim>;
-    tria.set_all_manifold_ids(0);
-    tria.set_manifold(0, *manifold);
+  if (input_grid_name == "../utilities/coarse_sphere")
+    {
+      manifold = new SphericalManifold<dim-1, dim>;
+      tria.set_all_manifold_ids(0);
+      tria.set_manifold(0, *manifold);
 
-  }
+    }
 
 }
 
@@ -636,65 +636,65 @@ void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes
       //pcout<<"dofs before: "<<dhh.n_dofs()<<std::endl;
       bool to_restore = true;
 
-      while(to_restore)
-      {
-        compute_double_vertex_cache();
-        types::global_dof_index n_vertex=tria.n_vertices();
-        auto all_vertices=tria.get_vertices();
+      while (to_restore)
+        {
+          compute_double_vertex_cache();
+          types::global_dof_index n_vertex=tria.n_vertices();
+          auto all_vertices=tria.get_vertices();
 
-        double tol=1e-7;
+          double tol=1e-7;
 
-        to_restore=false;
-        pcout<<to_restore<<std::endl;
-        for (types::global_dof_index i=0; i<n_vertex; ++i)
-          {
-            if (vertex_on_boundary[i]==true && double_vertex_vector[i].size()==1)
-              {
-                std::vector<Point<dim> > nodes(GeometryInfo<dim-1>::vertices_per_face);
-                for (types::global_dof_index kk=0; kk<vert_to_elems[i].size(); ++kk) //ogni faccia ha due estremi
-                  {
-                    auto cell = vert_to_elems[i][kk];//mi riconduco alla cella con il nodo non conforme
-                    for (unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
-                      {
-                        if (cell->face(f)->at_boundary())// ritrovo la faccia con l'edge non doppio
-                          {
-                            //std::cout<<cell->face(f)->vertex(1)<<"  "<<cell->face(f)->vertex(0)<<std::endl;
-                            if (all_vertices[i].distance(cell->face(f)->vertex(0)) <tol)
-                              nodes[kk] = cell->face(f)->vertex(1);
-                            else if (all_vertices[i].distance(cell->face(f)->vertex(1)) <tol)
-                              nodes[kk] = cell->face(f)->vertex(0);
-                          }
-                      }
-                    //std::cout<<std::endl;
-                  }
-                //std::cout<<nodes[0]<<"    "<<ref_points[i]<<"   "<<nodes[1]<<std::endl;
-                // we can now compute the center of the parent cell face
-                Point<3> parent_face_center = 0.5*(nodes[0]+nodes[1]);
-                for (auto jt=edge_cells.begin(); jt != edge_cells.end(); ++jt)
-                  for (unsigned int d=0; d<GeometryInfo<2>::faces_per_cell; ++d)
-                    if ((*jt)->face(d)->at_boundary())
-                      {
-                        //cout<<parent_face_center.distance((*jt)->face(d)->center())<<" "<<tol<<endl;
-                        if ( parent_face_center.distance(((*jt)->face(d)->vertex(0)+(*jt)->face(d)->vertex(1))/2) < tol)
-                          {
-                            (*jt)->set_refine_flag();
-                            to_restore=true;
-                          }
-                      }
-              }
+          to_restore=false;
+          pcout<<to_restore<<std::endl;
+          for (types::global_dof_index i=0; i<n_vertex; ++i)
+            {
+              if (vertex_on_boundary[i]==true && double_vertex_vector[i].size()==1)
+                {
+                  std::vector<Point<dim> > nodes(GeometryInfo<dim-1>::vertices_per_face);
+                  for (types::global_dof_index kk=0; kk<vert_to_elems[i].size(); ++kk) //ogni faccia ha due estremi
+                    {
+                      auto cell = vert_to_elems[i][kk];//mi riconduco alla cella con il nodo non conforme
+                      for (unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
+                        {
+                          if (cell->face(f)->at_boundary())// ritrovo la faccia con l'edge non doppio
+                            {
+                              //std::cout<<cell->face(f)->vertex(1)<<"  "<<cell->face(f)->vertex(0)<<std::endl;
+                              if (all_vertices[i].distance(cell->face(f)->vertex(0)) <tol)
+                                nodes[kk] = cell->face(f)->vertex(1);
+                              else if (all_vertices[i].distance(cell->face(f)->vertex(1)) <tol)
+                                nodes[kk] = cell->face(f)->vertex(0);
+                            }
+                        }
+                      //std::cout<<std::endl;
+                    }
+                  //std::cout<<nodes[0]<<"    "<<ref_points[i]<<"   "<<nodes[1]<<std::endl;
+                  // we can now compute the center of the parent cell face
+                  Point<3> parent_face_center = 0.5*(nodes[0]+nodes[1]);
+                  for (auto jt=edge_cells.begin(); jt != edge_cells.end(); ++jt)
+                    for (unsigned int d=0; d<GeometryInfo<2>::faces_per_cell; ++d)
+                      if ((*jt)->face(d)->at_boundary())
+                        {
+                          //cout<<parent_face_center.distance((*jt)->face(d)->center())<<" "<<tol<<endl;
+                          if ( parent_face_center.distance(((*jt)->face(d)->vertex(0)+(*jt)->face(d)->vertex(1))/2) < tol)
+                            {
+                              (*jt)->set_refine_flag();
+                              to_restore=true;
+                            }
+                        }
+                }
 
-          }
+            }
 
-          if(to_restore)
-          {
-            tria.prepare_coarsening_and_refinement();
-            tria.execute_coarsening_and_refinement();
-            pcout<<"found non conformity, new cell number : "<<tria.n_active_cells()<<std::endl;
+          if (to_restore)
+            {
+              tria.prepare_coarsening_and_refinement();
+              tria.execute_coarsening_and_refinement();
+              pcout<<"found non conformity, new cell number : "<<tria.n_active_cells()<<std::endl;
 
-          }
+            }
           // pcout<<"pippo"<<std::endl;
 
-      }
+        }
       pcout<<"cells after : "<<tria.n_active_cells()<<std::endl;
       pcout<<"...Done restoring mesh conformity"<<std::endl;
     }

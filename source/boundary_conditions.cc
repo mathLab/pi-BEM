@@ -230,15 +230,15 @@ void BoundaryConditions<dim>:: solve_problem()
 }
 
 template <int dim>
-const TrilinosWrappers::MPI::Vector & BoundaryConditions<dim>::get_phi()
+const TrilinosWrappers::MPI::Vector &BoundaryConditions<dim>::get_phi()
 {
-    return phi;
+  return phi;
 }
 
 template <int dim>
-const TrilinosWrappers::MPI::Vector & BoundaryConditions<dim>::get_dphi_dn()
+const TrilinosWrappers::MPI::Vector &BoundaryConditions<dim>::get_dphi_dn()
 {
-    return dphi_dn;
+  return dphi_dn;
 }
 
 
@@ -401,11 +401,11 @@ void BoundaryConditions<dim>::compute_errors()
       std::vector<Vector<double> > dphi_dn_nodes_errs(bem.dh.n_dofs(), Vector<double> (dim));
       wind.vector_value_list(support_points,dphi_dn_nodes_errs);
       for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
-      {
-        dphi_dn_node_error[i] = 0.;
-        for(unsigned int d=0; d<dim; ++d)
-          dphi_dn_node_error[i] += localised_normals[i+d*bem.dh.n_dofs()] * dphi_dn_nodes_errs[i][d];
-      }
+        {
+          dphi_dn_node_error[i] = 0.;
+          for (unsigned int d=0; d<dim; ++d)
+            dphi_dn_node_error[i] += localised_normals[i+d*bem.dh.n_dofs()] * dphi_dn_nodes_errs[i][d];
+        }
 
       dphi_dn_node_error*=-1.0;
       dphi_dn_node_error.add(1.,localized_dphi_dn);

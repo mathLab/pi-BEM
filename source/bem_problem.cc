@@ -82,7 +82,7 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
 
-  if(!mapping)
+  if (!mapping)
     mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
 
   // we should choose the appropriate renumbering strategy and then stick with it.
@@ -423,26 +423,26 @@ void BEMProblem<dim>::compute_double_nodes_set()
                                                     dh, support_points);
 
   typename DoFHandler<dim-1,dim>::active_cell_iterator
-	cell = dh.begin_active(),
-	endc = dh.end();
+  cell = dh.begin_active(),
+  endc = dh.end();
   std::vector<types::global_dof_index> face_dofs(fe->dofs_per_face);
 
   edge_set.clear();
   edge_set.set_size(dh.n_dofs());
 
-  for(cell=dh.begin_active(); cell!=endc; ++cell)
-  {
-    for(unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
-      if( cell->face(f)->at_boundary() )
-      {
-        cell->face(f)->get_dof_indices(face_dofs);
-        for(unsigned int k=0; k<face_dofs.size(); ++k)
-          edge_set.add_index(face_dofs[k]);
-      }
-  }
+  for (cell=dh.begin_active(); cell!=endc; ++cell)
+    {
+      for (unsigned int f=0; f<GeometryInfo<dim-1>::faces_per_cell; ++f)
+        if ( cell->face(f)->at_boundary() )
+          {
+            cell->face(f)->get_dof_indices(face_dofs);
+            for (unsigned int k=0; k<face_dofs.size(); ++k)
+              edge_set.add_index(face_dofs[k]);
+          }
+    }
   edge_set.compress();
 
-  for(types::global_dof_index i=0; i<dh.n_dofs(); ++i)
+  for (types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     double_nodes_set[i].insert(i);
   for (auto i : edge_set)//(types::global_dof_index i=0; i<dh.n_dofs(); ++i)
     {
@@ -1942,12 +1942,12 @@ void BEMProblem<dim>::adaptive_refinement(const TrilinosWrappers::MPI::Vector &e
                                              helper,
                                              estimated_error_per_cell);
 
-   pgr.mark_cells(estimated_error_per_cell, comp_dom.tria);
+  pgr.mark_cells(estimated_error_per_cell, comp_dom.tria);
   //  GridRefinement::refine_and_coarsen_fixed_number (comp_dom.tria,
   //                                                  estimated_error_per_cell,
   //                                                  refinement_threshold, coarsening_threshold);
-   comp_dom.tria.prepare_coarsening_and_refinement();
-   comp_dom.tria.execute_coarsening_and_refinement ();
+  comp_dom.tria.prepare_coarsening_and_refinement();
+  comp_dom.tria.execute_coarsening_and_refinement ();
 
 
 }

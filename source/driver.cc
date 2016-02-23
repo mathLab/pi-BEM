@@ -101,6 +101,7 @@ void Driver<dim>::run()
         }
       //computational_domain.generate_octree_blocking();
     }
+    computational_domain.update_triangulation();
     for (unsigned int i = 0; i<=local_refinement_cycles; ++i)
       {
         {

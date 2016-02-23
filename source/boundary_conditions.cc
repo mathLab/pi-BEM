@@ -197,7 +197,7 @@ double* BoundaryConditions<dim>::initial_conditions() {
 
 
 template <int dim>
-void BoundaryConditions<dim>:: solve_problem()
+void BoundaryConditions<dim>::solve_problem()
 {
 
 

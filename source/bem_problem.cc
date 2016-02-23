@@ -209,7 +209,7 @@ void BEMProblem<dim>::reinit()
       neumann_matrix.reinit(full_sparsity_pattern);
       dirichlet_matrix.reinit(full_sparsity_pattern);
     }
-  pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
+  pcout<<"re-initialized sparsity patterns and matrices"<<std::endl;
   preconditioner_band = 100;
   preconditioner_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) preconditioner_band);
   is_preconditioner_initialized = false;

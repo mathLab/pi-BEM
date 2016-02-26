@@ -64,8 +64,11 @@ ComputationalDomain<dim>::ComputationalDomain(MPI_Comm comm)
 template <int dim>
 ComputationalDomain<dim>::~ComputationalDomain()
 {
-  if (manifold)
-    delete manifold;
+  tria.set_all_manifold_ids(0);
+  tria.set_manifold(0);
+  //
+  // if(manifold != NULL)
+  //   delete manifold;
 
 }
 
@@ -234,10 +237,11 @@ void ComputationalDomain<dim>::read_domain()
   // gi.attach_triangulation (tria);
   // gi.read_ucd (in);
   //
+  // manifold = new SphericalManifold<dim-1, dim>;
 
   if (input_grid_name == "../utilities/coarse_sphere")
     {
-      manifold = new SphericalManifold<dim-1, dim>;
+      // manifold = new SphericalManifold<dim-1, dim>;
       tria.set_all_manifold_ids(0);
       tria.set_manifold(0, *manifold);
 

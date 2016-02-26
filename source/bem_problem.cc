@@ -14,6 +14,14 @@ using Teuchos::Time;
 using Teuchos::TimeMonitor;
 using Teuchos::RCP;
 
+#define ENTRY EntryRaiiObject obj ## LINE (__FUNCTION__);
+
+struct EntryRaiiObject {
+  EntryRaiiObject(const char *f) : f_( f ) { printf("Entered into %s\n", f_); }
+  ~EntryRaiiObject() { printf("Exited from %s\n", f_); }
+  const char *f_;
+};
+
 RCP<Time> ConstraintsTime = Teuchos::TimeMonitor::getNewTimer("Compute Constraints Time");
 RCP<Time> AssembleTime = Teuchos::TimeMonitor::getNewTimer("Assemble Time");
 RCP<Time> NormalsTime = Teuchos::TimeMonitor::getNewTimer("Normals Time");
@@ -73,7 +81,7 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
 template <int dim>
 void BEMProblem<dim>::reinit()
 {
-
+  ENTRY
   Teuchos::TimeMonitor LocalTimer(*ReinitTime);
 
   fe = parsed_fe();
@@ -128,6 +136,7 @@ void BEMProblem<dim>::reinit()
   for (types::global_dof_index i=0; i<n_dofs; ++i)
     if (dofs_domain_association[i] == this_mpi_process)
       {
+
         this_cpu_set.add_index(i);
         types::global_dof_index dummy=sub_wise_to_original[i];
         for (unsigned int idim=0; idim<dim; ++idim)
@@ -135,6 +144,7 @@ void BEMProblem<dim>::reinit()
             vector_this_cpu_set.add_index(vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy]);
           }
       }
+
 
   // for (unsigned int i=0; i<gradient_dh.n_dofs(); ++i)
   //   if (vector_dofs_domain_association[i] == this_mpi_process)
@@ -148,7 +158,7 @@ void BEMProblem<dim>::reinit()
 
   this_cpu_set.compress();
   vector_this_cpu_set.compress();
-
+  std::cout<<"set the cpu sets"<<std::endl;
   // std::vector<types::global_dof_index> localized_ndfos(n_mpi_processes);
   // std::vector<types::global_dof_index> localized_vector_ndfos(n_mpi_processes);
   // start_per_process.resize (n_mpi_processes);
@@ -180,9 +190,13 @@ void BEMProblem<dim>::reinit()
 
   // At this point we just need to create a ghosted IndexSet for the scalar
   // DoFHandler. This can be through the builtin dealii function.
+  this_cpu_set.print(std::cout);
+  MPI_Barrier(mpi_communicator);
   ghosted_set.clear();
+  ghosted_set.set_size(dh.n_dofs());
   ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);
-
+  ghosted_set.compress();
+  std::cout<<"set ghosted set"<<std::endl;
 
   // standard TrilinosWrappers::MPI::Vector reinitialization.
   system_rhs.reinit(this_cpu_set,mpi_communicator);
@@ -191,6 +205,8 @@ void BEMProblem<dim>::reinit()
   serv_phi.reinit(this_cpu_set,mpi_communicator);
   serv_dphi_dn.reinit(this_cpu_set,mpi_communicator);
   serv_tmp_rhs.reinit(this_cpu_set,mpi_communicator);
+
+  std::cout<<"bubu"<<std::endl;
 
   // TrilinosWrappers::SparsityPattern for the BEM matricesreinitialization
   pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;

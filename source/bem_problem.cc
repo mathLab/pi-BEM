@@ -190,7 +190,7 @@ void BEMProblem<dim>::reinit()
 
   // At this point we just need to create a ghosted IndexSet for the scalar
   // DoFHandler. This can be through the builtin dealii function.
-  this_cpu_set.print(std::cout);
+  // this_cpu_set.print(std::cout);
   MPI_Barrier(mpi_communicator);
   ghosted_set.clear();
   ghosted_set.set_size(dh.n_dofs());
@@ -206,7 +206,6 @@ void BEMProblem<dim>::reinit()
   serv_dphi_dn.reinit(this_cpu_set,mpi_communicator);
   serv_tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
-  std::cout<<"bubu"<<std::endl;
 
   // TrilinosWrappers::SparsityPattern for the BEM matricesreinitialization
   pcout<<"re-initializing sparsity patterns and matrices"<<std::endl;
@@ -1254,7 +1253,7 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
   else
     {
       fma.generate_octree_blocking();
-      fma.compute_m2l_flags();
+      // fma.compute_m2l_flags();
       fma.direct_integrals();
       fma.multipole_integrals();
     }

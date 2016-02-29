@@ -36,7 +36,6 @@ RCP<Time> LocEval = Teuchos::TimeMonitor::getNewTimer("Local Evaluation Time");
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
   :
-  singular_quadrature_order(5),//TO BE CHANGED WITH A PARSER
   mpi_communicator (mpi_commy),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
@@ -69,8 +68,12 @@ template <int dim>
 void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
                            const std::vector<std::set<types::global_dof_index> > &db_in,
                            const TrilinosWrappers::MPI::Vector &input_sn,
-                           const Mapping<dim-1,dim> &input_mapping)
+                           const Mapping<dim-1,dim> &input_mapping,
+                           unsigned int quad_order,
+                           unsigned int sing_quad_order)
 {
+  quadrature_order = quad_order;
+  singular_quadrature_order = sing_quad_order;
   fma_dh = &input_dh;
   fma_fe = &(input_dh.get_fe());
   dirichlet_nodes = new const Vector<double>(input_sn);//per quadratura singolare e octree generator
@@ -2980,7 +2983,7 @@ void BEMFMA<dim>::generate_octree_blocking()
                                                     *fma_dh, support_points);
 
   // !!!TO BE CHANGED
-  quadrature = SP(new QGauss<dim-1>(4));
+  quadrature = SP(new QGauss<dim-1>(quadrature_order));
   FEValues<dim-1,dim> fe_v(*fma_mapping,*fma_fe, *quadrature,
                            update_values |
                            update_cell_normal_vectors |

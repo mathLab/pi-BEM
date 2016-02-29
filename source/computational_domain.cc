@@ -241,7 +241,7 @@ void ComputationalDomain<dim>::read_domain()
 
   if (input_grid_name == "../utilities/coarse_sphere")
     {
-      // manifold = new SphericalManifold<dim-1, dim>;
+      manifold = new SphericalManifold<dim-1, dim>;
       tria.set_all_manifold_ids(0);
       tria.set_manifold(0, *manifold);
 

@@ -235,7 +235,7 @@ void BEMProblem<dim>::reinit()
   compute_dirichlet_and_neumann_dofs_vectors();
   compute_double_nodes_set();
 
-  fma.init_fma(dh, double_nodes_set, dirichlet_nodes, *mapping);
+  fma.init_fma(dh, double_nodes_set, dirichlet_nodes, *mapping, quadrature_order, singular_quadrature_order);
 
 
   // We need a TrilinosWrappers::MPI::Vector to reinit the SparsityPattern for
@@ -322,6 +322,7 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
       std_cxx1x::shared_ptr<Quadrature<dim-1> >
       (new QuadratureSelector<dim-1> (prm.get("Quadrature type"),
                                       prm.get_integer("Quadrature order")));
+    quadrature_order = prm.get_integer("Quadrature order");
     singular_quadrature_order = prm.get_integer("Singular quadrature order");
   }
   prm.leave_subsection();

@@ -355,12 +355,12 @@ void BoundaryConditions<dim>::compute_errors()
   Vector<double> localized_phi(phi);
   Vector<double> localized_dphi_dn(dphi_dn);
   Vector<double> localised_normals(bem.vector_normals_solution);
-  Vector<double> localised_alpha(bem.alpha);
+  // Vector<double> localised_alpha(bem.alpha);
   // We let only the first processor do the error computations
   if (this_mpi_process == 0)
     {
-      for(auto i : localised_alpha.locally_owned_elements())
-        localised_alpha[i] -= 0.5;
+      // for(auto i : localised_alpha.locally_owned_elements())
+      //   localised_alpha[i] -= 0.5;
 
       Vector<double> grad_difference_per_cell (comp_dom.tria.n_active_cells());
 
@@ -433,8 +433,8 @@ void BoundaryConditions<dim>::compute_errors()
       pcout<<"dPhidN Nodes error L_2 norm: "<<dphi_dn_node_error.l2_norm()<<std::endl;
       pcout<<"Phi Nodes Gradient error L_inf norm: "<<grad_phi_max_error<<std::endl;
       pcout<<"Phi Cells Gradient  error L_2 norm: "<<grad_L2_error<<std::endl;
-      pcout<<"alpha Nodes error L_inf norm: "<<localised_alpha.linfty_norm()<<std::endl;
-      pcout<<"alpha Nodes error L_2 norm: "<<localised_alpha.l2_norm()<<std::endl;
+      // pcout<<"alpha Nodes error L_inf norm: "<<localised_alpha.linfty_norm()<<std::endl;
+      // pcout<<"alpha Nodes error L_2 norm: "<<localised_alpha.l2_norm()<<std::endl;
 
       std::string filename_vector = "vector_error.vtu";
       std::vector<DataComponentInterpretation::DataComponentInterpretation>

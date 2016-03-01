@@ -1,4 +1,4 @@
-// #define TOLL 0.001
+#define TOLL 0.001
 // #define MAXELEMENTSPERBLOCK 1
 
 #include "../include/bem_fma.h"

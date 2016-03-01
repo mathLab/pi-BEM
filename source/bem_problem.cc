@@ -90,8 +90,16 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
 
+  map_vector.reinit(gradient_dh.n_dofs());
+  // Fills the euler vector with information from the Triangulation
+  VectorTools::get_position_vector(gradient_dh, map_vector);
+  vector_constraints.reinit();
+  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
+  vector_constraints.close();
+  vector_constraints.distribute(map_vector);
+  mapping_degree = fe->get_degree();
   if (!mapping)
-    mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
+    mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
@@ -254,9 +262,6 @@ void BEMProblem<dim>::reinit()
   // DoFTools::extract_locally_relevant_dofs(gradient_dh, vector_relevant_dofs);
   // pcout<<vector_active_dofs.n_elements()<<"  "<<vector_relevant_dofs.n_elements()<<"   "<<vector_this_cpu_set.n_elements()<<std::endl;
 
-  vector_constraints.reinit();
-  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  vector_constraints.close();
 
   // This is the only way we could create the SparsityPattern, through the Epetramap of an
   // existing vector.

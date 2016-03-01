@@ -58,10 +58,12 @@
 #include<deal.II/fe/fe_system.h>
 #include<deal.II/fe/mapping_q1_eulerian.h>
 #include<deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_fe_field.h>
 
 #include<deal.II/numerics/data_out.h>
 #include<deal.II/numerics/vector_tools.h>
 #include<deal.II/numerics/solution_transfer.h>
+
 
 
 
@@ -246,6 +248,7 @@ public:
   /// with the free surface and boat mesh
   /// deformation
 
+  Vector<double> map_vector;
   shared_ptr<MappingQ<dim-1, dim> >     mapping;
   unsigned int mapping_degree;
   Vector<double> map_points;

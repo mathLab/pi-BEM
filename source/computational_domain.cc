@@ -1,20 +1,4 @@
-//----------------------------  step-34.cc  ---------------------------
-//    $Id: step-34.cc 18734 2009-04-25 13:36:48Z heltai $
-//    Version: $Name$
-//
-//    Copyright (C) 2009, 2010 by the deal.II authors
-//
-//    This file is subject to QPL and may not be  distributed
-//    without copyright and license information. Please refer
-//    to the file deal.II/doc/license.html for the  text  and
-//    further information on this license.
-//
-//    Authors: Luca Heltai, Cataldo Manigrasso
-//
-//----------------------------  step-34.cc  ---------------------------
 
-#define TOLL 0.001
-#define MAXELEMENTSPERBLOCK 1
 
 #include "../include/computational_domain.h"
 #include <deal.II/grid/grid_tools.h>

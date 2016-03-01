@@ -249,7 +249,7 @@ public:
   /// deformation
 
   Vector<double> map_vector;
-  shared_ptr<MappingQ<dim-1, dim> >     mapping;
+  shared_ptr<Mapping<dim-1, dim> >     mapping;
   unsigned int mapping_degree;
   Vector<double> map_points;
 

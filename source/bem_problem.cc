@@ -90,17 +90,6 @@ void BEMProblem<dim>::reinit()
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
 
-  map_vector.reinit(gradient_dh.n_dofs());
-  // Fills the euler vector with information from the Triangulation
-  VectorTools::get_position_vector(gradient_dh, map_vector);
-  vector_constraints.reinit();
-  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
-  vector_constraints.close();
-  vector_constraints.distribute(map_vector);
-  mapping_degree = fe->get_degree();
-  if (!mapping)
-    mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
-
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
   // is subdomain_wise (step 17, 18)
@@ -113,6 +102,18 @@ void BEMProblem<dim>::reinit()
 
   DoFRenumbering::subdomain_wise (dh);
   DoFRenumbering::subdomain_wise (gradient_dh);
+
+  map_vector.reinit(gradient_dh.n_dofs());
+  // Fills the euler vector with information from the Triangulation
+  VectorTools::get_position_vector(gradient_dh, map_vector);
+  vector_constraints.reinit();
+  DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
+  vector_constraints.close();
+  vector_constraints.distribute(map_vector);
+  // mapping_degree = fe->get_degree();
+  if (!mapping)
+    mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
+
 
 
   const types::global_dof_index n_dofs =  dh.n_dofs();
@@ -1939,7 +1940,6 @@ void BEMProblem<dim>::compute_normals()
 
   vector_normals_matrix.compress(VectorOperation::add);
   vector_normals_rhs.compress(VectorOperation::add);
-
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
                                                       SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
 

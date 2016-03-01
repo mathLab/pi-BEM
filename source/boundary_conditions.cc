@@ -428,7 +428,7 @@ void BoundaryConditions<dim>::compute_errors()
       dataout_vector.add_data_vector(vector_gradients_node_error, std::vector<std::string > (dim,"phi_gradient_error"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data, data_component_interpretation);
 
       dataout_vector.build_patches(*bem.mapping,
-                                   bem.mapping->get_degree(),
+                                   bem.mapping_degree,
                                    DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
       std::ofstream file_vector(filename_vector.c_str());
@@ -441,7 +441,7 @@ void BoundaryConditions<dim>::compute_errors()
       dataout_scalar.add_data_vector(phi_node_error, std::vector<std::string > (1,"phi_error"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
       dataout_scalar.add_data_vector(dphi_dn_node_error, std::vector<std::string > (1,"dphi_dn_error"), DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
       dataout_scalar.build_patches(*bem.mapping,
-                                   bem.mapping->get_degree(),
+                                   bem.mapping_degree,
                                    DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
       std::ofstream file_scalar(filename_scalar.c_str());
@@ -514,7 +514,7 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
 
 
       dataout_scalar.build_patches(*bem.mapping,
-                                   bem.mapping->get_degree(),
+                                   bem.mapping_degree,
                                    DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
       std::ofstream file_scalar(filename_scalar.c_str());
@@ -522,7 +522,7 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
       dataout_scalar.write_vtu(file_scalar);
 
       dataout_vector.build_patches(*bem.mapping,
-                                   bem.mapping->get_degree(),
+                                   bem.mapping_degree,
                                    DataOut<dim-1, DoFHandler<dim-1, dim> >::curved_inner_cells);
 
       std::ofstream file_vector(filename_vector.c_str());

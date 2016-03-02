@@ -396,6 +396,13 @@ void BoundaryConditions<dim>::compute_errors()
       dphi_dn_node_error*=-1.0;
       dphi_dn_node_error.add(1.,localized_dphi_dn);
 
+      Vector<float> difference_per_cell_2(comp_dom.tria.n_active_cells());
+      VectorTools::integrate_difference (*bem.mapping, bem.dh, dphi_dn_node_error,
+                                         ZeroFunction<dim, double> (1),
+                                         difference_per_cell_2,
+                                         QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
+                                         VectorTools::L2_norm);
+      const double dphi_dn_L2_error = difference_per_cell_2.l2_norm();
 
       const double phi_max_error = phi_node_error.linfty_norm();
       const double grad_phi_max_error = vector_gradients_node_error.linfty_norm();
@@ -413,7 +420,7 @@ void BoundaryConditions<dim>::compute_errors()
       pcout<<"Phi Nodes error L_inf norm: "<<phi_max_error<<std::endl;
       pcout<<"Phi Cells error L_2 norm: "<<L2_error<<std::endl;
       pcout<<"dPhidN Nodes error L_inf norm: "<<dphi_dn_node_error.linfty_norm()<<std::endl;
-      pcout<<"dPhidN Nodes error L_2 norm: "<<dphi_dn_node_error.l2_norm()<<std::endl;
+      pcout<<"dPhidN Nodes error L_2 norm: "<<dphi_dn_L2_error<<std::endl;
       pcout<<"Phi Nodes Gradient error L_inf norm: "<<grad_phi_max_error<<std::endl;
       pcout<<"Phi Cells Gradient  error L_2 norm: "<<grad_L2_error<<std::endl;
       // pcout<<"alpha Nodes error L_inf norm: "<<localised_alpha.linfty_norm()<<std::endl;

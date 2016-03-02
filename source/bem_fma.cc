@@ -1750,12 +1750,12 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
   Threads::TaskGroup<> group_creation;
   for (types::global_dof_index ii = 0; ii <  num_blocks ; ii++)
-    group_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_creation), ii, this);
+    group_creation += Threads::new_task ( std::function<void ()> (std::bind(f_creation, ii, this)));//<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_creation), ii, this);
   group_creation.join_all();
 
-// we now begin the rising phase of the algorithm: starting from the lowest block levels (childless blocks)
-// we get all the values of the multipole integrals and aggregate them in the multipole expansion for
-// each blocks
+  // we now begin the rising phase of the algorithm: starting from the lowest block levels (childless blocks)
+  // we get all the values of the multipole integrals and aggregate them in the multipole expansion for
+  // each blocks
 
 
   // We need to create the multipole expansions for all the blocks in the childlessList.
@@ -1804,7 +1804,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
   Threads::TaskGroup<> group_childless_creation;
   for (types::global_dof_index kk = 0; kk <  childlessList.size(); kk++)
-    group_childless_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
+    group_childless_creation += Threads::new_task ( std::function<void ()> (std::bind( f_childless_creation, kk, this, phi_values, dphi_dn_values)));//( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
   group_childless_creation.join_all();
 
   // {
@@ -2042,7 +2042,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
   Threads::TaskGroup<> group_local_creation;
   for (types::global_dof_index ii = 0; ii <  num_blocks ; ii++)
-    group_local_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_local_creation), ii, this);
+    group_local_creation += Threads::new_task ( std::function<void ()> (std::bind(f_local_creation, ii, this)));//( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_local_creation), ii, this);
   group_local_creation.join_all();
 
   // // here we loop on all the blocks and build an empty local expansion for
@@ -2473,7 +2473,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
   Threads::TaskGroup<> group_local_evaluation;
   for (types::global_dof_index kk = 0; kk <  childlessList.size(); kk++)
-    group_local_evaluation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::MPI::Vector &, TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *, const std::vector<Point<dim> > &)> (f_local_evaluation), kk, matrVectProdD, matrVectProdN, this, support_points);
+    group_local_evaluation += Threads::new_task ( std::function<void ()> (std::bind(f_local_evaluation, kk, matrVectProdD, matrVectProdN, this, support_points)));//( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::MPI::Vector &, TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *, const std::vector<Point<dim> > &)> (f_local_evaluation), kk, matrVectProdD, matrVectProdN, this, support_points);
   group_local_evaluation.join_all();
 
   // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
@@ -2672,7 +2672,7 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   // must be empty.
   Threads::TaskGroup<> prec_filler;
   for (types::global_dof_index ii = 0; ii <  fma_dh->n_dofs() ; ii++)
-    prec_filler += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const BEMFMA<dim> *)> (f_sparsity_filler), ii, final_preconditioner, c, this);
+    prec_filler += Threads::new_task (static_cast<void (*)(types::global_dof_index, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const BEMFMA<dim> *)> (f_sparsity_filler), ii, final_preconditioner, c, this);
   prec_filler.join_all();
 
   // The compress operation makes all the vectors on different processors compliant.

@@ -103,8 +103,8 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
     if ( (constraints.is_constrained(i)) &&
          (src.locally_owned_elements().is_element(i)) )
       {
-        dst(i) -= dst(i);
-        dst(i) += src(i);
+        // dst(i) -= dst(i);
+        dst(i) += src(i) - dst(i);
         const std::vector< std::pair < types::global_dof_index, double > >
         *entries = constraints.get_constraint_entries (i);
         for (unsigned int j=0; j< entries->size(); ++j)

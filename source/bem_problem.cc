@@ -1040,8 +1040,6 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
   serv_phi.scale(neumann_nodes);
   serv_dphi_dn.scale(dirichlet_nodes);
 
-  //phi.print(pcout);
-  //dphi_dn.print(pcout);
   if (solution_method == "Direct")
     {
       dirichlet_matrix.vmult(dst, serv_dphi_dn);

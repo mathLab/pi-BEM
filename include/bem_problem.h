@@ -87,7 +87,7 @@
 #include <deal2lkit/parsed_finite_element.h>
 #include <deal2lkit/parsed_grid_refinement.h>
 #include <deal2lkit/utilities.h>
-
+// #include <bem_problem_access.h>
 
 
 #include <mpi.h>
@@ -98,10 +98,14 @@ using namespace deal2lkit;
 //using namespace TrilinosWrappers;
 //using namespace TrilinosWrappers::MPI;
 
+template <int dim> class BEMProblemAccess;
+
 template <int dim>
 class BEMProblem : public ParameterAcceptor
 {
 public:
+
+  friend class BEMProblemAccess<dim>;
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
 

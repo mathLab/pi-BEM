@@ -115,7 +115,7 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
       dst(i) += 0.;
 
   dst.compress(VectorOperation::add);
-
+  //constraints.condense(dst);
   // std::cout<<"out vector "<<std::endl;
   // for (unsigned int i = 0; i < dst.size(); i++)
   //     if (dst.locally_owned_elements().is_element(i))

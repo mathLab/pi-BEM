@@ -93,7 +93,8 @@ void Driver<dim>::run()
         {
           computational_domain.refine_and_resize(computational_domain.mg_cycles);
           bem_problem.reinit();
-          bem_problem.compute_constraints();
+          boundary_conditions.solve_problem();
+          bem_problem.my_preconditioner.initialize(&bem_problem);
           bem_problem.my_preconditioner.build_coarse_inverse();
           computational_domain.refine_and_resize(computational_domain.n_cycles-computational_domain.mg_cycles);
         }
@@ -102,7 +103,7 @@ void Driver<dim>::run()
           // computational_domain.conditional_refine_and_resize(1);
           computational_domain.refine_and_resize(computational_domain.mg_cycles);
           bem_problem.reinit();
-          bem_problem.compute_constraints();
+          boundary_conditions.solve_problem();
           bem_problem.my_preconditioner.build_coarse_inverse();
           local_refinement_cycles=computational_domain.n_cycles;
 

@@ -83,7 +83,6 @@
 #include "../include/computational_domain.h"
 #include "../include/bem_fma.h"
 #include "../include/constrained_matrix.h"
-#include <preconditioner.h>
 #include <deal2lkit/parameter_acceptor.h>
 #include <deal2lkit/parsed_finite_element.h>
 #include <deal2lkit/parsed_grid_refinement.h>
@@ -308,7 +307,7 @@ public:
 
   // TODO AMG preconditioner
   PreconditionerBEM<dim> my_preconditioner;
-
+  
   TrilinosWrappers::PreconditionILU preconditioner;
 
   TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern;

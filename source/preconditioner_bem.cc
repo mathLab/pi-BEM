@@ -1,4 +1,4 @@
-#include <preconditioner.h>
+#include <preconditioner_bem.h>
 #include <laplace_kernel.h>
 // #include <bem_problem_access.h>
 // template <int dim>
@@ -14,8 +14,8 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
   auto mapping = this->get_bem_mapping();
   auto dh = this->get_bem_dh();
   auto quadrature = this->get_bem_quadrature();
-  auto singular_quadrature_order = this->get_singular_quadrature_order();
-  auto constraints = this->get_bem_constraint_matrix();
+  auto singular_quadrature_order = this->get_bem_singular_quadrature_order();
+  ConstraintMatrix constraints(this->get_bem_constraint_matrix());
   auto fe = this->get_bem_fe();
   auto dirichlet_nodes = this->get_bem_dirichlet_nodes();
   auto double_nodes_set = this->get_bem_double_nodes_set();
@@ -23,7 +23,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
   constraints_coarse.clear();
   constraints_coarse.merge(constraints);
   dh_coarse.initialize(dh->get_triangulation(), *fe);
-  // dh.distribute_mg_dofs(*fe);
+  //  dh->distribute_mg_dofs(*fe);
   // First We need to set up the sparsity pattern for the matrix.
   sp_coarse_full.reinit(dh->n_dofs(level_mg),dh->n_dofs(level_mg),dh->n_dofs(level_mg));
   for(size_type i=0; i<dh->n_dofs(level_mg); ++i)
@@ -81,7 +81,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
       const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
 
-      for (types::global_dof_index i=0; i<dh.n_dofs(level_mg) ; ++i) //these must now be the locally owned dofs. the rest should stay the same
+      for (types::global_dof_index i=0; i< dh->n_dofs(level_mg) ; ++i) //these must now be the locally owned dofs. the rest should stay the same
       {
             local_matrix_row_i = 0;
 
@@ -249,10 +249,11 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
     vector_shift(ones, -1.);
 
-    system_matrix.vmult(alpha, ones);
+    prec_matrix.vmult(alpha, ones);
 
     for(size_type i =0 ; i<n_coarse; ++i)
-      system_matrix.add(i,i,alpha[i]);
+      if(dirichlet_nodes[i]==0)
+        prec_matrix.add(i,i,alpha[i]);
 
 
     prec_solver.initialize(prec_matrix);
@@ -304,7 +305,7 @@ void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const Tri
 
   auto dh = this->get_bem_dh();
 
-  auto constraints_fine = this->get_bem_constraint_matrix();
+  ConstraintMatrix constraints_fine(this->get_bem_constraint_matrix());
 
   VectorTools::interpolate_to_different_mesh(*dh,loc,dh_coarse,constraints_coarse,in_coarse);
 
@@ -320,3 +321,5 @@ void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const Tri
   out.compress(VectorOperation::insert);
 
 }
+
+template class PreconditionerBEM<3>;

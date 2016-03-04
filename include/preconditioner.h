@@ -51,9 +51,9 @@ class PreconditionerBEM : public BEMProblemAccess<dim>
    * The matrix argument is ignored and here just for compatibility with more
    * complex preconditioners.
    */
-  void build_coarse_inverse(unsigned int level_mg);
+  void build_coarse_inverse(unsigned int level_mg=0);
 
-  void build_projector(const DoFHandler<dim-1, dim> &dh_fine_in);
+  void build_projector();//const DoFHandler<dim-1, dim> &dh_fine_in
 
 
   /**
@@ -116,6 +116,9 @@ class PreconditionerBEM : public BEMProblemAccess<dim>
   SparseDirectUMFPACK prec_solver;
   TrilinosWrappers::SparseMatrix projector;
   TrilinosWrappers::SparsityPattern projector_sp;
+  ConstraintMatrix constraints_coarse;
+  DoFHandler<dim-1, dim> dh_coarse;
+  size_type n_coarse;
 
 };
 

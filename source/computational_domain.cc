@@ -71,6 +71,9 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
 
+  prm.declare_entry("Number of mg cycles", "1",
+                    Patterns::Integer());
+
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
     prm.declare_entry("Dirichlet boundary ids", "1,110,110", Patterns::List(Patterns::Integer(0)));
@@ -94,7 +97,7 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
   input_grid_name = prm.get("Input grid name");
   input_grid_format = prm.get("Input grid format");
   n_cycles = prm.get_integer("Number of cycles");
-
+  mg_cycles = prm.get_integer("Number of mg cycles");
 
 
 

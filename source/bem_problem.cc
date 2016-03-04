@@ -1187,12 +1187,12 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
       assemble_preconditioner();
       //solver.solve (cc, sol, system_rhs, PreconditionIdentity());
       sol.sadd(1., 0., system_rhs);
-      solver.solve (cc, sol, system_rhs, preconditioner);
+      solver.solve (cc, sol, system_rhs, my_preconditioner);
     }
   else
     {
       TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
-      solver.solve (cc, sol, system_rhs, fma_preconditioner);
+      solver.solve (cc, sol, system_rhs, my_preconditioner);
       // solver.solve (cc, sol, system_rhs, PreconditionIdentity());
     }
 

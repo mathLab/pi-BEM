@@ -20,7 +20,10 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
   auto dirichlet_nodes = this->get_bem_dirichlet_nodes();
   auto double_nodes_set = this->get_bem_double_nodes_set();
 
-  dh.distribute_mg_dofs(*fe);
+  constraints_coarse.clear();
+  constraints_coarse.merge(constraints);
+  dh_coarse.initialize(dh->get_triangulation(), *fe);
+  // dh.distribute_mg_dofs(*fe);
   // First We need to set up the sparsity pattern for the matrix.
   sp_coarse_full.reinit(dh->n_dofs(level_mg),dh->n_dofs(level_mg),dh->n_dofs(level_mg));
   for(size_type i=0; i<dh->n_dofs(level_mg); ++i)
@@ -63,7 +66,6 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, *dh, support_points);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-
   cell_it
   cell = dh->begin_mg(level_mg),
   endc = dh->end_mg(level_mg);
@@ -240,20 +242,81 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
           }
     }
 
+    // Computing alpha
+    n_coarse = prec_matrix.n();
+
+    Vector<double> ones(n_coarse), alpha(n_coarse);
+
+    vector_shift(ones, -1.);
+
+    system_matrix.vmult(alpha, ones);
+
+    for(size_type i =0 ; i<n_coarse; ++i)
+      system_matrix.add(i,i,alpha[i]);
+
+
     prec_solver.initialize(prec_matrix);
+
 
 }
 
 
 template <int dim>
-void PreconditionerBEM<dim>::build_projector(const DofHandler<dim-1, dim> &dh_fine_in)
+void PreconditionerBEM<dim>::build_projector()
 {
-
+  // auto mapping = this->get_bem_mapping();
+  // auto dh = this->get_bem_dh();
+  // auto quadrature = this->get_bem_quadrature();
+  // auto fe = this->get_bem_fe();
+  // FEValues<dim-1,dim> fe_v(*mapping,*fe, *quadrature,
+  //                          update_values );
+  //
+  // typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
+  // std::vector<Point<dim> > support_points(dh->n_dofs());
+  // DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, *dh, support_points);
+  //
+  // cell_it
+  // cell = dh->begin_mg(level_mg),
+  // endc = dh->end_mg(level_mg);
+  // // which level??? (check sui support point per determinarlo)
+  // for (cell = dh->begin_mg(level_mg); cell != endc; ++cell)
+  // {
+  //   fe_v.reinit(cell);
+  //   cell->get_dof_indices(local_dof_indices);
+  //   for(size_type i = 0; i<support_points.size(); ++i)
+  //   {
+  //
+  //   }
+  // }
+  //
 }
 //
 //
-// template <int dim>
-// void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const TrilinosWrappers::MPI::Vector &in) const
-// {
-//
-// }
+template <int dim>
+void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const TrilinosWrappers::MPI::Vector &in) const
+{
+  unsigned int level_mg = 1;
+  Vector<double> loc(in);
+
+  Vector<double> in_coarse(n_coarse);
+
+  Vector<double> out_coarse(n_coarse);
+
+  auto dh = this->get_bem_dh();
+
+  auto constraints_fine = this->get_bem_constraint_matrix();
+
+  VectorTools::interpolate_to_different_mesh(*dh,loc,dh_coarse,constraints_coarse,in_coarse);
+
+  prec_solver.vmult(out_coarse, in_coarse);
+
+  loc = 0.;
+
+  VectorTools::interpolate_to_different_mesh(dh_coarse,out_coarse,*dh,constraints_fine,loc);
+
+  for(auto i : out.locally_owned_elements())
+    out[i] = loc[i];
+
+  out.compress(VectorOperation::insert);
+
+}

@@ -150,7 +150,7 @@ public:
 
   /// number of refining cycles
 
-  unsigned int n_cycles;
+  unsigned int n_cycles, mg_cycles;
 
   /// Strings identifying the input grid name and format
   std::string input_grid_name;

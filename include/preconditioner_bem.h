@@ -183,7 +183,7 @@ public:
   // TrilinosWrappers::SparseMatrix projector;
   // TrilinosWrappers::SparsityPattern projector_sp;
   ConstraintMatrix constraints_coarse;
-  DoFHandler<dim-1, dim> *dh_coarse;
+  DoFHandler<dim-1, dim> dh_coarse;
   size_type n_coarse;
 
 };

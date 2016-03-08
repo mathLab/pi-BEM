@@ -8,25 +8,25 @@
 // }
 
 template <int dim>
-void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, const TrilinosWrappers::MPI::Vector &dirichlet_nodes, const ConstraintMatrix &constraints, const Mapping<dim-1,dim> *mapping)
+void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, const TrilinosWrappers::MPI::Vector &dirichlet_nodes, const ConstraintMatrix &constraints, const Mapping<dim-1,dim> mapping)
 {
 
-  auto mapping = this->get_bem_mapping();
-  auto dh = this->get_bem_dh();
-  auto quadrature = this->get_bem_quadrature();
+  auto &mapping = this->get_bem_mapping();
+  auto &dh = this->get_bem_dh();
+  auto &quadrature = this->get_bem_quadrature();
   auto singular_quadrature_order = this->get_bem_singular_quadrature_order();
-  ConstraintMatrix constraints(this->get_bem_constraint_matrix());
-  auto fe = this->get_bem_fe();
-  auto dirichlet_nodes = this->get_bem_dirichlet_nodes();
-  auto double_nodes_set = this->get_bem_double_nodes_set();
+  auto &constraints = this->get_bem_constraint_matrix();
+  auto &fe = this->get_bem_fe();
+  auto &dirichlet_nodes = this->get_bem_dirichlet_nodes();
+  auto &double_nodes_set = this->get_bem_double_nodes_set();
 
   constraints_coarse.clear();
   constraints_coarse.merge(constraints);
-  dh_coarse->initialize(dh->get_triangulation(), *fe);
-  //  dh->distribute_mg_dofs(*fe);
+  dh_coarse.initialize(dh.get_triangulation(), fe);
+  //  dh.distribute_mg_dofs(fe);
   // First We need to set up the sparsity pattern for the matrix.
-  sp_coarse_full.reinit(dh->n_dofs(level_mg),dh->n_dofs(level_mg),dh->n_dofs(level_mg));
-  for(size_type i=0; i<dh->n_dofs(level_mg); ++i)
+  sp_coarse_full.reinit(dh.n_dofs(level_mg),dh.n_dofs(level_mg),dh.n_dofs(level_mg));
+  for(size_type i=0; i<dh.n_dofs(level_mg); ++i)
   {
     if(constraints.is_constrained(i))
     {
@@ -38,7 +38,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
     }
     else
-      for(size_type j=0; j<dh->n_dofs(level_mg); ++j)
+      for(size_type j=0; j<dh.n_dofs(level_mg); ++j)
         sp_coarse_full.add(i,j);
 
   }
@@ -47,12 +47,12 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
 
   std::vector<QTelles<dim-1> > sing_quadratures;
-  for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
+  for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
     sing_quadratures.push_back
     (QTelles<dim-1>(singular_quadrature_order,
-                    fe->get_unit_support_points()[i]));
+                    fe.get_unit_support_points()[i]));
 
-  FEValues<dim-1,dim> fe_v(*mapping,*fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(mapping,fe, quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -60,20 +60,20 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
   const unsigned int n_q_points = fe_v.n_quadrature_points;
 
-  std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
-  Vector<double>      local_matrix_row_i(fe->dofs_per_cell);
-  std::vector<Point<dim> > support_points(dh->n_dofs(level_mg));
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, *dh, support_points);
+  std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
+  Vector<double>      local_matrix_row_i(fe.dofs_per_cell);
+  std::vector<Point<dim> > support_points(dh.n_dofs(level_mg));
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
   cell_it
-  cell = dh->begin_mg(level_mg),
-  endc = dh->end_mg(level_mg);
+  cell = dh.begin_mg(level_mg),
+  endc = dh.end_mg(level_mg);
 
   Point<dim> D;
   double s;
 
-  for (cell = dh->begin_mg(level_mg); cell != endc; ++cell)
+  for (cell = dh.begin_mg(level_mg); cell != endc; ++cell)
     {
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);
@@ -81,14 +81,14 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
       const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
 
-      for (types::global_dof_index i=0; i< dh->n_dofs(level_mg) ; ++i) //these must now be the locally owned dofs. the rest should stay the same
+      for (types::global_dof_index i=0; i< dh.n_dofs(level_mg) ; ++i) //these must now be the locally owned dofs. the rest should stay the same
       {
             local_matrix_row_i = 0;
 
             bool is_singular = false;
             unsigned int singular_index = numbers::invalid_unsigned_int;
 
-            for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+            for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
               //if(local_dof_indices[j] == i)
               if (double_nodes_set[i].count(local_dof_indices[j]) > 0)
                 {
@@ -106,7 +106,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
                     LaplaceKernel::kernels(R, D, s);
                     // if(support_points[i][0]==0.25&&support_points[i][1]==0.25)
                     //   pcout<<"D "<<D<<" s "<<s<<" , ";
-                    for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+                    for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                       {
                         local_matrix_row_i(j) += ( ( D *
                                                              normals[q] ) *
@@ -126,7 +126,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
                       &sing_quadratures[singular_index]);
                 Assert(singular_quadrature, ExcInternalError());
 
-                FEValues<dim-1,dim> fe_v_singular (*mapping, *fe, *singular_quadrature,
+                FEValues<dim-1,dim> fe_v_singular (mapping, fe, *singular_quadrature,
                                                    update_jacobians |
                                                    update_values |
                                                    update_cell_normal_vectors |
@@ -142,7 +142,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
                     const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
                     LaplaceKernel::kernels(R, D, s);
 
-                    for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+                    for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                       {
                         local_matrix_row_i(j) += (( D *
                                                             singular_normals[q])                *
@@ -168,7 +168,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
                       LaplaceKernel::kernels(R, D, s);
                       // if(support_points[i][0]==0.25&&support_points[i][1]==0.25)
                       //   pcout<<"D "<<D<<" s "<<s<<" , ";
-                      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                         {
                           local_matrix_row_i(j) -= ( s *
                                                                fe_v.shape_value(j,q) *
@@ -188,7 +188,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
                         &sing_quadratures[singular_index]);
                   Assert(singular_quadrature, ExcInternalError());
 
-                  FEValues<dim-1,dim> fe_v_singular (*mapping, *fe, *singular_quadrature,
+                  FEValues<dim-1,dim> fe_v_singular (mapping, fe, *singular_quadrature,
                                                      update_jacobians |
                                                      update_values |
                                                      update_cell_normal_vectors |
@@ -204,7 +204,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
                       const Tensor<1,dim> R = singular_q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, D, s);
 
-                      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+                      for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                         {
                           local_matrix_row_i(j) -= ( s   *
                                                                fe_v_singular.shape_value(j,q)     *
@@ -235,7 +235,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
             }
             else
-              for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+              for (unsigned int j=0; j<fe.dofs_per_cell; ++j)
                 {
                   prec_matrix.add(i,local_dof_indices[j],local_matrix_row_i(j));
                 }
@@ -269,18 +269,18 @@ void PreconditionerBEM<dim>::build_projector()
   // auto dh = this->get_bem_dh();
   // auto quadrature = this->get_bem_quadrature();
   // auto fe = this->get_bem_fe();
-  // FEValues<dim-1,dim> fe_v(*mapping,*fe, *quadrature,
+  // FEValues<dim-1,dim> fe_v(mapping,fe, quadrature,
   //                          update_values );
   //
   // typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
-  // std::vector<Point<dim> > support_points(dh->n_dofs());
-  // DoFTools::map_dofs_to_support_points<dim-1, dim>( *mapping, *dh, support_points);
+  // std::vector<Point<dim> > support_points(dh.n_dofs());
+  // DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
   //
   // cell_it
-  // cell = dh->begin_mg(level_mg),
-  // endc = dh->end_mg(level_mg);
+  // cell = dh.begin_mg(level_mg),
+  // endc = dh.end_mg(level_mg);
   // // which level??? (check sui support point per determinarlo)
-  // for (cell = dh->begin_mg(level_mg); cell != endc; ++cell)
+  // for (cell = dh.begin_mg(level_mg); cell != endc; ++cell)
   // {
   //   fe_v.reinit(cell);
   //   cell->get_dof_indices(local_dof_indices);
@@ -303,17 +303,17 @@ void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const Tri
 
   Vector<double> out_coarse(n_coarse);
 
-  auto dh = this->get_bem_dh();
+  auto &dh = this->get_bem_dh();
 
   ConstraintMatrix constraints_fine(this->get_bem_constraint_matrix());
 
-  VectorTools::interpolate_to_different_mesh(*dh,loc,*dh_coarse,constraints_coarse,in_coarse);
+  VectorTools::interpolate_to_different_mesh(dh,loc,dh_coarse,constraints_coarse,in_coarse);
 
   prec_solver.vmult(out_coarse, in_coarse);
 
   loc = 0.;
 
-  VectorTools::interpolate_to_different_mesh(*dh_coarse,out_coarse,*dh,constraints_fine,loc);
+  VectorTools::interpolate_to_different_mesh(dh_coarse,out_coarse,dh,constraints_fine,loc);
 
   for(auto i : out.locally_owned_elements())
     out[i] = loc[i];

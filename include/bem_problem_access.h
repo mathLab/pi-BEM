@@ -1,3 +1,6 @@
+#ifndef bem_problem_access_h
+#define bem_problem_access_h
+
 #include <bem_problem.h>
 
 using namespace dealii;
@@ -49,3 +52,5 @@ private:
    BEMProblem<dim> * bem_problem;
 
 };
+
+#endif

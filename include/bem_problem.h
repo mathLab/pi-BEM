@@ -100,6 +100,7 @@ using namespace deal2lkit;
 //using namespace TrilinosWrappers::MPI;
 
 template <int dim> class BEMProblemAccess;
+template <int dim> class PreconditionerBEM;
 
 template <int dim>
 class BEMProblem : public ParameterAcceptor

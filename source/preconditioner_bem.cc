@@ -22,7 +22,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
   constraints_coarse.clear();
   constraints_coarse.merge(constraints);
-  dh_coarse.initialize(dh->get_triangulation(), *fe);
+  dh_coarse->initialize(dh->get_triangulation(), *fe);
   //  dh->distribute_mg_dofs(*fe);
   // First We need to set up the sparsity pattern for the matrix.
   sp_coarse_full.reinit(dh->n_dofs(level_mg),dh->n_dofs(level_mg),dh->n_dofs(level_mg));
@@ -307,13 +307,13 @@ void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const Tri
 
   ConstraintMatrix constraints_fine(this->get_bem_constraint_matrix());
 
-  VectorTools::interpolate_to_different_mesh(*dh,loc,dh_coarse,constraints_coarse,in_coarse);
+  VectorTools::interpolate_to_different_mesh(*dh,loc,*dh_coarse,constraints_coarse,in_coarse);
 
   prec_solver.vmult(out_coarse, in_coarse);
 
   loc = 0.;
 
-  VectorTools::interpolate_to_different_mesh(dh_coarse,out_coarse,*dh,constraints_fine,loc);
+  VectorTools::interpolate_to_different_mesh(*dh_coarse,out_coarse,*dh,constraints_fine,loc);
 
   for(auto i : out.locally_owned_elements())
     out[i] = loc[i];

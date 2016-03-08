@@ -6,7 +6,7 @@
 using namespace dealii;
 // using namespace deal2lkit;
 
-// template <int dim> class BEMProblem;
+template <int dim> class BEMProblem;
 
 template <int dim>
 class BEMProblemAccess
@@ -18,7 +18,7 @@ public:
      bem_problem = in;
    };
   DoFHandler<dim-1, dim> * get_bem_dh() const {
-     return bem_problem->dh;
+    return &(bem_problem->dh);
    };
 
    FiniteElement<dim-1, dim> * get_bem_fe() const{
@@ -26,10 +26,10 @@ public:
    }
   //  const Triangulation<dim-1, dim> & get_tria();
    Mapping<dim-1,dim> * get_bem_mapping() const{
-     return bem_problem->mapping;
+     return &(*bem_problem->mapping);
    };
    Quadrature<dim-1> * get_bem_quadrature() const{
-     return bem_problem->quadrature;
+     return &(*bem_problem->quadrature);
    };
    unsigned int get_bem_singular_quadrature_order(){
      return bem_problem->singular_quadrature_order;

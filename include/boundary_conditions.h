@@ -110,6 +110,8 @@ public:
 
   void compute_errors();
 
+  void compute_bem_constraints();
+
   const TrilinosWrappers::MPI::Vector &get_phi();
 
   const TrilinosWrappers::MPI::Vector &get_dphi_dn();

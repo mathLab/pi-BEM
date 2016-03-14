@@ -23,10 +23,10 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
   constraints_coarse.clear();
   constraints_coarse.merge(constraints);
   dh_coarse.initialize(dh.get_triangulation(), fe);
-  //  dh.distribute_mg_dofs(fe);
+  // dh.distribute_mg_dofs(fe);
   // First We need to set up the sparsity pattern for the matrix.
-  sp_coarse_full.reinit(dh.n_dofs(level_mg),dh.n_dofs(level_mg),dh.n_dofs(level_mg));
-  for(size_type i=0; i<dh.n_dofs(level_mg); ++i)
+  sp_coarse_full.reinit(dh_coarse.n_dofs(),dh_coarse.n_dofs(),dh_coarse.n_dofs());
+  for(size_type i=0; i<dh_coarse.n_dofs(); ++i)
   {
     if(constraints.is_constrained(i))
     {
@@ -38,10 +38,11 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
     }
     else
-      for(size_type j=0; j<dh.n_dofs(level_mg); ++j)
+      for(size_type j=0; j<dh_coarse.n_dofs(); ++j)
         sp_coarse_full.add(i,j);
 
   }
+  sp_coarse_full.compress();
   prec_matrix.reinit(sp_coarse_full);
 
 
@@ -62,18 +63,19 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
   std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
   Vector<double>      local_matrix_row_i(fe.dofs_per_cell);
-  std::vector<Point<dim> > support_points(dh.n_dofs(level_mg));
-  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh, support_points);
+  std::vector<Point<dim> > support_points(dh_coarse.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim-1, dim>( mapping, dh_coarse, support_points);
 
   typedef typename DoFHandler<dim-1,dim>::active_cell_iterator cell_it;
   cell_it
-  cell = dh.begin_mg(level_mg),
-  endc = dh.end_mg(level_mg);
+  cell = dh_coarse.begin_active(),
+  endc = dh_coarse.end();
 
   Point<dim> D;
   double s;
+  std::cout<<"looping for the inverse"<<std::endl;
 
-  for (cell = dh.begin_mg(level_mg); cell != endc; ++cell)
+  for (cell = dh_coarse.begin_active(); cell != endc; ++cell)
     {
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);
@@ -81,7 +83,7 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
       const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
 
-      for (types::global_dof_index i=0; i< dh.n_dofs(level_mg) ; ++i) //these must now be the locally owned dofs. the rest should stay the same
+      for (types::global_dof_index i=0; i< dh_coarse.n_dofs() ; ++i) //these must now be the locally owned dofs. the rest should stay the same
       {
             local_matrix_row_i = 0;
 
@@ -244,18 +246,23 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
     // Computing alpha
     n_coarse = prec_matrix.n();
+    std::cout<<"Computing alpha"<<std::endl;
 
     Vector<double> ones(n_coarse), alpha(n_coarse);
 
     vector_shift(ones, -1.);
 
     prec_matrix.vmult(alpha, ones);
+    // prec_matrix.print_formatted(std::cout);
+    std::cout<<"Adding alpha"<<std::endl;
 
     for(size_type i =0 ; i<n_coarse; ++i)
-      if(dirichlet_nodes[i]==0)
+      if(dirichlet_nodes[i]==0 && !(constraints.is_constrained(i)))
         prec_matrix.add(i,i,alpha[i]);
-
-
+    prec_matrix.compress(VectorOperation::add);
+    // prec_matrix.print_formatted(std::cout);
+    std::cout<<"initializing solver "<<n_coarse<<std::endl;
+    // prec_solver.clear();
     prec_solver.initialize(prec_matrix);
 
 
@@ -305,7 +312,7 @@ void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const Tri
 
   auto &dh = this->get_bem_dh();
 
-  ConstraintMatrix constraints_fine(this->get_bem_constraint_matrix());
+  auto &constraints_fine = this->get_bem_constraint_matrix();
 
   VectorTools::interpolate_to_different_mesh(dh,loc,dh_coarse,constraints_coarse,in_coarse);
 

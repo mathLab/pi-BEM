@@ -213,6 +213,19 @@ void BoundaryConditions<dim>::solve_problem()
 }
 
 template <int dim>
+void BoundaryConditions<dim>::compute_bem_constraints()
+{
+  bem.reinit();
+  tmp_rhs.reinit(bem.this_cpu_set,mpi_communicator);
+  // std::cout<<"computing normals"<<std::endl;
+  bem.compute_normals();
+  // std::cout<<"preparing vectors"<<std::endl;
+  prepare_bem_vectors();
+  // std::cout<<"computing constraints"<<std::endl;
+  bem.compute_constraints(bem.constr_cpu_set, bem.constraints, tmp_rhs);
+
+}
+template <int dim>
 const TrilinosWrappers::MPI::Vector &BoundaryConditions<dim>::get_phi()
 {
   return phi;

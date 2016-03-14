@@ -96,6 +96,8 @@ void BEMProblem<dim>::reinit()
 
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
+  dh.distribute_mg_dofs(*fe);
+  gradient_dh.distribute_mg_dofs(*gradient_fe);
 
   // we should choose the appropriate renumbering strategy and then stick with it.
   // in step 32 they use component_wise which is very straight-forward but maybe the quickest
@@ -215,7 +217,7 @@ void BEMProblem<dim>::reinit()
   // At this point we just need to create a ghosted IndexSet for the scalar
   // DoFHandler. This can be through the builtin dealii function.
   // this_cpu_set.print(std::cout);
-  MPI_Barrier(mpi_communicator);
+  // MPI_Barrier(mpi_communicator);
   ghosted_set.clear();
   ghosted_set.set_size(dh.n_dofs());
   ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);

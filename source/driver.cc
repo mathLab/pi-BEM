@@ -92,10 +92,12 @@ void Driver<dim>::run()
       if (global_refinement)
         {
           computational_domain.refine_and_resize(computational_domain.mg_cycles);
-          bem_problem.reinit();
-          boundary_conditions.solve_problem();
           bem_problem.my_preconditioner.initialize(&bem_problem);
+          boundary_conditions.compute_bem_constraints();
+          std::cout<<"building coarse inverse"<<std::endl;
           bem_problem.my_preconditioner.build_coarse_inverse();
+          std::cout<<"build coarse inverse"<<std::endl;
+
           computational_domain.refine_and_resize(computational_domain.n_cycles-computational_domain.mg_cycles);
         }
       else
@@ -103,13 +105,16 @@ void Driver<dim>::run()
           // computational_domain.conditional_refine_and_resize(1);
           computational_domain.refine_and_resize(computational_domain.mg_cycles);
           bem_problem.reinit();
-          boundary_conditions.solve_problem();
+          boundary_conditions.compute_bem_constraints();
+          std::cout<<"building coarse inverse"<<std::endl;
           bem_problem.my_preconditioner.build_coarse_inverse();
+          std::cout<<"build coarse inverse"<<std::endl;
           local_refinement_cycles=computational_domain.n_cycles;
 
         }
       //computational_domain.generate_octree_blocking();
     }
+    std::cout<<"set up the preconditioner"<<std::endl;
     computational_domain.update_triangulation();
     for (unsigned int i = 0; i<=local_refinement_cycles; ++i)
       {

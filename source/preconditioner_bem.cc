@@ -314,6 +314,7 @@ void PreconditionerBEM<dim>::vmult(TrilinosWrappers::MPI::Vector &out, const Tri
 
   auto &constraints_fine = this->get_bem_constraint_matrix();
 
+  std::cout<<loc.size()<<" "<<dh.n_dofs()<<" "<<in_coarse.size()<<" "<<dh_coarse.n_dofs()<<std::endl;
   VectorTools::interpolate_to_different_mesh(dh,loc,dh_coarse,constraints_coarse,in_coarse);
 
   prec_solver.vmult(out_coarse, in_coarse);

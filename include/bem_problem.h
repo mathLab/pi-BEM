@@ -295,6 +295,8 @@ public:
 
   std::string preconditioner_type;
 
+  std::string mapping_type;
+
   std::string solution_method;
 
   SolverControl solver_control;

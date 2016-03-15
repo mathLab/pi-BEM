@@ -16,9 +16,16 @@ using Teuchos::RCP;
 
 #define ENTRY EntryRaiiObject obj ## LINE (__FUNCTION__);
 
-struct EntryRaiiObject {
-  EntryRaiiObject(const char *f) : f_( f ) { printf("Entered into %s\n", f_); }
-  ~EntryRaiiObject() { printf("Exited from %s\n", f_); }
+struct EntryRaiiObject
+{
+  EntryRaiiObject(const char *f) : f_( f )
+  {
+    printf("Entered into %s\n", f_);
+  }
+  ~EntryRaiiObject()
+  {
+    printf("Exited from %s\n", f_);
+  }
   const char *f_;
 };
 
@@ -103,16 +110,24 @@ void BEMProblem<dim>::reinit()
   DoFRenumbering::subdomain_wise (dh);
   DoFRenumbering::subdomain_wise (gradient_dh);
 
-  map_vector.reinit(gradient_dh.n_dofs());
-  // Fills the euler vector with information from the Triangulation
-  VectorTools::get_position_vector(gradient_dh, map_vector);
   vector_constraints.reinit();
   DoFTools::make_hanging_node_constraints (gradient_dh,vector_constraints);
   vector_constraints.close();
-  vector_constraints.distribute(map_vector);
+  if (mapping_type == "FE")
+    {
+      map_vector.reinit(gradient_dh.n_dofs());
+      // Fills the euler vector with information from the Triangulation
+      VectorTools::get_position_vector(gradient_dh, map_vector);
+      vector_constraints.distribute(map_vector);
+    }
   // mapping_degree = fe->get_degree();
   if (!mapping)
-    mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
+    {
+      if (mapping_type == "FE")
+        mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
+      else
+        mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
+    }
 
 
 
@@ -304,6 +319,9 @@ void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.declare_entry("Mapping Type","FE",
+                    Patterns::Selection("FE|Q"));
+
   prm.declare_entry("Mapping Q Degree","1",Patterns::Integer());
 
 }
@@ -332,6 +350,7 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  mapping_type = prm.get("Mapping Type");
   mapping_degree = prm.get_integer("Mapping Q Degree");
 
 

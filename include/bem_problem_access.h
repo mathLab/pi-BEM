@@ -26,7 +26,7 @@ public:
    }
   //  const Triangulation<dim-1, dim> & get_tria();
    const Mapping<dim-1,dim>& get_bem_mapping() const{
-     return (*bem_problem->mapping);
+     return *bem_problem->mapping;
    };
    const Quadrature<dim-1> & get_bem_quadrature() const{
      return (*bem_problem->quadrature);

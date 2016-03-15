@@ -289,7 +289,7 @@ void BEMProblem<dim>::reinit()
   vector_sparsity_pattern.compress();
 
 
-
+  my_preconditioner.initialize(this);
 }
 
 template <int dim>

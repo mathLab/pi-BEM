@@ -22,7 +22,9 @@ void PreconditionerBEM<dim>::build_coarse_inverse(unsigned int level_mg)//, cons
 
   constraints_coarse.clear();
   constraints_coarse.merge(constraints);
-  dh_coarse.initialize(dh.get_triangulation(), fe);
+  constraints_coarse.close();
+  tria_coarse.copy_triangulation(dh.get_triangulation());
+  dh_coarse.initialize(tria_coarse, fe);
   // dh.distribute_mg_dofs(fe);
   // First We need to set up the sparsity pattern for the matrix.
   sp_coarse_full.reinit(dh_coarse.n_dofs(),dh_coarse.n_dofs(),dh_coarse.n_dofs());

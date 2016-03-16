@@ -176,13 +176,13 @@ public:
    * The dimension of the domain space.
    */
   size_type n_columns;
-
-  SparseMatrix<double> prec_matrix;
   SparsityPattern sp_coarse_full;
+  SparseMatrix<double> prec_matrix;
   SparseDirectUMFPACK prec_solver;
   // TrilinosWrappers::SparseMatrix projector;
   // TrilinosWrappers::SparsityPattern projector_sp;
   ConstraintMatrix constraints_coarse;
+  Triangulation<dim-1, dim> tria_coarse;
   DoFHandler<dim-1, dim> dh_coarse;
   size_type n_coarse;
 

@@ -386,16 +386,45 @@ void BoundaryConditions<dim>::compute_errors()
       Vector<double> dphi_dn_node_error(bem.dh.n_dofs());
       std::vector<Vector<double> > dphi_dn_nodes_errs(bem.dh.n_dofs(), Vector<double> (dim));
       wind.vector_value_list(support_points,dphi_dn_nodes_errs);
+      dphi_dn_node_error = 0.;
       for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
         {
-          dphi_dn_node_error[i] = 0.;
+          // dphi_dn_node_error[i] = 0.;
           for (unsigned int d=0; d<dim; ++d)
+          {
+            // It appears that localised_normals has some entries exchanged with respect to the serial case...
             dphi_dn_node_error[i] += localised_normals[i+d*bem.dh.n_dofs()] * dphi_dn_nodes_errs[i][d];
-        }
+            // std::cout<<dphi_dn_nodes_errs[i][d]<<" "<<localised_normals[i+d*bem.dh.n_dofs()]<<" ";
 
+          }
+          // std::cout<<" "<<dphi_dn_node_error[i]<<std::endl;
+        }
+      // if(n_mpi_processes == 1)
+      // {
+      //   std::string file_name1;
+      //   file_name1 = "foo.bin";
+      //   std::ofstream foo (file_name1.c_str());
+      //   localised_normals.block_write(foo);
+      //
+      // }
+      // else
+      // {
+      //   Vector<double> foo(localised_normals.size());
+      //   std::string file_name1;
+      //   file_name1 = "foo.bin";
+      //   std::ifstream fff (file_name1.c_str());
+      //   foo.block_read(fff);
+      //   for(auto i : localised_normals.locally_owned_elements())
+      //     std::cout<<localised_normals[i]<<" "<<foo[i]<<std::endl;
+      //
+      // }
+      //
+      // localised_normals.print(std::cout);
+      // std::cout<<localised_normals.l2_norm()<<std::endl;
       dphi_dn_node_error*=-1.0;
       dphi_dn_node_error.add(1.,localized_dphi_dn);
 
+      // dphi_dn_node_error.print(std::cout);
       Vector<float> difference_per_cell_2(comp_dom.tria.n_active_cells());
       VectorTools::integrate_difference (*bem.mapping, bem.dh, dphi_dn_node_error,
                                          ZeroFunction<dim, double> (1),

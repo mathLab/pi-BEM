@@ -370,7 +370,7 @@ void BoundaryConditions<dim>::compute_errors()
       wind.vector_value_list(support_points,grads_nodes_errs);
       for (types::global_dof_index d=0; d<dim; ++d)
         for (types::global_dof_index i=0; i<bem.dh.n_dofs(); ++i)
-          vector_gradients_node_error(d*bem.dh.n_dofs()+i) = grads_nodes_errs[i](d);
+          vector_gradients_node_error(bem.vec_original_to_sub_wise[d*bem.dh.n_dofs()+i]) = grads_nodes_errs[bem.original_to_sub_wise[i]](d);
       vector_gradients_node_error*=-1.0;
       vector_gradients_node_error.add(1.,localized_gradient_solution);
 
@@ -392,35 +392,10 @@ void BoundaryConditions<dim>::compute_errors()
           // dphi_dn_node_error[i] = 0.;
           for (unsigned int d=0; d<dim; ++d)
           {
-            // It appears that localised_normals has some entries exchanged with respect to the serial case...
-            dphi_dn_node_error[i] += localised_normals[i+d*bem.dh.n_dofs()] * dphi_dn_nodes_errs[i][d];
-            // std::cout<<dphi_dn_nodes_errs[i][d]<<" "<<localised_normals[i+d*bem.dh.n_dofs()]<<" ";
+            dphi_dn_node_error[bem.original_to_sub_wise[i]] += localised_normals[bem.vec_original_to_sub_wise[i+d*bem.dh.n_dofs()]] * dphi_dn_nodes_errs[bem.original_to_sub_wise[i]][d];
 
           }
-          // std::cout<<" "<<dphi_dn_node_error[i]<<std::endl;
         }
-      // if(n_mpi_processes == 1)
-      // {
-      //   std::string file_name1;
-      //   file_name1 = "foo.bin";
-      //   std::ofstream foo (file_name1.c_str());
-      //   localised_normals.block_write(foo);
-      //
-      // }
-      // else
-      // {
-      //   Vector<double> foo(localised_normals.size());
-      //   std::string file_name1;
-      //   file_name1 = "foo.bin";
-      //   std::ifstream fff (file_name1.c_str());
-      //   foo.block_read(fff);
-      //   for(auto i : localised_normals.locally_owned_elements())
-      //     std::cout<<localised_normals[i]<<" "<<foo[i]<<std::endl;
-      //
-      // }
-      //
-      // localised_normals.print(std::cout);
-      // std::cout<<localised_normals.l2_norm()<<std::endl;
       dphi_dn_node_error*=-1.0;
       dphi_dn_node_error.add(1.,localized_dphi_dn);
 

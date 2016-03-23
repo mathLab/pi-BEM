@@ -346,7 +346,19 @@ void BoundaryConditions<dim>::compute_errors()
       //   localised_alpha[i] -= 0.5;
 
       Vector<double> grad_difference_per_cell (comp_dom.tria.n_active_cells());
-
+      std::vector<Point<dim> > support_points(bem.dh.n_dofs());
+      std::vector<double> exact_sol(bem.dh.n_dofs());
+      Vector<double> exact_sol_deal(bem.dh.n_dofs());
+      DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
+      potential.value_list(support_points,exact_sol);
+      for(auto i : exact_sol_deal.locally_owned_elements())
+        exact_sol_deal[i] = exact_sol[i];
+      auto exact_mean = VectorTools::compute_mean_value(*bem.mapping,bem.dh,QGauss<(dim-1)>(2*(2*bem.fe->degree+1)), exact_sol_deal, 0);
+      exact_sol_deal.add(-exact_mean);
+      auto my_mean = VectorTools::compute_mean_value(*bem.mapping,bem.dh,QGauss<(dim-1)>(2*(2*bem.fe->degree+1)), localized_phi, 0);
+      localized_phi.add(-my_mean);
+      std::cout<<exact_mean<<" : "<<my_mean<<std::endl;
+      localized_phi.sadd(1.,-1.,exact_sol_deal);
       VectorTools::integrate_difference (*bem.mapping, bem.gradient_dh, localized_gradient_solution,
                                          wind,
                                          grad_difference_per_cell,
@@ -356,14 +368,12 @@ void BoundaryConditions<dim>::compute_errors()
 
       Vector<float> difference_per_cell (comp_dom.tria.n_active_cells());
       VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
-                                         potential,
+                                         ZeroFunction<dim, double> (1),
                                          difference_per_cell,
                                          QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
                                          VectorTools::L2_norm);
       const double L2_error = difference_per_cell.l2_norm();
 
-      std::vector<Point<dim> > support_points(bem.dh.n_dofs());
-      DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
 
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double> > grads_nodes_errs(bem.dh.n_dofs(),Vector<double>(dim));

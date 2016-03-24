@@ -145,6 +145,8 @@ private:
 
   unsigned int this_mpi_process;
 
+  bool have_dirichlet_bc;
+
   IndexSet this_cpu_set;
 
   ConditionalOStream pcout;

@@ -88,7 +88,7 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
 template <int dim>
 void BEMProblem<dim>::reinit()
 {
-  ENTRY
+  // ENTRY
   Teuchos::TimeMonitor LocalTimer(*ReinitTime);
 
   fe = parsed_fe();
@@ -182,7 +182,7 @@ void BEMProblem<dim>::reinit()
 
   this_cpu_set.compress();
   vector_this_cpu_set.compress();
-  std::cout<<"set the cpu sets"<<std::endl;
+  // std::cout<<"set the cpu sets"<<std::endl;
   // std::vector<types::global_dof_index> localized_ndfos(n_mpi_processes);
   // std::vector<types::global_dof_index> localized_vector_ndfos(n_mpi_processes);
   // start_per_process.resize (n_mpi_processes);
@@ -220,7 +220,7 @@ void BEMProblem<dim>::reinit()
   ghosted_set.set_size(dh.n_dofs());
   ghosted_set = DoFTools::dof_indices_with_subdomain_association(dh, this_mpi_process);
   ghosted_set.compress();
-  std::cout<<"set ghosted set"<<std::endl;
+  // std::cout<<"set ghosted set"<<std::endl;
 
   // standard TrilinosWrappers::MPI::Vector reinitialization.
   system_rhs.reinit(this_cpu_set,mpi_communicator);

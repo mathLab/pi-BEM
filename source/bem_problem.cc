@@ -93,6 +93,13 @@ void BEMProblem<dim>::reinit()
 
   fe = parsed_fe();
   gradient_fe = parsed_gradient_fe();
+  // fe = new FE_DGQArbitraryNodes<dim-1, dim>(QGauss<1> (2));
+  // gradient_fe = new FESystem<dim-1,dim>(FE_DGQArbitraryNodes<dim-1,dim>(QGauss<1> (2)),dim);
+  // // auto hhh = new FE_DGQArbitraryNodes<dim-1, dim>(QGauss<1> (2));
+  std::string foo = fe->get_name();
+  std::cout<<foo<<std::endl;
+  // FiniteElement<dim-1,dim> * pippo = FETools::get_fe_by_name<dim-1, dim>(foo);
+  // std::cout<<pippo->get_name()<<std::endl;
 
   dh.distribute_dofs(*fe);
   gradient_dh.distribute_dofs(*gradient_fe);
@@ -324,6 +331,8 @@ void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
 
   prm.declare_entry("Mapping Q Degree","1",Patterns::Integer());
 
+  prm.declare_entry("Continuos gradient across edges","true",Patterns::Bool());
+
 }
 
 template <int dim>
@@ -352,7 +361,7 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
 
   mapping_type = prm.get("Mapping Type");
   mapping_degree = prm.get_integer("Mapping Q Degree");
-
+  continuos_gradient = prm.get_bool("Continuos gradient across edges");
 
 
 }
@@ -1003,6 +1012,20 @@ void BEMProblem<dim>::assemble_system()
         }
         //*/
   pcout<<"done assembling system matrices"<<std::endl;
+  // std::cout<<"printing Neumann Matrix"<<std::endl;
+  // for(unsigned int i=0; i<dh.n_dofs(); ++i)
+  // {
+  //   for(unsigned int j=0; j<dh.n_dofs(); ++j)
+  //     std::cout<<neumann_matrix(i,j)<<" ";
+  //   std::cout<<std::endl;
+  // }
+  // std::cout<<"printing Dirichlet Matrix"<<std::endl;
+  // for(unsigned int i=0; i<dh.n_dofs(); ++i)
+  // {
+  //   for(unsigned int j=0; j<dh.n_dofs(); ++j)
+  //     std::cout<<dirichlet_matrix(i,j)<<" ";
+  //   std::cout<<std::endl;
+  // }
 }
 
 
@@ -1383,7 +1406,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                           }
                         // this is the dirichlet-dirichlet case on sharp edges: both normal gradients
                         // can be computed from surface gradients of phi and assingned as BC
-                        else
+                        else if(continuos_gradient)
                           {
                             c.add_line(*it);
                             double norm_i_norm_it = 0;

@@ -301,7 +301,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                     // Point<dim> imposed_potential_gradient;
                     double tmp_dphi_dn = 0;
                     double normy = 0;
-                    double tol = 1e-4;
+                    double tol = 1e-1;
                     for (unsigned int d=0; d<dim; ++d)
                       {
                         types::global_dof_index dummy = bem.sub_wise_to_original[local_dof_indices[j]];
@@ -350,12 +350,12 @@ void BoundaryConditions<dim>::compute_errors()
       std::vector<Point<dim> > support_points(bem.dh.n_dofs());
       double phi_max_error;// = localized_phi.linfty_norm();
       Vector<double> difference_per_cell (comp_dom.tria.n_active_cells());
+      DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
 
       if (!have_dirichlet_bc)
         {
           std::vector<double> exact_sol(bem.dh.n_dofs());
           Vector<double> exact_sol_deal(bem.dh.n_dofs());
-          DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
           potential.value_list(support_points,exact_sol);
           for (auto i : exact_sol_deal.locally_owned_elements())
             exact_sol_deal[bem.original_to_sub_wise[i]] = exact_sol[bem.original_to_sub_wise[i]];
@@ -424,6 +424,7 @@ void BoundaryConditions<dim>::compute_errors()
           for (unsigned int d=0; d<dim; ++d)
             {
               dphi_dn_node_error[bem.original_to_sub_wise[i]] += localised_normals[bem.vec_original_to_sub_wise[i+d*bem.dh.n_dofs()]] * dphi_dn_nodes_errs[bem.original_to_sub_wise[i]][d];
+
 
             }
         }

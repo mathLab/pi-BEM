@@ -33,6 +33,9 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
 
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_tools.h>
+
 #include <deal.II/base/types.h>
 
 //#include <deal.II/lac/petsc_vector.h>
@@ -311,6 +314,8 @@ public:
   types::global_dof_index preconditioner_band;
 
   bool is_preconditioner_initialized;
+
+  bool continuos_gradient;
 
   MPI_Comm mpi_communicator;
 

@@ -26,12 +26,14 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/thread_management.h>
 #include <deal.II/base/multithread_info.h>
+#include <deal.II/base/mpi.h>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <mpi.h>
 
 
 // implicitly use the deal.II namespace everywhere, without us having to say

@@ -62,7 +62,7 @@ template <int dim>
 void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 {
 
-  prm.declare_entry("Input grid name", "../utilities/coarse_cube_double_nodes",
+  prm.declare_entry("Input grid name", "../grids/coarse_cube_double_nodes",
                     Patterns::Anything());
 
   prm.declare_entry("Input grid format", "inp",
@@ -223,7 +223,7 @@ void ComputationalDomain<dim>::read_domain()
   //
   // manifold = new SphericalManifold<dim-1, dim>;
 
-  if (input_grid_name == "../utilities/coarse_sphere" || input_grid_name == "../utilities/coarse_sphere_double_nodes" )
+  if (input_grid_name == "../grids/coarse_sphere" || input_grid_name == "../grids/coarse_sphere_double_nodes" )
     {
       manifold = new SphericalManifold<dim-1, dim>;
       tria.set_all_manifold_ids(0);

@@ -1406,7 +1406,7 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                           }
                         // this is the dirichlet-dirichlet case on sharp edges: both normal gradients
                         // can be computed from surface gradients of phi and assingned as BC
-                        else if(continuos_gradient)
+                        else if (continuos_gradient)
                           {
                             c.add_line(*it);
                             double norm_i_norm_it = 0;

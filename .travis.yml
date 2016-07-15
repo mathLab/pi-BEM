@@ -1,0 +1,21 @@
+sudo: required
+
+env:
+  - BUILD_TYPE=release
+  - BUILD_TYPE=debug
+
+services:
+  - docker
+
+notifications:
+  email: false
+
+language: C++
+
+before_install:
+- docker pull heltai/deal2lkit:$BUILD_TYPE
+- docker run -P -v `pwd`:/home/dealii/pi-BEM:rw heltai/deal2lkit:$BUILD_TYPE /bin/sh -c "cd pi-BEM; ./scripts/check_indentation.sh"
+
+script:
+- docker run -P -v `pwd`:/home/dealii/pi-BEM:rw heltai/deal2lkit:$BUILD_TYPE /bin/sh -c "mkdir pi-BEM/build; cd pi-BEM/build; cmake -GNinja -DBEM_ENABLE_TESTING=ON ../; ninja"
+- docker run -P -v `pwd`:/home/dealii/pi-BEM:rw heltai/deal2lkit:$BUILD_TYPE /bin/sh -c "cd pi-BEM/build; ctest -V"

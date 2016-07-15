@@ -1,6 +1,8 @@
 Parallel BEM Solver for deal.II
 ===============================
 
+[![Build Status](https://travis-ci.org/mathLab/pi-BEM.svg?branch=master)](https://travis-ci.org/mathLab/pi-BEM)
+
 After you have compiled your application, you can run 
 
 	make test

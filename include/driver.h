@@ -69,7 +69,9 @@ using namespace dealii;
 //using namespace TrilinosWrappers::MPI::Vector;
 //using namespace TrilinosWrappers::MPI::SparseMatrix;
 
-
+/**
+* This class is in charge of organising the overall BEM simulation. It has interfaces with all the other classes in order to have a complete simulation.
+*/
 template <int dim>
 class Driver : public ParameterAcceptor
 {

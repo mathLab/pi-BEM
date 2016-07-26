@@ -40,6 +40,13 @@ namespace Operator
 using namespace dealii;
 using namespace deal2lkit;
 
+/**
+* A class for the handling of the Fast Multiple Method coupled with the Bundary Element Method.
+* It is derived from ParameterAcceptor to have a common interface with parameter files. In
+* particular this class performs the matrix vector products approximating long range interactions
+* via Multipole and Local Expansions that are contained in dedicated classes.
+
+*/
 template <int dim>//, Type V>
 class BEMFMA : public ParameterAcceptor
 {

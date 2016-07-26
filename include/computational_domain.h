@@ -67,6 +67,11 @@
 using namespace dealii;
 using namespace deal2lkit;
 
+/**
+* - ComputationalDomain. This class handles, and provides to the other classes, ONLY the geometry of the problem. In particular
+*  - it handles the domain decomposition using a graph partitioning tool (METIS);
+*  - it reads the domain from an external file.
+*/
 template <int dim>
 class ComputationalDomain : public ParameterAcceptor
 {

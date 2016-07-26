@@ -101,6 +101,13 @@ using namespace deal2lkit;
 //using namespace TrilinosWrappers;
 //using namespace TrilinosWrappers::MPI;
 
+/**
+* - BEMProblem. This class is the core of the BEM simulation
+*   - it receives the variables vector filled in with the proper boundary condition;
+*   - it creates the codimension 1 functional space setting up the BEM;
+*   - it solves the system using a preconditioned parallel GMRES solver;
+*   - it eventually interacts with the FMM accelerator.
+*/
 template <int dim>
 class BEMProblem : public ParameterAcceptor
 {

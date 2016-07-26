@@ -76,6 +76,12 @@
 #include <deal2lkit/parsed_data_out.h>
 #include <deal2lkit/utilities.h>
 
+/**
+* - BoundaryCondition. The class handles the boundary conditions. In particular
+*   - it reads the boundary conditions for the potential and its normal derivative;
+*   - given the peculiarities of the BEM, the boundary conditions represent the actual unknowns, thus it creates the vectors containing the variables and fills them with the proper data;
+*   - it performs the error analysis on both unknowns.
+*/
 template <int dim>
 class BoundaryConditions : public ParameterAcceptor
 {

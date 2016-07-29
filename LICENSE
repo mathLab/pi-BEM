@@ -1,24 +1,3 @@
-
-This directory contains the deal.II library.
-
-The deal.II library is copyrighted by the deal.II authors. This term
-refers to the people listed in the file doc/authors.html.
-
-The deal.II library is free software; you can use it, redistribute it,
-and/or modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either version
-2.1 of the License, or (at your option) any later version.
-
-The full text of the GNU Lesser General Public version 2.1 is quoted
-below.
-
-The subdirectories "bundled/" and "contrib/" contain third party software.
-PLEASE NOTE THAT THE SOFTWARE THERE IS COPYRIGHTED BY OTHERS THAN THE
-deal.II AUTHORS, but is included by permission. For details, consult the
-stated licenses there.
-
-----------------------------------------------------------------------
-
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999
 

@@ -548,6 +548,13 @@ void BEMProblem<dim>::assemble_system()
     (QTelles<dim-1>(singular_quadrature_order,
                     fe->get_unit_support_points()[i]));
 
+  // Usage of alternative singular quadrature formula
+  // std::vector<QGaussOneOverR<dim-1> > sing_quadratures;
+  // for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
+  //   sing_quadratures.push_back
+  //   (QGaussOneOverR<dim-1>(singular_quadrature_order,
+  //                   fe->get_unit_support_points()[i], true));
+
 
   // Next, we initialize an FEValues
   // object with the quadrature

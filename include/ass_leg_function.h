@@ -1,29 +1,6 @@
-//----------------------------  step-34.cc  ---------------------------
-//    $Id: step-34.cc 18734 2009-04-25 13:36:48Z heltai $
-//    Version: $Name$
-//
-//    Copyright (C) 2009 by the deal.II authors
-//
-//    This file is subject to QPL and may not be  distributed
-//    without copyright and license information. Please refer
-//    to the file deal.II/doc/license.html for the  text  and
-//    further information on this license.
-//
-//    Authors: Luca Heltai, Cataldo Manigrasso
-//
-//----------------------------  step-34.cc  ---------------------------
 
-
-// @sect3{Include files}
-
-// The program starts with including a bunch
-// of include files that we will use in the
-// various parts of the program. Most of them
-// have been discussed in previous tutorials
-// already:
-
-#ifndef __polimi__ass_leg_function_h
-#define __polimi__ass_leg_function_h
+#ifndef __sissa__ass_leg_function_h
+#define __sissa__ass_leg_function_h
 
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/convergence_table.h>

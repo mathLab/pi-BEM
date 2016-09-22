@@ -42,7 +42,19 @@ FIND_PACKAGE(deal.II 8.3 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
 )
 
+IF(DEFINED CMAKE_BUILD_TYPE)
+   SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING 
+       "Choose the type of build, options are: Debug, Release or DebugRelease"
+       )
+ELSE()
+   SET(CMAKE_BUILD_TYPE ${DEAL_II_BUILD_TYPE} CACHE STRING
+       "Choose the type of build, options are: Debug, Release or DebugRelease"
+       )
+ENDIF()
+
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
+
+
 PROJECT(${TARGET})
 
 

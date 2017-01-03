@@ -389,6 +389,8 @@ void BEMProblem<dim>::parse_parameters (ParameterHandler &prm)
 template <int dim>
 void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 {
+  have_dirichlet_bc = false;
+
 
   Vector<double> non_partitioned_dirichlet_nodes(dh.n_dofs());
   Vector<double> non_partitioned_neumann_nodes(dh.n_dofs());
@@ -425,6 +427,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
                       //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
                     }
                   dirichlet = true;
+                  have_dirichlet_bc = true;
                   break;
                 }
             }
@@ -462,6 +465,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
           //
           //   }
         }
+
 
     }
 
@@ -1092,6 +1096,7 @@ void BEMProblem<dim>::compute_alpha()
   //    {
   //    cout<<std::setprecision(20)<<alpha(i)<<endl;
   //    }
+  
 
 }
 
@@ -1100,6 +1105,8 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
 {
 
   serv_phi = src;
+  if (!have_dirichlet_bc)
+     vector_shift(serv_phi, -serv_phi.l2_norm());
   serv_dphi_dn = src;
 
 
@@ -1139,10 +1146,10 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
       dst += serv_phi;
     }
 
-
+  //std::cout<<"*** "<<serv_phi(0)<<" or "<<serv_dphi_dn(0)<<"   src: "<<src(0)<<"  dst: "<<dst(0)<<std::endl;
   // in fully neumann bc case, we have to rescale the vector to have a zero mean
   // one
-  if (dirichlet_nodes.linfty_norm() < 1e-10)
+  if (!have_dirichlet_bc)
     vector_shift(dst, -dst.l2_norm());
 
 }
@@ -1151,8 +1158,6 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
 template <int dim>
 void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src) const
 {
-
-
 
   serv_phi = src;
   serv_dphi_dn = src;
@@ -1209,8 +1214,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
 {
   Teuchos::TimeMonitor LocalTimer(*LacSolveTime);
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
-                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
-
+                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(100));
 
   system_rhs = 0;
   sol = 0;
@@ -1242,7 +1246,8 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   // Assert(sol.locally_owned_elements()==system_rhs.locally_owned_elements(),ExcMessage("IndexSet a muzzo..."));
   // Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Ma boh..."));
 
-
+std::cout<<"Heyy: "<<neumann_nodes(0)<<std::endl;
+std::cout<<"Heyy2: "<<dirichlet_nodes(0)<<std::endl;
   if (solution_method == "Direct")
     {
       //SparseDirectUMFPACK &inv = fma.FMA_preconditioner(alpha);
@@ -1291,7 +1296,8 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   */
 //////////////////////////////////
 
-
+std::cout<<0<<" "<<tmp_rhs(0)<<" "<<dphi_dn(0)<<" "<<phi(0)<<" "<<dirichlet_nodes(0)<<std::endl;
+std::cout<<0<<" "<<sol(0)<<std::endl;
   for (types::global_dof_index i=0; i <dirichlet_nodes.size(); i++)
     {
       if (this_cpu_set.is_element(i))
@@ -1307,9 +1313,11 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
         }
     }
 
+  //if (!have_dirichlet_bc)
+  //   vector_shift(phi,-phi.l2_norm());
 
   //for (unsigned int i=0;i<dh.n_dofs();++i)
-  // cout<<i<<" "<<tmp_rhs(i)<<" "<<dphi_dn(i)<<" "<<phi(i)<<" "<<dirichlet_nodes(i)<<endl;
+  // std::cout<<i<<" "<<tmp_rhs(i)<<" "<<dphi_dn(i)<<" "<<phi(i)<<" "<<dirichlet_nodes(i)<<std::endl;
 
   //pcout<<"sol "<<std::endl;
   //for (unsigned int i = 0; i < sol.size(); i++)
@@ -1321,7 +1329,6 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   //pcout<<"phi "<<phi(i)<<"  dphi_dn "<<dphi_dn(i);
   //pcout<<std::endl;
   //    }
-
 }
 
 

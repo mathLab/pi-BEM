@@ -1,8 +1,8 @@
 sudo: required
 
 env:
-  - BUILD_TYPE=release
-  - BUILD_TYPE=debug
+  - BUILD_TYPE=Release
+  - BUILD_TYPE=Debug
 
 services:
   - docker
@@ -13,9 +13,9 @@ notifications:
 language: C++
 
 before_install:
-- docker pull heltai/deal2lkit:$BUILD_TYPE
-- docker run -P -v `pwd`:/home/dealii/pi-BEM:rw heltai/deal2lkit:$BUILD_TYPE /bin/sh -c "cd pi-BEM; ./scripts/check_indentation.sh"
+- docker pull mathlab/deal2lkit:dev-debugrelease
+- ./scripts/dr.sh "cd app; ./scripts/check_indentation.sh"
 
 script:
-- docker run -P -v `pwd`:/home/dealii/pi-BEM:rw heltai/deal2lkit:$BUILD_TYPE /bin/sh -c "mkdir pi-BEM/build; cd pi-BEM/build; cmake -GNinja -DBEM_ENABLE_TESTING=ON ../; ninja"
-- docker run -P -v `pwd`:/home/dealii/pi-BEM:rw heltai/deal2lkit:$BUILD_TYPE /bin/sh -c "cd pi-BEM/build; ctest -V"
+- ./scripts/dr.sh "test -d app/build-travis && rm -rf app/build-travis; mkdir app/build-travis; cd app/build-travis; cmake -GNinja ../; ninja"
+- ./scripts/dr.sh "cd app/build-travis; ctest -N; ctest -V"

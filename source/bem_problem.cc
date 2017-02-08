@@ -1246,8 +1246,7 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
   // Assert(sol.locally_owned_elements()==system_rhs.locally_owned_elements(),ExcMessage("IndexSet a muzzo..."));
   // Assert(sol.vector_partitioner().SameAs(system_rhs.vector_partitioner()),ExcMessage("Ma boh..."));
 
-std::cout<<"Heyy: "<<neumann_nodes(0)<<std::endl;
-std::cout<<"Heyy2: "<<dirichlet_nodes(0)<<std::endl;
+
   if (solution_method == "Direct")
     {
       //SparseDirectUMFPACK &inv = fma.FMA_preconditioner(alpha);
@@ -1296,8 +1295,6 @@ std::cout<<"Heyy2: "<<dirichlet_nodes(0)<<std::endl;
   */
 //////////////////////////////////
 
-std::cout<<0<<" "<<tmp_rhs(0)<<" "<<dphi_dn(0)<<" "<<phi(0)<<" "<<dirichlet_nodes(0)<<std::endl;
-std::cout<<0<<" "<<sol(0)<<std::endl;
   for (types::global_dof_index i=0; i <dirichlet_nodes.size(); i++)
     {
       if (this_cpu_set.is_element(i))

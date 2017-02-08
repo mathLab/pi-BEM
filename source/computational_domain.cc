@@ -71,6 +71,9 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   prm.declare_entry("Input grid format", "inp",
                     Patterns::Anything());
 
+  prm.declare_entry("Input path to CAD files", "./",
+                    Patterns::Anything());
+
   prm.declare_entry("Number of cycles", "2",
                     Patterns::Integer());
 
@@ -105,6 +108,7 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
 
   input_grid_name = prm.get("Input grid name");
   input_grid_format = prm.get("Input grid format");
+  input_cad_path = prm.get("Input path to CAD files");
   n_cycles = prm.get_integer("Number of cycles"); 
   max_element_aspect_ratio = prm.get_double("Max aspect ratio");
   use_cad_surface_and_curves = prm.get_bool("Use iges surfaces and curves");
@@ -528,18 +532,18 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 double max_tol=0;
 if (use_cad_surface_and_curves)
    {
-   cout<<"Color Files"<<endl;
+   pcout<<"Color Files"<<endl;
    unsigned int ii=1;
    bool go_on = true;
    while (go_on == true)
        {    
-       std::string color_filename = ( "./Color_" +
+       std::string color_filename = ( input_cad_path + "Color_" +
                                 Utilities::int_to_string(ii) +
                                 ".iges" );
        ifstream f(color_filename);
        if (f.good())
           {
-          cout<<ii<<"-th file exists"<<endl;
+          pcout<<ii<<"-th file exists"<<endl;
           TopoDS_Shape surface = OpenCASCADE::read_IGES(color_filename, 1e-3);
           cad_surfaces.push_back(surface);
           }
@@ -548,18 +552,18 @@ if (use_cad_surface_and_curves)
        ii++;
        }
 
-   cout<<"Edge Files"<<endl;
+   pcout<<"Edge Files"<<endl;
    ii=1;
    go_on = true;
    while (go_on == true)
        {
-       std::string edge_filename = ( "./Curve_" +
+       std::string edge_filename = ( input_cad_path + "Curve_" +
                                 Utilities::int_to_string(ii) +
                                 ".iges" );
        ifstream f(edge_filename);
        if (f.good())
           {
-          cout<<ii<<"-th file exists"<<endl;
+          pcout<<ii<<"-th file exists"<<endl;
           TopoDS_Shape curve = OpenCASCADE::read_IGES(edge_filename, 1e-3);
           cad_curves.push_back(curve);
           }
@@ -571,15 +575,15 @@ if (use_cad_surface_and_curves)
  
    for (unsigned int i = 0; i<cad_surfaces.size(); ++i)
        {
-       cout<<i<<endl;
+       pcout<<i<<endl;
        max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_surfaces[i]));
-       cout<<max_tol<<endl;
+       pcout<<max_tol<<endl;
        }
    for (unsigned int i = 0; i<cad_curves.size(); ++i)
        {
-       cout<<i+cad_surfaces.size()<<endl;
+       pcout<<i+cad_surfaces.size()<<endl;
        max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_curves[i]));
-       cout<<max_tol<<endl;
+       pcout<<max_tol<<endl;
        }
 
    const double tolerance = 5000*max_tol;
@@ -587,7 +591,7 @@ if (use_cad_surface_and_curves)
 
 
 
-   cout<<"Used tolerance is: "<<tolerance<<endl;
+   pcout<<"Used tolerance is: "<<tolerance<<endl;
    for (unsigned int i=0; i<cad_surfaces.size(); ++i)
        {
        OpenCASCADE::NormalToMeshProjectionBoundary<2,3> normal_to_mesh_projector(cad_surfaces[i], tolerance);
@@ -643,7 +647,7 @@ if (use_cad_surface_and_curves)
              refinedCellCounter++;
              }
 	  }
-     cout<<"Aspect Ratio Reduction Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
+     pcout<<"Aspect Ratio Reduction Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
      tria.execute_coarsening_and_refinement();
      //std::string filename = ( "meshIntermediateResult_" +
 //			   Utilities::int_to_string(int(round(cycles_counter))) +
@@ -748,7 +752,7 @@ if (use_cad_surface_and_curves && surface_curvature_refinement)
              refinedCellCounter++;
              }
 	  }
-     cout<<"Curvature Based Local Refinement Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
+     pcout<<"Curvature Based Local Refinement Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
      tria.execute_coarsening_and_refinement();
      make_edges_conformal();
      cycles_counter++;

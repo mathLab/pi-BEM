@@ -212,14 +212,13 @@ void BoundaryConditions<dim>::solve_problem()
      std::vector<Point<dim> > support_points(n_dofs);
      DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
      typename Triangulation<2,3>::cell_iterator orig_cell = comp_dom.tria.begin();
-     std::cout<<"TEST:::: "<<std::endl;
-     Point<3> first_vertex = orig_cell->vertex(0);
+     //std::cout<<"TEST:::: "<<std::endl;
+     Point<dim> first_vertex = orig_cell->vertex(0);
      double shift = 0.0;
      for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
          {
          if (support_points[i].distance(first_vertex)<1e-7)
             {
-            std::cout<<"Hey "<<i<<std::endl;
             shift = potential.value(first_vertex) - phi(i);
             break;
             }
@@ -348,36 +347,6 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
     }
 
 
-  if (false)//(!have_dirichlet_bc)
-     {
-     const types::global_dof_index n_dofs =  bem.dh.n_dofs();
-     std::vector<Point<dim> > support_points(n_dofs);
-     DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
-     typename Triangulation<2,3>::cell_iterator orig_cell = comp_dom.tria.begin();
-     std::cout<<"TEST:::: "<<std::endl;
-     Point<3> first_vertex = orig_cell->vertex(0);
-     std::set<unsigned int> dof_indices;
-     for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-         dof_indices.insert(i);
-     for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-         {
-         if (bem.constraints.is_constrained(i))
-            {
-            dof_indices.erase(i);
-            const std::vector< std::pair< unsigned int, double > > *entries = bem.constraints.get_constraint_entries(i);
-            for (unsigned int j=0; j<entries->size(); ++j)
-                dof_indices.erase(entries->at(j).first);
-            }
-         }
-     unsigned int elected_index = *dof_indices.begin();
-     std::cout<<"Hey "<<elected_index<<"    ("<<support_points[elected_index]<<")"<<std::endl;
-     tmp_rhs(elected_index) = potential.value(support_points[elected_index]);
-     phi(elected_index) = tmp_rhs(elected_index);
-     dphi_dn(elected_index) = 0.0;
-     bem.neumann_nodes(elected_index) = 0.0;
-     bem.dirichlet_nodes(elected_index) = 1.0;
-     }
-
 
 }
 
@@ -405,6 +374,9 @@ void BoundaryConditions<dim>::compute_errors()
       Vector<double> difference_per_cell (comp_dom.tria.n_active_cells());
       DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
 
+      // removing this because now solution is translated after BEM solution
+      // is given back by bem_problem in solve_problem
+/*
       if (false)//(!have_dirichlet_bc)
         {
           std::vector<double> exact_sol(bem.dh.n_dofs());
@@ -430,6 +402,7 @@ void BoundaryConditions<dim>::compute_errors()
         }
       else
         {
+*/
           VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
                                              potential,
                                              difference_per_cell,
@@ -438,7 +411,7 @@ void BoundaryConditions<dim>::compute_errors()
 
           phi_max_error = difference_per_cell.linfty_norm();
 
-        }
+//        }
       VectorTools::integrate_difference (*bem.mapping, bem.gradient_dh, localized_gradient_solution,
                                          wind,
                                          grad_difference_per_cell,

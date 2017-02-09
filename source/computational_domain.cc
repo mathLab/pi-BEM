@@ -50,8 +50,18 @@ template <int dim>
 ComputationalDomain<dim>::~ComputationalDomain()
 {
 
-  tria.set_all_manifold_ids(0);
-  tria.set_manifold(0);
+  for (unsigned int i=0; i<cad_surfaces.size(); ++i)
+    {
+      tria.set_manifold(1+i);
+    }
+
+  for (unsigned int i=0; i<cad_curves.size(); ++i)
+    {
+      tria.set_manifold(11+i);
+    }
+
+tria.set_manifold(0);
+
 
 }
 
@@ -589,9 +599,8 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
       pcout<<"Used tolerance is: "<<tolerance<<endl;
       for (unsigned int i=0; i<cad_surfaces.size(); ++i)
         {
-          OpenCASCADE::NormalToMeshProjectionBoundary<2,3> normal_to_mesh_projector(cad_surfaces[i], tolerance);
-
-          normal_to_mesh_projectors.push_back(normal_to_mesh_projector);
+          normal_to_mesh_projectors.push_back(std::shared_ptr<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> >
+                                    (new OpenCASCADE::NormalToMeshProjectionBoundary<2,3>(cad_surfaces[i], tolerance)));
         }
       //static OpenCASCADE::DirectionalProjectionBoundary<2,3>
       //        directional_projector_lat(cad_surfaces[0], Point<3>(0.0,1.0,0.0), tolerance);
@@ -600,18 +609,18 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 
       for (unsigned int i=0; i<cad_curves.size(); ++i)
         {
-          OpenCASCADE::ArclengthProjectionLineManifold<2,3> line_projector(cad_curves[i], tolerance);
-          line_projectors.push_back(line_projector);
+          line_projectors.push_back(std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2,3> >
+                                    (new OpenCASCADE::ArclengthProjectionLineManifold<2,3>(cad_curves[i], tolerance)));
         }
 
       for (unsigned int i=0; i<cad_surfaces.size(); ++i)
         {
-          tria.set_manifold(1+i,normal_to_mesh_projectors[i]);
+          tria.set_manifold(1+i,*normal_to_mesh_projectors[i]);
         }
 
       for (unsigned int i=0; i<cad_curves.size(); ++i)
         {
-          tria.set_manifold(11+i,line_projectors[i]);
+          tria.set_manifold(11+i,*line_projectors[i]);
         }
 
     }

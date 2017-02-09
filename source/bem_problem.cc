@@ -1096,7 +1096,7 @@ void BEMProblem<dim>::compute_alpha()
   //    {
   //    cout<<std::setprecision(20)<<alpha(i)<<endl;
   //    }
-  
+
 
 }
 
@@ -1106,7 +1106,7 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
 
   serv_phi = src;
   if (!have_dirichlet_bc)
-     vector_shift(serv_phi, -serv_phi.l2_norm());
+    vector_shift(serv_phi, -serv_phi.l2_norm());
   serv_dphi_dn = src;
 
 

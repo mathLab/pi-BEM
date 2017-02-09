@@ -145,7 +145,7 @@ public:
   /// vectorial functions
 
 
-  void make_edges_conformal(const bool with_double_nodes = true, 
+  void make_edges_conformal(const bool with_double_nodes = true,
                             const bool isotropic_ref_on_opposite_side = false);
 
   void compute_double_vertex_cache();
@@ -172,7 +172,7 @@ public:
 
   // flag to assess if the software will look for cad surfaces (form files Color_*.iges)
   // and curves (from files Curve_*.iges), and use such geometries to refine the grid.
-  // the program will import as many curves and surfaces as there are available in the 
+  // the program will import as many curves and surfaces as there are available in the
   // present folder, and progressively associate them to the manifold IDS available in the
   // mesh file.
   //
@@ -189,7 +189,7 @@ public:
   //
   double cells_per_circle;
 
-  // maximum number of curvature based refinement cycles 
+  // maximum number of curvature based refinement cycles
   //
   unsigned int max_curvature_ref_cycles;
 

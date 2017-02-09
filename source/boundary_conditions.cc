@@ -208,21 +208,12 @@ void BoundaryConditions<dim>::solve_problem()
 
   if (!have_dirichlet_bc)
     {
-      const types::global_dof_index n_dofs =  bem.dh.n_dofs();
       std::vector<Point<dim> > support_points(n_dofs);
       DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
-      typename Triangulation<2,3>::cell_iterator orig_cell = comp_dom.tria.begin();
-      //std::cout<<"TEST:::: "<<std::endl;
-      Point<dim> first_vertex = orig_cell->vertex(0);
       double shift = 0.0;
-      for (unsigned int i=0; i<bem.dh.n_dofs(); ++i)
-        {
-          if (support_points[i].distance(first_vertex)<1e-7)
-            {
-              shift = potential.value(first_vertex) - phi(i);
-              break;
-            }
-        }
+      if (this_mpi_process == 0)
+         shift = potential.value(support_points[*bem.this_cpu_set.begin()]) - phi(*bem.this_cpu_set.begin());
+      MPI_Bcast(&shift,1,MPI_DOUBLE,0,mpi_communicator);
       vector_shift(phi,shift);
     }
 
@@ -522,7 +513,6 @@ template <int dim>
 void BoundaryConditions<dim>::output_results(const std::string filename)
 {
   Teuchos::TimeMonitor LocalTimer(*OutputTimer);
-  std::cout<<"*****2***"<<phi.l2_norm()<<std::endl;
   // At the time being the output is not running in parallel with saks
   // const Vector<double> localized_phi (phi);
   // const Vector<double> localized_dphi_dn (dphi_dn);

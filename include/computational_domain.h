@@ -212,8 +212,8 @@ public:
 
   /// vectors containing the CAD surfaces and curves projectors
   /// to be (optionally) used for refinement of the triangulation
-  std::vector <OpenCASCADE::NormalToMeshProjectionBoundary<2,3> > normal_to_mesh_projectors;
-  std::vector<OpenCASCADE::ArclengthProjectionLineManifold<2,3> > line_projectors;
+  std::vector<std::shared_ptr<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> > > normal_to_mesh_projectors;
+  std::vector<std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2,3> > >line_projectors;
 
 
   MPI_Comm mpi_communicator;

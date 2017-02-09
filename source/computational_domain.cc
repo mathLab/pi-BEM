@@ -52,7 +52,7 @@ ComputationalDomain<dim>::~ComputationalDomain()
 
   tria.set_all_manifold_ids(0);
   tria.set_manifold(0);
-  
+
 }
 
 
@@ -111,12 +111,12 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
   input_grid_name = prm.get("Input grid name");
   input_grid_format = prm.get("Input grid format");
   input_cad_path = prm.get("Input path to CAD files");
-  n_cycles = prm.get_integer("Number of cycles"); 
+  n_cycles = prm.get_integer("Number of cycles");
   max_element_aspect_ratio = prm.get_double("Max aspect ratio");
   use_cad_surface_and_curves = prm.get_bool("Use iges surfaces and curves");
   surface_curvature_refinement = prm.get_bool("Surface curvature adaptive refinement");
   cells_per_circle = prm.get_double("Cells per circle");
-  max_curvature_ref_cycles = prm.get_integer("Maximum number of curvature adaptive refinement cycles"); 
+  max_curvature_ref_cycles = prm.get_integer("Maximum number of curvature adaptive refinement cycles");
 
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
@@ -521,252 +521,252 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 {
   pcout<<"Refining and resizing mesh as required"<<std::endl;
 
-   std::vector<TopoDS_Shape> cad_surfaces;
-   std::vector<TopoDS_Shape> cad_curves;
+  std::vector<TopoDS_Shape> cad_surfaces;
+  std::vector<TopoDS_Shape> cad_curves;
 //GridTools::copy_material_to_manifold_id(tria,true);
-double max_tol=0;
-if (use_cad_surface_and_curves)
-   {
-   pcout<<"Color Files"<<endl;
-   unsigned int ii=1;
-   bool go_on = true;
-   while (go_on == true)
-       {    
-       std::string color_filename = ( input_cad_path + "Color_" +
-                                Utilities::int_to_string(ii) +
-                                ".iges" );
-       ifstream f(color_filename);
-       if (f.good())
-          {
-          pcout<<ii<<"-th file exists"<<endl;
-          TopoDS_Shape surface = OpenCASCADE::read_IGES(color_filename, 1e-3);
-          cad_surfaces.push_back(surface);
-          }
-       else
-          go_on = false;
-       ii++;
-       }
+  double max_tol=0;
+  if (use_cad_surface_and_curves)
+    {
+      pcout<<"Color Files"<<endl;
+      unsigned int ii=1;
+      bool go_on = true;
+      while (go_on == true)
+        {
+          std::string color_filename = ( input_cad_path + "Color_" +
+                                         Utilities::int_to_string(ii) +
+                                         ".iges" );
+          ifstream f(color_filename);
+          if (f.good())
+            {
+              pcout<<ii<<"-th file exists"<<endl;
+              TopoDS_Shape surface = OpenCASCADE::read_IGES(color_filename, 1e-3);
+              cad_surfaces.push_back(surface);
+            }
+          else
+            go_on = false;
+          ii++;
+        }
 
-   pcout<<"Edge Files"<<endl;
-   ii=1;
-   go_on = true;
-   while (go_on == true)
-       {
-       std::string edge_filename = ( input_cad_path + "Curve_" +
-                                Utilities::int_to_string(ii) +
-                                ".iges" );
-       ifstream f(edge_filename);
-       if (f.good())
-          {
-          pcout<<ii<<"-th file exists"<<endl;
-          TopoDS_Shape curve = OpenCASCADE::read_IGES(edge_filename, 1e-3);
-          cad_curves.push_back(curve);
-          }
-       else
-          go_on = false;
-       ii++;
-       }
-
- 
-   for (unsigned int i = 0; i<cad_surfaces.size(); ++i)
-       {
-       pcout<<i<<endl;
-       max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_surfaces[i]));
-       pcout<<max_tol<<endl;
-       }
-   for (unsigned int i = 0; i<cad_curves.size(); ++i)
-       {
-       pcout<<i+cad_surfaces.size()<<endl;
-       max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_curves[i]));
-       pcout<<max_tol<<endl;
-       }
-
-   const double tolerance = 5000*max_tol;
+      pcout<<"Edge Files"<<endl;
+      ii=1;
+      go_on = true;
+      while (go_on == true)
+        {
+          std::string edge_filename = ( input_cad_path + "Curve_" +
+                                        Utilities::int_to_string(ii) +
+                                        ".iges" );
+          ifstream f(edge_filename);
+          if (f.good())
+            {
+              pcout<<ii<<"-th file exists"<<endl;
+              TopoDS_Shape curve = OpenCASCADE::read_IGES(edge_filename, 1e-3);
+              cad_curves.push_back(curve);
+            }
+          else
+            go_on = false;
+          ii++;
+        }
 
 
+      for (unsigned int i = 0; i<cad_surfaces.size(); ++i)
+        {
+          pcout<<i<<endl;
+          max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_surfaces[i]));
+          pcout<<max_tol<<endl;
+        }
+      for (unsigned int i = 0; i<cad_curves.size(); ++i)
+        {
+          pcout<<i+cad_surfaces.size()<<endl;
+          max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_curves[i]));
+          pcout<<max_tol<<endl;
+        }
+
+      const double tolerance = 5000*max_tol;
 
 
-   pcout<<"Used tolerance is: "<<tolerance<<endl;
-   for (unsigned int i=0; i<cad_surfaces.size(); ++i)
-       {
-       OpenCASCADE::NormalToMeshProjectionBoundary<2,3> normal_to_mesh_projector(cad_surfaces[i], tolerance);
-    
-       normal_to_mesh_projectors.push_back(normal_to_mesh_projector);
-       }
-   //static OpenCASCADE::DirectionalProjectionBoundary<2,3>
-   //        directional_projector_lat(cad_surfaces[0], Point<3>(0.0,1.0,0.0), tolerance);
-   //static OpenCASCADE::NormalProjectionBoundary<2,3>
-   //        normal_projector_lat(cad_surfaces[0], tolerance);
-
-   for (unsigned int i=0; i<cad_curves.size(); ++i)
-       {
-       OpenCASCADE::ArclengthProjectionLineManifold<2,3> line_projector(cad_curves[i], tolerance);
-       line_projectors.push_back(line_projector);
-       }
-
-   for (unsigned int i=0; i<cad_surfaces.size(); ++i)
-       {
-       tria.set_manifold(1+i,normal_to_mesh_projectors[i]);
-       }
-
-   for (unsigned int i=0; i<cad_curves.size(); ++i)
-       {
-       tria.set_manifold(11+i,line_projectors[i]);
-       }
-
-   }
 
 
-    unsigned int refinedCellCounter = 1;
-    unsigned int cycles_counter = 0;
-    while( (refinedCellCounter) && (cycles_counter < 10) )
-     {
-	refinedCellCounter = 0;
-        Triangulation<2,3>::active_cell_iterator cell = tria.begin_active();
-        Triangulation<2,3>::active_cell_iterator endc = tria.end();
-	for ( ; cell!= endc;++cell)
-	  {
+      pcout<<"Used tolerance is: "<<tolerance<<endl;
+      for (unsigned int i=0; i<cad_surfaces.size(); ++i)
+        {
+          OpenCASCADE::NormalToMeshProjectionBoundary<2,3> normal_to_mesh_projector(cad_surfaces[i], tolerance);
+
+          normal_to_mesh_projectors.push_back(normal_to_mesh_projector);
+        }
+      //static OpenCASCADE::DirectionalProjectionBoundary<2,3>
+      //        directional_projector_lat(cad_surfaces[0], Point<3>(0.0,1.0,0.0), tolerance);
+      //static OpenCASCADE::NormalProjectionBoundary<2,3>
+      //        normal_projector_lat(cad_surfaces[0], tolerance);
+
+      for (unsigned int i=0; i<cad_curves.size(); ++i)
+        {
+          OpenCASCADE::ArclengthProjectionLineManifold<2,3> line_projector(cad_curves[i], tolerance);
+          line_projectors.push_back(line_projector);
+        }
+
+      for (unsigned int i=0; i<cad_surfaces.size(); ++i)
+        {
+          tria.set_manifold(1+i,normal_to_mesh_projectors[i]);
+        }
+
+      for (unsigned int i=0; i<cad_curves.size(); ++i)
+        {
+          tria.set_manifold(11+i,line_projectors[i]);
+        }
+
+    }
+
+
+  unsigned int refinedCellCounter = 1;
+  unsigned int cycles_counter = 0;
+  while ( (refinedCellCounter) && (cycles_counter < 10) )
+    {
+      refinedCellCounter = 0;
+      Triangulation<2,3>::active_cell_iterator cell = tria.begin_active();
+      Triangulation<2,3>::active_cell_iterator endc = tria.end();
+      for ( ; cell!= endc; ++cell)
+        {
           double min_extent = cell->extent_in_direction(0);
           double max_extent = cell->extent_in_direction(0);
-          unsigned int max_extent_dim = 0; 
+          unsigned int max_extent_dim = 0;
           for (unsigned int i=1; i<2; ++i)
-              {
+            {
               if (max_extent < cell->extent_in_direction(i))
-                 max_extent_dim = i;
+                max_extent_dim = i;
               min_extent = fmin(min_extent,cell->extent_in_direction(i));
               max_extent = fmax(max_extent,cell->extent_in_direction(i));
-              }
-	  if (max_extent > max_element_aspect_ratio*min_extent)
-	     {
-             cell->set_refine_flag(RefinementCase<2>::cut_axis(max_extent_dim));
-             refinedCellCounter++;
-             }
-	  }
-     pcout<<"Aspect Ratio Reduction Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
-     tria.execute_coarsening_and_refinement();
-     //std::string filename = ( "meshIntermediateResult_" +
-//			   Utilities::int_to_string(int(round(cycles_counter))) +
-//			   ".inp" );
+            }
+          if (max_extent > max_element_aspect_ratio*min_extent)
+            {
+              cell->set_refine_flag(RefinementCase<2>::cut_axis(max_extent_dim));
+              refinedCellCounter++;
+            }
+        }
+      pcout<<"Aspect Ratio Reduction Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
+      tria.execute_coarsening_and_refinement();
+      //std::string filename = ( "meshIntermediateResult_" +
+//         Utilities::int_to_string(int(round(cycles_counter))) +
+//         ".inp" );
 //     std::ofstream logfile(filename.c_str());
 //     GridOut grid_out;
 //     grid_out.write_ucd(tria, logfile);
-     make_edges_conformal();
-     cycles_counter++;
+      make_edges_conformal();
+      cycles_counter++;
 
-     //std::string filename = ( "meshIntermediateResult_" +
-	//		   Utilities::int_to_string(int(round(cycles_counter))) +
-	//		   ".inp" );
-     //std::ofstream logfile(filename.c_str());
-     //GridOut grid_out;
-     //grid_out.write_ucd(triangulation, logfile);
+      //std::string filename = ( "meshIntermediateResult_" +
+      //       Utilities::int_to_string(int(round(cycles_counter))) +
+      //       ".inp" );
+      //std::ofstream logfile(filename.c_str());
+      //GridOut grid_out;
+      //grid_out.write_ucd(triangulation, logfile);
 
-     }
-
-
-if (use_cad_surface_and_curves && surface_curvature_refinement)
-   {
-    const double tolerance = 5000*max_tol;
-    refinedCellCounter = 1;
-    cycles_counter = 0;
-    while( (refinedCellCounter) && (cycles_counter < max_curvature_ref_cycles) )
-     {
-	refinedCellCounter = 0;
-        Triangulation<2,3>::active_cell_iterator cell = tria.begin_active();
-        Triangulation<2,3>::active_cell_iterator endc = tria.end();
-	for ( ; cell!= endc;++cell)
-	  {
-          //cout<<"center: "<<cell->center()<<endl;
-          //cout<<"v0: "<<cell->vertex(0)<<endl;
-          //cout<<"v1: "<<cell->vertex(1)<<endl;
-          //cout<<"v2: "<<cell->vertex(2)<<endl;
-          //cout<<"v3: "<<cell->vertex(3)<<endl;
-          Point<3> t0 = cell->vertex(0)+(-1.0)*cell->center();
-          Point<3> t1 = cell->vertex(1)+(-1.0)*cell->center();
-          Point<3> t2 = cell->vertex(2)+(-1.0)*cell->center();
-          Point<3> t3 = cell->vertex(3)+(-1.0)*cell->center();
-          //cout<<"t0: "<<t0<<endl;
-          //cout<<"t1: "<<t1<<endl;
-          //cout<<"t2: "<<t2<<endl;
-          //cout<<"t3: "<<t3<<endl;
-          
-          Point<3> nn0(t0(1)*t1(2)-t0(2)*t1(1),
-                       t0(2)*t1(0)-t0(0)*t1(2),
-                       t0(0)*t1(1)-t0(1)*t1(0));
-          nn0/=nn0.norm();
-          Point<3> nn1(t1(1)*t3(2)-t1(2)*t3(1),
-                       t1(2)*t3(0)-t1(0)*t3(2),
-                       t1(0)*t3(1)-t1(1)*t3(0));
-          nn1/=nn1.norm();
-          Point<3> nn2(t3(1)*t2(2)-t3(2)*t2(1),
-                       t3(2)*t2(0)-t3(0)*t2(2),
-                       t3(0)*t2(1)-t3(1)*t2(0));
-          nn2/=nn2.norm();
-          Point<3> nn3(t2(1)*t0(2)-t2(2)*t0(1),
-                       t2(2)*t0(0)-t2(0)*t0(2),
-                       t2(0)*t0(1)-t2(1)*t0(0));
-          nn3/=nn3.norm();
-          Point<3> n = (nn0+nn1+nn2+nn3)/4.0;
-          n/=n.norm();
-          //cout<<cell<<endl;
-          //cout<<nn0<<endl;
-          //cout<<nn1<<endl;
-          //cout<<nn2<<endl;
-          //cout<<nn3<<endl;
-          //cout<<n<<endl; 
-          //cout<<cell<<"  material id: "<<int(cell->material_id())<<endl;
+    }
 
 
-          //Point<3> projection = OpenCASCADE::line_intersection(neededShape,
-          //                                                     cell->center(),
-          //                                                     n,
-          //                                                     tolerance);
-          double cell_size;
-          if (int(cell->material_id())-1 < cad_surfaces.size())
-             {
-             TopoDS_Shape neededShape = cad_surfaces[int(cell->material_id())-1];
-             std_cxx11::tuple<Point<3>,Tensor<1,3>,double,double> tup = OpenCASCADE::closest_point_and_differential_forms(neededShape,
-	   	                                                                                                    cell->center(),
-	     	                                                                                                    tolerance);
-             double max_abs_curv = fmax(fabs(std_cxx11::get<2>(tup)),fabs(std_cxx11::get<3>(tup)));
-             //cout<<"Point: "<<std_cxx11::get<0>(tup)<<"  Kmin: "<<std_cxx11::get<2>(tup)<<"  Kmax: "<<std_cxx11::get<3>(tup)<<endl;
-             double curvature_radius = 1.0/fmax(max_abs_curv,tolerance);
-             cell_size = 2*dealii::numbers::PI/18.0*curvature_radius;
-             }
-          else
-             {
-             cell_size = 2*dealii::numbers::PI/cells_per_circle/tolerance;
-             }
-          //cout<<"Cell Diam: "<<cell->diameter()<<"  Target Cell Size: "<<cell_size<<endl;
-              
-          //cout<<cell<<" --> "<<projection.distance(cell->center())/cell->diameter()<<endl;
-	  //if ( ((projection.distance(cell->center())/cell->diameter() > max_cell_rel_distance) ||
-          if ( (cell->diameter() > cell_size)  &&   
-               (cell->diameter() > 10*tolerance) )
-	     {
-             cell->set_refine_flag();
-             refinedCellCounter++;
-             }
-	  }
-     pcout<<"Curvature Based Local Refinement Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
-     tria.execute_coarsening_and_refinement();
-     make_edges_conformal();
-     cycles_counter++;
-     
-     //std::string filename = ( "DTMB_II_meshResult_max_curv" +
-     //	                        Utilities::int_to_string(int(round(cycles_counter))) +
-     //	                        ".vtk" );
-     //std::ofstream logfile(filename.c_str());
-     //GridOut grid_out;
-     //grid_out.write_vtk(tria, logfile);
-     //std::string stl_filename = ( "DTMB_II_meshResult_max_curv" +
-     //	                        Utilities::int_to_string(int(round(cycles_counter))) +
-     //	                        ".stl" );
-     //SaveSTL(tria,stl_filename);
-     
+  if (use_cad_surface_and_curves && surface_curvature_refinement)
+    {
+      const double tolerance = 5000*max_tol;
+      refinedCellCounter = 1;
+      cycles_counter = 0;
+      while ( (refinedCellCounter) && (cycles_counter < max_curvature_ref_cycles) )
+        {
+          refinedCellCounter = 0;
+          Triangulation<2,3>::active_cell_iterator cell = tria.begin_active();
+          Triangulation<2,3>::active_cell_iterator endc = tria.end();
+          for ( ; cell!= endc; ++cell)
+            {
+              //cout<<"center: "<<cell->center()<<endl;
+              //cout<<"v0: "<<cell->vertex(0)<<endl;
+              //cout<<"v1: "<<cell->vertex(1)<<endl;
+              //cout<<"v2: "<<cell->vertex(2)<<endl;
+              //cout<<"v3: "<<cell->vertex(3)<<endl;
+              Point<3> t0 = cell->vertex(0)+(-1.0)*cell->center();
+              Point<3> t1 = cell->vertex(1)+(-1.0)*cell->center();
+              Point<3> t2 = cell->vertex(2)+(-1.0)*cell->center();
+              Point<3> t3 = cell->vertex(3)+(-1.0)*cell->center();
+              //cout<<"t0: "<<t0<<endl;
+              //cout<<"t1: "<<t1<<endl;
+              //cout<<"t2: "<<t2<<endl;
+              //cout<<"t3: "<<t3<<endl;
+
+              Point<3> nn0(t0(1)*t1(2)-t0(2)*t1(1),
+                           t0(2)*t1(0)-t0(0)*t1(2),
+                           t0(0)*t1(1)-t0(1)*t1(0));
+              nn0/=nn0.norm();
+              Point<3> nn1(t1(1)*t3(2)-t1(2)*t3(1),
+                           t1(2)*t3(0)-t1(0)*t3(2),
+                           t1(0)*t3(1)-t1(1)*t3(0));
+              nn1/=nn1.norm();
+              Point<3> nn2(t3(1)*t2(2)-t3(2)*t2(1),
+                           t3(2)*t2(0)-t3(0)*t2(2),
+                           t3(0)*t2(1)-t3(1)*t2(0));
+              nn2/=nn2.norm();
+              Point<3> nn3(t2(1)*t0(2)-t2(2)*t0(1),
+                           t2(2)*t0(0)-t2(0)*t0(2),
+                           t2(0)*t0(1)-t2(1)*t0(0));
+              nn3/=nn3.norm();
+              Point<3> n = (nn0+nn1+nn2+nn3)/4.0;
+              n/=n.norm();
+              //cout<<cell<<endl;
+              //cout<<nn0<<endl;
+              //cout<<nn1<<endl;
+              //cout<<nn2<<endl;
+              //cout<<nn3<<endl;
+              //cout<<n<<endl;
+              //cout<<cell<<"  material id: "<<int(cell->material_id())<<endl;
 
 
-     }
-   }
+              //Point<3> projection = OpenCASCADE::line_intersection(neededShape,
+              //                                                     cell->center(),
+              //                                                     n,
+              //                                                     tolerance);
+              double cell_size;
+              if (int(cell->material_id())-1 < cad_surfaces.size())
+                {
+                  TopoDS_Shape neededShape = cad_surfaces[int(cell->material_id())-1];
+                  std_cxx11::tuple<Point<3>,Tensor<1,3>,double,double> tup = OpenCASCADE::closest_point_and_differential_forms(neededShape,
+                                                                             cell->center(),
+                                                                             tolerance);
+                  double max_abs_curv = fmax(fabs(std_cxx11::get<2>(tup)),fabs(std_cxx11::get<3>(tup)));
+                  //cout<<"Point: "<<std_cxx11::get<0>(tup)<<"  Kmin: "<<std_cxx11::get<2>(tup)<<"  Kmax: "<<std_cxx11::get<3>(tup)<<endl;
+                  double curvature_radius = 1.0/fmax(max_abs_curv,tolerance);
+                  cell_size = 2*dealii::numbers::PI/18.0*curvature_radius;
+                }
+              else
+                {
+                  cell_size = 2*dealii::numbers::PI/cells_per_circle/tolerance;
+                }
+              //cout<<"Cell Diam: "<<cell->diameter()<<"  Target Cell Size: "<<cell_size<<endl;
+
+              //cout<<cell<<" --> "<<projection.distance(cell->center())/cell->diameter()<<endl;
+              //if ( ((projection.distance(cell->center())/cell->diameter() > max_cell_rel_distance) ||
+              if ( (cell->diameter() > cell_size)  &&
+                   (cell->diameter() > 10*tolerance) )
+                {
+                  cell->set_refine_flag();
+                  refinedCellCounter++;
+                }
+            }
+          pcout<<"Curvature Based Local Refinement Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
+          tria.execute_coarsening_and_refinement();
+          make_edges_conformal();
+          cycles_counter++;
+
+          //std::string filename = ( "DTMB_II_meshResult_max_curv" +
+          //                         Utilities::int_to_string(int(round(cycles_counter))) +
+          //                         ".vtk" );
+          //std::ofstream logfile(filename.c_str());
+          //GridOut grid_out;
+          //grid_out.write_vtk(tria, logfile);
+          //std::string stl_filename = ( "DTMB_II_meshResult_max_curv" +
+          //                         Utilities::int_to_string(int(round(cycles_counter))) +
+          //                         ".stl" );
+          //SaveSTL(tria,stl_filename);
+
+
+
+        }
+    }
 //*/
 
 
@@ -859,7 +859,7 @@ void ComputationalDomain<dim>::update_triangulation()
 
 
 template<int dim>
-void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes, 
+void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes,
                                                     const bool isotropic_ref_on_opposite_side)
 {
   if (with_double_nodes==false)
@@ -935,20 +935,20 @@ void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes
                           //cout<<parent_face_center.distance((*jt)->face(d)->center())<<" "<<tol<<endl;
                           if ( parent_face_center.distance(((*jt)->face(d)->vertex(0)+(*jt)->face(d)->vertex(1))/2) < tol)
                             {
-                            if ( isotropic_ref_on_opposite_side )
-                               {
-                               (*jt)->set_refine_flag();
-                               to_restore=true;
-                               }
-                            // otherwise, use anisotropic refinement to make edge mesh conformal
-                            else
-                               {
-                               if ((d==0) || (d==1))
-                                (*jt)->set_refine_flag(RefinementCase<2>::cut_axis(1));
-                               else
-                                (*jt)->set_refine_flag(RefinementCase<2>::cut_axis(0));
-                               to_restore=true;
-                               }
+                              if ( isotropic_ref_on_opposite_side )
+                                {
+                                  (*jt)->set_refine_flag();
+                                  to_restore=true;
+                                }
+                              // otherwise, use anisotropic refinement to make edge mesh conformal
+                              else
+                                {
+                                  if ((d==0) || (d==1))
+                                    (*jt)->set_refine_flag(RefinementCase<2>::cut_axis(1));
+                                  else
+                                    (*jt)->set_refine_flag(RefinementCase<2>::cut_axis(0));
+                                  to_restore=true;
+                                }
                             }
                         }
                 }

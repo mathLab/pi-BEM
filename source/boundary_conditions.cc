@@ -212,7 +212,7 @@ void BoundaryConditions<dim>::solve_problem()
       DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
       double shift = 0.0;
       if (this_mpi_process == 0)
-         shift = potential.value(support_points[*bem.this_cpu_set.begin()]) - phi(*bem.this_cpu_set.begin());
+        shift = potential.value(support_points[*bem.this_cpu_set.begin()]) - phi(*bem.this_cpu_set.begin());
       MPI_Bcast(&shift,1,MPI_DOUBLE,0,mpi_communicator);
       vector_shift(phi,shift);
     }

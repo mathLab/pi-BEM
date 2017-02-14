@@ -167,7 +167,7 @@ public:
   /// level of non conformity between cells that are neighboring
   /// across the edge. That is why, it should be called
   /// after every single refinement cycle that is carried out
-  /// in the program execution. 
+  /// in the program execution.
   void make_edges_conformal(const bool with_double_nodes = true,
                             const bool isotropic_ref_on_opposite_side = false);
 
@@ -217,7 +217,7 @@ public:
 
   // ratio between the tolerance found in the cad files and the
   // one to be prescribed to the projectors
-  double cad_to_projectors_tolerance_ratio; 
+  double cad_to_projectors_tolerance_ratio;
 
   /// Strings identifying the input grid name and format
   std::string input_grid_name;

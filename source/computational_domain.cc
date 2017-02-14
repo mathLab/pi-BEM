@@ -60,7 +60,7 @@ ComputationalDomain<dim>::~ComputationalDomain()
       tria.set_manifold(11+i);
     }
 
-tria.set_manifold(0);
+  tria.set_manifold(0);
 
 
 }
@@ -539,9 +539,7 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 {
   pcout<<"Refining and resizing mesh as required"<<std::endl;
 
-  std::vector<TopoDS_Shape> cad_surfaces;
-  std::vector<TopoDS_Shape> cad_curves;
-//GridTools::copy_material_to_manifold_id(tria,true);
+
   double max_tol=0;
   if (use_cad_surface_and_curves)
     {
@@ -646,24 +644,24 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
       for ( ; cell!= endc; ++cell)
         {
           // the following lines determine if the cell is more elongated
-          // in its 0 or 1 direction 
+          // in its 0 or 1 direction
           unsigned int max_extent_dim = 0;
           unsigned int min_extent_dim = 1;
           if (cell->extent_in_direction(0) < cell->extent_in_direction(1))
-             {
-             max_extent_dim = 1;
-             min_extent_dim = 0;
-             }
+            {
+              max_extent_dim = 1;
+              min_extent_dim = 0;
+            }
           // we compute the extent of the cell in its maximum and minimum elongation
           // direction respectively
           double min_extent = cell->extent_in_direction(min_extent_dim);
           double max_extent = cell->extent_in_direction(max_extent_dim);
           // if the aspect ratio exceeds the prescribed maximum value, the cell is refined
           if (max_extent > max_element_aspect_ratio*min_extent)
-             {
-             cell->set_refine_flag(RefinementCase<2>::cut_axis(max_extent_dim));
-             refinedCellCounter++;
-             }
+            {
+              cell->set_refine_flag(RefinementCase<2>::cut_axis(max_extent_dim));
+              refinedCellCounter++;
+            }
         }
       // the number of cells refined in this cycle is reported before
       // proceeding with the next one
@@ -673,7 +671,7 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
       // the following commented lines are here for debug puroposes: if
       // something fails during the aspect ratio reduction cycles, they
       // should be uncommented, so that a mesh file per cycle can be
-      // produced to document the evolution of the mesh through the 
+      // produced to document the evolution of the mesh through the
       // refinements. If the make_edges_conformal() function
       // is suspect in creating some error, the lines can also be
       // moved after the make_edges_conformal() function is called
@@ -707,7 +705,7 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
       // for refinement, or until the user specified maximum number of curvature
       // refinement cycles is reached
       while ( (refinedCellCounter) && (cycles_counter < max_curvature_ref_cycles) )
-        { 
+        {
           // the refined cells counter is zeroed at the start of each cycle
           refinedCellCounter = 0;
           // we loop on the all the triangulation active cells
@@ -765,13 +763,13 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
               // direction of the projection onto the CAD surface
               // first though, let's check that we are using a CAD surface for
               // the refinement of the manifold_id associated with the present
-              // cell 
+              // cell
               double cell_size;
               if (int(cell->material_id())-1 < cad_surfaces.size())
                 {
                   // if so, the cad_surface associated with the present manifold_id is identified...
                   TopoDS_Shape neededShape = cad_surfaces[int(cell->material_id())-1];
-                  // ...and used to set up a line intersection to project the cell center 
+                  // ...and used to set up a line intersection to project the cell center
                   // on the CAD surface along the direction specified by the previously computed
                   // cell normal
                   Point<3> projection = OpenCASCADE::line_intersection(neededShape,
@@ -796,15 +794,15 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
                 {
                   // if the cell manifold_id is not associated to a CAD surface, the
                   // target cell_size is set to and extremely high value, so that the cell is
-                  // never refined  
+                  // never refined
                   cell_size = 2*dealii::numbers::PI/cells_per_circle/tolerance;
                 }
 
               // the following line si for debug puropses and should be uncommented if
               // something is not working with the refinement
               //cout<<"Cell Diam: "<<cell->diameter()<<"  Target Cell Size: "<<cell_size<<endl;
-              
-              
+
+
               // if the cell diameter is higher than the target cell size, the refinement flag is set
               // (unless the cell is already very small ---which for us means 10xtolerance)
               if ( (cell->diameter() > cell_size)  &&

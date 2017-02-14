@@ -1807,7 +1807,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   vector_gradients_rhs.compress(VectorOperation::add);
 
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
-                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
+                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
 
   solver.solve (vector_gradients_matrix, vector_gradients_solution, vector_gradients_rhs, PreconditionIdentity());
 
@@ -1938,7 +1938,7 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   vector_surface_gradients_rhs.compress(VectorOperation::add);
 
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
-                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
+                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
 
   solver.solve (vector_surface_gradients_matrix, vector_surface_gradients_solution, vector_surface_gradients_rhs, PreconditionIdentity());
 
@@ -2013,6 +2013,7 @@ void BEMProblem<dim>::compute_normals()
                                                      vector_fe_v.JxW(q);
                       }
                   }
+
                 local_normals_rhs(i) += (vector_fe_v.shape_value(i, q)) *
                                         vector_node_normals[q][comp_i] * vector_fe_v.JxW(q);
               }
@@ -2030,8 +2031,9 @@ void BEMProblem<dim>::compute_normals()
 
   vector_normals_matrix.compress(VectorOperation::add);
   vector_normals_rhs.compress(VectorOperation::add);
+
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
-                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(50));
+                                                      SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
 
   solver.solve (vector_normals_matrix, vector_normals_solution, vector_normals_rhs, PreconditionIdentity());
 

@@ -144,7 +144,30 @@ public:
   /// the solution gradients, which are
   /// vectorial functions
 
-
+  /// The double nodes treatment that we are
+  /// using requires that the computational mesh
+  /// is conformal in correspondence with the
+  /// sharp edges. The next function detects
+  /// if after a refinement step, non conformities
+  /// appear across the edges. If any is found,
+  /// it is fixed by refining the cell on the
+  /// coarser side of the non conformity.
+  /// The optional parameter
+  /// isotropic_ref_on_opposite_side can be used to
+  /// decide if such cell is refined isotropically (true)
+  /// or only in one direction (false), which is the one
+  /// needed to obtain conformity.
+  /// As said the procedure is particularly important
+  /// when double nodes are used to treat sharp edges.
+  /// Yet, it is also possible to employ the procedure
+  /// without double nodes. This can be specified assigning
+  /// false to the value of the with_double_nodes parameter.
+  /// Please note that the present function is able to make
+  /// conformal all the triangulations that have at most one
+  /// level of non conformity between cells that are neighboring
+  /// across the edge. That is why, it should be called
+  /// after every single refinement cycle that is carried out
+  /// in the program execution. 
   void make_edges_conformal(const bool with_double_nodes = true,
                             const bool isotropic_ref_on_opposite_side = false);
 
@@ -190,8 +213,11 @@ public:
   double cells_per_circle;
 
   // maximum number of curvature based refinement cycles
-  //
   unsigned int max_curvature_ref_cycles;
+
+  // ratio between the tolerance found in the cad files and the
+  // one to be prescribed to the projectors
+  double cad_to_projectors_tolerance_ratio; 
 
   /// Strings identifying the input grid name and format
   std::string input_grid_name;
@@ -204,16 +230,6 @@ public:
   /// the material ID numbers in the mesh
   /// input file, for the neumann_nodes
   std::vector<unsigned int> neumann_boundary_ids;
-
-  /// vectors containing the CAD surfaces and curves to be
-  /// (optionally) used for refinement of the triangulation
-  std::vector<TopoDS_Shape> cad_surfaces;
-  std::vector<TopoDS_Shape> cad_curves;
-
-  /// vectors containing the CAD surfaces and curves projectors
-  /// to be (optionally) used for refinement of the triangulation
-  std::vector<std::shared_ptr<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> > > normal_to_mesh_projectors;
-  std::vector<std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2,3> > >line_projectors;
 
 
   MPI_Comm mpi_communicator;
@@ -230,6 +246,16 @@ public:
   Manifold<dim-1, dim> *manifold;
   ConditionalOStream pcout;
 
+
+  /// vectors containing the CAD surfaces and curves to be
+  /// (optionally) used for refinement of the triangulation
+  std::vector<TopoDS_Shape> cad_surfaces;
+  std::vector<TopoDS_Shape> cad_curves;
+
+  /// vectors containing the CAD surfaces and curves projectors
+  /// to be (optionally) used for refinement of the triangulation
+  std::vector<std::shared_ptr<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> > > normal_to_mesh_projectors;
+  std::vector<std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2,3> > >line_projectors;
 
 };
 

@@ -2774,7 +2774,7 @@ void BEMFMA<dim>::compute_geometry_cache()
 
 
   FESystem<dim-1,dim> gradient_fe(*fma_fe, dim);
-  DoFHandler<dim-1, dim> gradient_dh(fma_dh->get_tria());
+  DoFHandler<dim-1, dim> gradient_dh(fma_dh->get_triangulation());
 
   //double tol = 1e-8;
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());
@@ -2827,7 +2827,7 @@ void BEMFMA<dim>::compute_geometry_cache()
 
 
 
-  for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  for (; cell!=endc; ++cell,++gradient_cell)
     {
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
 
@@ -2997,7 +2997,7 @@ void BEMFMA<dim>::generate_octree_blocking()
         delete blocks[ii];
     }
 
-  types::global_dof_index maxNumBlocks = num_octree_levels*fma_dh->get_tria().n_active_cells()*fe_v.n_quadrature_points;
+  types::global_dof_index maxNumBlocks = num_octree_levels*fma_dh->get_triangulation().n_active_cells()*fe_v.n_quadrature_points;
 //unsigned int maxNumBlocks = 0;
 //for (unsigned int ii = 0; ii < num_octree_levels + 1;  ii++)
 //  {

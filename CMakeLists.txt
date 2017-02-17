@@ -26,7 +26,7 @@ SET(_main source/main.cc)
 # Normally you shouldn't need to change anything below.
 ############################################################
 # Declare all source files the target consists of:
-file(GLOB _files source/*cc)
+file(GLOB _files source/*cc include/*h)
 
 # Don't compile the main file into the library
 IF(NOT "${_main}" STREQUAL "")

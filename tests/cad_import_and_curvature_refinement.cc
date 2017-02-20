@@ -18,7 +18,7 @@
 int main (int argc, char **argv)
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-  //initlog(); 
+  //initlog();
   MPI_Comm mpi_communicator(MPI_COMM_WORLD);
   ComputationalDomain<3> computational_domain(mpi_communicator);
   ParameterAcceptor::initialize(SOURCE_DIR "/parameter_cad_import_and_curvature_refinement.prm","used.prm");

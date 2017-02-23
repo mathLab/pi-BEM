@@ -205,7 +205,7 @@ void BoundaryConditions<dim>::solve_problem()
 
 
   bem.solve(phi, dphi_dn, tmp_rhs);
-
+  have_dirichlet_bc=bem.have_dirichlet_bc;
   if (!have_dirichlet_bc)
     {
       std::vector<Point<dim> > support_points(n_dofs);
@@ -268,7 +268,6 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                            update_JxW_values);
 
 
-  have_dirichlet_bc = false;
   for (cell = bem.dh.begin_active(); cell != endc; ++cell)
     {
       fe_v.reinit(cell);
@@ -284,7 +283,6 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
               if (cell->material_id() == dbound)
                 {
                   dirichlet = true;
-                  have_dirichlet_bc = true;
                   break;
                 }
             if (dirichlet)
@@ -323,7 +321,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                         tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[vec_index];
                         normy += bem.vector_normals_solution[vec_index] * bem.vector_normals_solution[vec_index];
                       }
-                    Assert(std::fabs(normy-1.)<tol, ExcMessage("you are using wrongly the normal vector"));
+                    // Assert(std::fabs(normy-1.)<tol, ExcMessage("you are using wrongly the normal vector"));
                     tmp_rhs(local_dof_indices[j]) = tmp_dphi_dn;
                     dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
                   }
@@ -356,6 +354,7 @@ void BoundaryConditions<dim>::compute_errors()
   // We let only the first processor do the error computations
   if (this_mpi_process == 0)
     {
+      pcout<<"computing errors on P0"<<std::endl;
       // for(auto i : localised_alpha.locally_owned_elements())
       //   localised_alpha[i] -= 0.5;
 

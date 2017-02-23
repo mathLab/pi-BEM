@@ -390,7 +390,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
   vector_shift(non_partitioned_neumann_nodes, 1.);
   std::vector<types::global_dof_index> dofs(fe->dofs_per_cell);
   std::vector<types::global_dof_index> gradient_dofs(gradient_fe->dofs_per_cell);
-
+  unsigned int helper_dirichlet=0;
   for (; cell != endc; ++cell)
     {
       if (cell->subdomain_id() == this_mpi_process)
@@ -408,7 +408,7 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
                       //pcout<<dofs[i]<<"  cellMatId "<<cell->material_id()<<"  surfNodes: "<<dirichlet_nodes(dofs[i])<<"  otherNodes: "<<neumann_nodes(dofs[i])<<std::endl;
                     }
                   dirichlet = true;
-                  have_dirichlet_bc = true;
+                  helper_dirichlet = 1.;
                   break;
                 }
             }
@@ -458,7 +458,13 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
       }
   // dirichlet_nodes.add(non_partitioned_dirichlet_nodes, true);// = non_partitioned_dirichlet_nodes;
   // neumann_nodes.add(non_partitioned_neumann_nodes, true);// = non_partitioned_neumann_nodes;
-
+  unsigned int helper_dirichlet_2;
+  // std::cout<<this_mpi_process<<" , "<<helper_dirichlet<<std::endl;
+  MPI_Allreduce(&helper_dirichlet,&helper_dirichlet_2,1,MPI_UNSIGNED,MPI_MAX,mpi_communicator);
+  // std::cout<<this_mpi_process<<" , "<<helper_dirichlet<<" , "<<helper_dirichlet_2<<std::endl;
+  if (helper_dirichlet_2>0)
+    have_dirichlet_bc=true;
+  // std::cout<<this_mpi_process<<" , "<<have_dirichlet_bc<<std::endl;
   //for (unsigned int i=0; i<dh.n_dofs(); ++i)
   //    if (this_mpi_process == 1)
   //       pcout<<i<<" "<<dirichlet_nodes(i)<<" "<<neumann_nodes(i)<<std::endl;
@@ -1076,10 +1082,11 @@ void BEMProblem<dim>::compute_alpha()
 template <int dim>
 void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWrappers::MPI::Vector &src) const
 {
-
   serv_phi = src;
   if (!have_dirichlet_bc)
-    vector_shift(serv_phi, -serv_phi.l2_norm());
+    {
+      vector_shift(serv_phi, -serv_phi.l2_norm());
+    }
   serv_dphi_dn = src;
 
 
@@ -1121,7 +1128,6 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
   // one
   if (!have_dirichlet_bc)
     vector_shift(dst, -dst.l2_norm());
-
 }
 
 
@@ -1273,6 +1279,10 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
             }
         }
     }
+  phi(this_cpu_set.nth_index_in_set(0))=phi(this_cpu_set.nth_index_in_set(0));
+  dphi_dn(this_cpu_set.nth_index_in_set(0))=dphi_dn(this_cpu_set.nth_index_in_set(0));
+  phi.compress(VectorOperation::insert);
+  dphi_dn.compress(VectorOperation::insert);
 
   //if (!have_dirichlet_bc)
   //   vector_shift(phi,-phi.l2_norm());
@@ -1316,7 +1326,6 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
     }
 
   solve_system(phi,dphi_dn,tmp_rhs);
-
 }
 
 
@@ -1639,10 +1648,12 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
 
   // We need the solution to be stored on a parallel vector with ghost elements. We let
   // Trilinos take care of it.
+
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
   phi.reinit(glob_phi,false,true);
   TrilinosWrappers::MPI::Vector dphi_dn(ghosted_set);
   dphi_dn.reinit(glob_dphi_dn,false,true);
+
 
 
   // We reinit the gradient solution

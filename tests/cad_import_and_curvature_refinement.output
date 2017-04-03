@@ -1,0 +1,126 @@
+Refining and resizing mesh as required
+Color Files
+1-th file exists
+Total number of loaded entities : 9.
+2-th file exists
+Total number of loaded entities : 9.
+3-th file exists
+Total number of loaded entities : 13.
+4-th file exists
+Total number of loaded entities : 13.
+Edge Files
+1-th file exists
+Total number of loaded entities : 3.
+2-th file exists
+Total number of loaded entities : 3.
+0
+1e-07
+1
+1e-07
+2
+1e-07
+3
+1e-07
+4
+1e-07
+5
+1e-07
+Used tolerance is: 5e-07
+Aspect Ratio Reduction Cycle: 0 (10)
+Restoring mesh conformity on edges...
+cells before : 24
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 28
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 28
+...Done restoring mesh conformity
+Aspect Ratio Reduction Cycle: 1 (24)
+Restoring mesh conformity on edges...
+cells before : 52
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 60
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 60
+...Done restoring mesh conformity
+Aspect Ratio Reduction Cycle: 2 (36)
+Restoring mesh conformity on edges...
+cells before : 96
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 100
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 100
+...Done restoring mesh conformity
+Aspect Ratio Reduction Cycle: 3 (44)
+Restoring mesh conformity on edges...
+cells before : 168
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 172
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 172
+...Done restoring mesh conformity
+Aspect Ratio Reduction Cycle: 4 (8)
+Restoring mesh conformity on edges...
+cells before : 180
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 180
+...Done restoring mesh conformity
+Aspect Ratio Reduction Cycle: 5 (0)
+Restoring mesh conformity on edges...
+cells before : 180
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 180
+...Done restoring mesh conformity
+Curvature Based Local Refinement Cycle: 0 (48)
+Restoring mesh conformity on edges...
+cells before : 324
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 330
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 332
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 332
+...Done restoring mesh conformity
+Curvature Based Local Refinement Cycle: 1 (64)
+Restoring mesh conformity on edges...
+cells before : 524
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 526
+Computing infos for the double_vertex
+done double_vertex cache
+0
+found non conformity, new cell number : 528
+Computing infos for the double_vertex
+done double_vertex cache
+0
+cells after : 528
+...Done restoring mesh conformity
+We have a tria of 528 cells.
+...done refining and resizing mesh

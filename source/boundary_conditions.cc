@@ -205,6 +205,17 @@ void BoundaryConditions<dim>::solve_problem()
 
 
   bem.solve(phi, dphi_dn, tmp_rhs);
+  have_dirichlet_bc=bem.have_dirichlet_bc;
+  if (!have_dirichlet_bc)
+    {
+      std::vector<Point<dim> > support_points(n_dofs);
+      DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
+      double shift = 0.0;
+      if (this_mpi_process == 0)
+        shift = potential.value(support_points[*bem.this_cpu_set.begin()]) - phi(*bem.this_cpu_set.begin());
+      MPI_Bcast(&shift,1,MPI_DOUBLE,0,mpi_communicator);
+      vector_shift(phi,shift);
+    }
 
   // bem.compute_gradients(phi, dphi_dn);
 
@@ -257,7 +268,6 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                            update_JxW_values);
 
 
-  have_dirichlet_bc = false;
   for (cell = bem.dh.begin_active(); cell != endc; ++cell)
     {
       fe_v.reinit(cell);
@@ -273,7 +283,6 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
               if (cell->material_id() == dbound)
                 {
                   dirichlet = true;
-                  have_dirichlet_bc = true;
                   break;
                 }
             if (dirichlet)
@@ -312,7 +321,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                         tmp_dphi_dn += imposed_pot_grad[d]*bem.vector_normals_solution[vec_index];
                         normy += bem.vector_normals_solution[vec_index] * bem.vector_normals_solution[vec_index];
                       }
-                    Assert(std::fabs(normy-1.)<tol, ExcMessage("you are using wrongly the normal vector"));
+                    // Assert(std::fabs(normy-1.)<tol, ExcMessage("you are using wrongly the normal vector"));
                     tmp_rhs(local_dof_indices[j]) = tmp_dphi_dn;
                     dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
                   }
@@ -325,6 +334,8 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
 
           }
     }
+
+
 
 }
 
@@ -343,6 +354,7 @@ void BoundaryConditions<dim>::compute_errors()
   // We let only the first processor do the error computations
   if (this_mpi_process == 0)
     {
+      pcout<<"computing errors on P0"<<std::endl;
       // for(auto i : localised_alpha.locally_owned_elements())
       //   localised_alpha[i] -= 0.5;
 
@@ -352,40 +364,44 @@ void BoundaryConditions<dim>::compute_errors()
       Vector<double> difference_per_cell (comp_dom.tria.n_active_cells());
       DoFTools::map_dofs_to_support_points<dim-1, dim>( *bem.mapping, bem.dh, support_points);
 
-      if (!have_dirichlet_bc)
-        {
-          std::vector<double> exact_sol(bem.dh.n_dofs());
-          Vector<double> exact_sol_deal(bem.dh.n_dofs());
-          potential.value_list(support_points,exact_sol);
-          for (auto i : exact_sol_deal.locally_owned_elements())
-            exact_sol_deal[bem.original_to_sub_wise[i]] = exact_sol[bem.original_to_sub_wise[i]];
-          auto exact_mean = VectorTools::compute_mean_value(*bem.mapping,bem.dh,QGauss<(dim-1)>(2*(2*bem.fe->degree+1)), exact_sol_deal, 0);
-          exact_sol_deal.add(-exact_mean);
-          auto my_mean = VectorTools::compute_mean_value(*bem.mapping,bem.dh,QGauss<(dim-1)>(2*(2*bem.fe->degree+1)), localized_phi, 0);
-          localized_phi.add(-my_mean);
-          localized_phi.sadd(1.,-1.,exact_sol_deal);
-          std::cout<<"Extracting the mean value from phi solution"<<std::endl;
-          VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
-                                             ZeroFunction<dim, double> (1),
-                                             difference_per_cell,
-                                             QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
-                                             VectorTools::L2_norm);
+      // removing this because now solution is translated after BEM solution
+      // is given back by bem_problem in solve_problem
+      /*
+            if (false)//(!have_dirichlet_bc)
+              {
+                std::vector<double> exact_sol(bem.dh.n_dofs());
+                Vector<double> exact_sol_deal(bem.dh.n_dofs());
+                potential.value_list(support_points,exact_sol);
+                for (auto i : exact_sol_deal.locally_owned_elements())
+                  exact_sol_deal[bem.original_to_sub_wise[i]] = exact_sol[bem.original_to_sub_wise[i]];
+                auto exact_mean = VectorTools::compute_mean_value(*bem.mapping,bem.dh,QGauss<(dim-1)>(2*(2*bem.fe->degree+1)), exact_sol_deal, 0);
+                exact_sol_deal.add(-exact_mean);
+                auto my_mean = VectorTools::compute_mean_value(*bem.mapping,bem.dh,QGauss<(dim-1)>(2*(2*bem.fe->degree+1)), localized_phi, 0);
+                localized_phi.add(-my_mean);
+                localized_phi.sadd(1.,-1.,exact_sol_deal);
+                std::cout<<"Extracting the mean value from phi solution"<<std::endl;
+                VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
+                                                   ZeroFunction<dim, double> (1),
+                                                   difference_per_cell,
+                                                   QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
+                                                   VectorTools::L2_norm);
 
-          phi_max_error = localized_phi.linfty_norm();
+                phi_max_error = localized_phi.linfty_norm();
 
 
-        }
-      else
-        {
-          VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
-                                             potential,
-                                             difference_per_cell,
-                                             QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
-                                             VectorTools::L2_norm);
+              }
+            else
+              {
+      */
+      VectorTools::integrate_difference (*bem.mapping, bem.dh, localized_phi,
+                                         potential,
+                                         difference_per_cell,
+                                         QGauss<(dim-1)>(2*(2*bem.fe->degree+1)),
+                                         VectorTools::L2_norm);
 
-          phi_max_error = difference_per_cell.linfty_norm();
+      phi_max_error = difference_per_cell.linfty_norm();
 
-        }
+//        }
       VectorTools::integrate_difference (*bem.mapping, bem.gradient_dh, localized_gradient_solution,
                                          wind,
                                          grad_difference_per_cell,
@@ -496,7 +512,6 @@ template <int dim>
 void BoundaryConditions<dim>::output_results(const std::string filename)
 {
   Teuchos::TimeMonitor LocalTimer(*OutputTimer);
-
   // At the time being the output is not running in parallel with saks
   // const Vector<double> localized_phi (phi);
   // const Vector<double> localized_dphi_dn (dphi_dn);

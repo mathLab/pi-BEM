@@ -560,19 +560,24 @@ void BEMProblem<dim>::assemble_system()
   dirichlet_matrix = 0;
 
 
-
-  std::vector<QTelles<dim-1> > sing_quadratures;
+  std::vector<Quadrature<dim-1> > sing_quadratures;
   for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
-    sing_quadratures.push_back
-    (QTelles<dim-1>(singular_quadrature_order,
-                    fe->get_unit_support_points()[i]));
-
-  // Usage of alternative singular quadrature formula
-  // std::vector<QGaussOneOverR<dim-1> > sing_quadratures;
-  // for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
-  //   sing_quadratures.push_back
-  //   (QGaussOneOverR<dim-1>(singular_quadrature_order,
-  //                   fe->get_unit_support_points()[i], true));
+  {
+    if(fe->degree > 1)
+    {
+      sing_quadratures.push_back(QIterated<dim-1>(QGauss<1> (singular_quadrature_order),fe->degree));
+    }
+    else
+    {
+      sing_quadratures.push_back
+      (QTelles<dim-1>(singular_quadrature_order,
+                      fe->get_unit_support_points()[i]));
+      //
+      // Usage of alternative singular quadrature formula
+      // (QGaussOneOverR<dim-1>(singular_quadrature_order,
+      //                 fe->get_unit_support_points()[i],true));
+    }
+  }
 
 
   // Next, we initialize an FEValues

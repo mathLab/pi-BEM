@@ -1390,7 +1390,9 @@ void BEMFMA<dim>::direct_integrals()
   pcout<<"...done computing direct integrals"<<std::endl;
 }
 
-
+template <>
+void BEMFMA<2>::multipole_integrals()
+{}
 // The following function set up the structure needed to generate the multipole
 // expansions with a Boundary Element Method.
 template <int dim>
@@ -1699,6 +1701,9 @@ void BEMFMA<dim>::compute_m2l_flags()
 
 }
 
+template<>
+void BEMFMA<2>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
+{}
 
 // The following function performs the ascending phase of the algorithm. We
 // need the values of the two traces of the solutions to fill the multipole
@@ -1986,7 +1991,10 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
 }
 
-
+template <>
+void BEMFMA<2>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+                                               TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const
+{ }
 // The following functions takes care of the descending phase of the FMA.
 template <int dim>
 void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &phi_values, const TrilinosWrappers::MPI::Vector &dphi_dn_values,
@@ -4099,4 +4107,5 @@ void BEMFMA<dim>::generate_octree_blocking()
   pcout<<"Done computing proximity lists for blocks"<<std::endl;
 } //end method for octree blocking generation
 
+template class BEMFMA<2>;
 template class BEMFMA<3>;

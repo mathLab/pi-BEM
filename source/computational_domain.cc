@@ -588,6 +588,10 @@ void ComputationalDomain<dim>::update_triangulation()
 
 }
 
+template<>
+void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes)
+{
+}
 
 template<int dim>
 void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes)
@@ -767,4 +771,5 @@ void ComputationalDomain<dim>::compute_double_vertex_cache()
 
 
 
+template class ComputationalDomain<2>;
 template class ComputationalDomain<3>;

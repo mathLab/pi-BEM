@@ -65,8 +65,8 @@ RCP<Time> ReinitTime = Teuchos::TimeMonitor::getNewTimer("BEM Reinitialisation T
 // Functions::ParsedFunction::declare_parameters
 // is static, and has no knowledge of
 // the number of components.
-template <int dim>
-BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
+template <>
+BEMProblem<3>::BEMProblem(ComputationalDomain<3> &comp_dom,
                             // const unsigned int fe_degree,
                             MPI_Comm comm)
   :
@@ -74,6 +74,24 @@ BEMProblem<dim>::BEMProblem(ComputationalDomain<dim> &comp_dom,
   comp_dom(comp_dom),
   parsed_fe("Scalar FE", "FE_Q(1)"),
   parsed_gradient_fe("Vector FE", "FESystem[FE_Q(1)^3]","u,u,u",3),
+  dh(comp_dom.tria),
+  gradient_dh(comp_dom.tria),
+  mpi_communicator (comm),
+  n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
+  this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator))
+{
+  // Only output on first processor.
+  pcout.set_condition(this_mpi_process == 0);
+}
+template <>
+BEMProblem<2>::BEMProblem(ComputationalDomain<2> &comp_dom,
+                            // const unsigned int fe_degree,
+                            MPI_Comm comm)
+  :
+  pcout(std::cout),
+  comp_dom(comp_dom),
+  parsed_fe("Scalar FE", "FE_Q(1)"),
+  parsed_gradient_fe("Vector FE", "FESystem[FE_Q(1)^2]","u,u",2),
   dh(comp_dom.tria),
   gradient_dh(comp_dom.tria),
   mpi_communicator (comm),
@@ -266,6 +284,7 @@ void BEMProblem<dim>::reinit()
   compute_double_nodes_set();
 
   fma.init_fma(dh, double_nodes_set, dirichlet_nodes, *mapping, quadrature_order, singular_quadrature_order);
+
 
 
   // We need a TrilinosWrappers::MPI::Vector to reinit the SparsityPattern for
@@ -1056,6 +1075,9 @@ void BEMProblem<dim>::compute_alpha()
     }
   else
     {
+      AssertThrow(dim == 3,
+                  ExcMessage("FMA only works in 3D"));
+
       fma.generate_multipole_expansions(ones,zeros);
       fma.multipole_matr_vect_products(ones,zeros,alpha,dummy);
     }
@@ -1100,6 +1122,9 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
     }
   else
     {
+      AssertThrow(dim == 3,
+                  ExcMessage("FMA only works in 3D"));
+
       fma.generate_multipole_expansions(serv_phi,serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,serv_dphi_dn,matrVectProdN,matrVectProdD);
       serv_phi.scale(alpha);
@@ -1148,6 +1173,9 @@ void BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &dst, const Tril
     }
   else
     {
+      AssertThrow(dim == 3,
+                  ExcMessage("FMA only works in 3D"));
+
       fma.generate_multipole_expansions(serv_phi,serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,serv_dphi_dn,matrVectProdN,matrVectProdD);
       serv_phi.scale(alpha);
@@ -1221,6 +1249,9 @@ void BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &phi, TrilinosW
     }
   else
     {
+      AssertThrow(dim == 3,
+                  ExcMessage("FMA only works in 3D"));
+
       TrilinosWrappers::PreconditionILU &fma_preconditioner = fma.FMA_preconditioner(alpha,constraints);
       solver.solve (cc, sol, system_rhs, fma_preconditioner);
       // solver.solve (cc, sol, system_rhs, PreconditionIdentity());
@@ -1305,6 +1336,9 @@ void BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &phi, TrilinosWrappers
     }
   else
     {
+      AssertThrow(dim == 3,
+                  ExcMessage("FMA only works in 3D"));
+
       fma.generate_octree_blocking();
       // fma.compute_m2l_flags();
       fma.direct_integrals();
@@ -2024,4 +2058,5 @@ void BEMProblem<dim>::adaptive_refinement(const TrilinosWrappers::MPI::Vector &e
 
 
 
+template class BEMProblem<2>;
 template class BEMProblem<3>;

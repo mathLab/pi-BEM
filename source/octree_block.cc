@@ -306,4 +306,5 @@ inline types::global_dof_index OctreeBlock<dim>::GetNonIntListSize() const
 }
 
 
+template class OctreeBlock<2>;
 template class OctreeBlock<3>;

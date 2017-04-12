@@ -575,4 +575,5 @@ void BoundaryConditions<dim>::output_results(const std::string filename)
 
 }
 
+template class BoundaryConditions<2>;
 template class BoundaryConditions<3>;

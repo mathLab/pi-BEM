@@ -128,4 +128,5 @@ void Driver<dim>::run()
 }
 
 
+template class Driver<2>;
 template class Driver<3>;

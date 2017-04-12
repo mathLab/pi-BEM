@@ -67,8 +67,8 @@ RCP<Time> ReinitTime = Teuchos::TimeMonitor::getNewTimer("BEM Reinitialisation T
 // the number of components.
 template <>
 BEMProblem<3>::BEMProblem(ComputationalDomain<3> &comp_dom,
-                            // const unsigned int fe_degree,
-                            MPI_Comm comm)
+                          // const unsigned int fe_degree,
+                          MPI_Comm comm)
   :
   pcout(std::cout),
   comp_dom(comp_dom),
@@ -85,8 +85,8 @@ BEMProblem<3>::BEMProblem(ComputationalDomain<3> &comp_dom,
 }
 template <>
 BEMProblem<2>::BEMProblem(ComputationalDomain<2> &comp_dom,
-                            // const unsigned int fe_degree,
-                            MPI_Comm comm)
+                          // const unsigned int fe_degree,
+                          MPI_Comm comm)
   :
   pcout(std::cout),
   comp_dom(comp_dom),
@@ -562,22 +562,22 @@ void BEMProblem<dim>::assemble_system()
 
   std::vector<Quadrature<dim-1> > sing_quadratures;
   for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
-  {
-    if(fe->degree > 1)
     {
-      sing_quadratures.push_back(QIterated<dim-1>(QGauss<1> (singular_quadrature_order),fe->degree));
+      if (fe->degree > 1)
+        {
+          sing_quadratures.push_back(QIterated<dim-1>(QGauss<1> (singular_quadrature_order),fe->degree));
+        }
+      else
+        {
+          sing_quadratures.push_back
+          (QTelles<dim-1>(singular_quadrature_order,
+                          fe->get_unit_support_points()[i]));
+          //
+          // Usage of alternative singular quadrature formula
+          // (QGaussOneOverR<dim-1>(singular_quadrature_order,
+          //                 fe->get_unit_support_points()[i],true));
+        }
     }
-    else
-    {
-      sing_quadratures.push_back
-      (QTelles<dim-1>(singular_quadrature_order,
-                      fe->get_unit_support_points()[i]));
-      //
-      // Usage of alternative singular quadrature formula
-      // (QGaussOneOverR<dim-1>(singular_quadrature_order,
-      //                 fe->get_unit_support_points()[i],true));
-    }
-  }
 
 
   // Next, we initialize an FEValues

@@ -61,7 +61,7 @@ ComputationalDomain<dim>::~ComputationalDomain()
 template <int dim>
 void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 {
-  if(dim == 3)
+  if (dim == 3)
     prm.declare_entry("Input grid name", "../grids/coarse_cube_double_nodes",
                       Patterns::Anything());
   else

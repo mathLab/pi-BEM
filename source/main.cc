@@ -13,11 +13,13 @@ int main (int argc, char *argv[])
         threads = atoi(argv[1]);
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, threads);
 
-      Driver<3> driver;
+      std::string pname = "parameters_bem_" + std::to_string(DIMENSION) + ".prm";
+      std::string pname2 = "used_parameters_bem_" + std::to_string(DIMENSION) + ".prm";
 
-      ParameterAcceptor::initialize("parameter_bem.prm","used_parameter_bem.prm");
-
+      Driver<DIMENSION> driver;
+      ParameterAcceptor::initialize(pname, pname2);
       driver.run();
+
 
     }
   catch (std::exception &exc)

@@ -61,9 +61,13 @@ ComputationalDomain<dim>::~ComputationalDomain()
 template <int dim>
 void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
 {
+  if (dim == 3)
+    prm.declare_entry("Input grid name", "../grids/coarse_cube_double_nodes",
+                      Patterns::Anything());
+  else
+    prm.declare_entry("Input grid name", "../grids/circle",
+                      Patterns::Anything());
 
-  prm.declare_entry("Input grid name", "../grids/coarse_cube_double_nodes",
-                    Patterns::Anything());
 
   prm.declare_entry("Input grid format", "inp",
                     Patterns::Anything());
@@ -75,12 +79,6 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   {
     prm.declare_entry("Dirichlet boundary ids", "1,110,110", Patterns::List(Patterns::Integer(0)));
     prm.declare_entry("Neumann boundary ids", "0,110,110", Patterns::List(Patterns::Integer(0)));
-    // prm.declare_entry("Dirichlet Surface 1 ID", "1", Patterns::Integer());
-    // prm.declare_entry("Dirichlet Surface 2 ID", "110", Patterns::Integer());
-    // prm.declare_entry("Dirichlet Surface 3 ID", "110", Patterns::Integer());
-    // prm.declare_entry("Neumann Surface 1 ID", "0", Patterns::Integer());
-    // prm.declare_entry("Neumann Surface 2 ID", "110", Patterns::Integer());
-    // prm.declare_entry("Neumann Surface 3 ID", "110", Patterns::Integer());
   }
   prm.leave_subsection();
 
@@ -223,7 +221,7 @@ void ComputationalDomain<dim>::read_domain()
   //
   // manifold = new SphericalManifold<dim-1, dim>;
 
-  if (input_grid_name == "../grids/coarse_sphere" || input_grid_name == "../grids/coarse_sphere_double_nodes" )
+  if (input_grid_name == "../grids/coarse_sphere" || input_grid_name == "../grids/coarse_sphere_double_nodes" || input_grid_name == "../grids/circle" )
     {
       manifold = new SphericalManifold<dim-1, dim>;
       tria.set_all_manifold_ids(0);
@@ -233,6 +231,13 @@ void ComputationalDomain<dim>::read_domain()
 
 }
 
+template <>
+void ComputationalDomain<2>::create_initial_mesh()
+{
+  AssertThrow(true,
+              ExcMessage("Create initial mesh only works in 3D"));
+
+}
 
 template <int dim>
 void ComputationalDomain<dim>::create_initial_mesh()
@@ -578,7 +583,7 @@ void ComputationalDomain<dim>::update_triangulation()
   GridTools::get_subdomain_association (tria, partition_int);
   const Vector<double> partitioning(partition_int.begin(),
                                     partition_int.end());
-  data_out.add_data_vector (partitioning, "partitioning");
+  data_out.add_data_vector (partitioning, "partitioning", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
   data_out.build_patches ();
   data_out.write_vtu (output);
 
@@ -588,6 +593,10 @@ void ComputationalDomain<dim>::update_triangulation()
 
 }
 
+template<>
+void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes)
+{
+}
 
 template<int dim>
 void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes)
@@ -767,4 +776,5 @@ void ComputationalDomain<dim>::compute_double_vertex_cache()
 
 
 
+template class ComputationalDomain<2>;
 template class ComputationalDomain<3>;

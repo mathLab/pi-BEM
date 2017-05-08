@@ -45,6 +45,13 @@ We have subdivided the code in main classes to handle the many different aspects
 ## Install Procedure using CANDI
 To install from scratch all the needed library you can look to the automatic installation procedure provided by [CANDI](https://github.com/koecher/candi) developed Uwe Köcher.
 
+## Install Procedure using Docker
+We provide the possibility of using Docker as a tool to provide a fully operational environment for our library. To use such tool you need to install Docker following the [instructions](https://docs.docker.com/engine/installation/) provided by its authors. Then you can execute the following command line instruction 
+
+	docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t mathlab/deal2lkit:v8.5.0-debugrelease bash
+
+to retrieve the environment. In such a shell you can easily compile the $\pi$-BEM library following its own instructions.
+
 ## Install Procedure from scratch
 In order to successfully compile the code you need 
 
@@ -52,7 +59,11 @@ In order to successfully compile the code you need
 - to install the [deal.II](https://github.com/dealii/dealii) library allowing both for multiprocessors and multithreaded environment.
 - to install the [deal2lkit](https://github.com/mathLab/deal2lkit) library allowing both for multiprocessors and multithreaded environment.
 
-In the following we detail the installation procedure for every library.
+
+
+### deal.II Installation procedure
+Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) to install deal with METIS and Trilinos wrappers. We highlight that in order to fully exploit $\pi$-BEM you need to properly install the following additional packages: MPI, TBB, METIS, TRILINOS ans OPENCASCADE. For more detailed instruction you can look to the the deal.ii install procedures. In the following we provide an example of the installation of all the proper packages.
+
 
 ### OpenCASCADE Installation procedure
 - Download the latest version at [OpenCASCADE](https://github.com/tpaviot/oce) 
@@ -90,10 +101,6 @@ In the following we detail the installation procedure for every library.
 
 
 
-
-### deal.II Installation procedure
-Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) to install deal with METIS and Trilinos wrappers.
-installa deal con METIS MPI TBB TRILINOS OPENCASCADE.
 
 
 ### deal2lkit Installation procedure

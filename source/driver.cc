@@ -96,7 +96,7 @@ void Driver<dim>::run()
       else
         {
           // computational_domain.conditional_refine_and_resize(1);
-          computational_domain.refine_and_resize(0);
+          computational_domain.refine_and_resize(computational_domain.pre_global_refinements);
           local_refinement_cycles=computational_domain.n_cycles;
         }
       //computational_domain.generate_octree_blocking();

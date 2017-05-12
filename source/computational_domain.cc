@@ -105,6 +105,9 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   prm.declare_entry("Maximum number of curvature adaptive refinement cycles", "5",
                     Patterns::Integer());
 
+  prm.declare_entry("Number of global refinement to be executed before local refinement cycle", "0",
+                    Patterns::Integer());
+
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
     prm.declare_entry("Dirichlet boundary ids", "1,110,110", Patterns::List(Patterns::Integer(0)));
@@ -127,6 +130,7 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
   use_cad_surface_and_curves = prm.get_bool("Use iges surfaces and curves");
   surface_curvature_refinement = prm.get_bool("Surface curvature adaptive refinement");
   cells_per_circle = prm.get_double("Cells per circle");
+  pre_global_refinements = prm.get_integer("Number of global refinement to be executed before local refinement cycle");
   max_curvature_ref_cycles = prm.get_integer("Maximum number of curvature adaptive refinement cycles");
   cad_to_projectors_tolerance_ratio = prm.get_double("Cad tolerance to projectors tolerance ratio");
 

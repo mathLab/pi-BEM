@@ -189,6 +189,10 @@ public:
 
   unsigned int n_cycles;
 
+  /// number of global refinement to executed before a local refinement cycle;
+
+  double pre_global_refinements;
+
   /// maximum cell aspect ratio
 
   double max_element_aspect_ratio;

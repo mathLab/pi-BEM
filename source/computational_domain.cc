@@ -534,6 +534,22 @@ void ComputationalDomain<dim>::create_initial_mesh()
 // freedom, and resizes matrices and
 // vectors.
 
+template <>
+void ComputationalDomain<2>::refine_and_resize(const unsigned int refinement_level)
+{
+  pcout<<"Refining and resizing mesh as required"<<std::endl;
+  tria.refine_global(refinement_level);
+  pcout<<"We have a tria of "<<tria.n_active_cells()<<" cells."<<std::endl;
+  GridTools::partition_triangulation(n_mpi_processes, tria);
+  std::string filename0 = ( "meshResult.inp" );
+  std::ofstream logfile0(filename0.c_str());
+  GridOut grid_out0;
+  grid_out0.write_ucd(tria, logfile0);
+  pcout<<"...done refining and resizing mesh"<<std::endl;
+
+}
+
+
 template <int dim>
 void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
 {
@@ -925,7 +941,8 @@ void ComputationalDomain<dim>::update_triangulation()
 }
 
 template<>
-void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes)
+void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes,
+                                                  const bool isotropic_ref_on_opposite_side)
 {
 }
 

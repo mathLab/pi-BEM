@@ -142,7 +142,7 @@ public:
                                     TrilinosWrappers::MPI::Vector &matrVectProdN,    TrilinosWrappers::MPI::Vector &matrVectProdD) const;
 
 
-  void compute_m2l_flags();
+  // void compute_m2l_flags();
 
   /// this methods creates the adaptive
   /// octree partitioning of the domain,

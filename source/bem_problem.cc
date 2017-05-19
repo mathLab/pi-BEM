@@ -396,10 +396,6 @@ void BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
 
   cell_it
-  gradient_cell = gradient_dh.begin_active(),
-  gradient_endc = gradient_dh.end();
-
-  cell_it
   cell = dh.begin_active(),
   endc = dh.end();
 

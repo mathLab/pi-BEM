@@ -1,0 +1,101 @@
+# Parameter file generated with 
+# D2K_GIT_BRANCH=       master
+# D2K_GIT_SHORTREV=     9762009
+# DEAL_II_GIT_BRANCH=   master
+# DEAL_II_GIT_SHORTREV= d984c95
+subsection BEMFMA<3>
+  subsection FMA Params
+    set FMA Truncation Order = 6
+  end
+  subsection Octree Params
+    set Maximum Number of Collocation Points per Childless Block = 20
+    set Number of Octree Levels                                  = 10
+  end
+end
+subsection BEMProblem<3>
+  set Continuos gradient across edges = true
+  set Mapping Q Degree                = 1
+  set Mapping Type                    = FE
+  set Preconditioner                  = ILU
+  set Solution method                 = Direct
+  subsection Quadrature rules
+    set Quadrature order          = 4
+    set Quadrature type           = gauss
+    set Singular quadrature order = 5
+  end
+  subsection Solver
+    set Log frequency = 1
+    set Log history   = true
+    set Log result    = true
+    set Max steps     = 3000
+    set Tolerance     = 1.e-7
+  end
+end
+subsection BoundaryConditions<3>
+  set Output file name = result
+  subsection Potential 2d
+    set Function constants  = 
+    set Function expression = x+y
+    set Variable names      = x,y,t
+  end
+  subsection Potential 3d
+    set Function constants  = 
+    set Function expression = x
+    set Variable names      = x,y,z,t
+  end
+  subsection Wind function 2d
+    set Function constants  = 
+    set Function expression = 1; 1
+    set Variable names      = x,y,t
+  end
+  subsection Wind function 3d
+    set Function constants  = 
+    set Function expression = 1; 0; 0
+    set Variable names      = x,y,z,t
+  end
+end
+subsection ComputationalDomain<3>
+  set Input grid format = inp
+  set Input grid name   = ./naca0012
+  set Number of cycles  = 1
+  subsection Boundary Conditions ID Numbers
+    set Dirichlet boundary ids = 1,0,110,110
+    set Neumann boundary ids   = 2,3,4
+  end
+end
+subsection Driver<3>
+  set Set Global Refinement = true
+end
+subsection Scalar FE
+  set Blocking of the finite element = u
+  set Finite element space           = FE_Q(1)
+end
+subsection Scalar data out
+  set Files to save in run directory = 
+  set Incremental run prefix         = 
+  set Output format                  = vtu
+  set Output partitioning            = false
+  set Problem base name              = solution
+  set Solution names                 = u
+  set Subdivisions                   = 1
+end
+subsection Vector FE
+  set Blocking of the finite element = u,u,u
+  set Finite element space           = FESystem[FE_Q(1)^3]
+end
+subsection Vector data out
+  set Files to save in run directory = 
+  set Incremental run prefix         = 
+  set Output format                  = vtu
+  set Output partitioning            = false
+  set Problem base name              = solution
+  set Solution names                 = u
+  set Subdivisions                   = 1
+end
+subsection deal2lkit::ParsedGridRefinement
+  set Bottom fraction                        = 0.100000
+  set Maximum number of cells (if available) = 0
+  set Order (optimize)                       = 2
+  set Refinement strategy                    = fraction
+  set Top fraction                           = 0.300000
+end

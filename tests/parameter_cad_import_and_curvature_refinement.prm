@@ -1,0 +1,22 @@
+
+subsection ComputationalDomain<3>
+  set Cells per circle                                       = 12
+  set Input grid format                                      = inp
+  set Input grid name                                        = ../../../NACA_FILES/naca0012
+  set Input path to CAD files                                = ../../../NACA_FILES/
+  set Max aspect ratio                                       = 3.5
+  set Maximum number of curvature adaptive refinement cycles = 2
+  set Number of cycles                                       = 0
+  set Surface curvature adaptive refinement                  = true
+  set Use iges surfaces and curves                           = true
+  set Cad tolerance to projectors tolerance ratio            = 5
+
+
+  subsection Boundary Conditions ID Numbers
+    set Dirichlet boundary ids = 0,110,110
+    set Neumann boundary ids   = 1,2,3,4,110,110
+  end
+
+end
+
+

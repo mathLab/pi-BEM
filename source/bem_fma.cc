@@ -1606,98 +1606,106 @@ void BEMFMA<dim>::multipole_integrals()
   pcout<<"...done computing multipole integrals"<<std::endl;
 }
 
-// A helper function that we may use to know the overall nemuber of M2L operations
-// on each processor.
-template <int dim>
-void BEMFMA<dim>::compute_m2l_flags()
+// // A helper function that we may use to know the overall nemuber of M2L operations
+// // on each processor.
+// template <int dim>
+// void BEMFMA<dim>::compute_m2l_flags()
+// {
+//   pcout<<"Partitioning the descending phase Multipole2Local"<<std::endl;
+//   m2l_flags.resize(num_octree_levels+1);
+//   std::vector<types::global_dof_index> m2l_operations_per_level(num_octree_levels+1);
+//   std::vector<std::vector<types::global_dof_index> > m2l_operations_per_block(num_octree_levels+1);
+//   types::global_dof_index my_total_operations=0;
+//
+//   for (unsigned int level = 1; level <  num_octree_levels + 1;  level++)
+//     {
+//       m2l_flags[level].resize(dofs_filled_blocks[level].size());
+//       m2l_operations_per_block[level].resize(dofs_filled_blocks[level].size());
+//       m2l_operations_per_level[level] = 0;
+//       for (types::global_dof_index k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
+//         {
+//           m2l_operations_per_block[level][k] = 0;
+//           types::global_dof_index jj =  dofs_filled_blocks[level][k];
+//
+//           OctreeBlock<dim> *block1 = blocks[jj];
+//           for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+//             {
+//               m2l_operations_per_block[level][k] += block1->GetNonIntList(subLevel).size();
+//               m2l_operations_per_level[level] += block1->GetNonIntList(subLevel).size();
+//             }
+//         }
+//       unsigned int test = n_mpi_processes;
+//       types::global_dof_index operations_per_proc = m2l_operations_per_level[level]/test;     //(int) ceil(m2l_operations_per_level[level]/test);
+//       int rest_op = m2l_operations_per_level[level]%test;
+//       types::global_dof_index my_operations=0;
+//       types::global_dof_index cumulative_check=0;
+//       unsigned int proc=0;
+//       types::global_dof_index k=0;
+//       std::vector<types::global_dof_index> m2l_operations_per_proc(test);
+//       std::vector<types::global_dof_index> blocks_per_proc(test);
+//       for (types::global_dof_index k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
+//         {
+//           // m2l_operations_per_block[level][k] = 0;
+//           types::global_dof_index jj =  dofs_filled_blocks[level][k];
+//           OctreeBlock<dim> *block1 = blocks[jj];
+//           std::vector <types::global_dof_index> nodesBlk1Ids = block1->GetBlockNodeList();
+//           bool on_process = false;
+//           for (auto ind : nodesBlk1Ids)
+//             {
+//               if (this_cpu_set.is_element(ind))
+//                 {
+//                   on_process = true;
+//                   break;
+//                 }
+//             }
+//           if (on_process)
+//             {
+//               for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
+//                 {
+//                   my_operations += m2l_operations_per_block[level][k];
+//                   my_total_operations += m2l_operations_per_block[level][k];
+//                 }
+//             }
+//         }
+//       std::cout<<"level --- mpi_proc --- ops"<<std::endl;
+//       std::cout<<level<<" --- "<<this_mpi_process<<" --- "<<my_operations<<std::endl;
+//       // while (k <  dofs_filled_blocks[level].size() && proc<test) // loop over blocks of each level
+//       // {
+//       //   if(my_operations >= operations_per_proc)
+//       //   {
+//       //
+//       //     rest_op -= my_operations - operations_per_proc;
+//       //     // pcout<<"On processor "<< proc<<", we have "<<my_operations<<"operations, cumulatively we are taking "<<cumulative_check<<" m2l ops over a total of "<<m2l_operations_per_level[level]<<std::endl;
+//       //     proc += 1;
+//       //     my_operations = 0;
+//       //   }
+//       //   m2l_flags[level][k]=proc;
+//       //   my_operations += m2l_operations_per_block[level][k];
+//       //   cumulative_check += m2l_operations_per_block[level][k];
+//       //   m2l_operations_per_proc[proc] += m2l_operations_per_block[level][k];
+//       //   blocks_per_proc[proc] += 1;
+//       //   k+=1;
+//       // }
+//       // pcout<<"LEVEL "<<level<<std::endl;
+//       // pcout<<"Rest is "<<rest_op<<" last block is "<<k<<" , total of "<<dofs_filled_blocks[level].size()<<
+//       //        " operations taken "<<cumulative_check<<" over a total of "<<m2l_operations_per_level[level]<<std::endl;
+//       // for(proc = 0 ; proc < test; ++proc)
+//       //   pcout<<"On processor "<< proc<<", we have "<<m2l_operations_per_proc[proc]<<" m2l operations, and "
+//       //        <<blocks_per_proc[proc]<<" blocks over a total of "<<dofs_filled_blocks[level].size()<<std::endl;
+//     }
+//
+//   std::cout<<"finalcountmpi_proc --- ops"<<std::endl;
+//   std::cout<<this_mpi_process<<" --- "<<my_total_operations<<std::endl;
+//
+//
+//
+// }
+
+template<>
+void BEMFMA<2>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
 {
-  pcout<<"Partitioning the descending phase Multipole2Local"<<std::endl;
-  m2l_flags.resize(num_octree_levels+1);
-  std::vector<types::global_dof_index> m2l_operations_per_level(num_octree_levels+1);
-  std::vector<std::vector<types::global_dof_index> > m2l_operations_per_block(num_octree_levels+1);
-  types::global_dof_index my_total_operations=0;
-
-  for (unsigned int level = 1; level <  num_octree_levels + 1;  level++)
-    {
-      m2l_flags[level].resize(dofs_filled_blocks[level].size());
-      m2l_operations_per_block[level].resize(dofs_filled_blocks[level].size());
-      m2l_operations_per_level[level] = 0;
-      for (types::global_dof_index k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
-        {
-          m2l_operations_per_block[level][k] = 0;
-          types::global_dof_index jj =  dofs_filled_blocks[level][k];
-
-          OctreeBlock<dim> *block1 = blocks[jj];
-          for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
-            {
-              m2l_operations_per_block[level][k] += block1->GetNonIntList(subLevel).size();
-              m2l_operations_per_level[level] += block1->GetNonIntList(subLevel).size();
-            }
-        }
-      unsigned int test = n_mpi_processes;
-      types::global_dof_index operations_per_proc = m2l_operations_per_level[level]/test;     //(int) ceil(m2l_operations_per_level[level]/test);
-      int rest_op = m2l_operations_per_level[level]%test;
-      types::global_dof_index my_operations=0;
-      types::global_dof_index cumulative_check=0;
-      unsigned int proc=0;
-      types::global_dof_index k=0;
-      std::vector<types::global_dof_index> m2l_operations_per_proc(test);
-      std::vector<types::global_dof_index> blocks_per_proc(test);
-      for (types::global_dof_index k = 0; k <  dofs_filled_blocks[level].size();  k++) // loop over blocks of each level
-        {
-          // m2l_operations_per_block[level][k] = 0;
-          types::global_dof_index jj =  dofs_filled_blocks[level][k];
-          OctreeBlock<dim> *block1 = blocks[jj];
-          std::vector <types::global_dof_index> nodesBlk1Ids = block1->GetBlockNodeList();
-          bool on_process = false;
-          for (auto ind : nodesBlk1Ids)
-            {
-              if (this_cpu_set.is_element(ind))
-                {
-                  on_process = true;
-                  break;
-                }
-            }
-          if (on_process)
-            {
-              for (unsigned int subLevel = 0; subLevel < block1->NumNearNeighLevels();  subLevel++)
-                {
-                  my_operations += m2l_operations_per_block[level][k];
-                  my_total_operations += m2l_operations_per_block[level][k];
-                }
-            }
-        }
-      std::cout<<"level --- mpi_proc --- ops"<<std::endl;
-      std::cout<<level<<" --- "<<this_mpi_process<<" --- "<<my_operations<<std::endl;
-      // while (k <  dofs_filled_blocks[level].size() && proc<test) // loop over blocks of each level
-      // {
-      //   if(my_operations >= operations_per_proc)
-      //   {
-      //
-      //     rest_op -= my_operations - operations_per_proc;
-      //     // pcout<<"On processor "<< proc<<", we have "<<my_operations<<"operations, cumulatively we are taking "<<cumulative_check<<" m2l ops over a total of "<<m2l_operations_per_level[level]<<std::endl;
-      //     proc += 1;
-      //     my_operations = 0;
-      //   }
-      //   m2l_flags[level][k]=proc;
-      //   my_operations += m2l_operations_per_block[level][k];
-      //   cumulative_check += m2l_operations_per_block[level][k];
-      //   m2l_operations_per_proc[proc] += m2l_operations_per_block[level][k];
-      //   blocks_per_proc[proc] += 1;
-      //   k+=1;
-      // }
-      // pcout<<"LEVEL "<<level<<std::endl;
-      // pcout<<"Rest is "<<rest_op<<" last block is "<<k<<" , total of "<<dofs_filled_blocks[level].size()<<
-      //        " operations taken "<<cumulative_check<<" over a total of "<<m2l_operations_per_level[level]<<std::endl;
-      // for(proc = 0 ; proc < test; ++proc)
-      //   pcout<<"On processor "<< proc<<", we have "<<m2l_operations_per_proc[proc]<<" m2l operations, and "
-      //        <<blocks_per_proc[proc]<<" blocks over a total of "<<dofs_filled_blocks[level].size()<<std::endl;
-    }
-
-  std::cout<<"finalcountmpi_proc --- ops"<<std::endl;
-  std::cout<<this_mpi_process<<" --- "<<my_total_operations<<std::endl;
-
-
+  AssertThrow(true,
+              ExcMessage("BEMFMA only 3D"));
 
 }
 
@@ -2782,7 +2790,7 @@ void BEMFMA<dim>::compute_geometry_cache()
 
 
   FESystem<dim-1,dim> gradient_fe(*fma_fe, dim);
-  DoFHandler<dim-1, dim> gradient_dh(fma_dh->get_tria());
+  DoFHandler<dim-1, dim> gradient_dh(fma_dh->get_triangulation());
 
   //double tol = 1e-8;
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());
@@ -2835,7 +2843,7 @@ void BEMFMA<dim>::compute_geometry_cache()
 
 
 
-  for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  for (; gradient_cell!=gradient_endc; ++cell,++gradient_cell)
     {
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
 
@@ -2872,7 +2880,7 @@ void BEMFMA<dim>::compute_geometry_cache()
   // gradient_cell = gradient_dh.begin_active();
   // cell = fma_dh->begin_active();
   //
-  // for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  // for (; gradient_cell!=gradient_endc; ++cell,++gradient_cell)
   //     {
   //     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
   //
@@ -2904,7 +2912,7 @@ void BEMFMA<dim>::compute_geometry_cache()
   // gradient_cell = gradient_dh.begin_active();
   // cell = fma_dh->begin_active();
   //
-  // for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  // for (; gradient_cell!=gradient_endc; ++cell,++gradient_cell)
   //     {
   //     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
   //
@@ -2932,7 +2940,7 @@ void BEMFMA<dim>::compute_geometry_cache()
   // gradient_cell = gradient_dh.begin_active();
   // cell = fma_dh->begin_active();
   //
-  // for (; cell!=endc,gradient_cell!=gradient_endc; ++cell,++gradient_cell)
+  // for (; gradient_cell!=gradient_endc; ++cell,++gradient_cell)
   //     {
   //     Assert(cell->index() == gradient_cell->index(), ExcInternalError());
   //
@@ -3005,7 +3013,7 @@ void BEMFMA<dim>::generate_octree_blocking()
         delete blocks[ii];
     }
 
-  types::global_dof_index maxNumBlocks = num_octree_levels*fma_dh->get_tria().n_active_cells()*fe_v.n_quadrature_points;
+  types::global_dof_index maxNumBlocks = num_octree_levels*fma_dh->get_triangulation().n_active_cells()*fe_v.n_quadrature_points;
 //unsigned int maxNumBlocks = 0;
 //for (unsigned int ii = 0; ii < num_octree_levels + 1;  ii++)
 //  {

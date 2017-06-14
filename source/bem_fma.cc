@@ -1709,9 +1709,6 @@ void BEMFMA<2>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vecto
 
 }
 
-template<>
-void BEMFMA<2>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vector &phi_values_in, const TrilinosWrappers::MPI::Vector &dphi_dn_values_in) const
-{}
 
 // The following function performs the ascending phase of the algorithm. We
 // need the values of the two traces of the solutions to fill the multipole

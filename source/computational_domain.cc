@@ -934,7 +934,7 @@ void ComputationalDomain<dim>::update_triangulation()
   GridTools::get_subdomain_association (tria, partition_int);
   const Vector<double> partitioning(partition_int.begin(),
                                     partition_int.end());
-  data_out.add_data_vector (partitioning, "partitioning", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_dof_data);
+  data_out.add_data_vector (partitioning, "partitioning", DataOut<dim-1, DoFHandler<dim-1, dim> >::type_cell_data);
   data_out.build_patches ();
   data_out.write_vtu (output);
 
@@ -945,9 +945,11 @@ void ComputationalDomain<dim>::update_triangulation()
 }
 
 template<>
-void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes,
-                                                  const bool isotropic_ref_on_opposite_side)
+void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes)
 {
+  if (with_double_nodes || !with_double_nodes)
+    AssertThrow(true,
+                ExcMessage("Make  edges conformal only works in 3D"));
 }
 
 template<int dim>

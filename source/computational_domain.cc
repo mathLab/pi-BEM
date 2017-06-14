@@ -3,6 +3,7 @@
 #include "../include/computational_domain.h"
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_reordering.h>
+#include <deal2lkit/utilities.h>
 
 // @sect4{ComputationalDomain::ComputationalDomain and
 // ComputationalDomain::read_parameters}
@@ -48,11 +49,19 @@ ComputationalDomain<dim>::ComputationalDomain(MPI_Comm comm)
 template <int dim>
 ComputationalDomain<dim>::~ComputationalDomain()
 {
-  tria.set_all_manifold_ids(0);
+
+  for (unsigned int i=0; i<cad_surfaces.size(); ++i)
+    {
+      tria.set_manifold(1+i);
+    }
+
+  for (unsigned int i=0; i<cad_curves.size(); ++i)
+    {
+      tria.set_manifold(11+i);
+    }
+
   tria.set_manifold(0);
-  //
-  // if(manifold != NULL)
-  //   delete manifold;
+
 
 }
 
@@ -72,7 +81,31 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   prm.declare_entry("Input grid format", "inp",
                     Patterns::Anything());
 
+  prm.declare_entry("Input path to CAD files", "./",
+                    Patterns::Anything());
+
   prm.declare_entry("Number of cycles", "2",
+                    Patterns::Integer());
+
+  prm.declare_entry("Max aspect ratio", "3.5",
+                    Patterns::Double());
+
+  prm.declare_entry("Use iges surfaces and curves", "false",
+                    Patterns::Bool());
+
+  prm.declare_entry("Cad tolerance to projectors tolerance ratio", "100",
+                    Patterns::Double());
+
+  prm.declare_entry("Surface curvature adaptive refinement", "false",
+                    Patterns::Bool());
+
+  prm.declare_entry("Cells per circle", "12",
+                    Patterns::Double());
+
+  prm.declare_entry("Maximum number of curvature adaptive refinement cycles", "5",
+                    Patterns::Integer());
+
+  prm.declare_entry("Number of global refinement to be executed before local refinement cycle", "0",
                     Patterns::Integer());
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
@@ -91,11 +124,15 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
 
   input_grid_name = prm.get("Input grid name");
   input_grid_format = prm.get("Input grid format");
+  input_cad_path = prm.get("Input path to CAD files");
   n_cycles = prm.get_integer("Number of cycles");
-
-
-
-
+  max_element_aspect_ratio = prm.get_double("Max aspect ratio");
+  use_cad_surface_and_curves = prm.get_bool("Use iges surfaces and curves");
+  surface_curvature_refinement = prm.get_bool("Surface curvature adaptive refinement");
+  cells_per_circle = prm.get_double("Cells per circle");
+  pre_global_refinements = prm.get_integer("Number of global refinement to be executed before local refinement cycle");
+  max_curvature_ref_cycles = prm.get_integer("Maximum number of curvature adaptive refinement cycles");
+  cad_to_projectors_tolerance_ratio = prm.get_double("Cad tolerance to projectors tolerance ratio");
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
@@ -501,10 +538,324 @@ void ComputationalDomain<dim>::create_initial_mesh()
 // freedom, and resizes matrices and
 // vectors.
 
+template <>
+void ComputationalDomain<2>::refine_and_resize(const unsigned int refinement_level)
+{
+  pcout<<"Refining and resizing mesh as required"<<std::endl;
+  tria.refine_global(refinement_level);
+  pcout<<"We have a tria of "<<tria.n_active_cells()<<" cells."<<std::endl;
+  GridTools::partition_triangulation(n_mpi_processes, tria);
+  std::string filename0 = ( "meshResult.inp" );
+  std::ofstream logfile0(filename0.c_str());
+  GridOut grid_out0;
+  grid_out0.write_ucd(tria, logfile0);
+  pcout<<"...done refining and resizing mesh"<<std::endl;
+
+}
+
+
 template <int dim>
 void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
 {
   pcout<<"Refining and resizing mesh as required"<<std::endl;
+
+
+  double max_tol=0;
+  if (use_cad_surface_and_curves)
+    {
+      pcout<<"Color Files"<<endl;
+      unsigned int ii=1;
+      bool go_on = true;
+      while (go_on == true)
+        {
+          std::string color_filename = ( input_cad_path + "Color_" +
+                                         Utilities::int_to_string(ii) +
+                                         ".iges" );
+          ifstream f(color_filename);
+          if (f.good())
+            {
+              pcout<<ii<<"-th file exists"<<endl;
+              TopoDS_Shape surface = OpenCASCADE::read_IGES(color_filename, 1e-3);
+              cad_surfaces.push_back(surface);
+            }
+          else
+            go_on = false;
+          ii++;
+        }
+
+      pcout<<"Edge Files"<<endl;
+      ii=1;
+      go_on = true;
+      while (go_on == true)
+        {
+          std::string edge_filename = ( input_cad_path + "Curve_" +
+                                        Utilities::int_to_string(ii) +
+                                        ".iges" );
+          ifstream f(edge_filename);
+          if (f.good())
+            {
+              pcout<<ii<<"-th file exists"<<endl;
+              TopoDS_Shape curve = OpenCASCADE::read_IGES(edge_filename, 1e-3);
+              cad_curves.push_back(curve);
+            }
+          else
+            go_on = false;
+          ii++;
+        }
+
+
+      for (unsigned int i = 0; i<cad_surfaces.size(); ++i)
+        {
+          pcout<<i<<endl;
+          max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_surfaces[i]));
+          pcout<<max_tol<<endl;
+        }
+      for (unsigned int i = 0; i<cad_curves.size(); ++i)
+        {
+          pcout<<i+cad_surfaces.size()<<endl;
+          max_tol = fmax(max_tol,OpenCASCADE::get_shape_tolerance(cad_curves[i]));
+          pcout<<max_tol<<endl;
+        }
+
+      const double tolerance = cad_to_projectors_tolerance_ratio*max_tol;
+
+
+
+
+      pcout<<"Used tolerance is: "<<tolerance<<endl;
+      for (unsigned int i=0; i<cad_surfaces.size(); ++i)
+        {
+          normal_to_mesh_projectors.push_back(SP(new OpenCASCADE::NormalToMeshProjectionBoundary<2,3>(cad_surfaces[i], tolerance)));
+        }
+      //static OpenCASCADE::DirectionalProjectionBoundary<2,3>
+      //        directional_projector_lat(cad_surfaces[0], Point<3>(0.0,1.0,0.0), tolerance);
+      //static OpenCASCADE::NormalProjectionBoundary<2,3>
+      //        normal_projector_lat(cad_surfaces[0], tolerance);
+
+      for (unsigned int i=0; i<cad_curves.size(); ++i)
+        {
+          line_projectors.push_back(SP(new OpenCASCADE::ArclengthProjectionLineManifold<2,3>(cad_curves[i], tolerance)));
+        }
+
+      for (unsigned int i=0; i<cad_surfaces.size(); ++i)
+        {
+          tria.set_manifold(1+i,*normal_to_mesh_projectors[i]);
+        }
+
+      for (unsigned int i=0; i<cad_curves.size(); ++i)
+        {
+          tria.set_manifold(11+i,*line_projectors[i]);
+        }
+
+    }
+
+
+  unsigned int refinedCellCounter = 1;
+  unsigned int cycles_counter = 0;
+  // we repeat the aspect ratio refinement cycle until no cell has been
+  // flagged for refinement, or until we reach a maximum of 10 cycles
+  while ( (refinedCellCounter) && (cycles_counter < 10) )
+    {
+      // the refined cells counter is zeroed at the start of each cycle
+      refinedCellCounter = 0;
+      // we loop on the all the triangulation active cells
+      Triangulation<2,3>::active_cell_iterator cell = tria.begin_active();
+      Triangulation<2,3>::active_cell_iterator endc = tria.end();
+      for ( ; cell!= endc; ++cell)
+        {
+          // the following lines determine if the cell is more elongated
+          // in its 0 or 1 direction
+          unsigned int max_extent_dim = 0;
+          unsigned int min_extent_dim = 1;
+          if (cell->extent_in_direction(0) < cell->extent_in_direction(1))
+            {
+              max_extent_dim = 1;
+              min_extent_dim = 0;
+            }
+          // we compute the extent of the cell in its maximum and minimum elongation
+          // direction respectively
+          double min_extent = cell->extent_in_direction(min_extent_dim);
+          double max_extent = cell->extent_in_direction(max_extent_dim);
+          // if the aspect ratio exceeds the prescribed maximum value, the cell is refined
+          if (max_extent > max_element_aspect_ratio*min_extent)
+            {
+              cell->set_refine_flag(RefinementCase<2>::cut_axis(max_extent_dim));
+              refinedCellCounter++;
+            }
+        }
+      // the number of cells refined in this cycle is reported before
+      // proceeding with the next one
+      pcout<<"Aspect Ratio Reduction Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
+      tria.execute_coarsening_and_refinement();
+
+      // the following commented lines are here for debug puroposes: if
+      // something fails during the aspect ratio reduction cycles, they
+      // should be uncommented, so that a mesh file per cycle can be
+      // produced to document the evolution of the mesh through the
+      // refinements. If the make_edges_conformal() function
+      // is suspect in creating some error, the lines can also be
+      // moved after the make_edges_conformal() function is called
+
+      //std::string filename = ( "meshIntermediateResult_" +
+      //         Utilities::int_to_string(int(round(cycles_counter))) +
+      //         ".inp" );
+      //std::ofstream logfile(filename.c_str());
+      //GridOut grid_out;
+      //grid_out.write_ucd(tria, logfile);
+
+      make_edges_conformal();
+      cycles_counter++;
+
+    }
+
+  // the following refinement cycle is based upon the original CAD
+  // geometry curvature. For this reason it can be activated not only
+  // when the user requires it with the surface_curvature_refinement
+  // option in the input file. Of course, this is possible only if
+  // also the use_cad_surface_and_curves flag is set to thrue through
+  // the input file. Only in this way in fact, CAD surfaces and curves
+  // are prescribed for the triangulation refinements on some of
+  // its manifold ids.
+  if (use_cad_surface_and_curves && surface_curvature_refinement)
+    {
+      const double tolerance = cad_to_projectors_tolerance_ratio*max_tol;
+      refinedCellCounter = 1;
+      cycles_counter = 0;
+      // the refinement procedure is recursively repeated until no more cells are flagged
+      // for refinement, or until the user specified maximum number of curvature
+      // refinement cycles is reached
+      while ( (refinedCellCounter) && (cycles_counter < max_curvature_ref_cycles) )
+        {
+          // the refined cells counter is zeroed at the start of each cycle
+          refinedCellCounter = 0;
+          // we loop on the all the triangulation active cells
+          Triangulation<2,3>::active_cell_iterator cell = tria.begin_active();
+          Triangulation<2,3>::active_cell_iterator endc = tria.end();
+          for ( ; cell!= endc; ++cell)
+            {
+              // In the following lines, we try to come up with an estimation
+              // of the cell normal. It is obtained from the average of the normal
+              // to the 4 triangles in which the cell can be split using the vertices
+              // and the center. The commented lines can be used for checks
+              // in case something goes wrong.
+
+              //cout<<"center: "<<cell->center()<<endl;
+              //cout<<"v0: "<<cell->vertex(0)<<endl;
+              //cout<<"v1: "<<cell->vertex(1)<<endl;
+              //cout<<"v2: "<<cell->vertex(2)<<endl;
+              //cout<<"v3: "<<cell->vertex(3)<<endl;
+              Point<3> t0 = cell->vertex(0)+(-1.0)*cell->center();
+              Point<3> t1 = cell->vertex(1)+(-1.0)*cell->center();
+              Point<3> t2 = cell->vertex(2)+(-1.0)*cell->center();
+              Point<3> t3 = cell->vertex(3)+(-1.0)*cell->center();
+              //cout<<"t0: "<<t0<<endl;
+              //cout<<"t1: "<<t1<<endl;
+              //cout<<"t2: "<<t2<<endl;
+              //cout<<"t3: "<<t3<<endl;
+
+              Point<3> nn0(t0(1)*t1(2)-t0(2)*t1(1),
+                           t0(2)*t1(0)-t0(0)*t1(2),
+                           t0(0)*t1(1)-t0(1)*t1(0));
+              nn0/=nn0.norm();
+              Point<3> nn1(t1(1)*t3(2)-t1(2)*t3(1),
+                           t1(2)*t3(0)-t1(0)*t3(2),
+                           t1(0)*t3(1)-t1(1)*t3(0));
+              nn1/=nn1.norm();
+              Point<3> nn2(t3(1)*t2(2)-t3(2)*t2(1),
+                           t3(2)*t2(0)-t3(0)*t2(2),
+                           t3(0)*t2(1)-t3(1)*t2(0));
+              nn2/=nn2.norm();
+              Point<3> nn3(t2(1)*t0(2)-t2(2)*t0(1),
+                           t2(2)*t0(0)-t2(0)*t0(2),
+                           t2(0)*t0(1)-t2(1)*t0(0));
+              nn3/=nn3.norm();
+              Point<3> n = (nn0+nn1+nn2+nn3)/4.0;
+              n/=n.norm();
+              //cout<<cell<<endl;
+              //cout<<nn0<<endl;
+              //cout<<nn1<<endl;
+              //cout<<nn2<<endl;
+              //cout<<nn3<<endl;
+              //cout<<n<<endl;
+              //cout<<cell<<"  material id: "<<int(cell->material_id())<<endl;
+
+              // once the cell normal has beed created, we want to use it as the
+              // direction of the projection onto the CAD surface
+              // first though, let's check that we are using a CAD surface for
+              // the refinement of the manifold_id associated with the present
+              // cell
+              double cell_size;
+              if (int(cell->material_id())-1 < cad_surfaces.size())
+                {
+                  // if so, the cad_surface associated with the present manifold_id is identified...
+                  TopoDS_Shape neededShape = cad_surfaces[int(cell->material_id())-1];
+                  // ...and used to set up a line intersection to project the cell center
+                  // on the CAD surface along the direction specified by the previously computed
+                  // cell normal
+                  Point<3> projection = OpenCASCADE::line_intersection(neededShape,
+                                                                       cell->center(),
+                                                                       n,
+                                                                       tolerance);
+                  // in correspondence with the projected point, we ask all the surface differential forms
+                  std_cxx11::tuple<Point<3>,Tensor<1,3>,double,double> tup = OpenCASCADE::closest_point_and_differential_forms(neededShape,
+                                                                             projection,
+                                                                             tolerance);
+                  // among the differential point, we select the maximum absolute curvature
+                  double max_abs_curv = fmax(fabs(std_cxx11::get<2>(tup)),fabs(std_cxx11::get<3>(tup)));
+                  // this commented line is just for debug purposes
+                  // cout<<"Point: "<<std_cxx11::get<0>(tup)<<"  Kmin: "<<std_cxx11::get<2>(tup)<<"  Kmax: "<<std_cxx11::get<3>(tup)<<endl;
+                  // the minimum curvature radius is computed from the maximum absolute curvatur
+                  double curvature_radius = 1.0/fmax(max_abs_curv,tolerance);
+                  // the target cell size is selected so that it corresponds to a cells_per_circle
+                  // fraction of the circumference corresponding to the minimum curvature radius
+                  cell_size = 2*dealii::numbers::PI/cells_per_circle*curvature_radius;
+                }
+              else
+                {
+                  // if the cell manifold_id is not associated to a CAD surface, the
+                  // target cell_size is set to and extremely high value, so that the cell is
+                  // never refined
+                  cell_size = 2*dealii::numbers::PI/cells_per_circle/tolerance;
+                }
+
+              // the following line si for debug puropses and should be uncommented if
+              // something is not working with the refinement
+              //cout<<"Cell Diam: "<<cell->diameter()<<"  Target Cell Size: "<<cell_size<<endl;
+
+
+              // if the cell diameter is higher than the target cell size, the refinement flag is set
+              // (unless the cell is already very small ---which for us means 10xtolerance)
+              if ( (cell->diameter() > cell_size)  &&
+                   (cell->diameter() > 10*tolerance) )
+                {
+                  cell->set_refine_flag();
+                  refinedCellCounter++;
+                }
+            }
+          // the number of cells to be refined in this cycle is reported, the refinement is carried out
+          // and the make_edges_conformal function is called to check no edge presents non comformities
+          pcout<<"Curvature Based Local Refinement Cycle: "<<cycles_counter<<" ("<<refinedCellCounter<<")"<<endl;
+          tria.execute_coarsening_and_refinement();
+          make_edges_conformal();
+          cycles_counter++;
+
+          //std::string filename = ( "DTMB_II_meshResult_max_curv" +
+          //                         Utilities::int_to_string(int(round(cycles_counter))) +
+          //                         ".vtk" );
+          //std::ofstream logfile(filename.c_str());
+          //GridOut grid_out;
+          //grid_out.write_vtk(tria, logfile);
+          //std::string stl_filename = ( "DTMB_II_meshResult_max_curv" +
+          //                         Utilities::int_to_string(int(round(cycles_counter))) +
+          //                         ".stl" );
+          //SaveSTL(tria,stl_filename);
+
+
+
+        }
+    }
+//*/
+
 
   tria.refine_global(refinement_level);
   pcout<<"We have a tria of "<<tria.n_active_cells()<<" cells."<<std::endl;
@@ -594,16 +945,17 @@ void ComputationalDomain<dim>::update_triangulation()
 }
 
 template<>
-void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes)
+void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes,
+                                                  const bool isotropic_ref_on_opposite_side)
 {
   if (with_double_nodes || !with_double_nodes)
     AssertThrow(true,
                 ExcMessage("Make  edges conformal only works in 3D"));
-
 }
 
 template<int dim>
-void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes)
+void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes,
+                                                    const bool isotropic_ref_on_opposite_side)
 {
   if (with_double_nodes==false)
     {
@@ -678,8 +1030,20 @@ void ComputationalDomain<dim>::make_edges_conformal(const bool with_double_nodes
                           //cout<<parent_face_center.distance((*jt)->face(d)->center())<<" "<<tol<<endl;
                           if ( parent_face_center.distance(((*jt)->face(d)->vertex(0)+(*jt)->face(d)->vertex(1))/2) < tol)
                             {
-                              (*jt)->set_refine_flag();
-                              to_restore=true;
+                              if ( isotropic_ref_on_opposite_side )
+                                {
+                                  (*jt)->set_refine_flag();
+                                  to_restore=true;
+                                }
+                              // otherwise, use anisotropic refinement to make edge mesh conformal
+                              else
+                                {
+                                  if ((d==0) || (d==1))
+                                    (*jt)->set_refine_flag(RefinementCase<2>::cut_axis(1));
+                                  else
+                                    (*jt)->set_refine_flag(RefinementCase<2>::cut_axis(0));
+                                  to_restore=true;
+                                }
                             }
                         }
                 }

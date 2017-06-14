@@ -376,6 +376,8 @@ public:
 
   std::vector<types::global_dof_index> vec_sub_wise_to_original;
 
+  bool have_dirichlet_bc;
+
   BEMFMA<dim> fma;
 };
 

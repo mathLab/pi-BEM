@@ -46,7 +46,16 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/types.h>
 
-#include <mpi.h>
+// These are the headers of the opencascade support classes and
+// functions. Notice that these will contain sensible data only if you
+// compiled your deal.II library with support for OpenCASCADE, i.e.,
+// specifying <code>-DDEAL_II_WITH_OPENCASCADE=ON</code> and
+// <code>-DOPENCASCADE_DIR=/path/to/your/opencascade/installation</code>
+// when calling <code>cmake</code> during deal.II configuration.
+#include <deal.II/opencascade/boundary_lib.h>
+#include <deal.II/opencascade/utilities.h>
+
+#include <TopoDS_Shape.hxx>
 
 #include <cmath>
 #include <iostream>
@@ -135,8 +144,32 @@ public:
   /// the solution gradients, which are
   /// vectorial functions
 
-
-  void make_edges_conformal(const bool with_double_nodes = true);
+  /// The double nodes treatment that we are
+  /// using requires that the computational mesh
+  /// is conformal in correspondence with the
+  /// sharp edges. The next function detects
+  /// if after a refinement step, non conformities
+  /// appear across the edges. If any is found,
+  /// it is fixed by refining the cell on the
+  /// coarser side of the non conformity.
+  /// The optional parameter
+  /// isotropic_ref_on_opposite_side can be used to
+  /// decide if such cell is refined isotropically (true)
+  /// or only in one direction (false), which is the one
+  /// needed to obtain conformity.
+  /// As said the procedure is particularly important
+  /// when double nodes are used to treat sharp edges.
+  /// Yet, it is also possible to employ the procedure
+  /// without double nodes. This can be specified assigning
+  /// false to the value of the with_double_nodes parameter.
+  /// Please note that the present function is able to make
+  /// conformal all the triangulations that have at most one
+  /// level of non conformity between cells that are neighboring
+  /// across the edge. That is why, it should be called
+  /// after every single refinement cycle that is carried out
+  /// in the program execution.
+  void make_edges_conformal(const bool with_double_nodes = true,
+                            const bool isotropic_ref_on_opposite_side = false);
 
   void compute_double_vertex_cache();
   //const unsigned int fe_degree;
@@ -156,9 +189,44 @@ public:
 
   unsigned int n_cycles;
 
+  /// number of global refinement to executed before a local refinement cycle;
+
+  double pre_global_refinements;
+
+  /// maximum cell aspect ratio
+
+  double max_element_aspect_ratio;
+
+  // flag to assess if the software will look for cad surfaces (form files Color_*.iges)
+  // and curves (from files Curve_*.iges), and use such geometries to refine the grid.
+  // the program will import as many curves and surfaces as there are available in the
+  // present folder, and progressively associate them to the manifold IDS available in the
+  // mesh file.
+  //
+  bool use_cad_surface_and_curves;
+
+  // flag to require surface refinement based on CAD surface curvature. Can only
+  // be activated if previous flag is true
+  //
+  bool surface_curvature_refinement;
+
+  // used if curvature adaptive refinement is true. the cells are refined until
+  // their size is 1/cells_per_circle of the circumference the radius of which is
+  // the local max curvature radius
+  //
+  double cells_per_circle;
+
+  // maximum number of curvature based refinement cycles
+  unsigned int max_curvature_ref_cycles;
+
+  // ratio between the tolerance found in the cad files and the
+  // one to be prescribed to the projectors
+  double cad_to_projectors_tolerance_ratio;
+
   /// Strings identifying the input grid name and format
   std::string input_grid_name;
   std::string input_grid_format;
+  std::string input_cad_path;
 
   /// the material ID numbers in the mesh
   /// input file, for the dirichlet_nodes
@@ -166,6 +234,7 @@ public:
   /// the material ID numbers in the mesh
   /// input file, for the neumann_nodes
   std::vector<unsigned int> neumann_boundary_ids;
+
 
   MPI_Comm mpi_communicator;
 
@@ -181,6 +250,16 @@ public:
   Manifold<dim-1, dim> *manifold;
   ConditionalOStream pcout;
 
+
+  /// vectors containing the CAD surfaces and curves to be
+  /// (optionally) used for refinement of the triangulation
+  std::vector<TopoDS_Shape> cad_surfaces;
+  std::vector<TopoDS_Shape> cad_curves;
+
+  /// vectors containing the CAD surfaces and curves projectors
+  /// to be (optionally) used for refinement of the triangulation
+  std::vector<std::shared_ptr<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> > > normal_to_mesh_projectors;
+  std::vector<std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2,3> > >line_projectors;
 
 };
 

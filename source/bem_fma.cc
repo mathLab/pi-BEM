@@ -1709,6 +1709,7 @@ void BEMFMA<2>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vecto
 
 }
 
+
 // The following function performs the ascending phase of the algorithm. We
 // need the values of the two traces of the solutions to fill the multipole
 // expansions and then to let them be translated along the octree.

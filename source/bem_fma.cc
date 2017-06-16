@@ -10,6 +10,7 @@
 using Teuchos::Time;
 using Teuchos::TimeMonitor;
 using Teuchos::RCP;
+using namespace tbb;
 
 RCP<Time> MatrVec = Teuchos::TimeMonitor::getNewTimer("Multipole MatrVec Products Time");
 RCP<Time> MultGen = Teuchos::TimeMonitor::getNewTimer("Multipole Generation Time");
@@ -88,6 +89,8 @@ void BEMFMA<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("FMA Truncation Order", "6", Patterns::Integer());
   }
   prm.leave_subsection();
+
+  add_parameter(prm, &tbb_granularity, "Granularity for TBB simple for cycles","10",Patterns::Integer());
 
 }
 
@@ -1745,23 +1748,44 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   // First of all we need to create all the empty expansiones for all the blocks. This is an
   // embarassingly parallel operation that we can perform using the ThreadGroup strategy
   // without requiring any synchronization time.
-  auto f_creation = [] (types::global_dof_index ii, const BEMFMA<dim> *foo_fma)
+
+
+  auto f_creation_tbb = [this] (blocked_range<unsigned int> r)
   {
 
-    double delta = foo_fma->blocks[ii]->GetDelta();
-    Point<dim> deltaHalf;
-    for (unsigned int i=0; i<dim; i++)
-      deltaHalf(i) = delta/2.;
+    for (unsigned int ii=r.begin(); ii<r.end(); ++ii)
+      {
+        double delta = blocks[ii]->GetDelta();
+        Point<dim> deltaHalf;
+        for (unsigned int i=0; i<dim; i++)
+          deltaHalf(i) = delta/2.;
 
-    Point<dim> blockCenter =  foo_fma->blocks[ii]->GetPMin()+deltaHalf;
-    foo_fma->blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
-    foo_fma->blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+        Point<dim> blockCenter =  blocks[ii]->GetPMin()+deltaHalf;
+        blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(trunc_order, blockCenter, &(assLegFunction));
+        blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(trunc_order, blockCenter, &(assLegFunction));
+      }
   };
 
-  Threads::TaskGroup<> group_creation;
-  for (types::global_dof_index ii = 0; ii <  num_blocks ; ii++)
-    group_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_creation), ii, this);
-  group_creation.join_all();
+
+  parallel_for(blocked_range<unsigned int> (0, num_blocks,tbb_granularity), f_creation_tbb);
+
+  // auto f_creation = [] (types::global_dof_index ii, const BEMFMA<dim> *foo_fma)
+  // {
+  //
+  //   double delta = foo_fma->blocks[ii]->GetDelta();
+  //   Point<dim> deltaHalf;
+  //   for (unsigned int i=0; i<dim; i++)
+  //     deltaHalf(i) = delta/2.;
+  //
+  //   Point<dim> blockCenter =  foo_fma->blocks[ii]->GetPMin()+deltaHalf;
+  //   foo_fma->blockMultipoleExpansionsKer1[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+  //   foo_fma->blockMultipoleExpansionsKer2[ii] = MultipoleExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+  // };
+  //
+  // Threads::TaskGroup<> group_creation;
+  // for (types::global_dof_index ii = 0; ii <  num_blocks ; ii++)
+  //   group_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_creation), ii, this);
+  // group_creation.join_all();
   // After a discussion with Wolfgang it should be like the following
   // group_childless_creation += Threads::new_task ( std::function<void ()> (std::bind( f_childless_creation, kk, this, phi_values, dphi_dn_values)));//( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
   // However if we do so it does not work...
@@ -1774,51 +1798,97 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   // We need to create the multipole expansions for all the blocks in the childlessList.
   // Once again this is an embarassingly parallel operation. We set up a new ThreadGroup
   // strategy to let all the blocks to run in parallel.
-  auto f_childless_creation = [] (types::global_dof_index kk, const BEMFMA<dim> *foo_fma, const Vector<double> &phi_values, const Vector<double> &dphi_dn_values)
+  auto f_childless_creation_tbb = [this, &phi_values, &dphi_dn_values] (blocked_range<types::global_dof_index> r)
   {
 
-    // for each block we get the center and the quad points
-
-    types::global_dof_index blockId =  foo_fma->childlessList[kk];
-    OctreeBlock<dim> *block =  foo_fma->blocks[blockId];
-
-    double delta =  foo_fma->blocks[blockId]->GetDelta();
-    Point<dim> deltaHalf;
-    for (unsigned int i=0; i<dim; i++)
-      deltaHalf(i) = delta/2.;
-    //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
-
-    std::map <cell_it, std::vector <types::global_dof_index> > blockQuadPointsList = block->GetBlockQuadPointsList();
-
-    // we loop on the cells of the quad points in the block: remember that for each cell with a node in the
-    // block, we had created a set of dofs_per_cell multipole expansion, representing
-    // the (partial) integral on each cell
-
-    std::vector<types::global_dof_index> my_local_dof_indices(foo_fma->fma_fe->dofs_per_cell);
-
-    typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
-    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+    for (types::global_dof_index kk = r.begin(); kk<r.end(); ++kk)
       {
-        cell_it cell = (*it).first;
-        cell->get_dof_indices(my_local_dof_indices);
+        // for each block we get the center and the quad points
 
-        // for each cell we get the dof_indices, and add to the block multipole expansion,
-        // the integral previously computed, multiplied by the phi or dphi_dn value at the
-        // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
-        // created for this purpose
+        types::global_dof_index blockId =  childlessList[kk];
+        OctreeBlock<dim> *block =  blocks[blockId];
 
-        for (unsigned int jj=0; jj < foo_fma->fma_fe->dofs_per_cell; ++jj)
+        double delta =  blocks[blockId]->GetDelta();
+        Point<dim> deltaHalf;
+        for (unsigned int i=0; i<dim; i++)
+          deltaHalf(i) = delta/2.;
+        //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
+
+        std::map <cell_it, std::vector <types::global_dof_index> > blockQuadPointsList = block->GetBlockQuadPointsList();
+
+        // we loop on the cells of the quad points in the block: remember that for each cell with a node in the
+        // block, we had created a set of dofs_per_cell multipole expansion, representing
+        // the (partial) integral on each cell
+
+        std::vector<types::global_dof_index> my_local_dof_indices(fma_fe->dofs_per_cell);
+
+        typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
+        for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
           {
-            foo_fma->blockMultipoleExpansionsKer2.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(my_local_dof_indices[jj]));
-            foo_fma->blockMultipoleExpansionsKer1.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(my_local_dof_indices[jj]));
-          }
-      } //end loop ond block elements
+            cell_it cell = (*it).first;
+            cell->get_dof_indices(my_local_dof_indices);
+
+            // for each cell we get the dof_indices, and add to the block multipole expansion,
+            // the integral previously computed, multiplied by the phi or dphi_dn value at the
+            // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
+            // created for this purpose
+
+            for (unsigned int jj=0; jj < fma_fe->dofs_per_cell; ++jj)
+              {
+                blockMultipoleExpansionsKer2.at(blockId).Add(elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(my_local_dof_indices[jj]));
+                blockMultipoleExpansionsKer1.at(blockId).Add(elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(my_local_dof_indices[jj]));
+              }
+          } //end loop ond block elements
+      }
   };
 
-  Threads::TaskGroup<> group_childless_creation;
-  for (types::global_dof_index kk = 0; kk <  childlessList.size(); kk++)
-    group_childless_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
-  group_childless_creation.join_all();
+  parallel_for(blocked_range<types::global_dof_index> (0, childlessList.size(), tbb_granularity), f_childless_creation_tbb);
+
+  // auto f_childless_creation = [] (types::global_dof_index kk, const BEMFMA<dim> *foo_fma, const Vector<double> &phi_values, const Vector<double> &dphi_dn_values)
+  // {
+  //
+  //   // for each block we get the center and the quad points
+  //
+  //   types::global_dof_index blockId =  foo_fma->childlessList[kk];
+  //   OctreeBlock<dim> *block =  foo_fma->blocks[blockId];
+  //
+  //   double delta =  foo_fma->blocks[blockId]->GetDelta();
+  //   Point<dim> deltaHalf;
+  //   for (unsigned int i=0; i<dim; i++)
+  //     deltaHalf(i) = delta/2.;
+  //   //Point<dim> blockCenter =  blocks[blockId]->GetPMin()+deltaHalf;
+  //
+  //   std::map <cell_it, std::vector <types::global_dof_index> > blockQuadPointsList = block->GetBlockQuadPointsList();
+  //
+  //   // we loop on the cells of the quad points in the block: remember that for each cell with a node in the
+  //   // block, we had created a set of dofs_per_cell multipole expansion, representing
+  //   // the (partial) integral on each cell
+  //
+  //   std::vector<types::global_dof_index> my_local_dof_indices(foo_fma->fma_fe->dofs_per_cell);
+  //
+  //   typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
+  //   for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
+  //     {
+  //       cell_it cell = (*it).first;
+  //       cell->get_dof_indices(my_local_dof_indices);
+  //
+  //       // for each cell we get the dof_indices, and add to the block multipole expansion,
+  //       // the integral previously computed, multiplied by the phi or dphi_dn value at the
+  //       // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
+  //       // created for this purpose
+  //
+  //       for (unsigned int jj=0; jj < foo_fma->fma_fe->dofs_per_cell; ++jj)
+  //         {
+  //           foo_fma->blockMultipoleExpansionsKer2.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(my_local_dof_indices[jj]));
+  //           foo_fma->blockMultipoleExpansionsKer1.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(my_local_dof_indices[jj]));
+  //         }
+  //     } //end loop ond block elements
+  // };
+  //
+  // Threads::TaskGroup<> group_childless_creation;
+  // for (types::global_dof_index kk = 0; kk <  childlessList.size(); kk++)
+  //   group_childless_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *, const Vector<double> &, const Vector<double> &)> (f_childless_creation), kk, this, phi_values, dphi_dn_values);
+  // group_childless_creation.join_all();
 
   // {
 
@@ -2043,23 +2113,40 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   // First of all we need to create all the empty expansiones for all the blocks. This is an
   // embarassingly parallel operation that we can perform using the ThreadGroup strategy
   // without requiring any synchronization time.
-  auto f_local_creation = [] (types::global_dof_index ii, const BEMFMA<dim> *foo_fma)
+
+  auto f_local_creation_tbb = [this] (blocked_range<types::global_dof_index> r)
   {
+    for (types::global_dof_index ii = r.begin(); ii < r.end(); ++ii)
+      {
+        double delta = blocks[ii]->GetDelta();
+        Point<dim> deltaHalf;
+        for (unsigned int i=0; i<dim; i++)
+          deltaHalf(i) = delta/2.;
 
-    double delta = foo_fma->blocks[ii]->GetDelta();
-    Point<dim> deltaHalf;
-    for (unsigned int i=0; i<dim; i++)
-      deltaHalf(i) = delta/2.;
-
-    Point<dim> blockCenter =  foo_fma->blocks[ii]->GetPMin()+deltaHalf;
-    foo_fma->blockLocalExpansionsKer1[ii] = LocalExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
-    foo_fma->blockLocalExpansionsKer2[ii] = LocalExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+        Point<dim> blockCenter =  blocks[ii]->GetPMin()+deltaHalf;
+        blockLocalExpansionsKer1[ii] = LocalExpansion(trunc_order, blockCenter, &(assLegFunction));
+        blockLocalExpansionsKer2[ii] = LocalExpansion(trunc_order, blockCenter, &(assLegFunction));
+      }
   };
 
-  Threads::TaskGroup<> group_local_creation;
-  for (types::global_dof_index ii = 0; ii <  num_blocks ; ii++)
-    group_local_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_local_creation), ii, this);
-  group_local_creation.join_all();
+  parallel_for(blocked_range<types::global_dof_index> (0, num_blocks, tbb_granularity), f_local_creation_tbb);
+
+  // auto f_local_creation = [] (types::global_dof_index ii, const BEMFMA<dim> *foo_fma)
+  // {
+  //
+  //   double delta = foo_fma->blocks[ii]->GetDelta();
+  //   Point<dim> deltaHalf;
+  //   for (unsigned int i=0; i<dim; i++)
+  //     deltaHalf(i) = delta/2.;
+  //
+  //   Point<dim> blockCenter =  foo_fma->blocks[ii]->GetPMin()+deltaHalf;
+  //   foo_fma->blockLocalExpansionsKer1[ii] = LocalExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+  //   foo_fma->blockLocalExpansionsKer2[ii] = LocalExpansion(foo_fma->trunc_order, blockCenter, &(foo_fma->assLegFunction));
+  // };
+  // Threads::TaskGroup<> group_local_creation;
+  // for (types::global_dof_index ii = 0; ii <  num_blocks ; ii++)
+  //   group_local_creation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, const BEMFMA<dim> *)> (f_local_creation), ii, this);
+  // group_local_creation.join_all();
 
   // // here we loop on all the blocks and build an empty local expansion for
   // // each of them
@@ -2466,31 +2553,57 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   // childless blocks, at each block node(s). This is an embarassingly parallel operation
   // so it can be easily performed using ThreadGroup. We also check the IndexSet to perform
   // the mixed TBB-MPI parallelisation.
-  auto f_local_evaluation = [] (types::global_dof_index kk, TrilinosWrappers::MPI::Vector & matrVectProdD, TrilinosWrappers::MPI::Vector & matrVectProdN, const BEMFMA<dim> *foo_fma, const std::vector<Point<dim> > &support_points)
+  auto f_local_evaluation_tbb = [this, &matrVectProdD, &matrVectProdN, &support_points] (blocked_range<types::global_dof_index> r)
   {
 
-    types::global_dof_index block1Id =  foo_fma->childlessList[kk];
-    OctreeBlock<dim> *block1 =  foo_fma->blocks[block1Id];
-    std::vector <types::global_dof_index> nodesBlk1Ids = block1->GetBlockNodeList();
-
-    // loop over nodes of block
-    for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
+    for (types::global_dof_index kk = r.begin(); kk<r.end(); ++kk)
       {
-        if (foo_fma->this_cpu_set.is_element(nodesBlk1Ids[ii]))
-          {
-            //Teuchos::TimeMonitor LocalTimer(*LocEval);
+        types::global_dof_index block1Id =  childlessList[kk];
+        OctreeBlock<dim> *block1 =  blocks[block1Id];
+        std::vector <types::global_dof_index> nodesBlk1Ids = block1->GetBlockNodeList();
 
-            const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
-            matrVectProdD(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
-            matrVectProdN(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
-          }
-      } // end loop over nodes
+        // loop over nodes of block
+        for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
+          {
+            if (this_cpu_set.is_element(nodesBlk1Ids[ii]))
+              {
+                //Teuchos::TimeMonitor LocalTimer(*LocEval);
+
+                const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+                matrVectProdD(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
+                matrVectProdN(nodesBlk1Ids[ii]) += (blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+              }
+          } // end loop over nodes
+      }
   };
 
-  Threads::TaskGroup<> group_local_evaluation;
-  for (types::global_dof_index kk = 0; kk <  childlessList.size(); kk++)
-    group_local_evaluation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::MPI::Vector &, TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *, const std::vector<Point<dim> > &)> (f_local_evaluation), kk, matrVectProdD, matrVectProdN, this, support_points);
-  group_local_evaluation.join_all();
+  parallel_for(blocked_range<types::global_dof_index> (0, childlessList.size(),tbb_granularity), f_local_evaluation_tbb);
+
+  // auto f_local_evaluation = [] (types::global_dof_index kk, TrilinosWrappers::MPI::Vector & matrVectProdD, TrilinosWrappers::MPI::Vector & matrVectProdN, const BEMFMA<dim> *foo_fma, const std::vector<Point<dim> > &support_points)
+  // {
+  //
+  //   types::global_dof_index block1Id =  foo_fma->childlessList[kk];
+  //   OctreeBlock<dim> *block1 =  foo_fma->blocks[block1Id];
+  //   std::vector <types::global_dof_index> nodesBlk1Ids = block1->GetBlockNodeList();
+  //
+  //   // loop over nodes of block
+  //   for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size(); ii++) //loop over each node of block1
+  //     {
+  //       if (foo_fma->this_cpu_set.is_element(nodesBlk1Ids[ii]))
+  //         {
+  //           //Teuchos::TimeMonitor LocalTimer(*LocEval);
+  //
+  //           const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids.at(ii)];
+  //           matrVectProdD(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
+  //           matrVectProdN(nodesBlk1Ids[ii]) += (foo_fma->blockLocalExpansionsKer1[block1Id]).Evaluate(nodeBlk1);
+  //         }
+  //     } // end loop over nodes
+  // };
+  //
+  // Threads::TaskGroup<> group_local_evaluation;
+  // for (types::global_dof_index kk = 0; kk <  childlessList.size(); kk++)
+  //   group_local_evaluation += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::MPI::Vector &, TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *, const std::vector<Point<dim> > &)> (f_local_evaluation), kk, matrVectProdD, matrVectProdN, this, support_points);
+  // group_local_evaluation.join_all();
 
   // for (unsigned int kk = 0; kk <  childlessList.size(); kk++)
   //
@@ -2647,75 +2760,135 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
 
   // We need a worker function that fills the final sparisty pattern once its saprsity pattern has been set up. In this
   // case no race condition occurs in the worker so we can let it copy in the global memory.
-  auto f_sparsity_filler = [] (types::global_dof_index i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const BEMFMA<dim> *foo_fma)
+  auto f_sparsity_filler_tbb = [this, &c] (blocked_range<types::global_dof_index> r)
   {
-    if (foo_fma->this_cpu_set.is_element(i))
+    for (types::global_dof_index i = r.begin(); i<r.end(); ++i)
       {
-        if (c.is_constrained(i))
+        if (this_cpu_set.is_element(i))
           {
-            final_preconditioner.set(i,i,1);
-            //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
-            // constrainednodes entries are taken from the bem problem constraint matrix
-            const std::vector< std::pair < types::global_dof_index, double > >
-            *entries = c.get_constraint_entries (i);
-            for (types::global_dof_index j=0; j< entries->size(); ++j)
+            if (c.is_constrained(i))
               {
-                final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
-                //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
-              }
-          }
-        else
-          {
-            // other nodes entries are taken from the unconstrained preconditioner matrix
-            for (unsigned int j=0; j<foo_fma->fma_dh->n_dofs(); ++j)
-              {
-                // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
-                if (foo_fma->init_prec_sparsity_pattern.exists(i,j))
+                final_preconditioner.set(i,i,1);
+                //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+                // constrainednodes entries are taken from the bem problem constraint matrix
+                const std::vector< std::pair < types::global_dof_index, double > >
+                *entries = c.get_constraint_entries (i);
+                for (types::global_dof_index j=0; j< entries->size(); ++j)
                   {
-                    final_preconditioner.set(i,j,foo_fma->init_preconditioner(i,j));
-                    // foo_fma->pcout<<i<<" "<<j<<" "<<foo_fma->init_preconditioner(i,j)<<std::endl;
+                    final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
+                    //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
                   }
               }
+            else
+              {
+                // other nodes entries are taken from the unconstrained preconditioner matrix
+                for (unsigned int j=0; j<fma_dh->n_dofs(); ++j)
+                  {
+                    // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
+                    if (init_prec_sparsity_pattern.exists(i,j))
+                      {
+                        final_preconditioner.set(i,j,init_preconditioner(i,j));
+                        // foo_fma->pcout<<i<<" "<<j<<" "<<foo_fma->init_preconditioner(i,j)<<std::endl;
+                      }
+                  }
+
+              }
 
           }
-
       }
   };
 
-  // We use the ThreadGroup function to let different parallel thread fill the preconditioner. In this case
-  // we allow for a greater parallelism ensuring that no race condition occurs. Since such a strategy does
-  // not allow for the use of lambda function we must cast them as standard function. For this reason the capture
-  // must be empty.
-  Threads::TaskGroup<> prec_filler;
-  for (types::global_dof_index ii = 0; ii <  fma_dh->n_dofs() ; ii++)
-    prec_filler += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const BEMFMA<dim> *)> (f_sparsity_filler), ii, final_preconditioner, c, this);
-  prec_filler.join_all();
+  parallel_for(blocked_range<types::global_dof_index> (0, fma_dh->n_dofs(), tbb_granularity), f_sparsity_filler_tbb);
+  // auto f_sparsity_filler = [] (types::global_dof_index i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const BEMFMA<dim> *foo_fma)
+  // {
+  //   if (foo_fma->this_cpu_set.is_element(i))
+  //     {
+  //       if (c.is_constrained(i))
+  //         {
+  //           final_preconditioner.set(i,i,1);
+  //           //pcout<<i<<" "<<i<<"  ** "<<final_preconditioner(i,i)<<std::endl;
+  //           // constrainednodes entries are taken from the bem problem constraint matrix
+  //           const std::vector< std::pair < types::global_dof_index, double > >
+  //           *entries = c.get_constraint_entries (i);
+  //           for (types::global_dof_index j=0; j< entries->size(); ++j)
+  //             {
+  //               final_preconditioner.set(i,(*entries)[j].first,(*entries)[j].second);
+  //               //pcout<<i<<" "<<(*entries)[j].first<<"  * "<<(*entries)[j].second<<std::endl;
+  //             }
+  //         }
+  //       else
+  //         {
+  //           // other nodes entries are taken from the unconstrained preconditioner matrix
+  //           for (unsigned int j=0; j<foo_fma->fma_dh->n_dofs(); ++j)
+  //             {
+  //               // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO, tanto lui già conosce le matrici.
+  //               if (foo_fma->init_prec_sparsity_pattern.exists(i,j))
+  //                 {
+  //                   final_preconditioner.set(i,j,foo_fma->init_preconditioner(i,j));
+  //                   // foo_fma->pcout<<i<<" "<<j<<" "<<foo_fma->init_preconditioner(i,j)<<std::endl;
+  //                 }
+  //             }
+  //
+  //         }
+  //
+  //     }
+  // };
+  //
+  // // We use the ThreadGroup function to let different parallel thread fill the preconditioner. In this case
+  // // we allow for a greater parallelism ensuring that no race condition occurs. Since such a strategy does
+  // // not allow for the use of lambda function we must cast them as standard function. For this reason the capture
+  // // must be empty.
+  // Threads::TaskGroup<> prec_filler;
+  // for (types::global_dof_index ii = 0; ii <  fma_dh->n_dofs() ; ii++)
+  //   prec_filler += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const BEMFMA<dim> *)> (f_sparsity_filler), ii, final_preconditioner, c, this);
+  // prec_filler.join_all();
 
   // The compress operation makes all the vectors on different processors compliant.
   final_preconditioner.compress(VectorOperation::insert);
 
-  // In order to add alpha we can again use the ThreadGroup strategy.
-  auto f_alpha_adder = [] (types::global_dof_index i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &alpha, const BEMFMA<dim> *foo_fma)
+  // In order to add alpha we can again use the parallel_for strategy.
+  auto f_alpha_adder_tbb = [this, &c, &alpha] (blocked_range<types::global_dof_index> r)
   {
-    if (foo_fma->this_cpu_set.is_element(i))
+    for (types::global_dof_index i = r.begin(); i<r.end(); ++i)
       {
-        if ( (*(foo_fma->dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
+        if (this_cpu_set.is_element(i))
           {
-            final_preconditioner.add(i,i,alpha(i));
-            //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
-          }
-        else // this is just to avoid a deadlock. we need a better strategy
-          {
-            final_preconditioner.add(i,i,0);
+            if ( (*(dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
+              {
+                final_preconditioner.add(i,i,alpha(i));
+                //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+              }
+            else // this is just to avoid a deadlock. we need a better strategy
+              {
+                final_preconditioner.add(i,i,0);
+              }
           }
       }
 
   };
 
-  Threads::TaskGroup<> alpha_adder;
-  for (types::global_dof_index ii = 0; ii <  fma_dh->n_dofs() ; ii++)
-    alpha_adder += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *)> (f_alpha_adder), ii, final_preconditioner, c, alpha, this);
-  alpha_adder.join_all();
+  parallel_for(blocked_range<types::global_dof_index> (0, fma_dh->n_dofs(), tbb_granularity), f_alpha_adder_tbb);
+  // auto f_alpha_adder = [] (types::global_dof_index i, TrilinosWrappers::SparseMatrix &final_preconditioner, const ConstraintMatrix &c, const TrilinosWrappers::MPI::Vector &alpha, const BEMFMA<dim> *foo_fma)
+  // {
+  //   if (foo_fma->this_cpu_set.is_element(i))
+  //     {
+  //       if ( (*(foo_fma->dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
+  //         {
+  //           final_preconditioner.add(i,i,alpha(i));
+  //           //pcout<<i<<" "<<i<<" "<<final_preconditioner(i,i)<<std::endl;
+  //         }
+  //       else // this is just to avoid a deadlock. we need a better strategy
+  //         {
+  //           final_preconditioner.add(i,i,0);
+  //         }
+  //     }
+  //
+  // };
+  //
+  // Threads::TaskGroup<> alpha_adder;
+  // for (types::global_dof_index ii = 0; ii <  fma_dh->n_dofs() ; ii++)
+  //   alpha_adder += Threads::new_task ( static_cast<void (*)(types::global_dof_index, TrilinosWrappers::SparseMatrix &, const ConstraintMatrix &, const TrilinosWrappers::MPI::Vector &, const BEMFMA<dim> *)> (f_alpha_adder), ii, final_preconditioner, c, alpha, this);
+  // alpha_adder.join_all();
   final_preconditioner.compress(VectorOperation::add);
   final_preconditioner.compress(VectorOperation::insert);
 

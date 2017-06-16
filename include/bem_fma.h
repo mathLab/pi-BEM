@@ -293,6 +293,9 @@ private:
 
   unsigned int num_octree_levels;
 
+  /// Granularity for TBB cycles. Simple parallel_for at the moment.
+  unsigned int tbb_granularity;
+
   /// here are declared dome structures which
   /// will be created in the framework of the
   /// octree partitioning of the mesh, and

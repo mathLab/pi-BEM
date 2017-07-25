@@ -1440,7 +1440,8 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                       {
                         // this is the dirichlet-dirichlet case on flat edges: here we impose that
                         // dphi_dn on the two (or more) sides is equal.
-                        double normal_distance = 0;
+                        Tensor<1,dim> normal_1;
+                        Tensor<1,dim> normal_2;
 
                         // types::global_dof_index owner_el_1 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[i]);
                         // types::global_dof_index owner_el_2 = DoFTools::count_dofs_with_subdomain_association (dh, dofs_domain_association[*it]);
@@ -1451,10 +1452,12 @@ void BEMProblem<dim>::compute_constraints(IndexSet &c_cpu_set, ConstraintMatrix 
                             types::global_dof_index dummy_2 = sub_wise_to_original[*it];
                             types::global_dof_index index1 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_1];//vector_start_per_process[dofs_domain_association[i]] + idim * owner_el_1 + (i - start_per_process[dofs_domain_association[i]]); //gradient_dh.n_dofs()/dim*idim+i;//vector_start_per_process[this_mpi_process] + (i - start_per_process[this_mpi_process]) * dim + idim; //i*dim+idim
                             types::global_dof_index index2 = vec_original_to_sub_wise[gradient_dh.n_dofs()/dim*idim+dummy_2];//vector_start_per_process[dofs_domain_association[*it]] + idim * owner_el_2 + ((*it) - start_per_process[dofs_domain_association[*it]]);//gradient_dh.n_dofs()/dim*idim+(*it); //vector_start_per_process[this_mpi_process] + ((*it) - start_per_process[this_mpi_process]) * dim + idim;//(*it)*dim+idim
-                            normal_distance += localized_normals[index1] * localized_normals[index2];
+                            normal_1[idim] = localized_normals[index1];
+                            normal_2[idim] = localized_normals[index2];
                           }
-                        normal_distance /= normal_distance;
-                        if ( normal_distance < 1e-4 )
+                        double normals_angle = acos(normal_1*normal_2/normal_1.norm()/normal_2.norm())*180/numbers::PI;
+                        double angTol = 2;
+                        if ( normals_angle < angTol )
                           {
                             c.add_line(*it);
                             c.add_entry(*it,i,1);

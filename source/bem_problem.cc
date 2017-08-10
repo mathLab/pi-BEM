@@ -659,7 +659,7 @@ void BEMProblem<dim>::assemble_system()
       cell->get_dof_indices(local_dof_indices);
 
       const std::vector<Point<dim> > &q_points = fe_v.get_quadrature_points();
-      const std::vector<Tensor<1, dim> > &normals = fe_v.get_all_normal_vectors();
+      const std::vector<Tensor<1, dim> > &normals = fe_v.get_normal_vectors();
 
       // We then form the integral over
       // the current cell for all
@@ -957,7 +957,7 @@ void BEMProblem<dim>::assemble_system()
 
                   fe_v_singular.reinit(cell);
 
-                  const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
+                  const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_normal_vectors();
                   const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
                   for (unsigned int q=0; q<singular_quadrature->size(); ++q)
@@ -1767,7 +1767,7 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
           vector_fe_v.reinit (vector_cell);
           local_gradients_matrix = 0;
           local_gradients_rhs = 0;
-          const std::vector<Tensor<1, dim> > &vector_node_normals = vector_fe_v.get_all_normal_vectors();
+          const std::vector<Tensor<1, dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
           fe_v.get_function_gradients(phi, phi_surf_grads);
           fe_v.get_function_values(dphi_dn, phi_norm_grads);
           unsigned int comp_i, comp_j;
@@ -2003,7 +2003,7 @@ void BEMProblem<dim>::compute_normals()
           vector_fe_v.reinit (vector_cell);
           local_normals_matrix = 0;
           local_normals_rhs = 0;
-          const std::vector<Tensor<1, dim> > &vector_node_normals = vector_fe_v.get_all_normal_vectors();
+          const std::vector<Tensor<1, dim> > &vector_node_normals = vector_fe_v.get_normal_vectors();
           unsigned int comp_i, comp_j;
 
           for (unsigned int q=0; q<vector_n_q_points; ++q)

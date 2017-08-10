@@ -4,7 +4,7 @@
 #include "../include/bem_fma.h"
 #include "../include/laplace_kernel.h"
 
-
+#include <functional>
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::Time;
@@ -801,7 +801,7 @@ void BEMFMA<dim>::direct_integrals()
 
                         // here are the vectors of the quad points and normals vectors
 
-                        const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
+                        const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_normal_vectors();
                         const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
 
@@ -900,7 +900,7 @@ void BEMFMA<dim>::direct_integrals()
   // a function requiring only 3 arguments
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
-                  std_cxx11::bind(f_worker_direct_childless_non_int_list, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, sing_quadratures),
+                  std::bind(f_worker_direct_childless_non_int_list, std::placeholders::_1,  std::placeholders::_2, std::placeholders::_3, support_points, sing_quadratures),
                   f_copier_direct,
                   direct_childless_scratch_data,
                   direct_childless_copy_data);
@@ -1039,7 +1039,7 @@ void BEMFMA<dim>::direct_integrals()
       DirectCopyData direct_bigger_copy_data;
       WorkStream::run(dofs_filled_blocks[level].begin(),
                       dofs_filled_blocks[level].end(),
-                      std_cxx11::bind(f_worker_direct_bigger_blocks, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, support_points, startBlockLevel),
+                      std::bind(f_worker_direct_bigger_blocks, std::placeholders::_1,  std::placeholders::_2, std::placeholders::_3, support_points, startBlockLevel),
                       f_copier_direct,
                       direct_bigger_scratch_data,
                       direct_bigger_copy_data);
@@ -2024,7 +2024,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
       if (endLevel[level]>=startLevel[level])
         WorkStream::run(blocks.begin()+startLevel[level],
                         blocks.begin()+endLevel[level]+1,
-                        std_cxx11::bind(f_worker_ascend, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startLevel[level]),
+                        std::bind(f_worker_ascend, std::placeholders::_1,  std::placeholders::_2, std::placeholders::_3, startLevel[level]),
                         f_copier_ascend,
                         sample_scratch,
                         sample_copy);
@@ -2398,7 +2398,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
       if (endLevel[level]>=startLevel[level])
         WorkStream::run(dofs_filled_blocks[level].begin(),
                         dofs_filled_blocks[level].end(),
-                        std_cxx11::bind(f_worker_Descend, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startBlockLevel),
+                        std::bind(f_worker_Descend, std::placeholders::_1,  std::placeholders::_2, std::placeholders::_3, startBlockLevel),
                         f_copier_Descend,
                         sample_scratch,
                         sample_copy);
@@ -3262,7 +3262,7 @@ void BEMFMA<dim>::generate_octree_blocking()
       const unsigned int n_q_points = fe_v.n_quadrature_points;
       quadPoints[cell] = fe_v.get_quadrature_points();
       // quadNormals[cell] = fe_v.get_normal_vectors();
-      quadNormals[cell] = fe_v.get_all_normal_vectors();
+      quadNormals[cell] = fe_v.get_normal_vectors();
       quadJxW[cell].resize(n_q_points);
       quadShapeFunValues[cell].resize(n_q_points);
       for (unsigned int q=0; q<n_q_points; ++q)

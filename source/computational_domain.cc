@@ -798,8 +798,8 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
                                                                        tolerance);
                   // in correspondence with the projected point, we ask all the surface differential forms
                   auto tup = OpenCASCADE::closest_point_and_differential_forms(neededShape,
-                                                                             projection,
-                                                                             tolerance);
+                             projection,
+                             tolerance);
                   // among the differential point, we select the maximum absolute curvature
                   double max_abs_curv = fmax(fabs(std_cxx11::get<2>(tup)),fabs(std_cxx11::get<3>(tup)));
                   // this commented line is just for debug purposes

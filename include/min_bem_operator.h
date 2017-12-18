@@ -1,6 +1,6 @@
 #include <deal.II/base/utilities.h>
 
-#include <deal.II/lac/trilinos_block_vector.h>
+#include <deal.II/lac/trilinos_vector.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>

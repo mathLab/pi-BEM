@@ -15,12 +15,13 @@
 #include "../include/multipole_expansion.h"
 #include "../include/ass_leg_function.h"
 #include "../include/computational_domain.h"
-#include <deal.II/lac/trilinos_block_vector.h>
+#include <deal.II/lac/trilinos_vector.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/base/work_stream.h>
 #include <deal.II/base/types.h>
+#include <deal.II/base/std_cxx11/bind.h>
 #include <cmath>
 #include <iostream>
 #include <fstream>

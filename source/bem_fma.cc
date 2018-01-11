@@ -42,13 +42,6 @@ BEMFMA<dim>::~BEMFMA()
         delete blocks[ii];
     }
 
-  // fma_dh = SP();
-  // fma_fe = SP();
-  // dirichlet_nodes = SP();//per quadratura singolare e octree generator
-  // double_nodes_set = SP();//da passare al metodo che fa il precondizionatore
-  // fma_mapping = SP();
-
-
 }
 
 template <int dim>
@@ -62,7 +55,6 @@ void BEMFMA<dim>::init_fma(const DoFHandler<dim-1,dim> &input_dh,
   quadrature_order = quad_order;
   singular_quadrature_order = sing_quad_order;
   fma_dh = &input_dh;
-  fma_fe = &(input_dh.get_fe());
   dirichlet_nodes = new const Vector<double>(input_sn);//per quadratura singolare e octree generator
   this_cpu_set.clear();
   this_cpu_set.set_size(fma_dh->n_dofs());
@@ -135,11 +127,11 @@ void BEMFMA<dim>::direct_integrals()
   // singular quadratures. We need them to properly treat the direct contributions among
   // nodes on the same block.
   std::vector<QTelles<dim-1> > sing_quadratures;
-  for (unsigned int i=0; i<fma_fe->dofs_per_cell; ++i)
+  for (unsigned int i=0; i<fma_dh->get_fe().dofs_per_cell; ++i)
     sing_quadratures.push_back
     (QTelles<dim-1>(singular_quadrature_order,
-                    fma_fe->get_unit_support_points()[i]));
-  const types::global_dof_index dofs_per_cell = fma_fe->dofs_per_cell;
+                    fma_dh->get_fe().get_unit_support_points()[i]));
+  const types::global_dof_index dofs_per_cell = fma_dh->get_fe().dofs_per_cell;
 
   // vector containing the ids of the dofs
   // of each cell: it will be used to transfer
@@ -152,8 +144,8 @@ void BEMFMA<dim>::direct_integrals()
   // and dirichlet matrix obtained in local
   // operations
 
-  Vector<double>      local_neumann_matrix_row_i(fma_fe->dofs_per_cell);
-  Vector<double>      local_dirichlet_matrix_row_i(fma_fe->dofs_per_cell);
+  Vector<double>      local_neumann_matrix_row_i(fma_dh->get_fe().dofs_per_cell);
+  Vector<double>      local_dirichlet_matrix_row_i(fma_dh->get_fe().dofs_per_cell);
 
 
   // Now that we have checked that
@@ -203,13 +195,13 @@ void BEMFMA<dim>::direct_integrals()
 
   /// TODO understand the bandwith of the preconditioner
   // pcout<<this_cpu_set.size()<<" "<<this_cpu_set.n_elements()<<std::endl;
-  types::global_dof_index preconditioner_band = 125*fma_fe->dofs_per_cell;
+  types::global_dof_index preconditioner_band = 125*fma_dh->get_fe().dofs_per_cell;
   // preconditioner_sparsity_pattern.reinit(sol.vector_partitioner(), (unsigned int) preconditioner_band);
   TrilinosWrappers::MPI::Vector helper(this_cpu_set, mpi_communicator);
   // TODO WHY IT DOES NOT WORK????
-  // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_fe->dofs_per_cell);
-  // init_prec_sparsity_pattern.reinit(helper.vector_partitioner(), preconditioner_band);//,125*fma_fe->dofs_per_cell);
-  init_prec_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, preconditioner_band);//,125*fma_fe->dofs_per_cell);
+  // init_prec_sparsity_pattern.reinit(this_cpu_set.make_trilinos_map(mpi_communicator),preconditioner_band);//,125*fma_dh->get_fe().dofs_per_cell);
+  // init_prec_sparsity_pattern.reinit(helper.vector_partitioner(), preconditioner_band);//,125*fma_dh->get_fe().dofs_per_cell);
+  init_prec_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, preconditioner_band);//,125*fma_dh->get_fe().dofs_per_cell);
 
   // In the following we use WorkStream to parallelise, through TBB, the setting up
   // of the initial preconditioner that does not consider any constraint.
@@ -253,7 +245,7 @@ void BEMFMA<dim>::direct_integrals()
 
     std::vector <types::global_dof_index> block1Nodes = block1->GetBlockNodeList();
 
-    std::vector<types::global_dof_index> local_dof_indices(this->fma_fe->dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indices(this->fma_dh->get_fe().dofs_per_cell);
     if  (block1Nodes.size() > 0)
       {
 
@@ -294,7 +286,7 @@ void BEMFMA<dim>::direct_integrals()
 
                 cell_it cell = (*it).first;//pcout<<cell<<"  end "<<(*blockQuadPointsList.end()).first<<std::endl;
                 cell->get_dof_indices(local_dof_indices);
-                for (unsigned int j = 0; j < this->fma_fe->dofs_per_cell; j++)
+                for (unsigned int j = 0; j < this->fma_dh->get_fe().dofs_per_cell; j++)
                   directNodes.insert(local_dof_indices[j]);
               }
           }
@@ -441,7 +433,7 @@ void BEMFMA<dim>::direct_integrals()
 
         OctreeBlock<dim> *block1 =  this->blocks[this->dofs_filled_blocks[level][jj]];
         const std::vector <types::global_dof_index> &nodesBlk1Ids = block1->GetBlockNodeList();
-        std::vector<types::global_dof_index> local_dof_indices(this->fma_fe->dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices(this->fma_dh->get_fe().dofs_per_cell);
         // again, no need to perform next operations if block has no nodes
 
         if  (nodesBlk1Ids.size() > 0)// !!!CHECK, IT SEEMS TO BE USELESS
@@ -476,7 +468,7 @@ void BEMFMA<dim>::direct_integrals()
                       {
                         cell_it cell = (*it).first;
                         cell->get_dof_indices(local_dof_indices);
-                        for (unsigned int j = 0; j < this->fma_fe->dofs_per_cell; j++)
+                        for (unsigned int j = 0; j < this->fma_dh->get_fe().dofs_per_cell; j++)
                           directNodes.insert(local_dof_indices[j]);
                       }
                   } // end loop over blocks of a sublevel of nonIntList
@@ -697,14 +689,14 @@ void BEMFMA<dim>::direct_integrals()
                   {
                     // the vectors with the local integrals for the cell must first
                     // be zeroed
-                    copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
-                    copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
+                    copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (this->fma_dh->get_fe().dofs_per_cell));
+                    copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (this->fma_dh->get_fe().dofs_per_cell));
 
                     // we get the first entry of the map, i.e. the cell pointer
                     // and we check if the cell contains the current node, to
                     // decide if singular of regular quadrature is to be used
                     cell_it cell = (*it).first;
-                    copy_data.vec_local_dof_indices.push_back(std::vector<types::global_dof_index> (this->fma_fe->dofs_per_cell));
+                    copy_data.vec_local_dof_indices.push_back(std::vector<types::global_dof_index> (this->fma_dh->get_fe().dofs_per_cell));
                     cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
 
                     // we copy the cell quad points in this set
@@ -712,7 +704,7 @@ void BEMFMA<dim>::direct_integrals()
                     bool is_singular = false;
                     unsigned int singular_index = numbers::invalid_unsigned_int;
 
-                    for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
+                    for (unsigned int j=0; j<this->fma_dh->get_fe().dofs_per_cell; ++j)
                       if ( (*(this->double_nodes_set))[nodeIndex].count(copy_data.vec_local_dof_indices.back()[j]) > 0)
                         {
                           singular_index = j;
@@ -743,7 +735,7 @@ void BEMFMA<dim>::direct_integrals()
                             // and here are the integrals for each of the degrees of freedom of the cell: note
                             // how the quadrature values (position, normals, jacobianXweight, shape functions)
                             // are taken from the precomputed ones in ComputationalDomain class
-                            for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
+                            for (unsigned int j=0; j<this->fma_dh->get_fe().dofs_per_cell; ++j)
                               {
                                 copy_data.vec_local_neumann_matrix_row_i.back()(j) += ( ( D *
                                                                                           this->quadNormals.at(cell)[*pos] ) *
@@ -791,7 +783,7 @@ void BEMFMA<dim>::direct_integrals()
                         // once the singular quadrature has been created, we employ it
                         // to create the corresponding fe_values
 
-                        FEValues<dim-1,dim> fe_v_singular (*(this->fma_mapping), *(this->fma_fe), *(singular_quadrature),
+                        FEValues<dim-1,dim> fe_v_singular (*(this->fma_mapping), this->fma_dh->get_fe(), *(singular_quadrature),
                                                            update_jacobians |
                                                            update_values |
                                                            update_cell_normal_vectors |
@@ -816,7 +808,7 @@ void BEMFMA<dim>::direct_integrals()
 
                             const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
                             LaplaceKernel::kernels(R, D, s);
-                            for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
+                            for (unsigned int j=0; j<this->fma_dh->get_fe().dofs_per_cell; ++j)
                               {
                                 copy_data.vec_local_neumann_matrix_row_i.back()(j) += (( D *
                                                                                          singular_normals[q]) *
@@ -870,7 +862,7 @@ void BEMFMA<dim>::direct_integrals()
 
             for (types::global_dof_index kk=foo_start; kk<foo_end; ++kk)
               {
-                for (unsigned int j=0; j< this->fma_fe->dofs_per_cell; ++j)
+                for (unsigned int j=0; j< this->fma_dh->get_fe().dofs_per_cell; ++j)
                   {
                     this->prec_neumann_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_neumann_matrix_row_i[kk](j));
                     this->prec_dirichlet_matrix.add(copy_data.vec_node_index[ii],copy_data.vec_local_dof_indices[kk][j],copy_data.vec_local_dirichlet_matrix_row_i[kk](j));
@@ -966,14 +958,14 @@ void BEMFMA<dim>::direct_integrals()
               {
                 // the vectors with the local integrals for the cell must first
                 // be zeroed
-                copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
-                copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (this->fma_fe->dofs_per_cell));
+                copy_data.vec_local_neumann_matrix_row_i.push_back(Vector<double> (this->fma_dh->get_fe().dofs_per_cell));
+                copy_data.vec_local_dirichlet_matrix_row_i.push_back(Vector<double> (this->fma_dh->get_fe().dofs_per_cell));
 
                 // we get the first entry of the map, i.e. the cell pointer
                 // here the quadrature is regular as the cell is well
                 // separated
                 cell_it cell = (*it).first;
-                copy_data.vec_local_dof_indices.push_back(std::vector<types::global_dof_index> (this->fma_fe->dofs_per_cell));
+                copy_data.vec_local_dof_indices.push_back(std::vector<types::global_dof_index> (this->fma_dh->get_fe().dofs_per_cell));
                 cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
 
                 // we copy the cell quad points in this set
@@ -998,7 +990,7 @@ void BEMFMA<dim>::direct_integrals()
                     // how the quadrature values (position, normals, jacobianXweight, shape functions)
                     // are taken from the precomputed ones in ComputationalDomain class
 
-                    for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+                    for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
                       {
                         copy_data.vec_local_neumann_matrix_row_i.back()(j) += ( ( D *
                                                                                   this->quadNormals[cell][*pos] ) *
@@ -1128,7 +1120,7 @@ void BEMFMA<dim>::direct_integrals()
   //                   bool is_singular = false;
   //                   unsigned int singular_index = numbers::invalid_unsigned_int;
   //
-  //                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                   for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //                     if ( (*double_nodes_set)[nodeIndex].count(local_dof_indices[j]) > 0)
   //                       {
   //                         singular_index = j;
@@ -1156,7 +1148,7 @@ void BEMFMA<dim>::direct_integrals()
   //                           // and here are the integrals for each of the degrees of freedom of the cell: note
   //                           // how the quadrature values (position, normals, jacobianXweight, shape functions)
   //                           // are taken from the precomputed ones in ComputationalDomain class
-  //                           for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                           for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //                             {
   //                               local_neumann_matrix_row_i(j) += ( ( D *
   //                                                                    quadNormals[cell][*pos] ) *
@@ -1200,7 +1192,7 @@ void BEMFMA<dim>::direct_integrals()
   //                       // once the singular quadrature has been created, we employ it
   //                       // to create the corresponding fe_values
   //
-  //                       FEValues<dim-1,dim> fe_v_singular (*fma_mapping, *fma_fe, *singular_quadrature,
+  //                       FEValues<dim-1,dim> fe_v_singular (*fma_mapping, fma_dh->get_fe(), *singular_quadrature,
   //                                                          update_jacobians |
   //                                                          update_values |
   //                                                          update_cell_normal_vectors |
@@ -1222,7 +1214,7 @@ void BEMFMA<dim>::direct_integrals()
   //                         {
   //                           const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
   //                           LaplaceKernel::kernels(R, D, s);
-  //                           for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                           for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //                             {
   //                               local_neumann_matrix_row_i(j) += (( D *
   //                                                                   singular_normals[q]) *
@@ -1244,7 +1236,7 @@ void BEMFMA<dim>::direct_integrals()
   //                   // current cell to the
   //                   // global matrix.
   //
-  //                   for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                   for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //                     {
   //                         prec_neumann_matrix.add(nodeIndex,local_dof_indices[j],local_neumann_matrix_row_i(j));
   //                         prec_dirichlet_matrix.add(nodeIndex,local_dof_indices[j],local_dirichlet_matrix_row_i(j));
@@ -1348,7 +1340,7 @@ void BEMFMA<dim>::direct_integrals()
   //                     // how the quadrature values (position, normals, jacobianXweight, shape functions)
   //                     // are taken from the precomputed ones in ComputationalDomain class
   //
-  //                     for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                     for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //                       {
   //                         local_neumann_matrix_row_i(j) += ( ( D *
   //                                                              quadNormals[cell][*pos] ) *
@@ -1366,7 +1358,7 @@ void BEMFMA<dim>::direct_integrals()
   //                 // current cell to the
   //                 // global matrix.
   //
-  //                 for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //                 for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //                   {
   //                     // if(this_cpu_set.is_element(local_dof_indices[j]))
   //                     // {
@@ -1424,7 +1416,7 @@ void BEMFMA<dim>::multipole_integrals()
   // we set a useful integer variable and perform some check
 
 
-  const unsigned int dofs_per_cell = fma_fe->dofs_per_cell;
+  const unsigned int dofs_per_cell = fma_dh->get_fe().dofs_per_cell;
 
   // AssertThrow(dofs_per_cell == GeometryInfo<dim-1>::vertices_per_cell,
   //             ExcMessage("The code in this function can only be used for "
@@ -1510,7 +1502,7 @@ void BEMFMA<dim>::multipole_integrals()
         for (types::global_dof_index k=0; k<cellQuadPoints.size(); ++k)
           {
             types::global_dof_index q = cellQuadPoints[k];
-            for (unsigned int j=0; j<this->fma_fe->dofs_per_cell; ++j)
+            for (unsigned int j=0; j<this->fma_dh->get_fe().dofs_per_cell; ++j)
               {
                 copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( this->quadShapeFunValues.at(cell)[q][j] * this->quadJxW.at(cell)[q]/4/numbers::PI, this->quadPoints.at(cell)[q], this->quadNormals.at(cell)[q]);
                 copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add( this->quadShapeFunValues.at(cell)[q][j] * this->quadJxW.at(cell)[q]/4/numbers::PI, this->quadPoints.at(cell)[q]);
@@ -1577,7 +1569,7 @@ void BEMFMA<dim>::multipole_integrals()
   //
   //         // the vectors are now initialized with an empty multipole expansion
   //         // centered in the current block center
-  //         for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //         for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //           {
   //             elemMultipoleExpansionsKer1[blockId][cell][j] =
   //               MultipoleExpansion(trunc_order, blockCenter, &assLegFunction);
@@ -1593,7 +1585,7 @@ void BEMFMA<dim>::multipole_integrals()
   //         for (unsigned int k=0; k<cellQuadPoints.size(); ++k)
   //           {
   //             unsigned int q = cellQuadPoints[k];
-  //             for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+  //             for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
   //               {
   //                 elemMultipoleExpansionsKer1[blockId][cell][j].AddNormDer( quadShapeFunValues[cell][q][j]* quadJxW[cell][q]/4/numbers::PI, quadPoints[cell][q], quadNormals[cell][q]);
   //                 elemMultipoleExpansionsKer2[blockId][cell][j].Add( quadShapeFunValues[cell][q][j]* quadJxW[cell][q]/4/numbers::PI, quadPoints[cell][q]);
@@ -1739,7 +1731,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 
 // these two variables will be handy in the following
 
-  std::vector<types::global_dof_index> local_dof_indices(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fma_dh->get_fe().dofs_per_cell);
   double delta;
 
 // we loop on blocks and for each of them we create an empty multipole expansion
@@ -1820,7 +1812,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
         // block, we had created a set of dofs_per_cell multipole expansion, representing
         // the (partial) integral on each cell
 
-        std::vector<types::global_dof_index> my_local_dof_indices(fma_fe->dofs_per_cell);
+        std::vector<types::global_dof_index> my_local_dof_indices(fma_dh->get_fe().dofs_per_cell);
 
         typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
         for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
@@ -1833,7 +1825,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
             // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
             // created for this purpose
 
-            for (unsigned int jj=0; jj < fma_fe->dofs_per_cell; ++jj)
+            for (unsigned int jj=0; jj < fma_dh->get_fe().dofs_per_cell; ++jj)
               {
                 blockMultipoleExpansionsKer2.at(blockId).Add(elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(my_local_dof_indices[jj]));
                 blockMultipoleExpansionsKer1.at(blockId).Add(elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(my_local_dof_indices[jj]));
@@ -1864,7 +1856,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   //   // block, we had created a set of dofs_per_cell multipole expansion, representing
   //   // the (partial) integral on each cell
   //
-  //   std::vector<types::global_dof_index> my_local_dof_indices(foo_fma->fma_fe->dofs_per_cell);
+  //   std::vector<types::global_dof_index> my_local_dof_indices(foo_fma->fma_dh->get_fe().dofs_per_cell);
   //
   //   typename std::map <cell_it, std::vector<types::global_dof_index> >::iterator it;
   //   for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end(); it++)
@@ -1877,7 +1869,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   //       // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
   //       // created for this purpose
   //
-  //       for (unsigned int jj=0; jj < foo_fma->fma_fe->dofs_per_cell; ++jj)
+  //       for (unsigned int jj=0; jj < foo_fma->fma_dh->get_fe().dofs_per_cell; ++jj)
   //         {
   //           foo_fma->blockMultipoleExpansionsKer2.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(my_local_dof_indices[jj]));
   //           foo_fma->blockMultipoleExpansionsKer1.at(blockId).Add(foo_fma->elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(my_local_dof_indices[jj]));
@@ -1920,7 +1912,7 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
   //     // corresponding dof of the cell. A suitable MultipoleExpansion class method has been
   //     // created for this purpose
   //
-  //     for (unsigned int jj=0; jj < fma_fe->dofs_per_cell; ++jj)
+  //     for (unsigned int jj=0; jj < fma_dh->get_fe().dofs_per_cell; ++jj)
   //       {
   //         blockMultipoleExpansionsKer2.at(blockId).Add(elemMultipoleExpansionsKer2[blockId][cell][jj],dphi_dn_values(local_dof_indices[jj]));
   //         blockMultipoleExpansionsKer1.at(blockId).Add(elemMultipoleExpansionsKer1[blockId][cell][jj],phi_values(local_dof_indices[jj]));
@@ -2105,7 +2097,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   std::vector<Point<dim> > support_points(fma_dh->n_dofs());
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *fma_mapping,
                                                     *fma_dh, support_points);
-  std::vector<types::global_dof_index> local_dof_indices(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fma_dh->get_fe().dofs_per_cell);
   double delta;
 
 
@@ -2662,10 +2654,10 @@ TrilinosWrappers::PreconditionILU &BEMFMA<dim>::FMA_preconditioner(const Trilino
   Teuchos::TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different sparsity pattern with respect
   // to the non constrained one. we must here initialize such sparsity pattern
-  // final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),(types::global_dof_index) 125*fma_fe->dofs_per_cell);
-  final_prec_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) 125*fma_fe->dofs_per_cell);
+  // final_prec_sparsity_pattern.reinit(alpha.vector_partitioner(),(types::global_dof_index) 125*fma_dh->get_fe().dofs_per_cell);
+  final_prec_sparsity_pattern.reinit(this_cpu_set, mpi_communicator, (types::global_dof_index) 125*fma_dh->get_fe().dofs_per_cell);
 
-  //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_fe->dofs_per_cell);
+  //final_prec_sparsity_pattern.reinit(fma_dh->n_dofs(),fma_dh->n_dofs(),125*fma_dh->get_fe().dofs_per_cell);
 
   // As before we will use the captures to simplify the calls of the worker copier mechanism.
   // For this reason we build an empty scratch structure.
@@ -2959,7 +2951,7 @@ void BEMFMA<dim>::compute_geometry_cache()
   pcout<<"Generating geometry cache..."<<std::endl;
 
 
-  FESystem<dim-1,dim> gradient_fe(*fma_fe, dim);
+  FESystem<dim-1,dim> gradient_fe(fma_dh->get_fe(), dim);
   DoFHandler<dim-1, dim> gradient_dh(fma_dh->get_triangulation());
 
   //double tol = 1e-8;
@@ -2996,8 +2988,8 @@ void BEMFMA<dim>::compute_geometry_cache()
   cell = fma_dh->begin_active(),
   endc = fma_dh->end();
 
-  std::vector<types::global_dof_index> dofs(fma_fe->dofs_per_cell);
-  std::vector<types::global_dof_index> gradient_dofs(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> dofs(fma_dh->get_fe().dofs_per_cell);
+  std::vector<types::global_dof_index> gradient_dofs(fma_dh->get_fe().dofs_per_cell);
   // mappa che associa ad ogni dof le celle cui esso appartiene
   dof_to_elems.clear();
 
@@ -3018,7 +3010,7 @@ void BEMFMA<dim>::compute_geometry_cache()
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
 
       cell->get_dof_indices(dofs);
-      for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+      for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
         {
           dof_to_elems[dofs[j]].push_back(cell);
         }
@@ -3034,7 +3026,7 @@ void BEMFMA<dim>::compute_geometry_cache()
   for (cell = fma_dh->begin_active(); cell != endc; ++cell)
     {
       cell->get_dof_indices(dofs);
-      for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+      for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
         {
           std::set <types::global_dof_index> duplicates = (*double_nodes_set)[dofs[j]];
           for (std::set<types::global_dof_index>::iterator pos = duplicates.begin(); pos !=duplicates.end(); pos++)
@@ -3159,7 +3151,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 
   // !!!TO BE CHANGED
   quadrature = SP(new QGauss<dim-1>(quadrature_order));
-  FEValues<dim-1,dim> fe_v(*fma_mapping,*fma_fe, *quadrature,
+  FEValues<dim-1,dim> fe_v(*fma_mapping,fma_dh->get_fe(), *quadrature,
                            update_values |
                            update_cell_normal_vectors |
                            update_quadrature_points |
@@ -3252,7 +3244,7 @@ void BEMFMA<dim>::generate_octree_blocking()
 
   OctreeBlock<dim> *block = new OctreeBlock<dim>(0, 0, pMin, delta);
 
-  std::vector<types::global_dof_index> local_dof_indices(fma_fe->dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fma_dh->get_fe().dofs_per_cell);
   cell_it
   cell = fma_dh->begin_active(),
   endc = fma_dh->end();
@@ -3268,7 +3260,7 @@ void BEMFMA<dim>::generate_octree_blocking()
       for (unsigned int q=0; q<n_q_points; ++q)
         {
           quadJxW[cell][q] = fe_v.JxW(q);
-          for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+          for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
             quadShapeFunValues[cell][q].push_back(fe_v.shape_value(j,q));
         }
 
@@ -3280,7 +3272,7 @@ void BEMFMA<dim>::generate_octree_blocking()
         }
 
       cell->get_dof_indices(local_dof_indices);
-      for (unsigned int j=0; j<fma_fe->dofs_per_cell; ++j)
+      for (unsigned int j=0; j<fma_dh->get_fe().dofs_per_cell; ++j)
         {
           dof_to_elems[local_dof_indices[j]].push_back(cell);
         }

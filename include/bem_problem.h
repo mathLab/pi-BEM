@@ -128,6 +128,8 @@ public:
   /// in our computations (assemble system and compute_normals-gradients).
   void reinit();
 
+  const Quadrature<dim-1> & get_singular_quadrature(const unsigned int index) const;
+
   /// This function compute a very specific case, a double node that has a
   /// dirichlet-dirichlet condition. In this case there is a constraint for
   /// the normal derivative since we want a conitnuos velocity thus a conitnuos

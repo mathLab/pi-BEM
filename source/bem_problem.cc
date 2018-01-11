@@ -316,6 +316,42 @@ void BEMProblem<dim>::reinit()
 
 }
 
+
+template<>
+const Quadrature<2> & BEMProblem<3>::get_singular_quadrature(const unsigned int index) const
+{
+  Assert(index < fe->dofs_per_cell,
+         ExcIndexRange(0, fe->dofs_per_cell, index));
+
+  static std::vector<Quadrature<2> > quadratures;
+    {
+      if (quadratures.size() == 0)
+        for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
+          {
+            quadratures.push_back(QSplit<2> (QDuffy (singular_quadrature_order,1.),fe->get_unit_support_points()[i]));
+          }
+      }
+
+      return quadratures[index];
+
+    }
+
+template<>
+const Quadrature<1> & BEMProblem<2>::get_singular_quadrature(const unsigned int index) const
+      {
+        Assert(index < fe->dofs_per_cell,
+               ExcIndexRange(0, fe->dofs_per_cell, index));
+
+        static std::vector<Quadrature<1> > quadratures;
+      if (quadratures.size() == 0)
+        for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
+          {
+              quadratures.push_back(QTelles<1>(singular_quadrature_order,
+                                                   fe->get_unit_support_points()[i]));
+          }
+  return quadratures[index];
+}
+
 template <int dim>
 void BEMProblem<dim>::declare_parameters (ParameterHandler &prm)
 {
@@ -566,23 +602,10 @@ void BEMProblem<dim>::assemble_system()
   dirichlet_matrix = 0;
 
 
-  std::vector<Quadrature<dim-1> > sing_quadratures;
+  std::vector<Quadrature<dim-1> > sing_quadratures(fe->dofs_per_cell);
   for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
     {
-      if (fe->degree > 1)
-        {
-          sing_quadratures.push_back(QIterated<dim-1>(QGauss<1> (singular_quadrature_order),fe->degree));
-        }
-      else
-        {
-          sing_quadratures.push_back
-          (QTelles<dim-1>(singular_quadrature_order,
-                          fe->get_unit_support_points()[i]));
-          //
-          // Usage of alternative singular quadrature formula
-          // (QGaussOneOverR<dim-1>(singular_quadrature_order,
-          //                 fe->get_unit_support_points()[i],true));
-        }
+      sing_quadratures[i] = get_singular_quadrature(i);
     }
 
 

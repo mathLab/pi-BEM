@@ -175,7 +175,6 @@ private:
   /// Three pointers to the problem parameters to be set equal to
   /// the ones in the calling problem through the init function
   SmartPointer<const DoFHandler<dim-1,dim> >         fma_dh;
-  SmartPointer<const FiniteElement<dim-1,dim> >  fma_fe;
   SmartPointer<const Mapping<dim-1,dim> >  fma_mapping;
 
 

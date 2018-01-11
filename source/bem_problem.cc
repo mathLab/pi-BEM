@@ -318,37 +318,39 @@ void BEMProblem<dim>::reinit()
 
 
 template<>
-const Quadrature<2> & BEMProblem<3>::get_singular_quadrature(const unsigned int index) const
+const Quadrature<2> &BEMProblem<3>::get_singular_quadrature(const unsigned int index) const
 {
   Assert(index < fe->dofs_per_cell,
          ExcIndexRange(0, fe->dofs_per_cell, index));
 
+
+
   static std::vector<Quadrature<2> > quadratures;
-    {
-      if (quadratures.size() == 0)
-        for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
-          {
-            quadratures.push_back(QSplit<2> (QDuffy (singular_quadrature_order,1.),fe->get_unit_support_points()[i]));
-          }
-      }
+  {
+    if (quadratures.size() == 0)
+      for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
+        {
+          quadratures.push_back(QSplit<2> (QDuffy (singular_quadrature_order,1.),fe->get_unit_support_points()[i]));
+        }
+  }
 
-      return quadratures[index];
+  return quadratures[index];
 
-    }
+}
 
 template<>
-const Quadrature<1> & BEMProblem<2>::get_singular_quadrature(const unsigned int index) const
-      {
-        Assert(index < fe->dofs_per_cell,
-               ExcIndexRange(0, fe->dofs_per_cell, index));
+const Quadrature<1> &BEMProblem<2>::get_singular_quadrature(const unsigned int index) const
+{
+  Assert(index < fe->dofs_per_cell,
+         ExcIndexRange(0, fe->dofs_per_cell, index));
 
-        static std::vector<Quadrature<1> > quadratures;
-      if (quadratures.size() == 0)
-        for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
-          {
-              quadratures.push_back(QTelles<1>(singular_quadrature_order,
-                                                   fe->get_unit_support_points()[i]));
-          }
+  static std::vector<Quadrature<1> > quadratures;
+  if (quadratures.size() == 0)
+    for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
+      {
+        quadratures.push_back(QTelles<1>(singular_quadrature_order,
+                                         fe->get_unit_support_points()[i]));
+      }
   return quadratures[index];
 }
 
@@ -601,12 +603,6 @@ void BEMProblem<dim>::assemble_system()
   neumann_matrix = 0;
   dirichlet_matrix = 0;
 
-
-  std::vector<Quadrature<dim-1> > sing_quadratures(fe->dofs_per_cell);
-  for (unsigned int i=0; i<fe->dofs_per_cell; ++i)
-    {
-      sing_quadratures[i] = get_singular_quadrature(i);
-    }
 
 
   // Next, we initialize an FEValues
@@ -969,7 +965,7 @@ void BEMProblem<dim>::assemble_system()
                   const Quadrature<dim-1> *
                   singular_quadrature
                     = dynamic_cast<Quadrature<dim-1>*>(
-                        &sing_quadratures[singular_index]);
+                        &(get_singular_quadrature[singular_index]));
                   Assert(singular_quadrature, ExcInternalError());
 
                   FEValues<dim-1,dim> fe_v_singular (*mapping, *fe, *singular_quadrature,

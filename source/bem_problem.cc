@@ -964,8 +964,7 @@ void BEMProblem<dim>::assemble_system()
 
                   const Quadrature<dim-1> *
                   singular_quadrature
-                    = dynamic_cast<Quadrature<dim-1>*>(
-                        &(get_singular_quadrature[singular_index]));
+                    = &(get_singular_quadrature(singular_index));
                   Assert(singular_quadrature, ExcInternalError());
 
                   FEValues<dim-1,dim> fe_v_singular (*mapping, *fe, *singular_quadrature,

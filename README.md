@@ -1,4 +1,4 @@
-#$\pi$-BEM: Parallel BEM Solver 
+# $\pi$-BEM: Parallel BEM Solver 
 
 [![Build Status](https://travis-ci.org/mathLab/pi-BEM.svg?branch=master)](https://travis-ci.org/mathLab/pi-BEM)
 
@@ -45,10 +45,13 @@ We have subdivided the code in main classes to handle the many different aspects
 ## Install Procedure using CANDI
 To install from scratch all the needed library you can look to the automatic installation procedure provided by [CANDI](https://github.com/koecher/candi) developed Uwe Köcher.
 
+## Install Procedure using spack
+Just follow the [instructions](https://github.com/dealii/dealii/wiki/deal.II-in-Spack) to install dealii@develop using spack.
+
 ## Install Procedure using Docker
 We provide the possibility of using Docker as a tool to provide a fully operational environment for our library. To use such tool you need to install Docker following the [instructions](https://docs.docker.com/engine/installation/) provided by its authors. Then you can execute the following command line instruction 
 
-	docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t mathlab/deal2lkit:v8.5.0-debugrelease bash
+	docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t mathlab/deal2lkit:latest bash
 
 to retrieve the environment. In such a shell you can easily compile the $\pi$-BEM library following its own instructions.
 

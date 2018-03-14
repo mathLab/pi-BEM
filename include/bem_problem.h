@@ -245,8 +245,8 @@ public:
 
   ParsedFiniteElement<dim-1, dim> parsed_fe;
   ParsedFiniteElement<dim-1, dim> parsed_gradient_fe;
-  FiniteElement<dim-1, dim> *fe;
-  FiniteElement<dim-1, dim> *gradient_fe;
+  std::unique_ptr<FiniteElement<dim-1, dim> > *fe;
+  std::unique_ptr<FiniteElement<dim-1, dim> > *gradient_fe;
   DoFHandler<dim-1,dim>             dh;
   DoFHandler<dim-1,dim>    gradient_dh;
 

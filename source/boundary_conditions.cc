@@ -310,7 +310,7 @@ void BoundaryConditions<dim>::prepare_bem_vectors()
                     // Point<dim> imposed_potential_gradient;
                     double tmp_dphi_dn = 0;
                     double normy = 0;
-                    double tol = 1e-1;
+                    // double tol = 1e-1;
                     for (unsigned int d=0; d<dim; ++d)
                       {
                         types::global_dof_index dummy = bem.sub_wise_to_original[local_dof_indices[j]];

@@ -524,9 +524,9 @@ void ComputationalDomain<dim>::create_initial_mesh()
   tria.create_triangulation_compatibility(vertices,cells,subcelldata);
 
   static const Point<dim> center = Point<dim>();
-  static const HyperBallBoundary<dim-1, dim> boundary(center,1.);
-  tria.set_boundary(1, boundary);
-  tria.set_boundary(0, boundary);
+  static const SphericalManifold<dim-1, dim> manifold(center);
+  tria.set_manifold(1, manifold);
+  tria.set_manifold(0, manifold);
 
 
 }
@@ -948,7 +948,7 @@ template<>
 void ComputationalDomain<2>::make_edges_conformal(const bool with_double_nodes,
                                                   const bool isotropic_ref_on_opposite_side)
 {
-  if (with_double_nodes || !with_double_nodes)
+  if (with_double_nodes || !with_double_nodes || isotropic_ref_on_opposite_side || !isotropic_ref_on_opposite_side)
     AssertThrow(true,
                 ExcMessage("Make  edges conformal only works in 3D"));
 }

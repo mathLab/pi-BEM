@@ -16,5 +16,5 @@ before_install:
 - ./scripts/dr.sh "cd app; ./scripts/check_indentation.sh"
 
 script:
-- ./scripts/dr.sh "test -d app/build-travis && rm -rf app/build-travis; mkdir app/build-travis; cd app/build-travis; cmake -GNinja ../ -DBEM_ENABLE_TESTING=ON; ninja"
+- ./scripts/dr.sh "test -d app/build-travis && rm -rf app/build-travis; mkdir app/build-travis; cd app/build-travis; cmake -GNinja ../ -DBEM_ENABLE_TESTING=OFF; ninja"
 - ./scripts/dr.sh "cd app/build-travis; ctest -N; ctest -V"

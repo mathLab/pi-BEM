@@ -1,7 +1,8 @@
 #!/bin/bash
-IMG=`grep image .travis.yml | awk '{print $2}'` 
+IMG=mathlab/deal2lkit:latest #`grep image .travis.yml | awk '{print $2}'` 
 echo $IMG
 
 CMD=`grep -e '- ' .travis.yml | sed 's/- //'`
+echo $CMD
 docker pull $IMG 
-docker run -v `pwd`/..:/builds/studenti/pi-BEM/ $IMG /bin/sh -c "$CMD" 
+docker run -v `pwd`/..:/app/ $IMG /bin/sh -c "cd /app && $CMD" 

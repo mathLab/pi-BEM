@@ -170,10 +170,6 @@ void BEMFMA<dim>::direct_integrals()
   // general):
 
 
-  cell_it
-  cell = fma_dh->begin_active(),
-  endc = fma_dh->end();
-
   // first, we (re)initialize the
   // preconditioning matricies by
   // generating the corresponding
@@ -793,7 +789,7 @@ void BEMFMA<dim>::direct_integrals()
 
                         // here are the vectors of the quad points and normals vectors
 
-                        const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_all_normal_vectors();
+                        const std::vector<Tensor<1, dim> > &singular_normals = fe_v_singular.get_normal_vectors();
                         const std::vector<Point<dim> > &singular_q_points = fe_v_singular.get_quadrature_points();
 
 
@@ -1732,7 +1728,6 @@ void BEMFMA<dim>::generate_multipole_expansions(const TrilinosWrappers::MPI::Vec
 // these two variables will be handy in the following
 
   std::vector<types::global_dof_index> local_dof_indices(fma_dh->get_fe().dofs_per_cell);
-  double delta;
 
 // we loop on blocks and for each of them we create an empty multipole expansion
 // centered in the block center
@@ -2098,7 +2093,6 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
   DoFTools::map_dofs_to_support_points<dim-1, dim>( *fma_mapping,
                                                     *fma_dh, support_points);
   std::vector<types::global_dof_index> local_dof_indices(fma_dh->get_fe().dofs_per_cell);
-  double delta;
 
 
 
@@ -2387,7 +2381,7 @@ void BEMFMA<dim>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vect
 
       // The Workstream has to run only if there are blocks in the current level. Then it basically performs
       // a loop over all the blocks in the current level.
-      if (endLevel[level]>=startLevel[level])
+      if (endBlockLevel>=startBlockLevel)
         WorkStream::run(dofs_filled_blocks[level].begin(),
                         dofs_filled_blocks[level].end(),
                         std_cxx11::bind(f_worker_Descend, std_cxx11::_1,  std_cxx11::_2, std_cxx11::_3, startBlockLevel),
@@ -3254,7 +3248,7 @@ void BEMFMA<dim>::generate_octree_blocking()
       const unsigned int n_q_points = fe_v.n_quadrature_points;
       quadPoints[cell] = fe_v.get_quadrature_points();
       // quadNormals[cell] = fe_v.get_normal_vectors();
-      quadNormals[cell] = fe_v.get_all_normal_vectors();
+      quadNormals[cell] = fe_v.get_normal_vectors();
       quadJxW[cell].resize(n_q_points);
       quadShapeFunValues[cell].resize(n_q_points);
       for (unsigned int q=0; q<n_q_points; ++q)

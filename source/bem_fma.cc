@@ -723,7 +723,7 @@ void BEMFMA<dim>::direct_integrals()
 
                             //MAGARI USARE FEVALUES CON IL DOFHANDLER CRETINO DISCONTINUO E IL MAPPING bem_fma
                             Point<dim> D;
-                            double s;
+                            double s=0.;
 
                             const Tensor<1, dim> R =  this->quadPoints.at(cell)[*pos] - support_points[nodeIndex];
                             LaplaceKernel::kernels(R, D, s);
@@ -800,7 +800,7 @@ void BEMFMA<dim>::direct_integrals()
                         for (unsigned int q=0; q<singular_quadrature->size(); ++q)
                           {
                             Point<dim> D;
-                            double s;
+                            double s=0.;
 
                             const Tensor<1, dim> R = singular_q_points[q] - support_points[nodeIndex];
                             LaplaceKernel::kernels(R, D, s);
@@ -978,7 +978,7 @@ void BEMFMA<dim>::direct_integrals()
                     // here we compute the distance R between the node and the quad point
                     const Tensor<1,dim> R =  quadPoints[cell][*pos] - support_points[nodeIndex];
                     Point<dim> D;
-                    double s;
+                    double s=0.;
 
                     LaplaceKernel::kernels(R, D, s);
 

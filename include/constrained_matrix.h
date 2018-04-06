@@ -96,7 +96,7 @@ void ConstrainedOperator<VEC,MATRIX>::vmult(VEC &dst, const VEC &src) const
   //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<loc_src(i)<<std::endl;
 
   matrix.vmult(dst, src);
-  dst.compress(VectorOperation::insert);
+  // dst.compress(VectorOperation::insert);
   // IndexSet dummy(dst.locally_owned_elements());
 
   for (unsigned int i=0; i<src.size(); ++i)

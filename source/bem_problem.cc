@@ -1172,6 +1172,7 @@ void BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &dst, const TrilinosWr
   // one
   if (!have_dirichlet_bc)
     vector_shift(dst, -dst.l2_norm());
+  dst.compress(VectorOperation::add);
 }
 
 

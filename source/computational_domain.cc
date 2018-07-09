@@ -259,7 +259,7 @@ void ComputationalDomain<dim>::read_domain()
   // manifold = new SphericalManifold<dim-1, dim>;
 
   GridTools::copy_material_to_manifold_id(tria);
-  
+
   if (input_grid_name == "../grids/coarse_sphere" || input_grid_name == "../grids/coarse_sphere_double_nodes" || input_grid_name == "../grids/circle" )
     {
       manifold = new SphericalManifold<dim-1, dim>;

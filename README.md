@@ -1,6 +1,20 @@
-# $\pi$-BEM: Parallel BEM Solver 
+<p align="center">
+  <a href="http://mathlab.github.io/ITHACA-FV/" target="_blank" >
+    <img alt="pi-BEM" src="./docs/logo/logo.png" width="200" />
+  </a>
+</p>
+
+# pi-BEM: Parallel BEM Solver 
 
 [![Build Status](https://travis-ci.org/mathLab/pi-BEM.svg?branch=master)](https://travis-ci.org/mathLab/pi-BEM)
+
+Copyright (C) 2015 -- 2018 by Nicola Giuliani (1), Andrea Mola (2) and Luca Heltai (2)
+
+(1) Scuola Internazionale Superiore di Studi Avanzati E-mail: ngiuliani@sissa.it
+
+(2) Scuola Internazionale Superiore di Studi Avanzati E-mail: andrea.mola@sissa.it
+
+(3) Scuola Internazionale Superiore di Studi Avanzati E-mail: luca.heltai@sissa.it
 
 The library represents a parallel solver for the Laplace equation through Boundary Element Methods. We have developed the software in C++ on top of many high performance libraries, the [deal.II](https://github.com/dealii/dealii) library for Finite Element Handling, the [METIS](http://glaros.dtc.umn.edu/gkhome/metis/metis/download) project and [Trilinos](https://trilinos.org/) library for automatic Workload balance, [OpenCASCADE](https://www.opencascade.com/) for CAD integration, and [deal2lkit](https://github.com/luca-heltai/deal2lkit) for parameter handling. 
 
@@ -157,9 +171,28 @@ white space changes are inserted in the repository.
 The script requires Artistic Style Version 2.04 (astyle) to work 
 properly.
 
+#Cite this work
+
+If you use this software, please consider citing the following work:
+
+	@article{GiulianiMolaHeltai2018,
+	 doi = {10.1016/j.advengsoft.2018.03.008},
+	 url = {https://doi.org/10.1016/j.advengsoft.2018.03.008},
+	 year  = {2018},
+	 month = {jul},
+	 publisher = {Elsevier {BV}},
+	 volume = {121},
+	 pages = {39--58},
+	 author = {Nicola Giuliani and Andrea Mola and Luca Heltai},
+	 title = {$\uppi$ - {BEM} : A flexible parallel implementation for adaptive,  geometry aware,  and high order boundary element methods},
+	 journal = {Advances in Engineering Software}
+	 }
+
+
+
 #Licence
 
-Please see the file [./LICENSE](https://github.com/mathLab/pi-BEM/blob/master/LICENSE) for details
+Please see the file [LICENSE](https://github.com/mathLab/pi-BEM/blob/master/LICENSE) for details
 
 
 

@@ -67,7 +67,7 @@ We provide the possibility of using Docker as a tool to provide a fully operatio
 
 	docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t mathlab/deal2lkit:latest bash
 
-to retrieve the environment. In such a shell you can easily compile the $\pi$-BEM library following its own instructions.
+to retrieve the environment. In such a shell you can easily compile the pi-BEM library following its own instructions.
 
 ## Install Procedure from scratch
 In order to successfully compile the code you need 
@@ -79,7 +79,7 @@ In order to successfully compile the code you need
 
 
 ### deal.II Installation procedure
-Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) to install deal with METIS and Trilinos wrappers. We highlight that in order to fully exploit $\pi$-BEM you need to properly install the following additional packages: MPI, TBB, METIS, TRILINOS ans OPENCASCADE. For more detailed instruction you can look to the the deal.ii install procedures. In the following we provide an example of the installation of all the proper packages.
+Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) to install deal with METIS and Trilinos wrappers. We highlight that in order to fully exploit pi-BEM you need to properly install the following additional packages: MPI, TBB, METIS, TRILINOS ans OPENCASCADE. For more detailed instruction you can look to the the deal.ii install procedures. In the following we provide an example of the installation of all the proper packages.
 
 
 ### OpenCASCADE Installation procedure
@@ -124,7 +124,7 @@ Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) 
 Follow the detailed [instruction](https://https://github.com/mathLab/deal2lkit) to install deal2lkit.
 
 
-### $\pi$-BEM Installation procedure
+### pi-BEM Installation procedure
 
 Then you can clone the repository and compile it
 
@@ -159,7 +159,7 @@ this will automatically generate the parameter file for the bi-dimensional run w
 	
 will create a proper parameter file for a 3 dimensional simulation.
 
-#Notice to developers
+# Notice to developers
 
 Before making a pull request, please make sure you run the script
 
@@ -171,7 +171,7 @@ white space changes are inserted in the repository.
 The script requires Artistic Style Version 2.04 (astyle) to work 
 properly.
 
-#Cite this work
+# Cite this work
 
 If you use this software, please consider citing the following work:
 

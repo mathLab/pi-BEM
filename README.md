@@ -1,6 +1,20 @@
-# $\pi$-BEM: Parallel BEM Solver 
+<p align="center">
+  <a href="http://mathlab.github.io/ITHACA-FV/" target="_blank" >
+    <img alt="pi-BEM" src="./docs/logo/logo.png" width="200" />
+  </a>
+</p>
+
+# pi-BEM: Parallel BEM Solver 
 
 [![Build Status](https://travis-ci.org/mathLab/pi-BEM.svg?branch=master)](https://travis-ci.org/mathLab/pi-BEM)
+
+Copyright (C) 2015 -- 2018 by Nicola Giuliani (1), Andrea Mola (2) and Luca Heltai (2)
+
+(1) Scuola Internazionale Superiore di Studi Avanzati E-mail: ngiuliani@sissa.it
+
+(2) Scuola Internazionale Superiore di Studi Avanzati E-mail: andrea.mola@sissa.it
+
+(3) Scuola Internazionale Superiore di Studi Avanzati E-mail: luca.heltai@sissa.it
 
 The library represents a parallel solver for the Laplace equation through Boundary Element Methods. We have developed the software in C++ on top of many high performance libraries, the [deal.II](https://github.com/dealii/dealii) library for Finite Element Handling, the [METIS](http://glaros.dtc.umn.edu/gkhome/metis/metis/download) project and [Trilinos](https://trilinos.org/) library for automatic Workload balance, [OpenCASCADE](https://www.opencascade.com/) for CAD integration, and [deal2lkit](https://github.com/luca-heltai/deal2lkit) for parameter handling. 
 
@@ -53,7 +67,7 @@ We provide the possibility of using Docker as a tool to provide a fully operatio
 
 	docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t mathlab/deal2lkit:latest bash
 
-to retrieve the environment. In such a shell you can easily compile the $\pi$-BEM library following its own instructions.
+to retrieve the environment. In such a shell you can easily compile the pi-BEM library following its own instructions.
 
 ## Install Procedure from scratch
 In order to successfully compile the code you need 
@@ -65,7 +79,7 @@ In order to successfully compile the code you need
 
 
 ### deal.II Installation procedure
-Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) to install deal with METIS and Trilinos wrappers. We highlight that in order to fully exploit $\pi$-BEM you need to properly install the following additional packages: MPI, TBB, METIS, TRILINOS ans OPENCASCADE. For more detailed instruction you can look to the the deal.ii install procedures. In the following we provide an example of the installation of all the proper packages.
+Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) to install deal with METIS and Trilinos wrappers. We highlight that in order to fully exploit pi-BEM you need to properly install the following additional packages: MPI, TBB, METIS, TRILINOS ans OPENCASCADE. For more detailed instruction you can look to the the deal.ii install procedures. In the following we provide an example of the installation of all the proper packages.
 
 
 ### OpenCASCADE Installation procedure
@@ -110,7 +124,7 @@ Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) 
 Follow the detailed [instruction](https://https://github.com/mathLab/deal2lkit) to install deal2lkit.
 
 
-### $\pi$-BEM Installation procedure
+### pi-BEM Installation procedure
 
 Then you can clone the repository and compile it
 
@@ -145,7 +159,7 @@ this will automatically generate the parameter file for the bi-dimensional run w
 	
 will create a proper parameter file for a 3 dimensional simulation.
 
-#Notice to developers
+# Notice to developers
 
 Before making a pull request, please make sure you run the script
 
@@ -157,9 +171,28 @@ white space changes are inserted in the repository.
 The script requires Artistic Style Version 2.04 (astyle) to work 
 properly.
 
+# Cite this work
+
+If you use this software, please consider citing the following work:
+
+	@article{GiulianiMolaHeltai2018,
+	 doi = {10.1016/j.advengsoft.2018.03.008},
+	 url = {https://doi.org/10.1016/j.advengsoft.2018.03.008},
+	 year  = {2018},
+	 month = {jul},
+	 publisher = {Elsevier {BV}},
+	 volume = {121},
+	 pages = {39--58},
+	 author = {Nicola Giuliani and Andrea Mola and Luca Heltai},
+	 title = {$\uppi$ - {BEM} : A flexible parallel implementation for adaptive,  geometry aware,  and high order boundary element methods},
+	 journal = {Advances in Engineering Software}
+	 }
+
+
+
 #Licence
 
-Please see the file [./LICENSE](https://github.com/mathLab/pi-BEM/blob/master/LICENSE) for details
+Please see the file [LICENSE](https://github.com/mathLab/pi-BEM/blob/master/LICENSE) for details
 
 
 

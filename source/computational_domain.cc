@@ -39,6 +39,7 @@ ComputationalDomain<dim>::ComputationalDomain(MPI_Comm comm)
   mpi_communicator (comm),
   n_mpi_processes (Utilities::MPI::n_mpi_processes(mpi_communicator)),
   this_mpi_process (Utilities::MPI::this_mpi_process(mpi_communicator)),
+  used_spherical_manifold(false),
   pcout(std::cout)
 
 {
@@ -115,6 +116,18 @@ void ComputationalDomain<dim>::declare_parameters (ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.declare_entry("Use a spheroid", "false",
+                    Patterns::Bool());
+
+  prm.declare_entry("Axis x dimension", "2.",
+                    Patterns::Double());
+
+  prm.declare_entry("Axis y dimension", "3.",
+                    Patterns::Double());
+
+  prm.declare_entry("Axis z dimension", "4.",
+                    Patterns::Double());
+
 
 }
 
@@ -133,6 +146,12 @@ void ComputationalDomain<dim>::parse_parameters (ParameterHandler &prm)
   pre_global_refinements = prm.get_integer("Number of global refinement to be executed before local refinement cycle");
   max_curvature_ref_cycles = prm.get_integer("Maximum number of curvature adaptive refinement cycles");
   cad_to_projectors_tolerance_ratio = prm.get_double("Cad tolerance to projectors tolerance ratio");
+
+
+  spheroid_bool = prm.get_bool("Use a spheroid");
+  spheroid_x_axis = prm.get_double("Axis x dimension");
+  spheroid_y_axis = prm.get_double("Axis y dimension");
+  spheroid_z_axis = prm.get_double("Axis z dimension");
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
@@ -265,6 +284,8 @@ void ComputationalDomain<dim>::read_domain()
       manifold = new SphericalManifold<dim-1, dim>;
       tria.set_all_manifold_ids(0);
       tria.set_manifold(0, *manifold);
+
+      used_spherical_manifold = true;
 
     }
 

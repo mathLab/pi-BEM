@@ -249,6 +249,10 @@ public:
   std::map<unsigned int, std::vector<typename Triangulation<dim-1,dim>::active_cell_iterator> > vert_to_elems;
   std::set<typename Triangulation<dim-1,dim>::active_cell_iterator> edge_cells;
   Manifold<dim-1, dim> *manifold;
+
+  bool spheroid_bool, used_spherical_manifold;
+  double spheroid_x_axis, spheroid_y_axis, spheroid_z_axis;
+
   ConditionalOStream pcout;
 
 

@@ -148,6 +148,16 @@ void BEMProblem<dim>::reinit()
   // mapping_degree = fe->get_degree();
   if (!mapping)
     {
+      if (comp_dom.spheroid_bool && comp_dom.used_spherical_manifold)
+        {
+          for (types::global_dof_index ii=0; ii<gradient_dh.n_dofs()/dim; ++ii)
+            {
+              map_vector[vec_original_to_sub_wise[ii]] *= comp_dom.spheroid_x_axis;
+              map_vector[vec_original_to_sub_wise[ii+gradient_dh.n_dofs()/dim]] *= comp_dom.spheroid_y_axis;
+              if (dim == 3)
+                map_vector[vec_original_to_sub_wise[ii+gradient_dh.n_dofs()/dim]] *= comp_dom.spheroid_z_axis;
+            }
+        }
       if (mapping_type == "FE")
         mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
       else

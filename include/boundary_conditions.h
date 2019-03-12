@@ -101,7 +101,7 @@ public:
 
   std::string output_file_name;
 
-private:
+protected:
 
   Functions::ParsedFunction<dim> wind;
 

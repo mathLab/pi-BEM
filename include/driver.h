@@ -94,7 +94,7 @@ public:
 
   void run();
 
-private:
+protected:
 
   ConditionalOStream pcout;
 

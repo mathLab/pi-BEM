@@ -170,7 +170,7 @@ public:
   /// threads on multicore architectures.
   TrilinosWrappers::PreconditionILU &FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha, ConstraintMatrix &c);
 
-private:
+protected:
 
   /// Three pointers to the problem parameters to be set equal to
   /// the ones in the calling problem through the init function

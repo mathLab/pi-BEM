@@ -3328,11 +3328,11 @@ void BEMFMA<dim>::generate_octree_blocking()
 
           if (dim == 3)
             {
-              children[0] = new OctreeBlock<dim>(level, jj, pMin                              , delta);
-              children[1] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta   ,0.,   0.), delta);
+              children[0] = new OctreeBlock<dim>(level, jj, pMin, delta);
+              children[1] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta,0.,   0.), delta);
               children[2] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta,delta,   0.), delta);
-              children[3] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(0.   ,delta,   0.), delta);
-              children[4] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(0.   ,   0.,delta), delta);
+              children[3] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(0.,delta,   0.), delta);
+              children[4] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(0.,   0.,delta), delta);
               children[5] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta,   0.,delta), delta);
               children[6] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta,delta,delta), delta);
               children[7] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(   0.,delta,delta), delta);
@@ -3340,10 +3340,10 @@ void BEMFMA<dim>::generate_octree_blocking()
 
           if (dim == 2)
             {
-              children[0] = new OctreeBlock<dim>(level, jj, pMin                        , delta);
-              children[1] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta   ,0.), delta);
+              children[0] = new OctreeBlock<dim>(level, jj, pMin, delta);
+              children[1] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta,0.), delta);
               children[2] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(delta,delta), delta);
-              children[3] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(0.   ,delta), delta);
+              children[3] = new OctreeBlock<dim>(level, jj, pMin+Point<dim>(0.,delta), delta);
 
             }
 

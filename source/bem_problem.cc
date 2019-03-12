@@ -2076,7 +2076,7 @@ void BEMProblem<dim>::compute_normals()
                                                       SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
   TrilinosWrappers::PreconditionAMG mass_prec;
   mass_prec.initialize(vector_normals_matrix);
-  
+
 
   solver.solve (vector_normals_matrix, vector_normals_solution, vector_normals_rhs, mass_prec);
 

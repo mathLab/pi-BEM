@@ -45,18 +45,18 @@ double LocalExpansionCoeff::get(const unsigned int &n, const unsigned int &m, co
 {
 
   return _coeff[ (mm+nn) +
-                 getNNOffset(nn) +
-                 getMOffset(m) +
-                 getNOffset(n)];
+                         getNNOffset(nn) +
+                         getMOffset(m) +
+                         getNOffset(n)];
 }
 
 void LocalExpansionCoeff::set(const unsigned int &n, const unsigned int &m, const unsigned int &nn, const unsigned int &mm, const double &value)
 {
 
   _coeff[ (mm+nn) +
-          getNNOffset(nn) +
-          getMOffset(m) +
-          getNOffset(n)]=value;
+                  getNNOffset(nn) +
+                  getMOffset(m) +
+                  getNOffset(n)]=value;
 }
 
 unsigned int LocalExpansionCoeff::getNNOffset(const unsigned int &nn)

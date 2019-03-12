@@ -1844,7 +1844,10 @@ void BEMProblem<dim>::compute_gradients(const TrilinosWrappers::MPI::Vector &glo
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
                                                       SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
 
-  solver.solve (vector_gradients_matrix, vector_gradients_solution, vector_gradients_rhs, PreconditionIdentity());
+  TrilinosWrappers::PreconditionAMG mass_prec;
+  mass_prec.initialize(vector_gradients_matrix);
+
+  solver.solve (vector_gradients_matrix, vector_gradients_solution, vector_gradients_rhs, mass_prec);
 
   vector_constraints.distribute(vector_gradients_solution);
 }
@@ -1974,7 +1977,10 @@ void BEMProblem<dim>::compute_surface_gradients(const TrilinosWrappers::MPI::Vec
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
                                                       SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
 
-  solver.solve (vector_surface_gradients_matrix, vector_surface_gradients_solution, vector_surface_gradients_rhs, PreconditionIdentity());
+  TrilinosWrappers::PreconditionAMG mass_prec;
+  mass_prec.initialize(vector_surface_gradients_matrix);
+
+  solver.solve (vector_surface_gradients_matrix, vector_surface_gradients_solution, vector_surface_gradients_rhs, mass_prec);
 
   vector_constraints.distribute(vector_surface_gradients_solution);
 
@@ -2068,8 +2074,11 @@ void BEMProblem<dim>::compute_normals()
 
   SolverGMRES<TrilinosWrappers::MPI::Vector > solver (solver_control,
                                                       SolverGMRES<TrilinosWrappers::MPI::Vector >::AdditionalData(1000));
+  TrilinosWrappers::PreconditionAMG mass_prec;
+  mass_prec.initialize(vector_normals_matrix);
+  
 
-  solver.solve (vector_normals_matrix, vector_normals_solution, vector_normals_rhs, PreconditionIdentity());
+  solver.solve (vector_normals_matrix, vector_normals_solution, vector_normals_rhs, mass_prec);
 
   vector_constraints.distribute(vector_normals_solution);
 

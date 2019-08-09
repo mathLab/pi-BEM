@@ -29,38 +29,39 @@
 // int main (int argc, char *argv[])
 // {
 //   initlog();
-//   deallog<<"Check on the DoFHandler with codim 1 FESystem and 64 bits indices"<<std::endl;
+//   deallog<<"Check on the DoFHandler with codim 1 FESystem and 64 bits
+//   indices"<<std::endl;
 //
-//   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, numbers::invalid_unsigned_int);
-#include "tests.h"
-#include "computational_domain.h"
+//   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv,
+//   numbers::invalid_unsigned_int);
 #include <deal.II/grid/grid_tools.h>
 
 #include "bem_problem.h"
-int main (int argc, char *argv[])
+#include "computational_domain.h"
+#include "tests.h"
+int
+main(int argc, char *argv[])
 {
   initlog();
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, numbers::invalid_unsigned_int);
+  Utilities::MPI::MPI_InitFinalize mpi_initialization(
+    argc, argv, numbers::invalid_unsigned_int);
 
-  const unsigned int dim = 3;
-  Triangulation<dim-1, dim> tria;
-  std::ifstream in;
-  in.open (SOURCE_DIR "/../utilities/coarse_sphere.inp");
-  GridIn<dim-1, dim> gi;
-  gi.attach_triangulation (tria);
-  gi.read_ucd (in);
+  const unsigned int          dim = 3;
+  Triangulation<dim - 1, dim> tria;
+  std::ifstream               in;
+  in.open(SOURCE_DIR "/../utilities/coarse_sphere.inp");
+  GridIn<dim - 1, dim> gi;
+  gi.attach_triangulation(tria);
+  gi.read_ucd(in);
 
-  FE_Q<dim-1, dim> fe_scalar(1);
-  FESystem<dim-1, dim> fe_vector(FE_Q<dim-1, dim> (1), dim);
+  FE_Q<dim - 1, dim>     fe_scalar(1);
+  FESystem<dim - 1, dim> fe_vector(FE_Q<dim - 1, dim>(1), dim);
 
-  DoFHandler<dim-1, dim> dh_scalar(tria);
-  DoFHandler<dim-1, dim> dh_vector(tria);
-  deallog<<"Distributing scalar dofs"<<std::endl;
+  DoFHandler<dim - 1, dim> dh_scalar(tria);
+  DoFHandler<dim - 1, dim> dh_vector(tria);
+  deallog << "Distributing scalar dofs" << std::endl;
   dh_scalar.distribute_dofs(fe_scalar);
-  deallog<<"Distributing vector dofs"<<std::endl;
+  deallog << "Distributing vector dofs" << std::endl;
   dh_vector.distribute_dofs(fe_vector);
-  deallog<<"Distributed dofs"<<std::endl;
-
-
-
+  deallog << "Distributed dofs" << std::endl;
 }

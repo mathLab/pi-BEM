@@ -1,1 +1,1 @@
-docker run -u root -P -v `pwd`:/home/dealii/app:rw mathlab/deal2lkit:latest   /bin/sh -c "$@"
+docker run -P -v `pwd`:/home/dealii/app:rw mathlab/deal2lkit:dev-debugrelease  /bin/sh -c "$@"

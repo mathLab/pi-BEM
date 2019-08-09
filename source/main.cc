@@ -2,7 +2,8 @@
 
 #include "driver.h"
 
-int main (int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   try
     {
@@ -13,18 +14,20 @@ int main (int argc, char *argv[])
         threads = atoi(argv[1]);
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, threads);
 
-      std::string pname = "parameters_bem_" + std::to_string(DDDIMENSION) + ".prm";
-      std::string pname2 = "used_parameters_bem_" + std::to_string(DDDIMENSION) + ".prm";
+      std::string pname =
+        "parameters_bem_" + std::to_string(DEAL_II_DIMENSION) + ".prm";
+      std::string pname2 =
+        "used_parameters_bem_" + std::to_string(DEAL_II_DIMENSION) + ".prm";
 
-      Driver<DDDIMENSION> driver;
-      ParameterAcceptor::initialize(pname, pname2);
+      Driver<DEAL_II_DIMENSION> driver;
+      deal2lkit::ParameterAcceptor::initialize(pname, pname2);
+
       driver.run();
-
-
     }
   catch (std::exception &exc)
     {
-      std::cerr << std::endl << std::endl
+      std::cerr << std::endl
+                << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
       std::cerr << "Exception on processing: " << std::endl
@@ -37,7 +40,8 @@ int main (int argc, char *argv[])
     }
   catch (...)
     {
-      std::cerr << std::endl << std::endl
+      std::cerr << std::endl
+                << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
       std::cerr << "Unknown exception!" << std::endl

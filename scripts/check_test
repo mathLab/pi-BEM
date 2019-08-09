@@ -47,7 +47,7 @@ if [ ! -f $CMP ]; then
     done
 fi
 
-cwdiff ${FILE}/output $CMP
+cwdiff $CMP ${FILE}/output 
 
 PS3="Accept new version ($FILE)?"
 select opt in "Yes" "No"; do

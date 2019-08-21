@@ -252,33 +252,11 @@ ComputationalDomain<dim>::read_domain()
   else if (input_grid_format == "msh")
     gi.read_msh(in);
   else if (input_grid_format == "inp")
-    gi.read_ucd(in);
+    gi.read_ucd(in, true);
   else
     Assert(false, ExcNotImplemented());
 
-  //
-  // std::ifstream in;
-  // switch (dim)
-  //   {
-  //   case 2:
-  //     in.open ("coarse_circle.inp");
-  //     break;
-  //
-  //   case 3:
-  //     in.open ("coarse_cube_double_nodes.inp");
-  //     break;
-  //
-  //   default:
-  //     Assert (false, ExcNotImplemented());
-  //   }
-  //
-  // GridIn<dim-1, dim> gi;
-  // gi.attach_triangulation (tria);
-  // gi.read_ucd (in);
-  //
-  // manifold = new SphericalManifold<dim-1, dim>;
-
-  GridTools::copy_material_to_manifold_id(tria);
+  // GridTools::copy_material_to_manifold_id(tria);
 
   if (input_grid_name == "../grids/coarse_sphere" ||
       input_grid_name == "../grids/coarse_sphere_double_nodes" ||

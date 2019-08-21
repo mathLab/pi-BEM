@@ -8,7 +8,7 @@
 
 [![Build Status](https://travis-ci.org/mathLab/pi-BEM.svg?branch=master)](https://travis-ci.org/mathLab/pi-BEM)
 
-Copyright (C) 2015 -- 2018 by Nicola Giuliani (1), Andrea Mola (2) and Luca Heltai (2)
+Copyright (C) 2015 -- 2019 by Nicola Giuliani (1), Andrea Mola (2) and Luca Heltai (2)
 
 (1) Scuola Internazionale Superiore di Studi Avanzati E-mail: ngiuliani@sissa.it
 

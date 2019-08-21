@@ -17,7 +17,7 @@ int main (int argc, char *argv[])
       std::string pname2 = "used_parameters_bem_" + std::to_string(DDDIMENSION) + ".prm";
 
       Driver<DDDIMENSION> driver;
-      ParameterAcceptor::initialize(pname, pname2);
+      deal2lkit::ParameterAcceptor::initialize(pname, pname2);
       driver.run();
 
 

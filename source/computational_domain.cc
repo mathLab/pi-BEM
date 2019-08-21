@@ -648,7 +648,7 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
       pcout<<"Used tolerance is: "<<tolerance<<endl;
       for (unsigned int i=0; i<cad_surfaces.size(); ++i)
         {
-          normal_to_mesh_projectors.push_back(SP(new OpenCASCADE::NormalToMeshProjectionBoundary<2,3>(cad_surfaces[i], tolerance)));
+          normal_to_mesh_projectors.push_back(std::make_shared<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> >(cad_surfaces[i], tolerance));
         }
       //static OpenCASCADE::DirectionalProjectionBoundary<2,3>
       //        directional_projector_lat(cad_surfaces[0], Point<3>(0.0,1.0,0.0), tolerance);
@@ -657,7 +657,7 @@ void ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_l
 
       for (unsigned int i=0; i<cad_curves.size(); ++i)
         {
-          line_projectors.push_back(SP(new OpenCASCADE::ArclengthProjectionLineManifold<2,3>(cad_curves[i], tolerance)));
+          line_projectors.push_back(std::make_shared<OpenCASCADE::ArclengthProjectionLineManifold<2,3> >(cad_curves[i], tolerance));
         }
 
       for (unsigned int i=0; i<cad_surfaces.size(); ++i)

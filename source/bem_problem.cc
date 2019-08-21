@@ -159,9 +159,9 @@ void BEMProblem<dim>::reinit()
             }
         }
       if (mapping_type == "FE")
-        mapping = SP(new MappingFEField<dim-1, dim> (gradient_dh, map_vector));
+        mapping = std::make_shared<MappingFEField<dim-1, dim> >(gradient_dh, map_vector);
       else
-        mapping = SP(new MappingQ<dim-1, dim> (mapping_degree));
+        mapping = std::make_shared<MappingQ<dim-1, dim> >(mapping_degree);
     }
 
 

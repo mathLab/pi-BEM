@@ -108,7 +108,7 @@ using namespace deal2lkit;
 *   - it eventually interacts with the FMM accelerator.
 */
 template <int dim>
-class BEMProblem : public ParameterAcceptor
+class BEMProblem : public deal2lkit::ParameterAcceptor
 {
 public:
 

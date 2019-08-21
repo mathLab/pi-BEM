@@ -49,7 +49,7 @@ using namespace deal2lkit;
 
 */
 template <int dim>//, Type V>
-class BEMFMA : public ParameterAcceptor
+class BEMFMA : public deal2lkit::ParameterAcceptor
 {
 public:
 

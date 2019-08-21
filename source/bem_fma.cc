@@ -3144,7 +3144,7 @@ void BEMFMA<dim>::generate_octree_blocking()
                                                     *fma_dh, support_points);
 
   // !!!TO BE CHANGED
-  quadrature = SP(new QGauss<dim-1>(quadrature_order));
+  quadrature = std::make_shared<QGauss<dim-1> >(quadrature_order);
   FEValues<dim-1,dim> fe_v(*fma_mapping,fma_dh->get_fe(), *quadrature,
                            update_values |
                            update_cell_normal_vectors |

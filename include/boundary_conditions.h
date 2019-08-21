@@ -61,7 +61,7 @@
 *   - it performs the error analysis on both unknowns.
 */
 template <int dim>
-class BoundaryConditions : public ParameterAcceptor
+class BoundaryConditions : public deal2lkit::ParameterAcceptor
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom, BEMProblem<dim> &bem, const MPI_Comm comm = MPI_COMM_WORLD) :

@@ -82,7 +82,7 @@ using namespace deal2lkit;
 *  - it reads the domain from an external file.
 */
 template <int dim>
-class ComputationalDomain : public ParameterAcceptor
+class ComputationalDomain : public deal2lkit::ParameterAcceptor
 {
 public:
 

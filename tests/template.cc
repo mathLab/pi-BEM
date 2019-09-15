@@ -12,10 +12,11 @@
 // Read a file in iges format, and write it out again in the same
 // format.
 
-#include "tests.h"
 #include "template_class.h"
+#include "tests.h"
 
-int main ()
+int
+main()
 {
   initlog();
   TemplateClass<2> tc;

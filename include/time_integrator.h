@@ -1,9 +1,9 @@
 #ifndef __thiwi__time_integrator_h
 #define __thiwi__time_integrator_h
 
-#include<deal.II/base/logstream.h>
-#include<deal.II/base/exceptions.h>
-#include<deal.II/base/parameter_handler.h>
+#include <deal.II/base/exceptions.h>
+#include <deal.II/base/logstream.h>
+#include <deal.II/base/parameter_handler.h>
 
 #include "ode_argument.h"
 
@@ -20,30 +20,35 @@ public:
   TimeIntegrator(OdeArgument &solver);
 
   /** Declare parameters for this class to function properly. */
-  static void declare_parameters(ParameterHandler &prm);
+  static void
+  declare_parameters(ParameterHandler &prm);
 
   /** Parse a parameter handler. */
-  void parse_parameters(ParameterHandler &prm);
+  void
+  parse_parameters(ParameterHandler &prm);
 
   /** Returns a list of implemented stepping schemes, suitable for
    * use with parameter handler class. */
-  static string get_stepping_names();
+  static string
+  get_stepping_names();
 
   /** Reinit the solver with different types or values (for example,
    * after reading a paramter file). */
-  void initialize();
+  void
+  initialize();
 
   /** Evolve. */
-  void start_ode(const double initial_data[]);
+  void
+  start_ode(const double initial_data[]);
 
-  /** To get the output frequency from other classes using the time integrator. */
-  //inline unsigned int Output_frequency()
+  /** To get the output frequency from other classes using the time integrator.
+   */
+  // inline unsigned int Output_frequency()
   //           {return output_frequency;}
 
   unsigned int output_frequency;
 
 private:
-
   /** The bubble membrane poperties. */
   OdeArgument &solver;
 
@@ -84,7 +89,7 @@ private:
   unsigned int max_n_steps;
 
   // /** Number of output times per second written. */
-  //unsigned int output_frequency;
+  // unsigned int output_frequency;
 
   /** Initialization flag.*/
   bool is_initialized;

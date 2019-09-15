@@ -5,47 +5,49 @@
 #ifndef computational_domain_h
 #define computational_domain_h
 
-#include <deal.II/base/smartpointer.h>
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
-#include <deal.II/base/parsed_function.h>
-#include <deal.II/base/utilities.h>
-#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/smartpointer.h>
 #include <deal.II/base/std_cxx11/tuple.h>
+#include <deal.II/base/utilities.h>
 
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/matrix_lib.h>
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/solver_control.h>
-#include <deal.II/lac/solver_gmres.h>
-#include <deal.II/lac/precondition.h>
-#include <deal.II/lac/sparse_direct.h>
-
-#include <deal.II/grid/tria.h>
-#include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
+
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/matrix_lib.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_control.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/sparse_direct.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/vector.h>
 // #include <deal.II/grid/tria_boundary_lib.h>
+#include <deal.II/base/types.h>
+
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q_eulerian.h>
+
 #include <deal.II/grid/manifold_lib.h>
 
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/mapping_q_eulerian.h>
-#include <deal.II/fe/mapping_q.h>
-
 #include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/types.h>
+#include <deal.II/numerics/vector_tools.h>
 
 // These are the headers of the opencascade support classes and
 // functions. Notice that these will contain sensible data only if you
@@ -57,35 +59,34 @@
 #include <deal.II/opencascade/utilities.h>
 
 #include <TopoDS_Shape.hxx>
-
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <set>
-#include <map>
-
-
-#include "../include/local_expansion.h"
-#include "../include/multipole_expansion.h"
-#include "../include/ass_leg_function.h"
-
 #include <deal2lkit/parameter_acceptor.h>
 #include <mpi.h>
+
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+
+#include "../include/ass_leg_function.h"
+#include "../include/local_expansion.h"
+#include "../include/multipole_expansion.h"
 
 using namespace dealii;
 using namespace deal2lkit;
 
 /**
-* - ComputationalDomain. This class handles, and provides to the other classes, ONLY the geometry of the problem. In particular
-*  - it handles the domain decomposition using a graph partitioning tool (METIS);
-*  - it reads the domain from an external file.
-*/
+ * - ComputationalDomain. This class handles, and provides to the other classes,
+ * ONLY the geometry of the problem. In particular
+ *  - it handles the domain decomposition using a graph partitioning tool
+ * (METIS);
+ *  - it reads the domain from an external file.
+ */
 template <int dim>
-class ComputationalDomain : public ParameterAcceptor
+class ComputationalDomain : public deal2lkit::ParameterAcceptor
 {
 public:
-
   /// constructor: since this is the
   /// class containing all the geometry and
   /// the base instruments needed by all the
@@ -105,30 +106,37 @@ public:
   /// method to declare the parameters
   /// to be read from the parameters file
 
-  virtual void declare_parameters(ParameterHandler &prm);
+  virtual void
+  declare_parameters(ParameterHandler &prm);
 
   /// method to parse the needed parameters
   /// from the parameters file
 
-  virtual void parse_parameters(ParameterHandler &prm);
+  virtual void
+  parse_parameters(ParameterHandler &prm);
 
   /// method to create initial mesh
 
-  void create_initial_mesh();
+  void
+  create_initial_mesh();
   /// alternative method to read initial mesh
   /// from file
 
-  void read_domain();
+  void
+  read_domain();
 
   /// method to refine the imported mesh
   /// according to the level requested in
   /// the parameters file
 
-  void refine_and_resize(const unsigned int refinement_level);
+  void
+  refine_and_resize(const unsigned int refinement_level);
 
-  void conditional_refine_and_resize(const unsigned int refinement_level);
+  void
+  conditional_refine_and_resize(const unsigned int refinement_level);
 
-  void update_triangulation();
+  void
+  update_triangulation();
   /// Here are the members of the class:
   /// they are all public, as the upper level
   /// classes (bem_problem, bem_fma,
@@ -169,14 +177,16 @@ public:
   /// across the edge. That is why, it should be called
   /// after every single refinement cycle that is carried out
   /// in the program execution.
-  void make_edges_conformal(const bool with_double_nodes = true,
-                            const bool isotropic_ref_on_opposite_side = false);
+  void
+  make_edges_conformal(const bool with_double_nodes              = true,
+                       const bool isotropic_ref_on_opposite_side = false);
 
-  void compute_double_vertex_cache();
-  //const unsigned int fe_degree;
-  //const unsigned int mapping_degree;
+  void
+  compute_double_vertex_cache();
+  // const unsigned int fe_degree;
+  // const unsigned int mapping_degree;
 
-  Triangulation<dim-1, dim>             tria;
+  Triangulation<dim - 1, dim> tria;
 
   /// here we are just renaming the cell
   /// iterator
@@ -192,17 +202,17 @@ public:
 
   /// number of global refinement to executed before a local refinement cycle;
 
-  double pre_global_refinements;
+  unsigned int pre_global_refinements;
 
   /// maximum cell aspect ratio
 
   double max_element_aspect_ratio;
 
-  // flag to assess if the software will look for cad surfaces (form files Color_*.iges)
-  // and curves (from files Curve_*.iges), and use such geometries to refine the grid.
-  // the program will import as many curves and surfaces as there are available in the
-  // present folder, and progressively associate them to the manifold IDS available in the
-  // mesh file.
+  // flag to assess if the software will look for cad surfaces (form files
+  // Color_*.iges) and curves (from files Curve_*.iges), and use such geometries
+  // to refine the grid. the program will import as many curves and surfaces as
+  // there are available in the present folder, and progressively associate them
+  // to the manifold IDS available in the mesh file.
   //
   bool use_cad_surface_and_curves;
 
@@ -212,8 +222,8 @@ public:
   bool surface_curvature_refinement;
 
   // used if curvature adaptive refinement is true. the cells are refined until
-  // their size is 1/cells_per_circle of the circumference the radius of which is
-  // the local max curvature radius
+  // their size is 1/cells_per_circle of the circumference the radius of which
+  // is the local max curvature radius
   //
   double cells_per_circle;
 
@@ -244,13 +254,17 @@ public:
   unsigned int this_mpi_process;
 
   // to deal with conformity on edges with double nodes
-  std::vector<bool> vertex_on_boundary;
-  std::vector<std::vector<unsigned int> > double_vertex_vector;
-  std::map<unsigned int, std::vector<typename Triangulation<dim-1,dim>::active_cell_iterator> > vert_to_elems;
-  std::set<typename Triangulation<dim-1,dim>::active_cell_iterator> edge_cells;
-  Manifold<dim-1, dim> *manifold;
+  std::vector<bool>                      vertex_on_boundary;
+  std::vector<std::vector<unsigned int>> double_vertex_vector;
+  std::map<
+    unsigned int,
+    std::vector<typename Triangulation<dim - 1, dim>::active_cell_iterator>>
+    vert_to_elems;
+  std::set<typename Triangulation<dim - 1, dim>::active_cell_iterator>
+                          edge_cells;
+  Manifold<dim - 1, dim> *manifold;
 
-  bool spheroid_bool, used_spherical_manifold;
+  bool   spheroid_bool, used_spherical_manifold;
   double spheroid_x_axis, spheroid_y_axis, spheroid_z_axis;
 
   ConditionalOStream pcout;
@@ -263,9 +277,12 @@ public:
 
   /// vectors containing the CAD surfaces and curves projectors
   /// to be (optionally) used for refinement of the triangulation
-  std::vector<std::shared_ptr<OpenCASCADE::NormalToMeshProjectionBoundary<2,3> > > normal_to_mesh_projectors;
-  std::vector<std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2,3> > >line_projectors;
-
+  std::vector<
+    std::shared_ptr<OpenCASCADE::NormalToMeshProjectionManifold<2, 3>>>
+    normal_to_mesh_projectors;
+  std::vector<
+    std::shared_ptr<OpenCASCADE::ArclengthProjectionLineManifold<2, 3>>>
+    line_projectors;
 };
 
 #endif

@@ -6,79 +6,86 @@
  */
 
 #include "local_expansion_coeff.h"
-#include "string.h"
+
 #include <iostream>
+
+#include "string.h"
 
 using std::cout;
 using std::endl;
 
 LocalExpansionCoeff::LocalExpansionCoeff()
 {
-  _p=0;
-  _coeff= NULL;
+  _p     = 0;
+  _coeff = NULL;
 }
 
 LocalExpansionCoeff::LocalExpansionCoeff(const unsigned int &p)
 {
-  _p=p;
-  _coeff= new double[(p+1)*(p+1)*(p+1)*(p+2)/2];
+  _p     = p;
+  _coeff = new double[(p + 1) * (p + 1) * (p + 1) * (p + 2) / 2];
 }
 
 LocalExpansionCoeff::LocalExpansionCoeff(const LocalExpansionCoeff &orig)
 {
-  _p=orig._p;
-  _coeff = new double[(_p+1)*(_p+1)*(_p+1)*(_p+2)/2];
+  _p     = orig._p;
+  _coeff = new double[(_p + 1) * (_p + 1) * (_p + 1) * (_p + 2) / 2];
   memcpy(_coeff, orig._coeff, this->getNumberOfElements());
 }
 
 LocalExpansionCoeff::~LocalExpansionCoeff()
 {
-  delete [] _coeff;
+  delete[] _coeff;
 }
 
-inline unsigned int LocalExpansionCoeff::getNumberOfElements()
+inline unsigned int
+LocalExpansionCoeff::getNumberOfElements()
 {
-  return (_p+1)*(_p+1)*(_p+1)*(_p+2)/2;
+  return (_p + 1) * (_p + 1) * (_p + 1) * (_p + 2) / 2;
 }
 
-double LocalExpansionCoeff::get(const unsigned int &n, const unsigned int &m, const unsigned int &nn, const unsigned int &mm)
+double
+LocalExpansionCoeff::get(const unsigned int &n,
+                         const unsigned int &m,
+                         const unsigned int &nn,
+                         const unsigned int &mm)
 {
-
-  return _coeff[ (mm+nn) +
-                 getNNOffset(nn) +
-                 getMOffset(m) +
-                 getNOffset(n)];
+  return _coeff[(mm + nn) + getNNOffset(nn) + getMOffset(m) + getNOffset(n)];
 }
 
-void LocalExpansionCoeff::set(const unsigned int &n, const unsigned int &m, const unsigned int &nn, const unsigned int &mm, const double &value)
+void
+LocalExpansionCoeff::set(const unsigned int &n,
+                         const unsigned int &m,
+                         const unsigned int &nn,
+                         const unsigned int &mm,
+                         const double &      value)
 {
-
-  _coeff[ (mm+nn) +
-          getNNOffset(nn) +
-          getMOffset(m) +
-          getNOffset(n)]=value;
+  _coeff[(mm + nn) + getNNOffset(nn) + getMOffset(m) + getNOffset(n)] = value;
 }
 
-unsigned int LocalExpansionCoeff::getNNOffset(const unsigned int &nn)
+unsigned int
+LocalExpansionCoeff::getNNOffset(const unsigned int &nn)
 {
-  return (nn)*(nn);
+  return (nn) * (nn);
 }
 
-unsigned int LocalExpansionCoeff::getMOffset(const unsigned int &m)
+unsigned int
+LocalExpansionCoeff::getMOffset(const unsigned int &m)
 {
-  return (_p+1)*(_p+1)*m;
+  return (_p + 1) * (_p + 1) * m;
 }
 
-unsigned int LocalExpansionCoeff::getNOffset(const unsigned int &n)
+unsigned int
+LocalExpansionCoeff::getNOffset(const unsigned int &n)
 {
-  return ((_p+1)*(_p+1)*(n+1)*(n))/2;
+  return ((_p + 1) * (_p + 1) * (n + 1) * (n)) / 2;
 }
 
 
 /*
  * Debugging and test of indexes
  */
-//unsigned int const LocalExpansionCoeff::loopDebugger(const unsigned int & p){
+// unsigned int const LocalExpansionCoeff::loopDebugger(const unsigned int & p){
 //    unsigned int count=0;
 //    for(unsigned int n=0; n< p+1; ++n){
 //        for(unsigned int m=0; m < n+1; ++m){
@@ -92,7 +99,7 @@ unsigned int LocalExpansionCoeff::getNOffset(const unsigned int &n)
 //    return count;
 //}
 //
-//void LocalExpansionCoeff::fillCoeffWithIndex(){
+// void LocalExpansionCoeff::fillCoeffWithIndex(){
 //    unsigned int count=0;
 //    for(unsigned int n=0; n< _p+1; ++n){
 //        for(unsigned int m=0; m < n+1; ++m){
@@ -107,15 +114,15 @@ unsigned int LocalExpansionCoeff::getNOffset(const unsigned int &n)
 //    }
 //}
 //
-//void LocalExpansionCoeff::printCoeff(){
+// void LocalExpansionCoeff::printCoeff(){
 //    unsigned int count=0;
 //    for(unsigned int n=0; n< _p+1; ++n){
 //        for(unsigned int m=0; m < n+1; ++m){
 //            for(int nn=0; nn< _p+1; ++nn){
 //                for(int mm=-nn; mm< nn+1; ++mm){
 //                    ++count;
-//                    cout << "(" << n << " " << m << " " << nn << " " << mm << ")"<< endl;
-//                    cout << "_coeff: " << _coeff[count-1]<< endl;
+//                    cout << "(" << n << " " << m << " " << nn << " " << mm <<
+//                    ")"<< endl; cout << "_coeff: " << _coeff[count-1]<< endl;
 //                    cout << "idx:" << (mm+nn) +
 //                        getNNOffset(nn) +
 //                        getMOffset(m)+
@@ -128,4 +135,3 @@ unsigned int LocalExpansionCoeff::getNOffset(const unsigned int &n)
 //        }
 //    }
 //}
-

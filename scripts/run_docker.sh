@@ -1,8 +1,3 @@
 #!/bin/bash
-IMG=mathlab/deal2lkit:latest #`grep image .travis.yml | awk '{print $2}'` 
-echo $IMG
-
 CMD=`grep -e '- ' .travis.yml | sed 's/- //'`
-echo $CMD
-docker pull $IMG 
-docker run -v `pwd`/..:/app/ $IMG /bin/sh -c "cd /app && $CMD" 
+docker run  --user $(id -u):$(id -g) -i -t --rm -P -v `pwd`:/app:rw mathlab/deal2lkit:v9.1.1-debugrelease  /bin/sh -c "cd /app; $CMD"

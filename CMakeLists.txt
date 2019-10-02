@@ -57,6 +57,10 @@ DEAL_II_INITIALIZE_CACHED_VARIABLES()
 
 PROJECT(${TARGET})
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+set(CMAKE_MACOSX_RPATH 1)
+endif()
+
 
 FIND_PACKAGE(deal2lkit 1.0 REQUIRED
   HINTS ${D2K_DIR} $ENV{D2K_DIR} $ENV{DEAL2LKIT_DIR}
@@ -92,7 +96,7 @@ FOREACH(_build_type ${_d2_build_types})
 		SET(_exe "${TARGET}_${_dim}d${${_build_type}_postfix}")
 		MESSAGE("-- Configuring executable ${_exe}")
 		ADD_EXECUTABLE(${_exe} ${_main})
-		target_compile_definitions(${_exe} PUBLIC DDDIMENSION=${_dim})
+		target_compile_definitions(${_exe} PUBLIC DEAL_II_DIMENSION=${_dim})
 		TARGET_LINK_LIBRARIES(${_exe} ${_lib})
 		D2K_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
     	ENDFOREACH()

@@ -14,13 +14,13 @@
 ##
 ## ---------------------------------------------------------------------
 
-if test ! -d source -o ! -d include; then
-  echo "*** This script must be run from the top-level directory of deal2lkit."
+if test ! -d source ; then
+  echo "*** This script must be run from the top-level directory of your project."
   exit
 fi
 
-if test ! -f scripts/astyle.rc ; then
-  echo "*** No style file scripts/astyle.rc found."
+if test ! -f .clang-format ; then
+  echo "*** No style file .clang-format found."
   exit
 fi
 
@@ -29,11 +29,7 @@ fi
 # collect a list of files and then spawn a parallel process to
 # indent all of them
 echo "--- Indenting all header and source files"
-for dir in source include tests; do
-files=`find $dir | egrep '\.(cc|h)$'` ;
-    if test -n "$files" ; then
-	(astyle --options=scripts/astyle.rc $files ) &
-    fi
-done
-
-wait
+SRC_FILES=`find . -name "*.cc"`
+H_FILES=`find . -name "*.h"`
+clang-format -i $SRC_FILES
+clang-format -i $H_FILES

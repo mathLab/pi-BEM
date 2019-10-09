@@ -1,3 +1,18 @@
+// ---------------------------------------------------------------------
+//
+// Copyright (C) 2014 - 2019 by the pi-BEM authors.
+//
+// This file is part of the pi-BEM library.
+//
+// The BEMStokes is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License version 2.1 as published by the Free Software Foundation.
+// The full text of the license can be found in the file LICENSE at
+// the top level of the BEMStokes distribution.
+//
+// Authors: Nicola Giuliani, Andrea Mola, Luca Heltai
+//
+// ---------------------------------------------------------------------
 #ifndef MULTIPOLE_EXPANSION_H_
 #define MULTIPOLE_EXPANSION_H_
 

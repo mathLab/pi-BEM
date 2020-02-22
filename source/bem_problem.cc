@@ -455,7 +455,7 @@ BEMProblem<dim>::parse_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Quadrature rules");
   {
-    quadrature = std_cxx1x::shared_ptr<Quadrature<dim - 1>>(
+    quadrature = std::shared_ptr<Quadrature<dim - 1>>(
       new QuadratureSelector<dim - 1>(prm.get("Quadrature type"),
                                       prm.get_integer("Quadrature order")));
     quadrature_order          = prm.get_integer("Quadrature order");
@@ -2108,7 +2108,7 @@ BEMProblem<dim>::compute_surface_gradients(
           unsigned int comp_i, comp_j;
 
 
-
+          // TO DO! MODIFY FOR DG
           for (unsigned int q = 0; q < vector_n_q_points; ++q)
             {
               Tensor<1, dim> gradient = phi_surf_grads[q];

@@ -324,7 +324,7 @@ public:
 
 
   std::shared_ptr<Quadrature<dim - 1>> quadrature;
-  unsigned int                               quadrature_order;
+  unsigned int                         quadrature_order;
 
   /// the number of standard quadrature points
   /// and singular kernel quadrature to be

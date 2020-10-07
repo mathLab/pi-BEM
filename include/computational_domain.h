@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------
+//
+// Copyright (C) 2014 - 2020 by the pi-BEM authors.
+//
+// This file is part of the pi-BEM library.
+//
+// The pi-BEM is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License version 2.1 as published by the Free Software Foundation.
+// The full text of the license can be found in the file LICENSE at
+// the top level of the pi-BEM distribution.
+//
+// Authors: Nicola Giuliani, Andrea Mola, Luca Heltai
 
 // We start with including a bunch
 // of include files: they might be more than
@@ -22,7 +35,6 @@
 #include <deal.II/grid/tria_iterator.h>
 
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/matrix_lib.h>
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_control.h>
 #include <deal.II/lac/solver_gmres.h>

@@ -1,16 +1,17 @@
-//---------------------------------------------------------------------------
-//    $Id: filtered_matrix.h 23248 2011-01-23 06:03:57Z bangerth $
-//    Version: $Name$
+// ---------------------------------------------------------------------
 //
-//    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-//    2011 by the deal.II authors
+// Copyright (C) 2014 - 2020 by the pi-BEM authors.
 //
-//    This file is subject to QPL and may not be  distributed
-//    without copyright and license information. Please refer
-//    to the file deal.II/doc/license.html for the  text  and
-//    further information on this license.
+// This file is part of the pi-BEM library.
 //
-//---------------------------------------------------------------------------
+// The pi-BEM is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License version 2.1 as published by the Free Software Foundation.
+// The full text of the license can be found in the file LICENSE at
+// the top level of the pi-BEM distribution.
+//
+// Authors: Nicola Giuliani, Andrea Mola, Luca Heltai
+
 #ifndef __deal2__constrained_matrix_h
 #  define __deal2__constrained_matrix_h
 
@@ -24,7 +25,6 @@
 #  include <deal.II/base/types.h>
 
 #  include <deal.II/lac/affine_constraints.h>
-#  include <deal.II/lac/pointer_matrix.h>
 #  include <deal.II/lac/vector_memory.h>
 
 #  include <algorithm>

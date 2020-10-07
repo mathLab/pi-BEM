@@ -23,7 +23,6 @@
 #  include <deal.II/base/thread_management.h>
 
 #  include <deal.II/lac/affine_constraints.h>
-#  include <deal.II/lac/pointer_matrix.h>
 #  include <deal.II/lac/vector_memory.h>
 
 #  include <algorithm>

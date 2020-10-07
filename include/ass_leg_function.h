@@ -17,7 +17,6 @@
 #include <deal.II/grid/tria_iterator.h>
 
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/matrix_lib.h>
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_control.h>
 #include <deal.II/lac/solver_gmres.h>

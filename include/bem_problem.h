@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------
+//
+// Copyright (C) 2014 - 2020 by the pi-BEM authors.
+//
+// This file is part of the pi-BEM library.
+//
+// The pi-BEM is free software; you can use it, redistribute
+// it, and/or modify it under the terms of the GNU Lesser General
+// Public License version 2.1 as published by the Free Software Foundation.
+// The full text of the license can be found in the file LICENSE at
+// the top level of the pi-BEM distribution.
+//
+// Authors: Nicola Giuliani, Andrea Mola, Luca Heltai
 
 #ifndef bem_problem_h
 #define bem_problem_h
@@ -23,7 +36,6 @@
 #include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/matrix_lib.h>
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_control.h>
 #include <deal.II/lac/solver_gmres.h>
@@ -311,8 +323,8 @@ public:
 
 
 
-  std_cxx1x::shared_ptr<Quadrature<dim - 1>> quadrature;
-  unsigned int                               quadrature_order;
+  std::shared_ptr<Quadrature<dim - 1>> quadrature;
+  unsigned int                         quadrature_order;
 
   /// the number of standard quadrature points
   /// and singular kernel quadrature to be

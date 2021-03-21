@@ -496,7 +496,7 @@ BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.dh,
                                         dphi_dn_node_error,
-                                        ZeroFunction<dim, double>(1),
+                                        dealii::Functions::ZeroFunction<dim, double>(1),
                                         difference_per_cell_2,
                                         QGauss<(dim - 1)>(
                                           2 * (2 * bem.fe->degree + 1)),

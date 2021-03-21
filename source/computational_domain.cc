@@ -625,8 +625,9 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
       pcout << "Used tolerance is: " << tolerance << endl;
       for (unsigned int i = 0; i < cad_surfaces.size(); ++i)
         {
+        
           normal_to_mesh_projectors.push_back(
-            std::make_shared<OpenCASCADE::NormalToMeshProjectionManifold<2, 3>>(
+            std::make_shared<MyNormalToMeshProjectionManifold<2, 3>>(
               cad_surfaces[i], tolerance));
         }
       // static OpenCASCADE::DirectionalProjectionBoundary<2,3>

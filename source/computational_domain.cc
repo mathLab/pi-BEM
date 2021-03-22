@@ -1,6 +1,7 @@
 
 
 #include "../include/computational_domain.h"
+#include "../include/my_utilities.h"
 
 #include <deal.II/grid/grid_reordering.h>
 #include <deal.II/grid/grid_tools.h>
@@ -803,11 +804,11 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
                   // ...and used to set up a line intersection to project the
                   // cell center on the CAD surface along the direction
                   // specified by the previously computed cell normal
-                  Point<3> projection = OpenCASCADE::line_intersection(
+                  Point<3> projection = my_line_intersection(
                     neededShape, cell->center(), n, tolerance);
                   // in correspondence with the projected point, we ask all the
                   // surface differential forms
-                  auto tup = OpenCASCADE::closest_point_and_differential_forms(
+                  auto tup = my_closest_point_and_differential_forms(
                     neededShape, projection, tolerance);
                   // among the differential point, we select the maximum
                   // absolute curvature

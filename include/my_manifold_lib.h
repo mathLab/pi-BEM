@@ -23,13 +23,6 @@
 //#  include <deal.II/opencascade/manifold_lib.h>
 #  include <deal.II/opencascade/utilities.h>
 
-// opencascade needs "HAVE_CONFIG_H" to be exported...
-#  define HAVE_CONFIG_H
-#  include <Adaptor3d_Curve.hxx>
-#  include <Adaptor3d_HCurve.hxx>
-#  include <BRepAdaptor_Curve.hxx>
-#  include <Bnd_Box.hxx>
-#  undef HAVE_CONFIG_H
 #include <unordered_map>
 
 DEAL_II_NAMESPACE_OPEN

@@ -809,12 +809,14 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
                     neededShape, projection, tolerance);
                   // among the differential point, we select the maximum
                   // absolute curvature
+
                   double max_abs_curv =
                     fmax(fabs(std::get<2>(tup)), fabs(std::get<3>(tup)));
                   // this commented line is just for debug purposes
                   // cout<<"Point: "<<std::get<0>(tup)<<"  Kmin:
                   // "<<std_cxx11::get<2>(tup)<<"  Kmax:
                   // "<<std_cxx11::get<3>(tup)<<endl; the minimum curvature
+
                   // radius is computed from the maximum absolute curvatur
                   double curvature_radius = 1.0 / fmax(max_abs_curv, tolerance);
                   // the target cell size is selected so that it corresponds to

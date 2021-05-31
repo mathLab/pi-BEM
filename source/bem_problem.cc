@@ -1803,7 +1803,8 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
         }
     }
   phi(this_cpu_set.nth_index_in_set(0)) = phi(this_cpu_set.nth_index_in_set(0));
-  dphi_dn(this_cpu_set.nth_index_in_set(0)) = dphi_dn(this_cpu_set.nth_index_in_set(0));
+  dphi_dn(this_cpu_set.nth_index_in_set(0)) =
+    dphi_dn(this_cpu_set.nth_index_in_set(0));
   phi.compress(VectorOperation::insert);
   dphi_dn.compress(VectorOperation::insert);
 

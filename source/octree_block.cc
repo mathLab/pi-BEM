@@ -243,14 +243,6 @@ OctreeBlock<dim>::NumIntList(unsigned int sublevel) const
 
 
 template <int dim>
-inline unsigned int
-OctreeBlock<dim>::NumIntListLevels() const
-{
-  return this->intList.size();
-}
-
-
-template <int dim>
 inline std::set<types::global_dof_index>
 OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
 {
@@ -281,14 +273,6 @@ inline types::global_dof_index
 OctreeBlock<dim>::NumNonIntList(unsigned int sublevel) const
 {
   return (this->nonIntList.at(sublevel)).size();
-}
-
-
-template <int dim>
-inline unsigned int
-OctreeBlock<dim>::NumNonIntListLevels() const
-{
-  return this->nonIntList.size();
 }
 
 

@@ -170,9 +170,6 @@ public:
   types::global_dof_index
   NumIntList(unsigned int sublevel) const;
 
-  unsigned int
-  NumIntListLevels() const;
-
   std::set<types::global_dof_index>
   GetIntList(unsigned int sublevel) const;
 
@@ -185,9 +182,6 @@ public:
 
   types::global_dof_index
   NumNonIntList(unsigned int sublevel) const;
-
-  unsigned int
-  NumNonIntListLevels() const;
 
   std::set<types::global_dof_index>
   GetNonIntList(unsigned int sublevel) const;

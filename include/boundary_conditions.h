@@ -77,9 +77,11 @@ class BoundaryConditions : public ParameterAcceptor
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
-                     BEMProblem<dim>          &bem,
-                     const MPI_Comm            comm = MPI_COMM_WORLD)
-    : wind(dim)
+                     BEMProblem<dim> &         bem,
+                     const MPI_Comm            comm         = MPI_COMM_WORLD,
+                     unsigned int              n_components = 1)
+    : n_components(n_components)
+    , current_component(0)
     , comp_dom(comp_dom)
     , bem(bem)
     , mpi_communicator(comm)
@@ -103,7 +105,7 @@ public:
   prepare_bem_vectors();
 
   void
-  solve_problem();
+  solve_problem(bool reset_matrix = true);
 
   void
   output_results(const std::string);
@@ -111,19 +113,136 @@ public:
   void
   compute_errors();
 
-  const TrilinosWrappers::MPI::Vector &
-  get_phi();
+  // the components are activated one at a time
+  unsigned int
+  n_phi_components() const
+  {
+    return n_components;
+  }
 
-  const TrilinosWrappers::MPI::Vector &
-  get_dphi_dn();
+  void
+  set_n_phi_components(unsigned int n_components)
+  {
+    assert(this->n_components <= n_components);
+    if (this->n_components != n_components)
+      {
+        winds.resize(n_components);
+        potentials.resize(n_components);
+        phis.resize(n_components);
+        dphi_dns.resize(n_components);
 
+        this->n_components = n_components;
+      }
+  }
+
+  unsigned int
+  get_current_phi_component() const
+  {
+    return current_component;
+  }
+
+  void
+  set_current_phi_component(unsigned int component)
+  {
+    assert(component < n_components);
+    current_component = component;
+    bem.set_current_phi_component(component);
+  }
+
+  // wrap extraction of current component; public interface retrieves const&
+  // objects
+  // The argument-less methods retrieve the current component
+  const Functions::ParsedFunction<dim> &
+  get_wind() const
+  {
+    return *winds[current_component];
+  }
+
+  const Functions::ParsedFunction<dim> &
+  get_potential() const
+  {
+    return *potentials[current_component];
+  }
+
+  // otherwise, explicitly request the desired component
+  const Functions::ParsedFunction<dim> &
+  get_wind(unsigned int component) const
+  {
+    assert(component < n_components);
+    return *winds[component];
+  }
+
+  const Functions::ParsedFunction<dim> &
+  get_potential(unsigned int component) const
+  {
+    assert(component < n_components);
+    return *potentials[component];
+  }
+
+  // same as above, for the Vectors; however, retrieve non-const&
+  TrilinosWrappers::MPI::Vector &
+  get_phi()
+  {
+    return phis[current_component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_dphi_dn()
+  {
+    return dphi_dns[current_component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_phi(unsigned int component)
+  {
+    assert(component < n_components);
+    return phis[component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_dphi_dn(unsigned int component)
+  {
+    assert(component < n_components);
+    return dphi_dns[component];
+  }
 
   std::string output_file_name;
 
 protected:
-  Functions::ParsedFunction<dim> wind;
+  // wrap extraction of current component
+  Functions::ParsedFunction<dim> &
+  get_wind()
+  {
+    return *winds[current_component];
+  }
 
-  Functions::ParsedFunction<dim> potential;
+  Functions::ParsedFunction<dim> &
+  get_potential()
+  {
+    return *potentials[current_component];
+  }
+
+  // otherwise, explicitly request the desired component
+  Functions::ParsedFunction<dim> &
+  get_wind(unsigned int component)
+  {
+    assert(component < n_components);
+    return *winds[component];
+  }
+
+  Functions::ParsedFunction<dim> &
+  get_potential(unsigned int component)
+  {
+    assert(component < n_components);
+    return *potentials[component];
+  }
+
+  unsigned int n_components;
+  unsigned int current_component;
+  // Functions::ParsedFunction<dim> wind;
+  // Functions::ParsedFunction<dim> potential;
+  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> winds;
+  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> potentials;
 
   std::string node_displacement_type;
 
@@ -138,8 +257,10 @@ protected:
   unsigned int output_frequency;
 
   TrilinosWrappers::MPI::Vector tmp_rhs;
-  TrilinosWrappers::MPI::Vector phi;
-  TrilinosWrappers::MPI::Vector dphi_dn;
+  // TrilinosWrappers::MPI::Vector phi;
+  // TrilinosWrappers::MPI::Vector dphi_dn;
+  std::vector<TrilinosWrappers::MPI::Vector> phis;
+  std::vector<TrilinosWrappers::MPI::Vector> dphi_dns;
 
   MPI_Comm mpi_communicator;
 

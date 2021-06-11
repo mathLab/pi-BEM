@@ -123,12 +123,15 @@ public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
   BEMProblem(ComputationalDomain<dim> &comp_dom,
-             const MPI_Comm            comm = MPI_COMM_WORLD);
+             const MPI_Comm            comm         = MPI_COMM_WORLD,
+             unsigned int              n_components = 1);
 
   void
-  solve(TrilinosWrappers::MPI::Vector       &phi,
-        TrilinosWrappers::MPI::Vector       &dphi_dn,
-        const TrilinosWrappers::MPI::Vector &tmp_rhs);
+
+  solve(TrilinosWrappers::MPI::Vector &      phi,
+        TrilinosWrappers::MPI::Vector &      dphi_dn,
+        const TrilinosWrappers::MPI::Vector &tmp_rhs,
+        bool                                 reset_matrix = true);
 
   /// This function takes care of the proper initialization of all the elements
   /// needed by the bem problem class. Since we need to sum elements associated
@@ -292,8 +295,87 @@ public:
   void
   adaptive_refinement(const TrilinosWrappers::MPI::Vector &error_vector);
 
+  // the components are activated one at a time
+  unsigned int
+  n_phi_components() const
+  {
+    return n_components;
+  }
 
+  void
+  set_n_phi_components(unsigned int n_components)
+  {
+    assert(this->n_components <= n_components);
+    if (this->n_components != n_components)
+      {
+        vector_gradients_solutions.resize(n_components);
+        vector_surface_gradients_solutions.resize(n_components);
+        vector_normals_solutions.resize(n_components);
 
+        this->n_components = n_components;
+      }
+  }
+
+  unsigned int
+  get_current_phi_component() const
+  {
+    return current_component;
+  }
+
+  void
+  set_current_phi_component(unsigned int component)
+  {
+    assert(component < n_components);
+    current_component = component;
+  }
+
+  // accessors to wrap the solution Vectors; non-const&, open borders
+  // std::vector<TrilinosWrappers::MPI::Vector> vector_gradients_solutions;
+  // std::vector<TrilinosWrappers::MPI::Vector>
+  // vector_surface_gradients_solutions;
+  // std::vector<TrilinosWrappers::MPI::Vector> vector_normals_solutions;
+  TrilinosWrappers::MPI::Vector &
+  get_vector_gradients_solution()
+  {
+    return vector_gradients_solutions[current_component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_vector_surface_gradients_solution()
+  {
+    return vector_surface_gradients_solutions[current_component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_vector_normals_solution()
+  {
+    return vector_normals_solutions[current_component];
+  }
+
+  // component selection
+  TrilinosWrappers::MPI::Vector &
+  get_vector_gradients_solution(unsigned int component)
+  {
+    assert(component < n_components);
+    return vector_gradients_solutions[component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_vector_surface_gradients_solution(unsigned int component)
+  {
+    assert(component < n_components);
+    return vector_surface_gradients_solutions[component];
+  }
+
+  TrilinosWrappers::MPI::Vector &
+  get_vector_normals_solution(unsigned int component)
+  {
+    assert(component < n_components);
+    return vector_normals_solutions[component];
+  }
+
+  unsigned int              n_components;
+  unsigned int              current_component;
   ConditionalOStream        pcout;
   ComputationalDomain<dim> &comp_dom;
 
@@ -422,11 +504,13 @@ public:
 
   IndexSet edge_set;
 
-  TrilinosWrappers::MPI::Vector vector_gradients_solution;
-
-  TrilinosWrappers::MPI::Vector vector_surface_gradients_solution;
-
-  TrilinosWrappers::MPI::Vector vector_normals_solution;
+  // vectorize to support multiple phi components
+  // TrilinosWrappers::MPI::Vector vector_gradients_solution;
+  // TrilinosWrappers::MPI::Vector vector_surface_gradients_solution;
+  // TrilinosWrappers::MPI::Vector vector_normals_solution;
+  std::vector<TrilinosWrappers::MPI::Vector> vector_gradients_solutions;
+  std::vector<TrilinosWrappers::MPI::Vector> vector_surface_gradients_solutions;
+  std::vector<TrilinosWrappers::MPI::Vector> vector_normals_solutions;
 
   std::vector<types::global_dof_index> start_per_process;
 

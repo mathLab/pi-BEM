@@ -1,13 +1,12 @@
 
 
-#include "../include/bem_problem.h"
-
 #include <deal.II/numerics/error_estimator.h>
 
 #include <iomanip>
 #include <iostream>
 #include <memory>
 
+#include "../include/bem_problem.h"
 #include "../include/laplace_kernel.h"
 #include "../include/singular_kernel_integral.h"
 #include "Teuchos_TimeMonitor.hpp"
@@ -84,29 +83,42 @@ RCP<Time> ReinitTime =
 template <>
 BEMProblem<3>::BEMProblem(ComputationalDomain<3> &comp_dom,
                           // const unsigned int fe_degree,
-                          MPI_Comm comm)
-  : pcout(std::cout)
+                          MPI_Comm     comm,
+                          unsigned int n_components)
+  : n_components(n_components)
+  , current_component(0)
+  , pcout(std::cout)
   , comp_dom(comp_dom)
   , dh(comp_dom.tria)
   , gradient_dh(comp_dom.tria)
   , mpi_communicator(comm)
   , n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator))
   , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
+  , vector_gradients_solutions(n_components)
+  , vector_surface_gradients_solutions(n_components)
+  , vector_normals_solutions(n_components)
 {
   // Only output on first processor.
   pcout.set_condition(this_mpi_process == 0);
 }
+
 template <>
 BEMProblem<2>::BEMProblem(ComputationalDomain<2> &comp_dom,
                           // const unsigned int fe_degree,
-                          MPI_Comm comm)
-  : pcout(std::cout)
+                          MPI_Comm     comm,
+                          unsigned int n_components)
+  : n_components(n_components)
+  , current_component(0)
+  , pcout(std::cout)
   , comp_dom(comp_dom)
   , dh(comp_dom.tria)
   , gradient_dh(comp_dom.tria)
   , mpi_communicator(comm)
   , n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator))
   , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
+  , vector_gradients_solutions(n_components)
+  , vector_surface_gradients_solutions(n_components)
+  , vector_normals_solutions(n_components)
 {
   // Only output on first processor.
   pcout.set_condition(this_mpi_process == 0);
@@ -165,7 +177,7 @@ BEMProblem<dim>::reinit()
   // FESystem<dim-1,dim>(FE_DGQArbitraryNodes<dim-1,dim>(QGauss<1> (2)),dim);
   // // auto hhh = new FE_DGQArbitraryNodes<dim-1, dim>(QGauss<1> (2));
   std::string foo = fe->get_name();
-  std::cout << foo << std::endl;
+  pcout << "FE name " << foo << std::endl;
   // FiniteElement<dim-1,dim> * pippo = FETools::get_fe_by_name<dim-1,
   // dim>(foo); std::cout<<pippo->get_name()<<std::endl;
 
@@ -225,7 +237,8 @@ BEMProblem<dim>::reinit()
 
   const types::global_dof_index n_dofs = dh.n_dofs();
 
-  pcout << dh.n_dofs() << " " << gradient_dh.n_dofs() << std::endl;
+  pcout << "phi dofs: " << dh.n_dofs()
+        << " gradient phi dofs: " << gradient_dh.n_dofs() << std::endl;
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
 
   DoFTools::get_subdomain_association(dh, dofs_domain_association);
@@ -415,6 +428,7 @@ BEMProblem<dim>::reinit()
   b_i.resize(dim);
   for (unsigned int i = 0; i < dim; ++i)
     b_i[i].reinit(this_cpu_set, mpi_communicator);
+
 }
 
 
@@ -459,6 +473,7 @@ template <int dim>
 void
 BEMProblem<dim>::declare_parameters(ParameterHandler &prm)
 {
+  std::cout << "BEMProblem<dim>::declare_parameters" << std::endl;
   // In the solver section, we set
   // all SolverControl
   // parameters. The object will then
@@ -524,6 +539,7 @@ template <int dim>
 void
 BEMProblem<dim>::parse_parameters(ParameterHandler &prm)
 {
+  std::cout << "BEMProblem<dim>::parse_parameters" << std::endl;
   prm.enter_subsection("Solver");
   solver_control.parse_parameters(prm);
   prm.leave_subsection();
@@ -1834,24 +1850,28 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
 // either in a direct or multipole method
 template <int dim>
 void
-BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector       &phi,
-                       TrilinosWrappers::MPI::Vector       &dphi_dn,
-                       const TrilinosWrappers::MPI::Vector &tmp_rhs)
+BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
+                       TrilinosWrappers::MPI::Vector &      dphi_dn,
+                       const TrilinosWrappers::MPI::Vector &tmp_rhs,
+                       bool                                 reset_matrix)
 {
-  if (solution_method == "Direct")
+  if (reset_matrix)
     {
-      assemble_system();
-      // neumann_matrix.print(std::cout);
-      // dirichlet_matrix.print(std::cout);
-    }
-  else
-    {
-      AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
+      if (solution_method == "Direct")
+        {
+          assemble_system();
+          // neumann_matrix.print(std::cout);
+          // dirichlet_matrix.print(std::cout);
+        }
+      else
+        {
+          AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
 
-      fma.generate_octree_blocking();
-      // fma.compute_m2l_flags();
-      fma.direct_integrals();
-      fma.multipole_integrals();
+          fma.generate_octree_blocking();
+          // fma.compute_m2l_flags();
+          fma.direct_integrals();
+          fma.multipole_integrals();
+        }
     }
 
   solve_system(phi, dphi_dn, tmp_rhs);
@@ -1873,8 +1893,9 @@ BEMProblem<dim>::compute_constraints(
 
   // communication is needed here: there is one matrix per process: thus the
   // vector needed to set inhomogeneities has to be copied locally
-  Vector<double> localized_surface_gradients(vector_surface_gradients_solution);
-  Vector<double> localized_normals(vector_normals_solution);
+  Vector<double> localized_surface_gradients(
+    get_vector_surface_gradients_solution());
+  Vector<double> localized_normals(get_vector_normals_solution());
   Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
   Vector<double> loc_tmp_rhs(tmp_rhs.size());
   loc_tmp_rhs = tmp_rhs;
@@ -2276,7 +2297,7 @@ BEMProblem<dim>::compute_gradients(
 
 
   // We reinit the gradient solution
-  vector_gradients_solution.reinit(vector_this_cpu_set, mpi_communicator);
+  get_vector_gradients_solution().reinit(vector_this_cpu_set, mpi_communicator);
 
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
@@ -2414,11 +2435,11 @@ BEMProblem<dim>::compute_gradients(
   TrilinosWrappers::PreconditionAMG mass_prec;
   mass_prec.initialize(vector_gradients_matrix);
   solver.solve(vector_gradients_matrix,
-               vector_gradients_solution,
+               get_vector_gradients_solution(),
                vector_gradients_rhs,
                mass_prec);
 
-  vector_constraints.distribute(vector_gradients_solution);
+  vector_constraints.distribute(get_vector_gradients_solution());
 }
 
 template <int dim>
@@ -2430,8 +2451,8 @@ BEMProblem<dim>::compute_surface_gradients(
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
   phi.reinit(tmp_rhs, false, true);
 
-  vector_surface_gradients_solution.reinit(vector_this_cpu_set,
-                                           mpi_communicator);
+  get_vector_surface_gradients_solution().reinit(vector_this_cpu_set,
+                                                 mpi_communicator);
 
 
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
@@ -2561,11 +2582,11 @@ BEMProblem<dim>::compute_surface_gradients(
   mass_prec.initialize(vector_surface_gradients_matrix);
 
   solver.solve(vector_surface_gradients_matrix,
-               vector_surface_gradients_solution,
+               get_vector_surface_gradients_solution(),
                vector_surface_gradients_rhs,
                mass_prec);
 
-  vector_constraints.distribute(vector_surface_gradients_solution);
+  vector_constraints.distribute(get_vector_surface_gradients_solution());
 }
 
 template <int dim>
@@ -2915,7 +2936,7 @@ void
 BEMProblem<dim>::compute_normals()
 {
   Teuchos::TimeMonitor LocalTimer(*NormalsTime);
-  vector_normals_solution.reinit(vector_this_cpu_set, mpi_communicator);
+  get_vector_normals_solution().reinit(vector_this_cpu_set, mpi_communicator);
 
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
@@ -3009,11 +3030,11 @@ BEMProblem<dim>::compute_normals()
 
 
   solver.solve(vector_normals_matrix,
-               vector_normals_solution,
+               get_vector_normals_solution(),
                vector_normals_rhs,
                mass_prec);
 
-  vector_constraints.distribute(vector_normals_solution);
+  vector_constraints.distribute(get_vector_normals_solution());
 }
 
 template <int dim>

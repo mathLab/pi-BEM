@@ -92,7 +92,7 @@ template <int dim>
 class Driver : public ParameterAcceptor
 {
 public:
-  Driver();
+  Driver(unsigned int n_components = 1);
 
   ~Driver();
 
@@ -107,7 +107,6 @@ public:
 
   virtual void
   parse_parameters(ParameterHandler &prm) override;
-
 
   void
   run();
@@ -129,6 +128,7 @@ protected:
 
   const unsigned int n_mpi_processes;
   const unsigned int this_mpi_process;
+  unsigned int       n_components;
 };
 
 #endif

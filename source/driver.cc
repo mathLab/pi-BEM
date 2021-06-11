@@ -1,7 +1,6 @@
-#include "../include/driver.h"
-
 #include <sys/time.h>
 
+#include "../include/driver.h"
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::RCP;
@@ -16,15 +15,19 @@ RCP<Time> SolveTime  = Teuchos::TimeMonitor::getNewTimer("Solve Time");
 using namespace std;
 
 template <int dim>
-Driver<dim>::Driver()
+Driver<dim>::Driver(unsigned int n_components)
   : pcout(std::cout)
   , mpi_communicator(MPI_COMM_WORLD)
   , computational_domain(mpi_communicator)
-  , bem_problem(computational_domain, mpi_communicator)
-  , boundary_conditions(computational_domain, bem_problem)
+  , bem_problem(computational_domain, mpi_communicator, n_components)
+  , boundary_conditions(computational_domain,
+                        bem_problem,
+                        mpi_communicator,
+                        n_components)
   , prm()
   , n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator))
   , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
+  , n_components(n_components)
 {
   pcout.set_condition(this_mpi_process == 0);
   // PathSearch search_prm("PARAMETER");
@@ -65,14 +68,25 @@ template <int dim>
 void
 Driver<dim>::declare_parameters(ParameterHandler &prm)
 {
+  std::cout << "Driver<dim>::declare_parameters" << std::endl;
   prm.declare_entry("Set Global Refinement", "true", Patterns::Bool());
+  prm.declare_entry("Potential components", "1", Patterns::Integer());
 }
 
 template <int dim>
 void
 Driver<dim>::parse_parameters(ParameterHandler &prm)
 {
+  std::cout << "Driver<dim>::parse_parameters" << std::endl;
   global_refinement = prm.get_bool("Set Global Refinement");
+  n_components      = prm.get_integer("Potential components");
+
+  std::cout
+    << "Driver<dim>::parse_parameters setting n phi components on dependent objs"
+    << std::endl;
+  // what's the order of parse_parameter calls?
+  boundary_conditions.set_n_phi_components(n_components);
+  bem_problem.set_n_phi_components(n_components);
 }
 
 
@@ -106,11 +120,28 @@ Driver<dim>::run()
         {
           Teuchos::TimeMonitor LocalTimer(*SolveTime);
           bem_problem.reinit();
+          // std::cout << "before boundary_conditions.solve_problem();"
+          //          << std::endl;
           boundary_conditions.solve_problem();
+          // std::cout << "after boundary_conditions.solve_problem();"
+          //          << std::endl;
+
+          // other components: does not neeed to call reinit(), as it's "just"
+          // sparsity patterns
+          for (types::global_dof_index i = 1;
+               i < boundary_conditions.n_phi_components();
+               ++i)
+            {
+              std::cout << "solving for component " << i + 1 << std::endl;
+              boundary_conditions.set_current_phi_component(i);
+              boundary_conditions.solve_problem(false);
+            }
+          boundary_conditions.set_current_phi_component(0);
         }
         if (!global_refinement && i < local_refinement_cycles)
           {
             // Compute error estimator and local refinement strategy
+            // TODO: for the moment, ignore phi's components
             bem_problem.adaptive_refinement(boundary_conditions.get_phi());
             computational_domain.update_triangulation();
           }

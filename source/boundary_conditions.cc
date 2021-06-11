@@ -5,11 +5,49 @@
 // have been discussed in previous tutorials
 // already:
 
-#include "../include/boundary_conditions.h"
+
 
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/grid/filtered_iterator.h>
+
+#include "../include/boundary_conditions.h"
+
+
+template <int dim, class DH = DoFHandler<dim, dim + 1>>
+class FilteredDataOut : public DataOut<dim, DH>
+{
+public:
+  FilteredDataOut(const unsigned int subdomain_id)
+    : subdomain_id(subdomain_id)
+  {}
+  virtual typename DataOut<dim, DH>::cell_iterator
+  first_cell()
+  {
+    typename DataOut<dim, DH>::active_cell_iterator cell =
+      this->dofs->begin_active();
+    while ((cell != this->dofs->end()) &&
+           (cell->subdomain_id() != subdomain_id))
+      ++cell;
+    return cell;
+  }
+  virtual typename DataOut<dim, DH>::cell_iterator
+  next_cell(const typename DataOut<dim, DH>::cell_iterator &old_cell)
+  {
+    if (old_cell != this->dofs->end())
+      {
+        const IteratorFilters::SubdomainEqualTo predicate(subdomain_id);
+        return ++(
+          FilteredIterator<typename DataOut<dim, DH>::active_cell_iterator>(
+            predicate, old_cell));
+      }
+    else
+      return old_cell;
+  }
+
+private:
+  const unsigned int subdomain_id;
+};
 
 #include "Teuchos_TimeMonitor.hpp"
 
@@ -34,7 +72,10 @@ template <int dim>
 void
 BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
 {
+  std::cout << "BoundaryConditions<dim>::declare_parameters" << std::endl;
   prm.declare_entry("Output file name", "result", Patterns::Anything());
+
+  prm.declare_entry("Potential components", "1", Patterns::Integer());
 
   prm.enter_subsection("Wind function 2d");
   {
@@ -64,28 +105,99 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
     prm.set("Function expression", "x+y+z");
   }
   prm.leave_subsection();
+
+  std::cout
+    << "BoundaryConditions<dim>::declare_parameters @component expressions loop"
+    << std::endl;
+  // hardcoded multiple components part - is there a way to dynamically query
+  // the number of comps?
+  prm.enter_subsection("Wind function 2 2d");
+  {
+    Functions::ParsedFunction<2>::declare_parameters(prm, 2);
+    prm.set("Function expression", "1; 1");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Wind function 2 3d");
+  {
+    Functions::ParsedFunction<3>::declare_parameters(prm, 3);
+    prm.set("Function expression", "1; 1; 1");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Potential 2 2d");
+  {
+    Functions::ParsedFunction<2>::declare_parameters(prm);
+    prm.set("Function expression", "x+y");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Potential 2 3d");
+  {
+    Functions::ParsedFunction<3>::declare_parameters(prm);
+    prm.set("Function expression", "x+y+z");
+  }
+  prm.leave_subsection();
 }
 
 template <int dim>
 void
 BoundaryConditions<dim>::parse_parameters(ParameterHandler &prm)
 {
+  std::cout << "BoundaryConditions<dim>::parse_parameters" << std::endl;
   output_file_name = prm.get("Output file name");
 
+  /*
+  n_components = prm.get_integer("Potential components");
+  assert(n_components > 0);
+  // uncollaborative constructors and copy operators
+  // winds.resize(n_components, Functions::Function<dim>(dim));
+  // potentials.resize(n_components, Functions::Function<dim>(1));
+  winds.resize(n_components);
+  potentials.resize(n_components);
+  phis.resize(n_components);
+  dphi_dns.resize(n_components);
+  */
 
   prm.enter_subsection(std::string("Wind function ") +
                        Utilities::int_to_string(dim) + std::string("d"));
   {
-    wind.parse_parameters(prm);
+    winds[0].reset(new Functions::ParsedFunction<dim>(dim));
+    winds[0]->parse_parameters(prm);
   }
   prm.leave_subsection();
 
   prm.enter_subsection(std::string("Potential ") +
                        Utilities::int_to_string(dim) + std::string("d"));
   {
-    potential.parse_parameters(prm);
+    potentials[0].reset(new Functions::ParsedFunction<dim>(1));
+    potentials[0]->parse_parameters(prm);
   }
   prm.leave_subsection();
+
+  std::cout
+    << "BoundaryConditions<dim>::parse_parameters @component expressions loop"
+    << std::endl;
+  for (unsigned int i = 1; i < n_components; ++i)
+    {
+      prm.enter_subsection(std::string("Wind function ") +
+                           Utilities::int_to_string(i + 1) + " " +
+                           Utilities::int_to_string(dim) + std::string("d"));
+      {
+        winds[i].reset(new Functions::ParsedFunction<dim>(dim));
+        winds[i]->parse_parameters(prm);
+      }
+      prm.leave_subsection();
+
+      prm.enter_subsection(std::string("Potential ") +
+                           Utilities::int_to_string(i + 1) + " " +
+                           Utilities::int_to_string(dim) + std::string("d"));
+      {
+        potentials[i].reset(new Functions::ParsedFunction<dim>(1));
+        potentials[i]->parse_parameters(prm);
+      }
+      prm.leave_subsection();
+    }
 }
 
 
@@ -95,19 +207,19 @@ double* BoundaryConditions<dim>::initial_conditions() {
 
   initial_wave_shape.set_time(initial_time);
   initial_wave_potential.set_time(initial_time);
-  wind.set_time(initial_time);
+  get_wind().set_time(initial_time);
 
   Vector<double> instantWindValue(dim);
   Point<dim> zero(0,0,0);
-  wind.vector_value(zero,instantWindValue);
+  get_wind().vector_value(zero,instantWindValue);
   bem.pcout<<std::endl<<"Simulation time= "<<initial_time<<"   Vinf= ";
   instantWindValue.print(cout,4,false,true);
   bem.pcout<<std::endl;
 
   dofs_number = bem.dh.n_dofs()+bem.gradient_dh.n_dofs();
 
-  phi.reinit(bem.dh.n_dofs());
-  dphi_dn.reinit(bem.dh.n_dofs());
+  get_phi().reinit(bem.dh.n_dofs());
+  get_dphi_dn().reinit(bem.dh.n_dofs());
   tmp_rhs.reinit(bem.dh.n_dofs());
 
   DXDt_and_DphiDt_vector.resize(n_dofs());
@@ -157,10 +269,10 @@ std::max(max_y_coor_value,std::abs(support_points[i](1)));
 
 template <int dim>
 void
-BoundaryConditions<dim>::solve_problem()
+BoundaryConditions<dim>::solve_problem(bool reset_matrix)
 {
-  potential.set_time(0);
-  wind.set_time(0);
+  get_potential().set_time(0);
+  get_wind().set_time(0);
 
   const types::global_dof_index    n_dofs = bem.dh.n_dofs();
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
@@ -169,17 +281,15 @@ BoundaryConditions<dim>::solve_problem()
   this_cpu_set = bem.this_cpu_set;
   this_cpu_set.compress();
 
-
-
-  phi.reinit(this_cpu_set, mpi_communicator);
-  dphi_dn.reinit(this_cpu_set, mpi_communicator);
+  get_phi().reinit(this_cpu_set, mpi_communicator);
+  get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
   tmp_rhs.reinit(this_cpu_set, mpi_communicator);
   pcout << "Computing normal vector" << std::endl;
   bem.compute_normals();
   prepare_bem_vectors();
 
 
-  bem.solve(phi, dphi_dn, tmp_rhs);
+  bem.solve(get_phi(), get_dphi_dn(), tmp_rhs, reset_matrix);
   have_dirichlet_bc = bem.have_dirichlet_bc;
   if (!have_dirichlet_bc)
     {
@@ -189,30 +299,15 @@ BoundaryConditions<dim>::solve_problem()
                                                          support_points);
       double shift = 0.0;
       if (this_mpi_process == 0)
-        shift = potential.value(support_points[*bem.this_cpu_set.begin()]) -
-                phi(*bem.this_cpu_set.begin());
+        shift =
+          get_potential().value(support_points[*bem.this_cpu_set.begin()]) -
+          get_phi()(*bem.this_cpu_set.begin());
       MPI_Bcast(&shift, 1, MPI_DOUBLE, 0, mpi_communicator);
-      vector_shift(phi, shift);
+      vector_shift(get_phi(), shift);
     }
 
   // bem.compute_gradients(phi, dphi_dn);
 }
-
-template <int dim>
-const TrilinosWrappers::MPI::Vector &
-BoundaryConditions<dim>::get_phi()
-{
-  return phi;
-}
-
-template <int dim>
-const TrilinosWrappers::MPI::Vector &
-BoundaryConditions<dim>::get_dphi_dn()
-{
-  return dphi_dn;
-}
-
-
 
 template <int dim>
 void
@@ -222,8 +317,8 @@ BoundaryConditions<dim>::prepare_bem_vectors()
   // bem.compute_normals();
   const types::global_dof_index n_dofs = bem.dh.n_dofs();
 
-  phi.reinit(this_cpu_set, mpi_communicator);
-  dphi_dn.reinit(this_cpu_set, mpi_communicator);
+  get_phi().reinit(this_cpu_set, mpi_communicator);
+  get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
   // tmp_rhs.reinit(this_cpu_set,mpi_communicator);
 
 
@@ -271,10 +366,10 @@ BoundaryConditions<dim>::prepare_bem_vectors()
             if (dirichlet)
               {
                 // tmp_rhs(local_dof_indices[j]) = node_coors[j](0);
-                phi(local_dof_indices[j]) =
-                  potential.value(support_points[local_dof_indices[j]]);
+                get_phi()(local_dof_indices[j]) =
+                  get_potential().value(support_points[local_dof_indices[j]]);
                 tmp_rhs(local_dof_indices[j]) =
-                  potential.value(support_points[local_dof_indices[j]]);
+                  get_potential().value(support_points[local_dof_indices[j]]);
                 // bem.pcout<<"internalElse "<<local_dof_indices[j]<<" norm
                 // ("<<node_normals[j]<<")  "<<" pos ("<<node_coors[j]<<")
                 // "<<node_coors[j](0)<<std::endl;
@@ -295,8 +390,8 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                     // dphi_dn(local_dof_indices[j]) =
                     // normals_sys_solution(local_dof_indices[j]);
                     Vector<double> imposed_pot_grad(dim);
-                    wind.vector_value(support_points[local_dof_indices[j]],
-                                      imposed_pot_grad);
+                    get_wind().vector_value(
+                      support_points[local_dof_indices[j]], imposed_pot_grad);
                     // Point<dim> imposed_potential_gradient;
                     double tmp_dphi_dn = 0;
                     double normy       = 0;
@@ -322,20 +417,21 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                         // Assert(support_points[local_dof_indices[j]]==vec_support_points[vec_index],
                         // ExcMessage("the support points of dh and gradient_dh
                         // are different"));
-                        tmp_dphi_dn += imposed_pot_grad[d] *
-                                       bem.vector_normals_solution[vec_index];
-                        normy += bem.vector_normals_solution[vec_index] *
-                                 bem.vector_normals_solution[vec_index];
+                        tmp_dphi_dn +=
+                          imposed_pot_grad[d] *
+                          bem.get_vector_normals_solution()[vec_index];
+                        normy += bem.get_vector_normals_solution()[vec_index] *
+                                 bem.get_vector_normals_solution()[vec_index];
                       }
                     // Assert(std::fabs(normy-1.)<tol, ExcMessage("you are using
                     // wrongly the normal vector"));
-                    tmp_rhs(local_dof_indices[j]) = tmp_dphi_dn;
-                    dphi_dn(local_dof_indices[j]) = tmp_dphi_dn;
+                    tmp_rhs(local_dof_indices[j])       = tmp_dphi_dn;
+                    get_dphi_dn()(local_dof_indices[j]) = tmp_dphi_dn;
                   }
                 else
                   {
-                    tmp_rhs(local_dof_indices[j]) = 0;
-                    dphi_dn(local_dof_indices[j]) = 0;
+                    tmp_rhs(local_dof_indices[j])       = 0;
+                    get_dphi_dn()(local_dof_indices[j]) = 0;
                   }
               }
           }
@@ -349,13 +445,12 @@ BoundaryConditions<dim>::compute_errors()
   Teuchos::TimeMonitor LocalTimer(*ErrorsTime);
 
   // We still need to communicate our results to compute the errors.
-  bem.compute_gradients(phi, dphi_dn);
-  // bem.compute_gradients_hypersingular(phi, dphi_dn);
+  bem.compute_gradients(get_phi(), get_dphi_dn());
   Vector<double> localized_gradient_solution(
-    bem.vector_gradients_solution); // vector_gradients_solution
-  Vector<double> localized_phi(phi);
-  Vector<double> localized_dphi_dn(dphi_dn);
-  Vector<double> localised_normals(bem.vector_normals_solution);
+    bem.get_vector_gradients_solution()); // vector_gradients_solution
+  Vector<double> localized_phi(get_phi());
+  Vector<double> localized_dphi_dn(get_dphi_dn());
+  Vector<double> localised_normals(bem.get_vector_normals_solution());
   // Vector<double> localised_alpha(bem.alpha);
   // We let only the first processor do the error computations
   if (this_mpi_process == 0)
@@ -405,7 +500,7 @@ BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.dh,
                                         localized_phi,
-                                        potential,
+                                        get_potential(),
                                         difference_per_cell,
                                         QGauss<(dim - 1)>(
                                           2 * (2 * bem.fe->degree + 1)),
@@ -417,7 +512,7 @@ BoundaryConditions<dim>::compute_errors()
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.gradient_dh,
                                         localized_gradient_solution,
-                                        wind,
+                                        get_wind(),
                                         grad_difference_per_cell,
                                         QGauss<(dim - 1)>(
                                           2 * (2 * bem.fe->degree + 1)),
@@ -430,7 +525,7 @@ BoundaryConditions<dim>::compute_errors()
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double>> grads_nodes_errs(bem.dh.n_dofs(),
                                                    Vector<double>(dim));
-      wind.vector_value_list(support_points, grads_nodes_errs);
+      get_wind().vector_value_list(support_points, grads_nodes_errs);
       for (types::global_dof_index d = 0; d < dim; ++d)
         for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
           vector_gradients_node_error(
@@ -441,7 +536,7 @@ BoundaryConditions<dim>::compute_errors()
 
       Vector<double>      phi_node_error(bem.dh.n_dofs());
       std::vector<double> phi_nodes_errs(bem.dh.n_dofs());
-      potential.value_list(support_points, phi_nodes_errs);
+      get_potential().value_list(support_points, phi_nodes_errs);
       for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
         phi_node_error(i) = phi_nodes_errs[i];
 
@@ -451,7 +546,7 @@ BoundaryConditions<dim>::compute_errors()
       Vector<double>              dphi_dn_node_error(bem.dh.n_dofs());
       std::vector<Vector<double>> dphi_dn_nodes_errs(bem.dh.n_dofs(),
                                                      Vector<double>(dim));
-      wind.vector_value_list(support_points, dphi_dn_nodes_errs);
+      get_wind().vector_value_list(support_points, dphi_dn_nodes_errs);
       dphi_dn_node_error = 0.;
       for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
         {
@@ -546,16 +641,37 @@ void
 BoundaryConditions<dim>::output_results(const std::string filename)
 {
   Teuchos::TimeMonitor LocalTimer(*OutputTimer);
+  // At the time being the output is not running in parallel with saks
+  // const Vector<double> localized_phi (get_phi());
+  // const Vector<double> localized_dphi_dn (get_dphi_dn());
+  // const Vector<double> localized_alpha (bem.alpha);
+  // const Vector<double> localized_gradients
+  // (bem.get_vector_gradients_solution()); const Vector<double>
+  // localized_normals (bem.get_vector_normals_solution());
+  //
+  // if(this_mpi_process == 0)
+  // {
+  //   data_out_scalar.prepare_data_output(bem.dh);
+  //   data_out_scalar.add_data_vector (localized_phi, "phi");
+  //   data_out_scalar.add_data_vector (localized_dphi_dn, "dphidn");
+  //   data_out_scalar.add_data_vector (localized_alpha, "alpha");
+  //   data_out_scalar.write_data_and_clear("", bem.mapping);
+  //
+  //   data_out_vector.prepare_data_output(bem.gradient_dh);
+  //   data_out_vector.add_data_vector (localized_gradients, "gradient");
+  //   data_out_vector.add_data_vector (localized_normals, "normal");
+  //   data_out_vector.write_data_and_clear("", bem.mapping);
+  // }
 
   // Even for the output we need to serialize the code and then perform the
   // output only on the first processor.
-  const Vector<double> localized_phi(phi);
-  const Vector<double> localized_dphi_dn(dphi_dn);
+  const Vector<double> localized_phi(get_phi());
+  const Vector<double> localized_dphi_dn(get_dphi_dn());
   const Vector<double> localized_alpha(bem.alpha);
-  const Vector<double> localized_gradients(bem.vector_gradients_solution);
+  const Vector<double> localized_gradients(bem.get_vector_gradients_solution());
   const Vector<double> localized_surf_gradients(
-    bem.vector_surface_gradients_solution);
-  const Vector<double> localized_normals(bem.vector_normals_solution);
+    bem.get_vector_surface_gradients_solution());
+  const Vector<double> localized_normals(bem.get_vector_normals_solution());
   // localized_dphi_dn.print(std::cout);
   // localized_phi.print(std::cout);
   if (this_mpi_process == 0)

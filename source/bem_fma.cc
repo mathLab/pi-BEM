@@ -13,17 +13,18 @@ using Teuchos::TimeMonitor;
 using namespace tbb;
 
 RCP<Time> MatrVec =
-  Teuchos::TimeMonitor::getNewTimer("Multipole MatrVec Products Time");
+  Teuchos::TimeMonitor::getNewCounter("Multipole MatrVec Products Time");
 RCP<Time> MultGen =
-  Teuchos::TimeMonitor::getNewTimer("Multipole Generation Time");
+  Teuchos::TimeMonitor::getNewCounter("Multipole Generation Time");
 RCP<Time> MultInt =
-  Teuchos::TimeMonitor::getNewTimer("Multipole Integral Time");
+  Teuchos::TimeMonitor::getNewCounter("Multipole Integral Time");
 RCP<Time> ListCreat =
-  Teuchos::TimeMonitor::getNewTimer("Octree Generation Time");
-RCP<Time> DirInt = Teuchos::TimeMonitor::getNewTimer("Direct Integral Time");
+  Teuchos::TimeMonitor::getNewCounter("Octree Generation Time");
+RCP<Time> DirInt = Teuchos::TimeMonitor::getNewCounter("Direct Integral Time");
 RCP<Time> PrecondTime =
-  Teuchos::TimeMonitor::getNewTimer("FMA_preconditioner Time");
-RCP<Time> LocEval = Teuchos::TimeMonitor::getNewTimer("Local Evaluation Time");
+  Teuchos::TimeMonitor::getNewCounter("FMA_preconditioner Time");
+RCP<Time> LocEval =
+  Teuchos::TimeMonitor::getNewCounter("Local Evaluation Time");
 
 template <int dim>
 BEMFMA<dim>::BEMFMA(MPI_Comm mpi_commy)
@@ -2704,6 +2705,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
                            &(dummy_fma->assLegFunction));
       blockLocalExpansionKer1 = dummy;
       blockLocalExpansionKer2 = dummy;
+
+      localTimeEvalNumCalls = 0;
     };
 
     // The working copy constructor for the copy structure
@@ -2712,6 +2715,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
       blockLocalExpansionKer1 = in_vec.blockLocalExpansionKer1;
       blockLocalExpansionKer2 = in_vec.blockLocalExpansionKer2;
       start                   = in_vec.start;
+
+      localTimeEvalNumCalls = in_vec.localTimeEvalNumCalls;
     };
 
     // The Destructor needs to make foo_fma to point to NULL (for this reason it
@@ -2725,6 +2730,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
     Vector<double>                       matrVectorProductContributionKer1;
     Vector<double>                       matrVectorProductContributionKer2;
     std::vector<types::global_dof_index> nodesBlk1Ids;
+
+    int localTimeEvalNumCalls;
   };
 
 
@@ -2869,7 +2876,10 @@ BEMFMA<dim>::multipole_matr_vect_products(
                 types::global_dof_index block2Id = *pos1;
                 // std::vector <cell_it> elemBlk2Ids =
                 // block2.GetBlockElementsList();
-                Teuchos::TimeMonitor LocalTimer(*LocEval);
+
+                // TODO: restore functionality without forcing thread safety
+                // Teuchos::TimeMonitor LocalTimer(*LocEval);
+                copy_data.localTimeEvalNumCalls++;
 
                 for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size();
                      ii++) // loop over each node of (*block_it)
@@ -2913,24 +2923,29 @@ BEMFMA<dim>::multipole_matr_vect_products(
     // 1)<<" "<<copy_data.blockLocalExpansionKer2.GetCoeff(5, 1)<<std::endl;
   };
 
+  int localTimeEvalNumCalls = 0;
   // The copier function, it copies the value from the local array to the parent
   // blocks and it fills the actual parallel vector of the matrix vector
   // products.
-  auto f_copier_Descend = [this, &matrVectProdD, &matrVectProdN](
-                            const DescendCopyData &copy_data) {
-    this->blockLocalExpansionsKer1.at(copy_data.blockId)
-      .Add(copy_data.blockLocalExpansionKer1);
-    this->blockLocalExpansionsKer2.at(copy_data.blockId)
-      .Add(copy_data.blockLocalExpansionKer2);
+  auto f_copier_Descend =
+    [this, &matrVectProdD, &matrVectProdN, &localTimeEvalNumCalls](
+      const DescendCopyData &copy_data) {
+      this->blockLocalExpansionsKer1.at(copy_data.blockId)
+        .Add(copy_data.blockLocalExpansionKer1);
+      this->blockLocalExpansionsKer2.at(copy_data.blockId)
+        .Add(copy_data.blockLocalExpansionKer2);
 
-    for (types::global_dof_index i = 0; i < copy_data.nodesBlk1Ids.size(); ++i)
-      {
-        matrVectProdD(copy_data.nodesBlk1Ids[i]) +=
-          copy_data.matrVectorProductContributionKer2(i);
-        matrVectProdN(copy_data.nodesBlk1Ids[i]) +=
-          copy_data.matrVectorProductContributionKer1(i);
-      }
-  };
+      for (types::global_dof_index i = 0; i < copy_data.nodesBlk1Ids.size();
+           ++i)
+        {
+          matrVectProdD(copy_data.nodesBlk1Ids[i]) +=
+            copy_data.matrVectorProductContributionKer2(i);
+          matrVectProdN(copy_data.nodesBlk1Ids[i]) +=
+            copy_data.matrVectorProductContributionKer1(i);
+        }
+
+      localTimeEvalNumCalls += copy_data.localTimeEvalNumCalls;
+    };
   // so, here we loop over levels, starting form lower levels (bigger blocks)
   for (unsigned int level = 1; level < num_octree_levels + 1; level++)
     {
@@ -2953,16 +2968,23 @@ BEMFMA<dim>::multipole_matr_vect_products(
       // level. Then it basically performs a loop over all the blocks in the
       // current level.
       if (endBlockLevel >= startBlockLevel)
-        WorkStream::run(dofs_filled_blocks[level].begin(),
-                        dofs_filled_blocks[level].end(),
-                        std::bind(f_worker_Descend,
-                                  std::placeholders::_1,
-                                  std::placeholders::_2,
-                                  std::placeholders::_3,
-                                  startBlockLevel),
-                        f_copier_Descend,
-                        sample_scratch,
-                        sample_copy);
+        {
+          Teuchos::TimeMonitor LocalTimer(*LocEval);
+          WorkStream::run(dofs_filled_blocks[level].begin(),
+                          dofs_filled_blocks[level].end(),
+                          std::bind(f_worker_Descend,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3,
+                                    startBlockLevel),
+                          f_copier_Descend,
+                          sample_scratch,
+                          sample_copy);
+        }
+      for (auto i = 0; i < localTimeEvalNumCalls; ++i)
+        {
+          LocEval->incrementNumCalls();
+        }
     }
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////

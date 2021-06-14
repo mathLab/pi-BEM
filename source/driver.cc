@@ -120,20 +120,17 @@ Driver<dim>::run()
         {
           Teuchos::TimeMonitor LocalTimer(*SolveTime);
           bem_problem.reinit();
-          // std::cout << "before boundary_conditions.solve_problem();"
-          //          << std::endl;
+          MPI_Barrier(MPI_COMM_WORLD);
           boundary_conditions.solve_problem();
-          // std::cout << "after boundary_conditions.solve_problem();"
-          //          << std::endl;
 
           // other components: does not neeed to call reinit(), as it's "just"
           // sparsity patterns
-          for (types::global_dof_index i = 1;
-               i < boundary_conditions.n_phi_components();
+          for (unsigned int i = 1; i < boundary_conditions.n_phi_components();
                ++i)
             {
               std::cout << "solving for component " << i + 1 << std::endl;
               boundary_conditions.set_current_phi_component(i);
+              MPI_Barrier(MPI_COMM_WORLD);
               boundary_conditions.solve_problem(false);
             }
           boundary_conditions.set_current_phi_component(0);
@@ -142,14 +139,26 @@ Driver<dim>::run()
           {
             // Compute error estimator and local refinement strategy
             // TODO: for the moment, ignore phi's components
+            MPI_Barrier(MPI_COMM_WORLD);
             bem_problem.adaptive_refinement(boundary_conditions.get_phi());
             computational_domain.update_triangulation();
           }
       }
+    for (unsigned int i = 0; i < boundary_conditions.n_phi_components(); ++i)
+      {
+        std::cout << "output component " << i + 1 << std::endl;
 
-    std::string filename = (boundary_conditions.output_file_name);
-    boundary_conditions.compute_errors();
-    boundary_conditions.output_results(filename);
+        std::string filename = boundary_conditions.output_file_name;
+        if (i)
+          {
+            filename += "_" + Utilities::int_to_string(i + 1);
+          }
+        boundary_conditions.set_current_phi_component(i);
+        MPI_Barrier(MPI_COMM_WORLD);
+        boundary_conditions.compute_errors();
+        boundary_conditions.output_results(filename);
+      }
+    boundary_conditions.set_current_phi_component(0);
     // }
   }
   // Write a summary of all timers

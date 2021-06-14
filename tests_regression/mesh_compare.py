@@ -55,6 +55,11 @@ if ok:
         resort1 = list(i for p, i in sorted([(tuple(mesh1.points[i, :]), i) for i in range(mesh0.points.shape[0])]))
         
         diff = np.empty((mesh0.point_data[k].shape[0]), dtype=np.float64)
+        if len(mesh0.point_data[k].shape) > 1 and mesh0.point_data[k].shape[1] > 1:
+            print(f"key {k} is vector-valued")
+            v0 = mesh0.point_data[k][resort0[0]]
+            #print(f"{v0} is an example of value")
+            
         for i in range(mesh0.point_data[k].shape[0]):
             v0 = mesh0.point_data[k][resort0[i]]
             v1 = mesh1.point_data[k][resort1[i]]

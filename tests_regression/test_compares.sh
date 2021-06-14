@@ -8,7 +8,7 @@ do
     do
         for np in 2 4
         do
-            for type in result_scalar_results #result_vector_results #scalar_error vector_error
+            for type in result_scalar_results result_vector_results #scalar_error vector_error
             do
                 python mesh_compare.py ref_${type}_f${func}_${mode}.vtu reg_np${np}_${type}_f${func}_${mode}.vtu ${atol}
                 echo

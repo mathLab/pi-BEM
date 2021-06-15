@@ -17,7 +17,6 @@ cmake --build . -j4
 #-- basic 2-component phi, (v1, v2)
 
 tbb_nthreads=1
-export OMP_NUM_THREADS=${tbb_nthreads}
 
 echo "reference problems (np=1 fixed)"
 #generate the baseline - this should be skipped if ref* files are already present
@@ -35,6 +34,7 @@ do
             if [ ! -f "${startdir}/ref_f${func}_${mode}_log.log" ]
             then
                 echo "reference problem ${func} - np ${np} - ${mode}"
+                export OMP_NUM_THREADS=${tbb_nthreads}
                 perf stat --detailed mpirun --np ${np} --map-by node:PE=1 --bind-to none bem_fma_3d ${tbb_nthreads} > log 2>&1
                 
                 result=${?}
@@ -75,6 +75,7 @@ do
         for np in 2 4
         do 
             echo "regression problem ${func} - np ${np} - ${mode}"
+            export OMP_NUM_THREADS=${tbb_nthreads}
             perf stat --detailed mpirun --np ${np} --map-by node:PE=1 --bind-to none bem_fma_3d ${tbb_nthreads} > log 2>&1
 
             result=${?}
@@ -109,6 +110,7 @@ do
     for np in 1 2 4
     do 
         echo "complex problem - np ${np} - ${mode}"
+        export OMP_NUM_THREADS=${tbb_nthreads}
 	    perf stat --detailed mpirun --np ${np} --map-by node:PE=1 --bind-to none bem_fma_3d ${tbb_nthreads} > log 2>&1
 
         result=${?}

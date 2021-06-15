@@ -3,6 +3,7 @@
 spack env activate wass
 
 startdir=$(pwd)
+cooldown=60
 
 cd ..
 mkdir -p build
@@ -31,7 +32,7 @@ do
         #references should be for np=1; np>1 are regressions
         for np in 1
         do
-            if [ ! -f "${startdir}/ref_f${func}_${mode}_log.log" ]
+            if [ ! -f "${startdir}/ref_f${func}_${mode}.log" ]
             then
                 echo "reference problem ${func} - np ${np} - ${mode}"
                 export OMP_NUM_THREADS=${tbb_nthreads}
@@ -49,18 +50,20 @@ do
                         meshio-info ${startdir}/ref_${fn}_f${func}_${mode}.vtu
                     done
                     
-                    #awk, grep or cp from log to the startdir for the info we're interested in
-                    cp log ${startdir}/ref_f${func}_${mode}_log.log
+                    #the first is for simple reading, the one appending is for python mega pandas dataframing
+                    cp log ${startdir}/ref_f${func}_${mode}.log
+                    cat log >> ${startdir}/ref_f${func}_${mode}_log.log
                 else
                     echo "error during reference problem ${func} - np ${np} - ${mode}"
                 fi
                 echo
+                sleep ${cooldown}
             fi
         done
     done
 done
 
-#exit 0
+exit 0
 
 #solve the simple problem instances with multiple mpi procs
 #logs are saved as reg_*
@@ -90,12 +93,14 @@ do
                     meshio-info ${startdir}/reg_np${np}_${fn}_f${func}_${mode}.vtu
                 done
                 
-                #awk, grep or cp from log to the startdir for the info we're interested in
-                cp log ${startdir}/reg_np${np}_f${func}_${mode}_log.log
+                #the first is for simple reading, the one appending is for python mega pandas dataframing
+                cp log ${startdir}/reg_np${np}_f${func}_${mode}.log
+                cat log >> ${startdir}/reg_np${np}_f${func}_${mode}_log.log
             else
                 echo "error during regression problem ${func} - np ${np} - ${mode}"
             fi
             echo
+            sleep ${cooldown}
         done
     done
 done
@@ -138,54 +143,18 @@ do
                 done
             done
             
-            #awk, grep or cp from log to the startdir for the info we're interested in
-            cp log ${startdir}/reg_np${np}_complex_${mode}_log.log
+            #the first is for simple reading, the one appending is for python mega pandas dataframing
+            cp log ${startdir}/reg_np${np}_complex_${mode}.log
+            cat log >> ${startdir}/reg_np${np}_complex_${mode}_log.log
         else
             echo "error during complex problem - np ${np} - ${mode}"
         fi
         echo
+        sleep ${cooldown}
     done
 done
 
 #exit 0
 
 cd ${startdir}
-#do the comparison - loop on np
-#python mesh_compare.py ref_result_scalar_results_f1_direct.vtu ref_result_scalar_results_f1_fma.vtu 0.005
-#python mesh_compare.py ref_result_scalar_results_f1_direct.vtu reg_np1_result_scalar_results_complex_f1_direct.vtu 0.005
-#python mesh_compare.py ref_result_scalar_results_f2_direct.vtu reg_np1_result_scalar_results_complex_f2_direct.vtu 0.005
-#python mesh_compare.py ref_result_scalar_results_f1_direct.vtu reg_np1_result_scalar_results_complex_f1_fma.vtu 0.005
-#python mesh_compare.py ref_result_scalar_results_f2_direct.vtu reg_np1_result_scalar_results_complex_f2_fma.vtu 0.005
-#python mesh_compare.py ref_result_scalar_results_f1_fma.vtu reg_np1_result_scalar_results_complex_f1_direct.vtu 0.005
-#python mesh_compare.py ref_result_scalar_results_f2_fma.vtu reg_np1_result_scalar_results_complex_f2_direct.vtu 0.005
-
-atol=0.005
-echo "regressions instances"
-for mode in direct fma
-do
-    for func in 1 2
-    do
-        for np in 2 4
-        do
-            for type in result_scalar_results result_vector_results #scalar_error vector_error
-            do
-                python mesh_compare.py ref_${type}_f${func}_${mode}.vtu reg_np${np}_${type}_f${func}_${mode}.vtu ${atol}
-            done
-        done
-    done
-done
-
-echo "complex instances"
-for mode in direct fma
-do
-    for func in 1 2
-    do
-        for np in 1 2 4
-        do
-            for type in result_scalar_results result_vector_results #scalar_error vector_error
-            do
-                python mesh_compare.py ref_${type}_f${func}_${mode}.vtu reg_np${np}_${type}_complex_f${func}_${mode}.vtu ${atol}
-            done
-        done
-    done
-done
+./test_compares.sh

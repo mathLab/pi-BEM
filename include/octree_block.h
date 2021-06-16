@@ -1,4 +1,3 @@
-
 // ---------------------------------------------------------------------
 //
 // Copyright (C) 2014 - 2020 by the pi-BEM authors.
@@ -24,6 +23,17 @@
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/utilities.h>
 
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_q1_eulerian.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
@@ -37,32 +47,17 @@
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/vector.h>
-// #include <deal.II/grid/tria_boundary_lib.h>
-
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/mapping_q1.h>
-#include <deal.II/fe/mapping_q1_eulerian.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-// And here are a few C++ standard header
-// files that we will need:
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <set>
 #include <string>
-
 
 using namespace dealii;
 
@@ -71,7 +66,6 @@ class OctreeBlock
 {
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
-
 
 private:
   unsigned int level;
@@ -95,7 +89,6 @@ private:
   std::vector<types::global_dof_index> nodesId;
 
   std::map<cell_it, std::vector<types::global_dof_index>> quadPointsId;
-
 
 public:
   OctreeBlock();
@@ -204,6 +197,5 @@ public:
   types::global_dof_index
   GetNonIntListSize() const;
 };
-
 
 #endif

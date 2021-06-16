@@ -104,6 +104,7 @@
 // And here are a few C++ standard header
 // files that we will need:
 
+
 #include <mpi.h>
 
 #include <cmath>

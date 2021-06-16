@@ -27,7 +27,6 @@
 
 using namespace dealii;
 
-
 class MultipoleExpansion
 {
 public:
@@ -43,8 +42,6 @@ private:
   mutable const AssLegFunction *assLegFunction;
 
   mutable std::complex<double> *_M_n_m;
-
-
 
 public:
   MultipoleExpansion();
@@ -119,25 +116,26 @@ public:
   MultipoleExpansion &
   operator=(const MultipoleExpansion &other);
 
-
   static FullMatrix<double>
   A_n_m_Matrix(unsigned int dim)
   {
     FullMatrix<double> A_n_m(dim + 1, dim + 1);
     for (unsigned int n = 0; n < dim + 1; n++)
-
       {
         for (unsigned int m = 0; m < n + 1; m++)
-
           {
             double f1 = 1.;
             double f2 = 1.;
 
             for (int ii = n - m; ii > 0; ii--)
-              f1 *= ii;
+              {
+                f1 *= ii;
+              }
 
             for (int ii = n + m; ii > 0; ii--)
-              f2 *= (ii);
+              {
+                f2 *= (ii);
+              }
 
             A_n_m(n, m) = pow(-1., double(n)) / sqrt(f1 * f2);
           }
@@ -146,7 +144,4 @@ public:
     return A_n_m;
   }
 };
-
-
-
 #endif /*MULTIPOLE_EXPANSION_H_*/

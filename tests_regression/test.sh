@@ -35,7 +35,7 @@ do
         do
             if [ ! -f "${startdir}/ref_f${func}_${mode}.log" ]
             then
-                echo "reference problem ${func} - np ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+                echo "reference problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
                 export OMP_NUM_THREADS=${nthreads}
                 perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
                 
@@ -55,7 +55,7 @@ do
                     cp log ${startdir}/ref_f${func}_${mode}.log
                     cat log >> ${startdir}/ref_f${func}_${mode}_log.log
                 else
-                    echo "error during reference problem ${func} - np ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+                    echo "error during reference problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
                 fi
                 echo
                 sleep ${cooldown}
@@ -78,7 +78,7 @@ do
         #references should be for np=1; np>1 are regressions
         for nprocs in 2 4
         do 
-            echo "regression problem ${func} - np ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+            echo "regression problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
             export OMP_NUM_THREADS=${nthreads}
             perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
 
@@ -98,7 +98,7 @@ do
                 cp log ${startdir}/reg_np${nprocs}_nt${nthreads}_f${func}_${mode}.log
                 cat log >> ${startdir}/reg_np${nprocs}_nt${nthreads}_f${func}_${mode}_log.log
             else
-                echo "error during regression problem ${func} - np ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+                echo "error during regression problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
             fi
             echo
             sleep ${cooldown}
@@ -115,7 +115,7 @@ do
 
     for nprocs in 1 2 4
     do 
-        echo "complex problem - np ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+        echo "complex problem - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
         export OMP_NUM_THREADS=${nthreads}
 	    perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
 
@@ -148,7 +148,7 @@ do
             cp log ${startdir}/reg_np${nprocs}_nt${nthreads}_complex_${mode}.log
             cat log >> ${startdir}/reg_np${nprocs}_nt${nthreads}_complex_${mode}_log.log
         else
-            echo "error during complex problem - np ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+            echo "error during complex problem - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
         fi
         echo
         sleep ${cooldown}

@@ -76,5 +76,7 @@ if ok:
             print(f"total different {k}-values (sorted): {cnt} out of {mesh0.point_data[k].shape[0]}")
             if abs(np.var(diff)) < atol:
                 print(f"variance of difference is negligible, mean is {np.mean(diff)}")
+            else:
+                print(f"variance of difference is {np.var(diff)}, mean is {np.mean(diff)}")
         else:
             print(f"no different {k}-values (sorted)")

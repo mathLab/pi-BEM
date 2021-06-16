@@ -9,9 +9,13 @@ main(int argc, char *argv[])
     {
       unsigned int threads;
       if (argc == 1)
-        threads = numbers::invalid_unsigned_int;
+        {
+          threads = numbers::invalid_unsigned_int;
+        }
       else
-        threads = atoi(argv[1]);
+        {
+          threads = atoi(argv[1]);
+        }
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, threads);
 
       std::string pname =

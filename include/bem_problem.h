@@ -20,7 +20,6 @@
 // of include files that we will use in the
 // various parts of the program.
 
-
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/parameter_acceptor.h>
@@ -31,8 +30,27 @@
 #include <deal.II/base/types.h>
 #include <deal.II/base/utilities.h>
 
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/dofs/dof_tools.h>
+
 #include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_tools.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_q1_eulerian.h>
+
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/manifold_lib.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
 
 #include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
@@ -48,6 +66,7 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 #include <deal.II/lac/vector.h>
+
 
 // #include <deal.II/lac/petsc_vector.h>
 // #include <deal.II/lac/petsc_parallel_vector.h>
@@ -77,11 +96,10 @@
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
 
+
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
-
-
 
 // And here are a few C++ standard header
 // files that we will need:
@@ -104,9 +122,6 @@
 #include "../include/octree_block.h"
 
 using namespace dealii;
-
-// using namespace TrilinosWrappers;
-// using namespace TrilinosWrappers::MPI;
 
 /**
  * - BEMProblem. This class is the core of the BEM simulation
@@ -191,7 +206,6 @@ public:
   void
   assemble_system();
 
-
   /// The next three methods are
   /// needed by the GMRES solver:
   /// the first provides result of
@@ -207,7 +221,6 @@ public:
   /// The second method computes the
   /// right hand side vector of the
   /// system.
-
   void
   compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
               const TrilinosWrappers::MPI::Vector &src) const;
@@ -277,7 +290,6 @@ public:
   void
   compute_dirichlet_and_neumann_dofs_vectors();
 
-
   /// in the imported mesh, the nodes on the
   /// domain edges are doubled: this routine
   /// creates a std::vector of std::set which
@@ -330,10 +342,6 @@ public:
   }
 
   // accessors to wrap the solution Vectors; non-const&, open borders
-  // std::vector<TrilinosWrappers::MPI::Vector> vector_gradients_solutions;
-  // std::vector<TrilinosWrappers::MPI::Vector>
-  // vector_surface_gradients_solutions;
-  // std::vector<TrilinosWrappers::MPI::Vector> vector_normals_solutions;
   TrilinosWrappers::MPI::Vector &
   get_vector_gradients_solution()
   {
@@ -379,26 +387,42 @@ public:
   ConditionalOStream        pcout;
   ComputationalDomain<dim> &comp_dom;
 
+<<<<<<< HEAD
   std::string                                  scalar_fe_type, vector_fe_type;
   unsigned int                                 scalar_fe_order, vector_fe_order;
+=======
+  ParsedFiniteElement<dim - 1, dim>            parsed_fe;
+  ParsedFiniteElement<dim - 1, dim>            parsed_gradient_fe;
+>>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
   std::unique_ptr<FiniteElement<dim - 1, dim>> fe;
   std::unique_ptr<FiniteElement<dim - 1, dim>> gradient_fe;
   DoFHandler<dim - 1, dim>                     dh;
   DoFHandler<dim - 1, dim>                     gradient_dh;
 
+<<<<<<< HEAD
   // FE_Q<dim-1,dim>                   fe;
   // FESystem<dim-1,dim>      gradient_fe;
 
   double refinement_threshold, coarsening_threshold;
+=======
+  ParsedGridRefinement pgr;
+>>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
 
   /// An Eulerian Mapping is created to deal
   /// with the free surface and boat mesh
   /// deformation
+<<<<<<< HEAD
 
   Vector<double>                         map_vector;
   std::shared_ptr<Mapping<dim - 1, dim>> mapping;
   unsigned int                           mapping_degree;
   Vector<double>                         map_points;
+=======
+  Vector<double>                    map_vector;
+  shared_ptr<Mapping<dim - 1, dim>> mapping;
+  unsigned int                      mapping_degree;
+  Vector<double>                    map_points;
+>>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
 
 
   /// these are the std::vectors of std::sets
@@ -409,11 +433,8 @@ public:
   /// function, and one is created for the
   /// points associated with the degrees of
   /// freedom of its gradient (a vector field)
-
   std::vector<std::set<types::global_dof_index>> double_nodes_set;
   std::vector<std::set<types::global_dof_index>> gradient_double_nodes_set;
-
-
 
   std::shared_ptr<Quadrature<dim - 1>> quadrature;
   unsigned int                         quadrature_order;
@@ -422,7 +443,6 @@ public:
   /// and singular kernel quadrature to be
   /// used
   unsigned int singular_quadrature_order;
-
 
   TrilinosWrappers::SparsityPattern full_sparsity_pattern;
   TrilinosWrappers::SparseMatrix    neumann_matrix;
@@ -488,8 +508,6 @@ public:
   /// for Neumann nodes
   TrilinosWrappers::MPI::Vector neumann_nodes;
 
-
-
   /// The IndexSet for the problem without considering any ghost element for the
   /// scalar FE
   IndexSet this_cpu_set;
@@ -505,9 +523,6 @@ public:
   IndexSet edge_set;
 
   // vectorize to support multiple phi components
-  // TrilinosWrappers::MPI::Vector vector_gradients_solution;
-  // TrilinosWrappers::MPI::Vector vector_surface_gradients_solution;
-  // TrilinosWrappers::MPI::Vector vector_normals_solution;
   std::vector<TrilinosWrappers::MPI::Vector> vector_gradients_solutions;
   std::vector<TrilinosWrappers::MPI::Vector> vector_surface_gradients_solutions;
   std::vector<TrilinosWrappers::MPI::Vector> vector_normals_solutions;
@@ -532,5 +547,4 @@ public:
 
   BEMFMA<dim> fma;
 };
-
 #endif

@@ -102,7 +102,7 @@ OctreeBlock<dim>::AddQuadPoint(cell_it                 elemPointer,
 
 
 template <int dim>
-inline std::vector<types::global_dof_index>
+inline const std::vector<types::global_dof_index> &
 OctreeBlock<dim>::GetBlockNodeList() const
 {
   return this->nodesId;
@@ -118,8 +118,8 @@ OctreeBlock<dim>::DelNodeList()
 
 
 template <int dim>
-inline std::map<typename DoFHandler<dim - 1, dim>::active_cell_iterator,
-                std::vector<types::global_dof_index>>
+inline const std::map<typename DoFHandler<dim - 1, dim>::active_cell_iterator,
+                      std::vector<types::global_dof_index>> &
 OctreeBlock<dim>::GetBlockQuadPointsList() const
 {
   return this->quadPointsId;
@@ -217,7 +217,7 @@ OctreeBlock<dim>::NumNearNeighLevels() const
 
 
 template <int dim>
-inline std::set<types::global_dof_index>
+inline const std::set<types::global_dof_index> &
 OctreeBlock<dim>::GetNearNeighs(unsigned int sublevel) const
 {
   return this->nearNeigh.at(sublevel);
@@ -243,7 +243,7 @@ OctreeBlock<dim>::NumIntList(unsigned int sublevel) const
 
 
 template <int dim>
-inline std::set<types::global_dof_index>
+inline const std::set<types::global_dof_index> &
 OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
 {
   return this->intList.at(sublevel);
@@ -251,7 +251,7 @@ OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
 
 
 template <int dim>
-inline std::vector<std::set<types::global_dof_index>>
+inline const std::vector<std::set<types::global_dof_index>> &
 OctreeBlock<dim>::GetIntList() const
 {
   return this->intList;
@@ -277,7 +277,7 @@ OctreeBlock<dim>::NumNonIntList(unsigned int sublevel) const
 
 
 template <int dim>
-inline std::set<types::global_dof_index>
+inline const std::set<types::global_dof_index> &
 OctreeBlock<dim>::GetNonIntList(unsigned int sublevel) const
 {
   return this->nonIntList.at(sublevel);
@@ -330,7 +330,6 @@ OctreeBlock<dim>::GetNonIntListSize() const
 {
   return this->nonIntList.size();
 }
-
 
 template class OctreeBlock<2>;
 template class OctreeBlock<3>;

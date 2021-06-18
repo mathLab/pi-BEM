@@ -1,6 +1,6 @@
 #!/bin/bash
 
-atol=0.005
+atol=0.00001
 echo "regressions instances"
 for mode in direct fma
 do

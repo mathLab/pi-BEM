@@ -143,6 +143,8 @@ BEMFMA<dim>::direct_integrals()
   // We compute a vector containing all the possible
   // singular quadratures. We need them to properly treat the direct
   // contributions among nodes on the same block.
+  // TODO: is this the same as BEMProblem::get_singular_quadrature()?
+  // potentially, there's a different dh
   std::vector<QTelles<dim - 1>> sing_quadratures;
   for (unsigned int i = 0; i < fma_dh->get_fe().dofs_per_cell; ++i)
     {
@@ -163,7 +165,6 @@ BEMFMA<dim>::direct_integrals()
   // operations
   Vector<double> local_neumann_matrix_row_i(fma_dh->get_fe().dofs_per_cell);
   Vector<double> local_dirichlet_matrix_row_i(fma_dh->get_fe().dofs_per_cell);
-
 
   // Now that we have checked that
   // the number of vertices is equal
@@ -257,8 +258,8 @@ BEMFMA<dim>::direct_integrals()
 
     OctreeBlock<dim> *block1 = this->blocks[blockId];
 
-    std::vector<types::global_dof_index> block1Nodes =
-      block1->GetBlockNodeList();
+    // std::vector<types::global_dof_index>
+    const auto &block1Nodes = block1->GetBlockNodeList();
 
     std::vector<types::global_dof_index> local_dof_indices(
       this->fma_dh->get_fe().dofs_per_cell);
@@ -271,8 +272,8 @@ BEMFMA<dim>::direct_integrals()
         // direct integrals)
 
         unsigned int intListSubLevs = block1->GetIntListSize();
-        const std::set<types::global_dof_index> &block1IntList =
-          block1->GetIntList(intListSubLevs - 1);
+        // std::set<types::global_dof_index>
+        const auto &block1IntList = block1->GetIntList(intListSubLevs - 1);
 
         // in this set we will put all the
         // dofs of the cell to whom
@@ -282,21 +283,16 @@ BEMFMA<dim>::direct_integrals()
 
         // start looping on the intList
         // blocks (block2 here)
-        for (std::set<types::global_dof_index>::iterator pos =
-               block1IntList.begin();
-             pos != block1IntList.end();
+        for (auto pos = block1IntList.begin(); pos != block1IntList.end();
              pos++)
           {
             OctreeBlock<dim> *block2 = this->blocks[*pos];
-            std::map<cell_it, std::vector<types::global_dof_index>>
-              blockQuadPointsList = block2->GetBlockQuadPointsList();
+            // std::map<cell_it, std::vector<types::global_dof_index>>
+            const auto &blockQuadPointsList = block2->GetBlockQuadPointsList();
 
             // get the list of quad points
             // in block2 and loop on it
-            typename std::map<cell_it,
-                              std::vector<types::global_dof_index>>::iterator
-              it;
-            for (it = blockQuadPointsList.begin();
+            for (auto it = blockQuadPointsList.begin();
                  it != blockQuadPointsList.end();
                  it++)
               {
@@ -328,14 +324,8 @@ BEMFMA<dim>::direct_integrals()
               {
                 copy_data.block_indices.push_back(block1Nodes[i]);
                 copy_data.col_indices.push_back(
-                  std::vector<types::global_dof_index>());
-                for (std::set<types::global_dof_index>::iterator pos =
-                       directNodes.begin();
-                     pos != directNodes.end();
-                     pos++)
-                  {
-                    copy_data.col_indices.back().push_back(*pos);
-                  }
+                  std::vector<types::global_dof_index>(directNodes.cbegin(),
+                                                       directNodes.cend()));
               }
           }
       }
@@ -347,10 +337,13 @@ BEMFMA<dim>::direct_integrals()
   auto f_init_prec_copier = [this](const InitPrecCopy &copy_data) {
     for (types::global_dof_index i = 0; i < copy_data.col_indices.size(); ++i)
       {
-        for (types::global_dof_index j = 0; j < copy_data.col_indices[i].size();
-             ++j)
-          this->init_prec_sparsity_pattern.add(copy_data.block_indices[i],
-                                               copy_data.col_indices[i][j]);
+        // TODO: use add_entries (const size_type row, ForwardIterator begin,
+        // ForwardIterator end, const bool indices_are_unique_and_sorted=false)
+        this->init_prec_sparsity_pattern.add_entries(
+          copy_data.block_indices[i],
+          copy_data.col_indices[i].begin(),
+          copy_data.col_indices[i].end(),
+          false);
       }
   };
 
@@ -391,8 +384,8 @@ BEMFMA<dim>::direct_integrals()
 
           OctreeBlock<dim> *block1 =
             this->blocks[this->dofs_filled_blocks[level][jj]];
-          const std::vector<types::global_dof_index> &nodesBlk1Ids =
-            block1->GetBlockNodeList();
+          // std::vector<types::global_dof_index>
+          const auto &nodesBlk1Ids = block1->GetBlockNodeList();
           std::vector<types::global_dof_index> local_dof_indices(
             this->fma_dh->get_fe().dofs_per_cell);
 
@@ -410,28 +403,25 @@ BEMFMA<dim>::direct_integrals()
                 {
                   // in this vectors we are saving the nodes needing direct
                   // integrals
-                  std::set<types::global_dof_index>        directNodes;
-                  const std::set<types::global_dof_index> &nonIntList =
-                    block1->GetNonIntList(subLevel);
+                  std::set<types::global_dof_index> directNodes;
+                  // std::set<types::global_dof_index>
+                  const auto &nonIntList = block1->GetNonIntList(subLevel);
 
                   // loop over well separated blocks of higher size (level): in
                   // this case we must use direct evaluation: for each block we
                   // get the quad points list
-                  for (std::set<types::global_dof_index>::iterator pos =
-                         nonIntList.begin();
+                  for (auto pos = nonIntList.begin();
                        pos != nonIntList.lower_bound(startBlockLevel);
                        pos++)
                     {
                       OctreeBlock<dim> *block2 = this->blocks[*pos];
-                      std::map<cell_it, std::vector<types::global_dof_index>>
-                        blockQuadPointsList = block2->GetBlockQuadPointsList();
+                      // std::map<cell_it, std::vector<types::global_dof_index>>
+                      const auto &blockQuadPointsList =
+                        block2->GetBlockQuadPointsList();
 
                       // we loop on the cells of the quad blocks (*it.first
                       // pointer) and put their dofs in the direct list
-                      typename std::map<
-                        cell_it,
-                        std::vector<types::global_dof_index>>::iterator it;
-                      for (it = blockQuadPointsList.begin();
+                      for (auto it = blockQuadPointsList.begin();
                            it != blockQuadPointsList.end();
                            it++)
                         {
@@ -455,14 +445,8 @@ BEMFMA<dim>::direct_integrals()
                         {
                           copy_data.block_indices.push_back(nodesBlk1Ids[i]);
                           copy_data.col_indices.push_back(
-                            std::vector<types::global_dof_index>());
-                          for (std::set<types::global_dof_index>::iterator pos =
-                                 directNodes.begin();
-                               pos != directNodes.end();
-                               pos++)
-                            {
-                              copy_data.col_indices.back().push_back(*pos);
-                            }
+                            std::vector<types::global_dof_index>(
+                              directNodes.begin(), directNodes.end()));
                         }
                     }
                 } // end loop over sublevels
@@ -488,6 +472,7 @@ BEMFMA<dim>::direct_integrals()
   double filling_percentage =
     double(init_prec_sparsity_pattern.n_nonzero_elements()) /
     double(fma_dh->n_dofs() * fma_dh->n_dofs()) * 100.;
+
   pcout << init_prec_sparsity_pattern.n_nonzero_elements()
         << " Nonzeros out of " << fma_dh->n_dofs() * fma_dh->n_dofs() << ":  "
         << filling_percentage << "%" << std::endl;
@@ -562,8 +547,8 @@ BEMFMA<dim>::direct_integrals()
       // and this is the block pointer
       OctreeBlock<dim> *block1 = this->blocks[blockId];
       // we get the block node list
-      const std::vector<types::global_dof_index> &block1Nodes =
-        block1->GetBlockNodeList();
+      // std::vector<types::global_dof_index>
+      const auto &block1Nodes = block1->GetBlockNodeList();
 
       // if a block has no nodes (if it only contains quad points), there is
       // nothing to do if instead there are nodes, we start integrating
@@ -578,35 +563,26 @@ BEMFMA<dim>::direct_integrals()
           // std::map of std::set of integers, meaning that to each cell, we
           // associate a std::set containing all the direct quad point ids
           unsigned int intListNumLevs = block1->GetIntListSize();
-          std::set<types::global_dof_index> block1IntList =
-            block1->GetIntList(intListNumLevs - 1);
+          // std::set<types::global_dof_index>
+          const auto &block1IntList = block1->GetIntList(intListNumLevs - 1);
 
           std::map<cell_it, std::set<types::global_dof_index>> directQuadPoints;
-          for (std::set<types::global_dof_index>::iterator pos =
-                 block1IntList.begin();
-               pos != block1IntList.end();
+          for (auto pos = block1IntList.begin(); pos != block1IntList.end();
                pos++)
             {
               // now for each block block2 we get the list of quad points
               OctreeBlock<dim> *block2 = this->blocks[*pos];
-              std::map<cell_it, std::vector<types::global_dof_index>>
-                blockQuadPointsList = block2->GetBlockQuadPointsList();
+              // std::map<cell_it, std::vector<types::global_dof_index>>
+              const auto &blockQuadPointsList =
+                block2->GetBlockQuadPointsList();
 
               // we now loop among the cells of the list and for each cell we
               // loop among its quad points, to copy them into the direct quad
               // points list
-              typename std::map<cell_it,
-                                std::vector<types::global_dof_index>>::iterator
-                it;
-              for (it = blockQuadPointsList.begin();
-                   it != blockQuadPointsList.end();
-                   it++)
+              for (const auto &pair : blockQuadPointsList)
                 {
-                  for (types::global_dof_index i = 0; i < (*it).second.size();
-                       i++)
-                    {
-                      directQuadPoints[(*it).first].insert((*it).second[i]);
-                    }
+                  directQuadPoints[pair.first].insert(pair.second.begin(),
+                                                      pair.second.end());
                 }
             }
 
@@ -623,11 +599,8 @@ BEMFMA<dim>::direct_integrals()
                   copy_data.vec_node_index.push_back(nodeIndex);
                   copy_data.vec_start_helper.push_back(helper_index);
 
-                  typename std::map<cell_it,
-                                    std::set<types::global_dof_index>>::iterator
-                    it;
                   // we loop on the list of quad points to be treated directly
-                  for (it = directQuadPoints.begin();
+                  for (auto it = directQuadPoints.begin();
                        it != directQuadPoints.end();
                        it++)
                     {
@@ -650,9 +623,9 @@ BEMFMA<dim>::direct_integrals()
                         copy_data.vec_local_dof_indices.back());
 
                       // we copy the cell quad points in this set
-                      std::set<types::global_dof_index> &cellQuadPoints =
-                        (*it).second;
-                      bool         is_singular = false;
+                      // std::set<types::global_dof_index>
+                      const auto & cellQuadPoints = (*it).second;
+                      bool         is_singular    = false;
                       unsigned int singular_index =
                         numbers::invalid_unsigned_int;
 
@@ -671,12 +644,11 @@ BEMFMA<dim>::direct_integrals()
 
                       // first case: the current node does not belong to the
                       // current cell: we use regular quadrature
-                      if (is_singular == false)
+                      if (!is_singular)
                         {
                           // we start looping on the quad points of the cell:
                           // *pos will be the index of the quad point
-                          for (std::set<types::global_dof_index>::iterator pos =
-                                 cellQuadPoints.begin();
+                          for (auto pos = cellQuadPoints.begin();
                                pos != cellQuadPoints.end();
                                pos++)
                             {
@@ -775,6 +747,7 @@ BEMFMA<dim>::direct_integrals()
                                 singular_q_points[q] -
                                 support_points[nodeIndex];
                               LaplaceKernel::kernels(R, D, s);
+
                               for (unsigned int j = 0;
                                    j < this->fma_dh->get_fe().dofs_per_cell;
                                    ++j)
@@ -930,18 +903,15 @@ BEMFMA<dim>::direct_integrals()
                   // (level)-----> in this case
                   // we must use direct evaluation (luckily being childless they
                   // only contain 1 element)
-                  for (std::set<types::global_dof_index>::iterator pos =
-                         nonIntList.begin();
+                  for (auto pos = nonIntList.begin();
                        pos != nonIntList.lower_bound(startBlockLevel);
                        pos++)
                     {
                       OctreeBlock<dim> *block2 = this->blocks[*pos];
-                      std::map<cell_it, std::vector<types::global_dof_index>>
-                        blockQuadPointsList = block2->GetBlockQuadPointsList();
-                      typename std::map<
-                        cell_it,
-                        std::vector<types::global_dof_index>>::iterator it;
-                      for (it = blockQuadPointsList.begin();
+                      // std::map<cell_it, std::vector<types::global_dof_index>>
+                      const auto &blockQuadPointsList =
+                        block2->GetBlockQuadPointsList();
+                      for (auto it = blockQuadPointsList.begin();
                            it != blockQuadPointsList.end();
                            it++)
                         {
@@ -956,9 +926,8 @@ BEMFMA<dim>::direct_integrals()
                     } // end loop over blocks of a sublevel of nonIntList
                 }     // end loop over sublevels
 
-              typename std::map<cell_it,
-                                std::set<types::global_dof_index>>::iterator it;
-              for (it = directQuadPoints.begin(); it != directQuadPoints.end();
+              for (auto it = directQuadPoints.begin();
+                   it != directQuadPoints.end();
                    it++)
                 {
                   // the vectors with the local integrals for the cell must
@@ -983,8 +952,7 @@ BEMFMA<dim>::direct_integrals()
 
                   // we start looping on the quad points of the cell: *pos will
                   // be the index of the quad point
-                  for (std::set<types::global_dof_index>::iterator pos =
-                         cellQuadPoints.begin();
+                  for (auto pos = cellQuadPoints.begin();
                        pos != cellQuadPoints.end();
                        pos++)
                     {
@@ -1161,18 +1129,16 @@ BEMFMA<dim>::multipole_integrals()
 
     // at this point, we get the list of quad nodes for the current block,
     // and loop over it
-    std::map<cell_it, std::vector<types::global_dof_index>>
-      blockQuadPointsList = block->GetBlockQuadPointsList();
-
-    typename std::map<cell_it, std::vector<types::global_dof_index>>::iterator
-      it;
-    for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end();
+    // std::map<cell_it, std::vector<types::global_dof_index>>
+    const auto &blockQuadPointsList = block->GetBlockQuadPointsList();
+    for (auto it = blockQuadPointsList.begin(); it != blockQuadPointsList.end();
          it++)
       {
         // for each cell in the list, we get the list of its quad nodes
         // present in the current block
-        cell_it                               cell           = (*it).first;
-        std::vector<types::global_dof_index> &cellQuadPoints = (*it).second;
+        cell_it cell = (*it).first;
+        // std::vector<types::global_dof_index>
+        const auto &cellQuadPoints = (*it).second;
 
         // the vectors in the structures that we have previously cleared
         // neet to be resized
@@ -1292,14 +1258,8 @@ BEMFMA<dim>::generate_multipole_expansions(
   auto f_creation_tbb = [this](blocked_range<unsigned int> r) {
     for (unsigned int ii = r.begin(); ii < r.end(); ++ii)
       {
-        double     delta = blocks[ii]->GetDelta();
-        Point<dim> deltaHalf;
-        for (unsigned int i = 0; i < dim; i++)
-          {
-            deltaHalf(i) = delta / 2.;
-          }
+        Point<dim> blockCenter = blocks[ii]->GetCenter();
 
-        Point<dim> blockCenter = blocks[ii]->GetPMin() + deltaHalf;
         blockMultipoleExpansionsKer1[ii] =
           MultipoleExpansion(trunc_order, blockCenter, &(assLegFunction));
         blockMultipoleExpansionsKer2[ii] =
@@ -1332,8 +1292,8 @@ BEMFMA<dim>::generate_multipole_expansions(
             deltaHalf(i) = delta / 2.;
           }
 
-        std::map<cell_it, std::vector<types::global_dof_index>>
-          blockQuadPointsList = block->GetBlockQuadPointsList();
+        // std::map<cell_it, std::vector<types::global_dof_index>>
+        const auto &blockQuadPointsList = block->GetBlockQuadPointsList();
 
         // we loop on the cells of the quad points in the block: remember that
         // for each cell with a node in the block, we had created a set of
@@ -1342,9 +1302,8 @@ BEMFMA<dim>::generate_multipole_expansions(
         std::vector<types::global_dof_index> my_local_dof_indices(
           fma_dh->get_fe().dofs_per_cell);
 
-        typename std::map<cell_it,
-                          std::vector<types::global_dof_index>>::iterator it;
-        for (it = blockQuadPointsList.begin(); it != blockQuadPointsList.end();
+        for (auto it = blockQuadPointsList.begin();
+             it != blockQuadPointsList.end();
              it++)
           {
             cell_it cell = (*it).first;
@@ -1524,6 +1483,12 @@ BEMFMA<dim>::multipole_matr_vect_products(
 
   // from here on, we compute the multipole expansions contributions
   // we start cleaning past sessions
+  // store old values
+  // auto OLD_blockLocalExpansionsKer1 = blockLocalExpansionsKer1;
+  // auto OLD_blockLocalExpansionsKer2 = blockLocalExpansionsKer2;
+
+  // TODO: would not need clear-resize if LocalExpansion's copy assignement is
+  // correct
   blockLocalExpansionsKer1.clear();
   blockLocalExpansionsKer2.clear();
 
@@ -1535,8 +1500,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
   DoFTools::map_dofs_to_support_points<dim - 1, dim>(*fma_mapping,
                                                      *fma_dh,
                                                      support_points);
-  std::vector<types::global_dof_index> local_dof_indices(
-    fma_dh->get_fe().dofs_per_cell);
+  // std::vector<types::global_dof_index> local_dof_indices(
+  //  fma_dh->get_fe().dofs_per_cell);
 
   // First of all we need to create all the empty expansiones for all the
   // blocks. This is an embarassingly parallel operation that we can perform
@@ -1544,14 +1509,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
   auto f_local_creation_tbb = [this](blocked_range<types::global_dof_index> r) {
     for (types::global_dof_index ii = r.begin(); ii < r.end(); ++ii)
       {
-        double     delta = blocks[ii]->GetDelta();
-        Point<dim> deltaHalf;
-        for (unsigned int i = 0; i < dim; i++)
-          {
-            deltaHalf(i) = delta / 2.;
-          }
+        const auto blockCenter = blocks[ii]->GetCenter();
 
-        Point<dim> blockCenter = blocks[ii]->GetPMin() + deltaHalf;
         blockLocalExpansionsKer1[ii] =
           LocalExpansion(trunc_order, blockCenter, &(assLegFunction));
         blockLocalExpansionsKer2[ii] =
@@ -1627,6 +1586,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
                             DescendScratchData &,
                             DescendCopyData              &copy_data,
                             const types::global_dof_index start) {
+
     copy_data.start            = start;
     copy_data.blockId          = *block_it_id;
     types::global_dof_index kk = *block_it_id;
@@ -1638,7 +1598,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
     LocalExpansion dummy(this->trunc_order, center, &(this->assLegFunction));
     copy_data.blockLocalExpansionKer1 = dummy;
     copy_data.blockLocalExpansionKer2 = dummy;
-    unsigned int level                = 0;
+    // TODO: could the level be captured by the lambda? as they go in waves
+    unsigned int level = 0;
     for (unsigned int lev = 0; lev < this->num_octree_levels + 1; lev++)
       {
         if (kk >= this->startLevel[lev] && kk <= this->endLevel[lev])
@@ -1650,9 +1611,9 @@ BEMFMA<dim>::multipole_matr_vect_products(
 
     types::global_dof_index startBlockLevel = this->startLevel[level];
     types::global_dof_index endBlockLevel   = this->endLevel[level];
-    std::vector<types::global_dof_index> nodesBlk1Ids =
-      block_it->GetBlockNodeList();
-    bool on_process = false;
+    // std::vector<types::global_dof_index>
+    const auto &nodesBlk1Ids = block_it->GetBlockNodeList();
+    bool        on_process   = false;
     for (auto ind : nodesBlk1Ids)
       {
         if (this->this_cpu_set.is_element(ind))
@@ -1661,6 +1622,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
             break;
           }
       }
+
     copy_data.nodesBlk1Ids = nodesBlk1Ids;
     copy_data.matrVectorProductContributionKer1.reinit(nodesBlk1Ids.size());
     copy_data.matrVectorProductContributionKer2.reinit(nodesBlk1Ids.size());
@@ -1680,9 +1642,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
              subLevel++)
           {
             // we get the nonIntList of each block
-            std::set<types::global_dof_index> nonIntList =
-              block_it->GetNonIntList(subLevel);
-            std::set<cell_it> nonIntListElemsBlk1;
+            // std::set<dealii::types::boundary_id>
+            const auto &nonIntList = block_it->GetNonIntList(subLevel);
 
             // we start converting into local expansions, all the multipole
             // expansions of all the blocks in nonIntList, that are of the same
@@ -1692,13 +1653,12 @@ BEMFMA<dim>::multipole_matr_vect_products(
             // block had already been considered in the direct integrals method
             // (the bounds of the local and multipole expansion do not hold in
             // such case)
-
-            for (std::set<types::global_dof_index>::iterator pos1 =
-                   nonIntList.lower_bound(startBlockLevel);
+            for (auto pos1 = nonIntList.lower_bound(startBlockLevel);
                  pos1 != nonIntList.upper_bound(endBlockLevel);
                  pos1++) // loop over NNs of NNs and add them to intList
               {
                 types::global_dof_index block2Id = *pos1;
+
                 copy_data.blockLocalExpansionKer1.Add(
                   this->blockMultipoleExpansionsKer1[block2Id]);
                 copy_data.blockLocalExpansionKer2.Add(
@@ -1714,26 +1674,22 @@ BEMFMA<dim>::multipole_matr_vect_products(
             // the bound for the evaluation of the multipole expansions does
             // hold: thus, we will simply evaluate the multipole expansions of
             // such blocks for each node in the block
-            for (std::set<types::global_dof_index>::iterator pos1 =
-                   nonIntList.upper_bound(endBlockLevel);
+            for (auto pos1 = nonIntList.upper_bound(endBlockLevel);
                  pos1 != nonIntList.end();
                  pos1++)
               {
-                // pcout<<"NonIntListPart3 Blocks: "<<*pos1<<" ";
                 types::global_dof_index block2Id = *pos1;
-                // std::vector <cell_it> elemBlk2Ids =
-                // block2.GetBlockElementsList();
 
                 // TODO: restore functionality without forcing thread safety
                 // Teuchos::TimeMonitor LocalTimer(*LocEval);
-                copy_data.localTimeEvalNumCalls++;
+                // copy_data.localTimeEvalNumCalls++;
 
                 for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size();
                      ii++) // loop over each node of (*block_it)
                   {
-                    // std::cout<<nodesBlk1Ids.at(ii)<<std::endl;
                     const Point<dim> &nodeBlk1 =
                       support_points[nodesBlk1Ids.at(ii)];
+
                     copy_data.matrVectorProductContributionKer1(ii) +=
                       this->blockMultipoleExpansionsKer1[block2Id].Evaluate(
                         nodeBlk1);
@@ -1761,10 +1717,10 @@ BEMFMA<dim>::multipole_matr_vect_products(
       for (types::global_dof_index i = 0; i < copy_data.nodesBlk1Ids.size();
            ++i)
         {
-          matrVectProdD(copy_data.nodesBlk1Ids[i]) +=
-            copy_data.matrVectorProductContributionKer2(i);
           matrVectProdN(copy_data.nodesBlk1Ids[i]) +=
             copy_data.matrVectorProductContributionKer1(i);
+          matrVectProdD(copy_data.nodesBlk1Ids[i]) +=
+            copy_data.matrVectorProductContributionKer2(i);
         }
 
       localTimeEvalNumCalls += copy_data.localTimeEvalNumCalls;
@@ -1788,25 +1744,76 @@ BEMFMA<dim>::multipole_matr_vect_products(
       // The Workstream has to run only if there are blocks in the current
       // level. Then it basically performs a loop over all the blocks in the
       // current level.
+      // localTimeEvalNumCalls = 0;
       if (endBlockLevel >= startBlockLevel)
         {
-          Teuchos::TimeMonitor LocalTimer(*LocEval);
-          WorkStream::run(dofs_filled_blocks[level].begin(),
-                          dofs_filled_blocks[level].end(),
-                          std::bind(f_worker_Descend,
-                                    std::placeholders::_1,
-                                    std::placeholders::_2,
-                                    std::placeholders::_3,
-                                    startBlockLevel),
-                          f_copier_Descend,
-                          sample_scratch,
-                          sample_copy);
-        }
-      for (auto i = 0; i < localTimeEvalNumCalls; ++i)
-        {
-          LocEval->incrementNumCalls();
+          localTimeEvalNumCalls = 0;
+          {
+            Teuchos::TimeMonitor LocalTimer(*LocEval);
+            WorkStream::run(dofs_filled_blocks[level].begin(),
+                            dofs_filled_blocks[level].end(),
+                            std::bind(f_worker_Descend,
+                                      std::placeholders::_1,
+                                      std::placeholders::_2,
+                                      std::placeholders::_3,
+                                      startBlockLevel),
+                            f_copier_Descend,
+                            sample_scratch,
+                            sample_copy);
+          }
+          // add the actual number of calls done as if the timer was created
+          // inside the workers
+          for (auto i = 0; i < localTimeEvalNumCalls; ++i)
+            {
+              LocEval->incrementNumCalls();
+            }
         }
     }
+
+  // was it necessary to recalculate the blockLocalExpansionsKer*?
+  /*
+  bool equal = true;
+  if (blockLocalExpansionsKer1.size() != OLD_blockLocalExpansionsKer1.size())
+    {
+      pcout << "blockLocalExp1 size " << blockLocalExpansionsKer1.size()
+            << " OLD_blockLocalExp1 size "
+            << OLD_blockLocalExpansionsKer1.size() << std::endl;
+      equal = false;
+    }
+  else
+    {
+      for (unsigned int i = 0; i < blockLocalExpansionsKer1.size(); ++i)
+        {
+          if (!LocalExpansion::equal(blockLocalExpansionsKer1[i],
+                                     OLD_blockLocalExpansionsKer1[i]))
+            {
+              equal = false;
+            }
+        }
+    }
+  pcout << "blockLocalExp1 equality: " << equal << std::endl;
+
+  equal = true;
+  if (blockLocalExpansionsKer2.size() != OLD_blockLocalExpansionsKer2.size())
+    {
+      pcout << "blockLocalExp2 size " << blockLocalExpansionsKer2.size()
+            << " OLD_blockLocalExp2 size "
+            << OLD_blockLocalExpansionsKer2.size() << std::endl;
+      equal = false;
+    }
+  else
+    {
+      for (unsigned int i = 0; i < blockLocalExpansionsKer2.size(); ++i)
+        {
+          if (!LocalExpansion::equal(blockLocalExpansionsKer2[i],
+                                     OLD_blockLocalExpansionsKer2[i]))
+            {
+              equal = false;
+            }
+        }
+    }
+  pcout << "blockLocalExp2 equality: " << equal << std::endl;
+  */
 
   // finally, when the loop over levels is done, we need to evaluate local
   // expansions of all childless blocks, at each block node(s). This is an
@@ -2107,12 +2114,9 @@ BEMFMA<dim>::compute_geometry_cache()
       cell->get_dof_indices(dofs);
       for (unsigned int j = 0; j < fma_dh->get_fe().dofs_per_cell; ++j)
         {
-          std::set<types::global_dof_index> duplicates =
-            (*double_nodes_set)[dofs[j]];
-          for (std::set<types::global_dof_index>::iterator pos =
-                 duplicates.begin();
-               pos != duplicates.end();
-               pos++)
+          // std::set<types::global_dof_index>
+          const auto &duplicates = (*double_nodes_set)[dofs[j]];
+          for (auto pos = duplicates.begin(); pos != duplicates.end(); pos++)
             {
               std::vector<cell_it> dof_cell_list = dof_to_elems[*pos];
               for (unsigned int k = 0; k < dof_cell_list.size(); ++k)
@@ -2135,7 +2139,6 @@ BEMFMA<dim>::generate_octree_blocking()
 {
   pcout << "Generating octree blocking... " << std::endl;
   Teuchos::TimeMonitor LocalTimer(*ListCreat);
-
 
   std::vector<Point<dim>> support_points(fma_dh->n_dofs());
   DoFTools::map_dofs_to_support_points<dim - 1, dim>(*fma_mapping,
@@ -2327,11 +2330,11 @@ BEMFMA<dim>::generate_octree_blocking()
                                                  delta);
             }
 
-          std::map<cell_it, std::vector<types::global_dof_index>>
-            blockQuadPointsList = parent->GetBlockQuadPointsList();
+          // std::map<cell_it, std::vector<types::global_dof_index>>
+          const auto &blockQuadPointsList = parent->GetBlockQuadPointsList();
 
-          std::vector<types::global_dof_index> blockNodeList =
-            parent->GetBlockNodeList();
+          // std::vector<types::global_dof_index>
+          const auto &blockNodeList = parent->GetBlockNodeList();
 
           if (dim == 3)
             {
@@ -2392,10 +2395,7 @@ BEMFMA<dim>::generate_octree_blocking()
                     } // fine assegnazione nodi del padre ai blocchi figli
                 }     // fine loop nodi del blocco
 
-              typename std::map<cell_it,
-                                std::vector<types::global_dof_index>>::iterator
-                it;
-              for (it = blockQuadPointsList.begin();
+              for (auto it = blockQuadPointsList.begin();
                    it != blockQuadPointsList.end();
                    it++)
                 {
@@ -2480,13 +2480,10 @@ BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
 
                       parent->AddChild(blocksCount);
-                      std::map<cell_it, std::vector<types::global_dof_index>>
-                        blockQuadPointsList =
-                          blocks[blocksCount]->GetBlockQuadPointsList();
-                      typename std::map<
-                        cell_it,
-                        std::vector<types::global_dof_index>>::iterator it;
-                      for (it = blockQuadPointsList.begin();
+                      // std::map<cell_it, std::vector<types::global_dof_index>>
+                      const auto &blockQuadPointsList =
+                        blocks[blocksCount]->GetBlockQuadPointsList();
+                      for (auto it = blockQuadPointsList.begin();
                            it != blockQuadPointsList.end();
                            it++)
                         {
@@ -2500,7 +2497,8 @@ BEMFMA<dim>::generate_octree_blocking()
                             }
                         }
 
-                      std::vector<types::global_dof_index> blockNodesList =
+                      // std::vector<types::global_dof_index>
+                      const auto &blockNodesList =
                         blocks[jj]->GetBlockNodeList();
                       for (types::global_dof_index k = 0;
                            k < blockNodesList.size();
@@ -2546,10 +2544,7 @@ BEMFMA<dim>::generate_octree_blocking()
                     } // fine assegnazione blocchi del padre ai blocchi figli
                 }     // fine loop nodi del blocco
 
-              typename std::map<cell_it,
-                                std::vector<types::global_dof_index>>::iterator
-                it;
-              for (it = blockQuadPointsList.begin();
+              for (auto it = blockQuadPointsList.begin();
                    it != blockQuadPointsList.end();
                    it++)
                 {
@@ -2602,13 +2597,10 @@ BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
 
                       parent->AddChild(blocksCount);
-                      std::map<cell_it, std::vector<types::global_dof_index>>
-                        blockQuadPointsList =
-                          blocks[blocksCount]->GetBlockQuadPointsList();
-                      typename std::map<
-                        cell_it,
-                        std::vector<types::global_dof_index>>::iterator it;
-                      for (it = blockQuadPointsList.begin();
+                      // std::map<cell_it, std::vector<types::global_dof_index>>
+                      const auto &blockQuadPointsList =
+                        blocks[blocksCount]->GetBlockQuadPointsList();
+                      for (auto it = blockQuadPointsList.begin();
                            it != blockQuadPointsList.end();
                            it++)
                         {
@@ -2621,7 +2613,8 @@ BEMFMA<dim>::generate_octree_blocking()
                             }
                         }
 
-                      std::vector<types::global_dof_index> blockNodesList =
+                      // std::vector<types::global_dof_index>
+                      const auto &blockNodesList =
                         blocks[jj]->GetBlockNodeList();
                       for (types::global_dof_index k = 0;
                            k < blockNodesList.size();
@@ -2654,9 +2647,9 @@ BEMFMA<dim>::generate_octree_blocking()
            jj++)
         {
           // here we get the number of nodes in the block
-          std::vector<types::global_dof_index> nodesId =
-            blocks[jj]->GetBlockNodeList();
-          double blockNumNodes = 0.0;
+          // std::vector<types::global_dof_index>
+          const auto &nodesId       = blocks[jj]->GetBlockNodeList();
+          double      blockNumNodes = 0.0;
 
           // now we compute the number of the nodes that are double of others
           for (types::global_dof_index kk = 0; kk < nodesId.size(); kk++)
@@ -2700,7 +2693,7 @@ BEMFMA<dim>::generate_octree_blocking()
                     }
                 }
 
-              for (it = blockQuadPointsList.begin();
+              for (auto it = blockQuadPointsList.begin();
                    it != blockQuadPointsList.end();
                    it++)
                 {
@@ -3137,15 +3130,13 @@ BEMFMA<dim>::generate_octree_blocking()
                   block1->AddBlockToIntList(subLevel, *pos1);
                 }
 
-              std::vector<types::global_dof_index> nodeIds =
-                block1->GetBlockNodeList();
+              // std::vector<types::global_dof_index>
+              const auto &nodeIds = block1->GetBlockNodeList();
               for (types::global_dof_index pp = 0; pp < nodeIds.size(); pp++)
                 {
-                  std::set<types::global_dof_index> doubleNodes =
-                    (*double_nodes_set)[nodeIds[pp]];
-                  for (std::set<types::global_dof_index>::iterator pos =
-                         doubleNodes.begin();
-                       pos != doubleNodes.end();
+                  // std::set<types::global_dof_index>
+                  const auto &doubleNodes = (*double_nodes_set)[nodeIds[pp]];
+                  for (auto pos = doubleNodes.begin(); pos != doubleNodes.end();
                        pos++)
                     {
                       for (types::global_dof_index k = 0;

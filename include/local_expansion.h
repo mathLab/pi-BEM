@@ -22,6 +22,32 @@ public:
 
   static LocalExpansionCoeff mExp_to_lExp_Coeff;
 
+  static bool
+  equal(const LocalExpansion &lhs,
+        const LocalExpansion &rhs,
+        double                tolerance = 1e-10)
+  {
+    if (lhs.p != rhs.p)
+      {
+        return false;
+      }
+
+    if (lhs.center.distance_square(rhs.center) > tolerance * tolerance)
+      {
+        return false;
+      }
+
+    for (unsigned int i = 0; i < (lhs.p + 1) * (lhs.p + 2) / 2; ++i)
+      {
+        if (std::abs(lhs._L_n_m[i] - rhs._L_n_m[i]) > tolerance)
+          {
+            return false;
+          }
+      }
+
+    return true;
+  }
+
   mutable bool is_zero;
 
 private:
@@ -140,14 +166,10 @@ public:
   {
     LocalExpansionCoeff  loc_exp_coeff(p);
     std::complex<double> imUnit = std::complex<double>(0., 1.);
-    std::vector<std::vector<std::vector<std::map<int, double>>>> realCoeff;
-    realCoeff.resize(p + 1);
     for (int n = 0; n < int(p) + 1; n++)
       {
-        realCoeff[n].resize(n + 1);
         for (int m = 0; m < n + 1; m++)
           {
-            realCoeff[n][m].resize(p + 1);
             for (int nn = 0; nn < int(p) + 1; nn++)
               {
                 for (int mm = -1 * nn; mm < nn + 1; mm++)
@@ -160,12 +182,12 @@ public:
                         .real() /
                       pow(-1., nn);
 
-                    realCoeff[n][m][nn][mm] = realFact;
                     loc_exp_coeff.set(n, m, nn, mm, realFact);
                   }
               }
           }
       }
+
     return loc_exp_coeff;
   }
 

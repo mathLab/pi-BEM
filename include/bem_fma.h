@@ -1,4 +1,3 @@
-
 // ---------------------------------------------------------------------
 //
 // Copyright (C) 2014 - 2020 by the pi-BEM authors.
@@ -18,8 +17,6 @@
 /// of the Fast Multipole Algorithm
 /// applied to the Boundary Element
 /// Method
-
-
 
 #ifndef bem_fma_h
 #define bem_fma_h
@@ -82,7 +79,6 @@ public:
   test(BEMFMA<gdim> &);
 
   /// Just renaming the cell iterator type
-
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
   /// Contructor: needs only a MPI communicator
@@ -176,9 +172,6 @@ public:
     TrilinosWrappers::MPI::Vector       &matrVectProdN,
     TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 
-
-  // void compute_m2l_flags();
-
   /// this methods creates the adaptive
   /// octree partitioning of the domain,
   /// needed by the FMA algorithm.
@@ -186,7 +179,6 @@ public:
   /// called just once in our program we have chosen not to parallelise it.
   void
   generate_octree_blocking();
-
 
   // In this function we have grouped some geometrical computation that
   // are useful for setting up the octree blocking. For example the maps
@@ -217,42 +209,33 @@ protected:
   SmartPointer<const DoFHandler<dim - 1, dim>> fma_dh;
   SmartPointer<const Mapping<dim - 1, dim>>    fma_mapping;
 
-
   /// Truncation order for the multipole
   /// and local expansion series: it is
   /// read from the parameters input file.
-
   unsigned int trunc_order;
 
   /// Sparsity pattern for the
   /// initial preconditioning matrix
   /// (no constraints applied)
-
   TrilinosWrappers::SparsityPattern init_prec_sparsity_pattern;
 
   /// Sparsity pattern for the
   /// final preconditioning matrix
   /// (constraints applied)
-
   TrilinosWrappers::SparsityPattern final_prec_sparsity_pattern;
 
   /// Sparse Neumann matrix containing
   /// only direct integrals contributions
   TrilinosWrappers::SparseMatrix prec_neumann_matrix;
-  // SparseMatrix<double> prec_neumann_matrix;
 
   /// Sparse Dirichlet matrix containing
   /// only direct integrals contributions
-
   TrilinosWrappers::SparseMatrix prec_dirichlet_matrix;
-  // SparseMatrix<double> prec_dirichlet_matrix;
 
   /// Initial sparse preconditioning matrix (without constraints)
-
   TrilinosWrappers::SparseMatrix init_preconditioner;
 
   /// Final sparse preconditioning matrix (with constraints)
-
   TrilinosWrappers::SparseMatrix final_preconditioner;
 
   /// Structures where the Dirichlet
@@ -262,7 +245,6 @@ protected:
   /// expansions as the lowest level
   /// blocks in which element's quad
   /// points lie.
-
   mutable std::map<types::global_dof_index,
                    std::map<cell_it, std::vector<MultipoleExpansion>>>
     elemMultipoleExpansionsKer1;
@@ -274,8 +256,6 @@ protected:
   /// expansions as the lowest level
   /// blocks in which element's quad
   /// points lie.
-
-
   mutable std::map<types::global_dof_index,
                    std::map<cell_it, std::vector<MultipoleExpansion>>>
     elemMultipoleExpansionsKer2;
@@ -283,29 +263,24 @@ protected:
   /// Vector storing the Dirichlet
   /// integrals multipole expansions
   /// for each block
-
   mutable std::vector<MultipoleExpansion> blockMultipoleExpansionsKer1;
 
   /// Vector storing the Neumann
   /// integrals multipole expansions
   /// for each block
-
   mutable std::vector<MultipoleExpansion> blockMultipoleExpansionsKer2;
 
   /// Vector storing the Dirichlet
   /// integrals local expansions
   /// for each block
-
   mutable std::vector<LocalExpansion> blockLocalExpansionsKer1;
 
   /// Vector storing the Neumann
   /// integrals local expansions
   /// for each block
-
   mutable std::vector<LocalExpansion> blockLocalExpansionsKer2;
 
   /// Associated Legendre functions class
-
   AssLegFunction assLegFunction;
 
   /// the preconditioner to be passed to bem_problem
@@ -314,27 +289,21 @@ protected:
   TrilinosWrappers::PreconditionILU preconditioner;
 
   unsigned int quadrature_order;
-
   unsigned int singular_quadrature_order;
 
   /// mpi related variables
-
-  MPI_Comm mpi_communicator;
-
+  MPI_Comm     mpi_communicator;
   unsigned int n_mpi_processes;
-
   unsigned int this_mpi_process;
 
   /// maximum number of collocation points
   /// that can be contained by a childless block:
   /// if a block contains less nodes than this number
   /// it is not further refined
-
   unsigned int max_num_nodes_per_block;
 
   /// number of levels of the octree
   /// partitioning
-
   unsigned int num_octree_levels;
 
   /// Granularity for TBB cycles. Simple parallel_for at the moment.
@@ -346,57 +315,47 @@ protected:
   /// will be used in the FMA
   /// a map associating each DoF with the cells
   /// it belongs to
-
   std::map<types::global_dof_index, std::vector<cell_it>> dof_to_elems;
 
   /// a map associating each gradient DoF
   /// with the cells it belongs to
-
   std::map<types::global_dof_index, std::vector<cell_it>> gradient_dof_to_elems;
 
   /// a vector associating each gradient DoF
   /// with the component it represents
-
   std::vector<unsigned int> gradient_dof_components;
 
   /// a map associating each DoF to the
   /// block it belongs to
   /// for each level
-
   std::map<types::global_dof_index, std::vector<types::global_dof_index>>
     dof_to_block;
 
   /// a map associating each quad point to the
   /// block it belongs to for
   /// each level
-
   std::map<cell_it, std::vector<std::vector<types::global_dof_index>>>
     quad_point_to_block;
 
   /// a map associating each cell with a std::set
   /// containing the surrounding
   /// cells
-
   std::map<cell_it, std::set<cell_it>> elem_to_surr_elems;
 
   /// a vector to store all OctreeBlocks
   /// in which the geometry is divided
-
   mutable std::vector<OctreeBlock<dim> *> blocks;
 
   /// the total blocks number
-
   types::global_dof_index num_blocks;
 
   /// the indices in the blocks vector, at which
   /// each of the levels start or end
-
   std::vector<types::global_dof_index> endLevel;
   std::vector<types::global_dof_index> startLevel;
 
   /// a list of the indices of all the childless
   /// blocks
-
   std::vector<types::global_dof_index> childlessList;
 
   /// a list of the number of parent blocks
@@ -405,46 +364,37 @@ protected:
 
   /// a std::vector containing the list of
   /// parent blocks for each level
-
   std::vector<std::vector<types::global_dof_index>> parentList;
 
   /// a std::map of std::vectors containing the
   /// list of quadrature points
-
   std::map<cell_it, std::vector<Point<dim>>> quadPoints;
 
   /// a std::map of std::vectors containing the
   /// list of normals at quadrature points
-
-  // std::map <cell_it, std::vector <Point <dim> > > quadNormals;
   std::map<cell_it, std::vector<Tensor<1, dim>>> quadNormals;
 
   /// a std::map of std::vectors containing the
   /// list of shape function values at
   /// quadrature points
-
   std::map<cell_it, std::vector<std::vector<double>>> quadShapeFunValues;
 
   /// a std::map of std::vectors containing the
   /// list of JxW values at
   /// quadrature points
-
   std::map<cell_it, std::vector<double>> quadJxW;
 
   /// a std::vector containing std::vectors with
   /// the IDs of blocks with at least one dof,
   /// for each level
-
   std::vector<std::vector<types::global_dof_index>> dofs_filled_blocks;
 
   /// a std::vector containing std::vectors with
   /// the IDs of blocks with at least one
   /// quad point, for each level
-
   std::vector<std::vector<types::global_dof_index>> quad_points_filled_blocks;
 
   ConditionalOStream pcout;
-
 
   /// TODO parsed quadrature?
   std::shared_ptr<Quadrature<dim - 1>> quadrature;

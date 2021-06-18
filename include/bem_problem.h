@@ -287,7 +287,6 @@ public:
   /// this method is needed to
   /// separate Dirichlet dofs from
   /// Neumann nodes.
-
   void
   compute_dirichlet_and_neumann_dofs_vectors();
 
@@ -298,7 +297,6 @@ public:
   /// double(s). Since the geometry is shared among
   /// all processors we can let every processors to compute_normals
   /// the overall double nodes set.
-
   void
   compute_double_nodes_set();
 
@@ -470,31 +468,23 @@ public:
 
   AffineConstraints<double> constraints;
 
-  std::string preconditioner_type;
-
-  std::string mapping_type;
-
-  std::string solution_method;
-
+  std::string   preconditioner_type;
+  std::string   mapping_type;
+  std::string   solution_method;
   SolverControl solver_control;
 
   // TODO AMG preconditioner
   TrilinosWrappers::PreconditionILU preconditioner;
-
   TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern;
 
   TrilinosWrappers::SparseMatrix band_system;
-
-  types::global_dof_index preconditioner_band;
-
-  bool is_preconditioner_initialized;
+  types::global_dof_index        preconditioner_band;
+  bool                           is_preconditioner_initialized;
 
   bool continuos_gradient;
 
-  MPI_Comm mpi_communicator;
-
+  MPI_Comm     mpi_communicator;
   unsigned int n_mpi_processes;
-
   unsigned int this_mpi_process;
 
   /// the following vector is needed to
@@ -529,19 +519,13 @@ public:
   std::vector<TrilinosWrappers::MPI::Vector> vector_normals_solutions;
 
   std::vector<types::global_dof_index> start_per_process;
-
   std::vector<types::global_dof_index> vector_start_per_process;
-
-  TrilinosWrappers::SparsityPattern vector_sparsity_pattern;
-
-  AffineConstraints<double> vector_constraints;
+  TrilinosWrappers::SparsityPattern    vector_sparsity_pattern;
+  AffineConstraints<double>            vector_constraints;
 
   std::vector<types::global_dof_index> original_to_sub_wise;
-
   std::vector<types::global_dof_index> sub_wise_to_original;
-
   std::vector<types::global_dof_index> vec_original_to_sub_wise;
-
   std::vector<types::global_dof_index> vec_sub_wise_to_original;
 
   bool have_dirichlet_bc;

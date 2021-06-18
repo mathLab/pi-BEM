@@ -111,13 +111,13 @@ public:
   void
   AddQuadPoint(cell_it elemPointer, types::global_dof_index quadPointId);
 
-  std::vector<types::global_dof_index>
+  const std::vector<types::global_dof_index> &
   GetBlockNodeList() const;
 
   void
   DelNodeList();
 
-  std::map<cell_it, std::vector<types::global_dof_index>>
+  const std::map<cell_it, std::vector<types::global_dof_index>> &
   GetBlockQuadPointsList() const;
 
   void
@@ -144,6 +144,18 @@ public:
   double
   GetDelta() const;
 
+  Point<dim>
+  GetCenter() const
+  {
+    auto ret = this->GetPMin();
+    for (unsigned int i = 0; i < dim; ++i)
+      {
+        ret(i) += this->GetDelta() / 2.;
+      }
+
+    return ret;
+  }
+
   void
   AddNearNeigh(unsigned int sublevel, const types::global_dof_index nnBlockId);
 
@@ -153,7 +165,7 @@ public:
   unsigned int
   NumNearNeighLevels() const;
 
-  std::set<types::global_dof_index>
+  const std::set<types::global_dof_index> &
   GetNearNeighs(unsigned int sublevel) const;
 
   void
@@ -163,10 +175,10 @@ public:
   types::global_dof_index
   NumIntList(unsigned int sublevel) const;
 
-  std::set<types::global_dof_index>
+  const std::set<types::global_dof_index> &
   GetIntList(unsigned int sublevel) const;
 
-  std::vector<std::set<types::global_dof_index>>
+  const std::vector<std::set<types::global_dof_index>> &
   GetIntList() const;
 
   void
@@ -176,7 +188,7 @@ public:
   types::global_dof_index
   NumNonIntList(unsigned int sublevel) const;
 
-  std::set<types::global_dof_index>
+  const std::set<types::global_dof_index> &
   GetNonIntList(unsigned int sublevel) const;
 
   void

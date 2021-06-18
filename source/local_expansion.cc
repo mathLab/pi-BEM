@@ -1,8 +1,8 @@
-#include "local_expansion.h"
-
 #include <math.h>
 
 #include <iostream>
+
+#include "local_expansion.h"
 
 #define GSL_SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 
@@ -16,7 +16,6 @@ std::vector<std::vector<std::map<int, std::map<int, double>>>>
     LocalExpansion::lExp_to_lExp_Coeff_Build(LocalExpansion::A_n_m, 10);
 
 LocalExpansion::LocalExpansion()
-
 {
   this->p              = 0;
   this->center         = Point<3>(0, 0, 0);
@@ -24,7 +23,6 @@ LocalExpansion::LocalExpansion()
   this->_L_n_m         = NULL;
   this->is_zero        = true;
 }
-
 
 LocalExpansion::LocalExpansion(const unsigned int      order,
                                const dealii::Point<3> &center,
@@ -77,12 +75,9 @@ LocalExpansion::operator=(const LocalExpansion &other)
   return *this;
 }
 
-
-
 void
 LocalExpansion::Add(const std::vector<double> &real,
                     const std::vector<double> &imag)
-
 {
   unsigned int count = 0;
   double       sum   = 0.0;
@@ -98,16 +93,16 @@ LocalExpansion::Add(const std::vector<double> &real,
           count++;
         }
     }
+
   if (sum > 1e-20)
-    this->is_zero = false;
+    {
+      this->is_zero = false;
+    }
 }
-
-
 
 void
 LocalExpansion::Add(
   const LocalExpansion &other) // translation of local expansion
-
 {
   if (other.is_zero)
     {
@@ -122,6 +117,16 @@ LocalExpansion::Add(
           double rho        = sqrt(blockRelPos.square());
           double cos_alpha_ = blockRelPos(2) / rho;
           double beta       = atan2(blockRelPos(1), blockRelPos(0));
+
+          // cache rotations by beta; could we use simple powers, it would be
+          // blazingly fast
+          std::vector<std::complex<double>> expbetas;
+          expbetas.reserve(2 * p + 1);
+          expbetas.emplace_back(1);
+          for (unsigned int i = 1; i < 2 * p + 1; ++i)
+            {
+              expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
+            }
 
           double P_nn_mm;
 
@@ -149,10 +154,13 @@ LocalExpansion::Add(
                               double realFact =
                                 P_nn_mm * rhoFact *
                                 lExp_to_lExp_Coeff[n][m][nn][mm];
-                              z += a *
-                                   std::complex<double>(cos((mm - m) * beta),
-                                                        sin((mm - m) * beta)) *
-                                   realFact;
+
+                              auto absm    = std::abs(mm - m);
+                              auto rotated = (mm - m != absm) ?
+                                               std::conj(expbetas[absm]) :
+                                               expbetas[absm];
+
+                              z += a * rotated * realFact;
                             }
                         }
                     }
@@ -171,31 +179,36 @@ LocalExpansion::Add(
                 }
             }
         }
+
       this->is_zero = false;
     }
 }
-
 
 void
 LocalExpansion::Add(
   const MultipoleExpansion &multipole) // multipole conversion into local
                                        // expansion, and addition to the rest
-
 {
-  // static unsigned int call_count=0;
-
   if (multipole.is_zero)
     {
     }
   else
     {
-      // cout<<call_count<<"
-      // "<<std::setprecision(25)<<multipole.GetCoeff(0,0)<<endl;
       dealii::Point<3> blockRelPos =
         multipole.GetCenter() + (-1.0 * this->center);
       double rho        = sqrt(blockRelPos.square());
       double cos_alpha_ = blockRelPos(2) / rho;
       double beta       = atan2(blockRelPos(1), blockRelPos(0));
+
+      // cache rotations by beta; could we use simple powers, it would be
+      // blazingly fast
+      std::vector<std::complex<double>> expbetas;
+      expbetas.reserve(2 * p + 1);
+      expbetas.emplace_back(1);
+      for (unsigned int i = 1; i < 2 * p + 1; ++i)
+        {
+          expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
+        }
 
       double               P_nn_mm;
       std::complex<double> a;
@@ -210,19 +223,22 @@ LocalExpansion::Add(
                   double rhoFact = pow(rho, double(-n - nn - 1));
                   for (int mm = -1 * nn; mm < 0; mm++)
                     {
-                      a = multipole.GetCoeff(nn, abs(mm));
-                      a = std::complex<double>(a.real(), -a.imag());
+                      a = std::conj(multipole.GetCoeff(nn, abs(mm)));
                       P_nn_mm =
                         this->assLegFunction->GetAssLegFunSph(nn + n,
                                                               abs(mm - m),
                                                               cos_alpha_);
                       realFact = P_nn_mm * rhoFact *
                                  mExp_to_lExp_Coeff.get(n, m, nn, mm);
-                      z += a *
-                           std::complex<double>(cos((mm - m) * beta),
-                                                sin((mm - m) * beta)) *
-                           realFact;
+
+                      auto absm    = std::abs(mm - m);
+                      auto rotated = (mm - m != absm) ?
+                                       std::conj(expbetas[absm]) :
+                                       expbetas[absm];
+
+                      z += a * rotated * realFact;
                     }
+
                   for (int mm = 0; mm < nn + 1; mm++)
                     {
                       a = multipole.GetCoeff(nn, abs(mm));
@@ -232,21 +248,23 @@ LocalExpansion::Add(
                                                               cos_alpha_);
                       double realFact = P_nn_mm * rhoFact *
                                         mExp_to_lExp_Coeff.get(n, m, nn, mm);
-                      z += a *
-                           std::complex<double>(cos((mm - m) * beta),
-                                                sin((mm - m) * beta)) *
-                           realFact;
+
+                      auto absm    = std::abs(mm - m);
+                      auto rotated = (mm - m != absm) ?
+                                       std::conj(expbetas[absm]) :
+                                       expbetas[absm];
+
+                      z += a * rotated * realFact;
                     }
                 }
-              // cout<<call_count<<":   "<<z<<" ("<<a<<")"<<endl;
+
               this->AddToCoeff(n, m, z);
             }
         }
-      // call_count++;
+
       this->is_zero = false;
     }
 }
-
 
 double
 LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
@@ -275,9 +293,11 @@ LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
               double realFact = P_n_m * pow(rho, double(n));
               // std::complex <double> complexFact = exp(std::complex
               // <double>(0., 1.*m*beta))*2.*realFact;
+
               std::complex<double> complexFact =
                 std::complex<double>(cos(m * beta), sin(m * beta)) * 2. *
                 realFact;
+
               fieldValue += this->GetCoeff(n, m) * complexFact;
             }
         }

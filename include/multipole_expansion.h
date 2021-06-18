@@ -116,6 +116,20 @@ public:
   MultipoleExpansion &
   operator=(const MultipoleExpansion &other);
 
+  static void
+  spherical_coords(const dealii::Point<3> &center,
+                   const dealii::Point<3> &other,
+                   dealii::Point<3> &      blockRelPos,
+                   double &                rho,
+                   double &                cos_alpha,
+                   double &                beta)
+  {
+    blockRelPos = other - center;
+    rho         = blockRelPos.norm();
+    cos_alpha   = blockRelPos(2) / rho;
+    beta        = atan2(blockRelPos(1), blockRelPos(0));
+  }
+
   static FullMatrix<double>
   A_n_m_Matrix(unsigned int dim)
   {
@@ -126,6 +140,19 @@ public:
           {
             double f1 = 1.;
             double f2 = 1.;
+            /*
+            //slightly optimized implementation: less multiplications
+            for (unsigned int ii = n - m; ii > 0; ii--)
+              {
+                f1 *= ii;
+              }
+
+            for (unsigned int ii = n + m; ii > n - m; ii--)
+              {
+                f2 *= (ii);
+              }
+            A_n_m(n, m) = (n % 2 ? -1. : 1.) / (sqrt(f2) * f1);
+            */
 
             for (int ii = n - m; ii > 0; ii--)
               {

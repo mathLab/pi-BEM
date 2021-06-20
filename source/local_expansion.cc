@@ -86,7 +86,6 @@ LocalExpansion::Add(
             }
 
           double P_nn_mm;
-
           for (int n = 0; n < int(p) + 1; n++)
             {
               for (int m = 0; m < n + 1; m++)
@@ -114,7 +113,7 @@ LocalExpansion::Add(
                                 lExp_to_lExp_Coeff[n][m][nn][mm];
 
                               auto absm    = std::abs(mm - m);
-                              auto rotated = (mm - m != absm) ?
+                              auto rotated = ((mm - m) != absm) ?
                                                std::conj(expbetas[absm]) :
                                                expbetas[absm];
 
@@ -152,11 +151,10 @@ LocalExpansion::Add(
     }
   else
     {
-      dealii::Point<3> blockRelPos =
-        multipole.GetCenter() + (-1.0 * this->center);
-      double rho        = sqrt(blockRelPos.square());
-      double cos_alpha_ = blockRelPos(2) / rho;
-      double beta       = atan2(blockRelPos(1), blockRelPos(0));
+      dealii::Point<3> blockRelPos;
+      double           rho, cos_alpha, beta;
+      MultipoleExpansion::spherical_coords(
+        center, multipole.GetCenter(), blockRelPos, rho, cos_alpha, beta);
 
       // cache rotations by beta; could we use simple powers, it would be
       // blazingly fast
@@ -168,9 +166,7 @@ LocalExpansion::Add(
           expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 
-      double               P_nn_mm;
-      std::complex<double> a;
-      double               realFact;
+      double P_nn_mm;
       for (int n = 0; n < int(this->p) + 1; n++)
         {
           for (int m = 0; m < n + 1; m++)
@@ -181,16 +177,17 @@ LocalExpansion::Add(
                   double rhoFact = pow(rho, double(-n - nn - 1));
                   for (int mm = -1 * nn; mm < 0; mm++)
                     {
-                      a = std::conj(multipole.GetCoeff(nn, abs(mm)));
+                      std::complex<double> a =
+                        std::conj(multipole.GetCoeff(nn, abs(mm)));
                       P_nn_mm =
                         this->assLegFunction->GetAssLegFunSph(nn + n,
                                                               abs(mm - m),
-                                                              cos_alpha_);
-                      realFact = P_nn_mm * rhoFact *
-                                 mExp_to_lExp_Coeff.get(n, m, nn, mm);
+                                                              cos_alpha);
+                      double realFact = P_nn_mm * rhoFact *
+                                        mExp_to_lExp_Coeff.get(n, m, nn, mm);
 
                       auto absm    = std::abs(mm - m);
-                      auto rotated = (mm - m != absm) ?
+                      auto rotated = ((mm - m) != absm) ?
                                        std::conj(expbetas[absm]) :
                                        expbetas[absm];
 
@@ -199,16 +196,16 @@ LocalExpansion::Add(
 
                   for (int mm = 0; mm < nn + 1; mm++)
                     {
-                      a = multipole.GetCoeff(nn, abs(mm));
+                      std::complex<double> a = multipole.GetCoeff(nn, abs(mm));
                       P_nn_mm =
                         this->assLegFunction->GetAssLegFunSph(nn + n,
                                                               abs(mm - m),
-                                                              cos_alpha_);
+                                                              cos_alpha);
                       double realFact = P_nn_mm * rhoFact *
                                         mExp_to_lExp_Coeff.get(n, m, nn, mm);
 
                       auto absm    = std::abs(mm - m);
-                      auto rotated = (mm - m != absm) ?
+                      auto rotated = ((mm - m) != absm) ?
                                        std::conj(expbetas[absm]) :
                                        expbetas[absm];
 
@@ -243,27 +240,25 @@ LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
       expbetas.emplace_back(1);
       for (unsigned int i = 1; i < p + 1; ++i)
         {
+          // TODO: try to use exp
           expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 
       double P_n_m;
       for (int n = 0; n < int(p) + 1; n++)
         {
-          P_n_m = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
-          double realFact = P_n_m * pow(rho, double(n));
+          P_n_m        = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
+          double rho2n = pow(rho, double(n));
+          double realFact = P_n_m * rho2n;
+
           fieldValue += this->GetCoeff(n, 0) * realFact;
           for (int m = 1; m < n + 1; m++)
             {
               P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
-              double realFact = P_n_m * pow(rho, double(n));
+              double realFact = P_n_m * rho2n;
               // std::complex <double> complexFact = exp(std::complex
               // <double>(0., 1.*m*beta))*2.*realFact;
 
-              /*
-              std::complex<double> complexFact =
-                std::complex<double>(cos(m * beta), sin(m * beta)) * 2. *
-                realFact;
-              */
               std::complex<double> complexFact = expbetas[m] * 2. * realFact;
 
               fieldValue += this->GetCoeff(n, m) * complexFact;

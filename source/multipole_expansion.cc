@@ -156,19 +156,12 @@ MultipoleExpansion::Add(
       FullMatrix<double> &A_n_m = this->GetA_n_m();
       if (other.center.distance(this->center) > 1e-7)
         {
-          /*
-          dealii::Point<3> blockRelPos = other.center + (-1.0 * this->center);
-          double           rho         = sqrt(blockRelPos.square());
-          double           cos_alpha_  = blockRelPos(2) / rho;
-          double           beta        = atan2(blockRelPos(1), blockRelPos(0));
-          */
           dealii::Point<3> blockRelPos;
           double           rho, cos_alpha, beta;
           MultipoleExpansion::spherical_coords(
             center, other.center, blockRelPos, rho, cos_alpha, beta);
 
           double P_nn_mm;
-
           for (int n = 0; n < int(this->p) + 1; n++)
             {
               for (int m = 0; m < n + 1; m++)
@@ -218,9 +211,10 @@ MultipoleExpansion::Add(
 
                               // reference implementation
                               auto imUnit = std::complex<double>(0, 1);
-                              realFact *= (pow(imUnit,
-                                   double(abs(m) - abs(mm) - abs(m - mm))))
-                                .real();
+                              realFact *=
+                                (pow(imUnit,
+                                     double(abs(m) - abs(mm) - abs(m - mm))))
+                                  .real();
 
                               z +=
                                 realFact *

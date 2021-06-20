@@ -16,64 +16,22 @@ std::vector<std::vector<std::map<int, std::map<int, double>>>>
     LocalExpansion::lExp_to_lExp_Coeff_Build(LocalExpansion::A_n_m, 10);
 
 LocalExpansion::LocalExpansion()
-{
-  this->p              = 0;
-  this->center         = Point<3>(0, 0, 0);
-  this->assLegFunction = NULL;
-  this->_L_n_m         = NULL;
-  this->is_zero        = true;
-}
+  : is_zero(true)
+  , p(0)
+  , center(0, 0, 0)
+  , assLegFunction(nullptr)
+  , _L_n_m()
+{}
 
 LocalExpansion::LocalExpansion(const unsigned int      order,
                                const dealii::Point<3> &center,
-                               const AssLegFunction   *assLegFunction)
-
-{
-  this->p              = order;
-  this->center         = center;
-  this->assLegFunction = assLegFunction;
-
-  this->_L_n_m = new std::complex<double>[(this->p + 1) * (this->p + 2) / 2];
-  for (unsigned int i = 0; i < (this->p + 1) * (this->p + 2) / 2; ++i)
-    this->_L_n_m[i] = std::complex<double>(0.0, 0.0);
-  this->is_zero = true;
-}
-
-LocalExpansion::LocalExpansion(const LocalExpansion &other)
-{
-  this->p                  = other.p;
-  this->assLegFunction     = other.assLegFunction;
-  this->lExp_to_lExp_Coeff = other.lExp_to_lExp_Coeff;
-  this->mExp_to_lExp_Coeff = other.mExp_to_lExp_Coeff;
-  this->center             = other.center;
-  this->_L_n_m = new std::complex<double>[(this->p + 1) * (this->p + 2) / 2];
-  memcpy(this->_L_n_m,
-         other.GetCoeffs(),
-         sizeof(std::complex<double>) * (this->p + 1) * (this->p + 2) / 2);
-  this->is_zero = other.is_zero;
-}
-
-LocalExpansion::~LocalExpansion()
-{
-  if (_L_n_m != NULL)
-    delete[] _L_n_m;
-}
-
-LocalExpansion &
-LocalExpansion::operator=(const LocalExpansion &other)
-{
-  this->p                  = other.p;
-  this->assLegFunction     = other.assLegFunction;
-  this->lExp_to_lExp_Coeff = other.lExp_to_lExp_Coeff;
-  this->mExp_to_lExp_Coeff = other.mExp_to_lExp_Coeff;
-  this->center             = other.center;
-  this->_L_n_m = new std::complex<double>[(this->p + 1) * (this->p + 2) / 2];
-  memcpy(this->_L_n_m,
-         other.GetCoeffs(),
-         sizeof(std::complex<double>) * (this->p + 1) * (this->p + 2) / 2);
-  this->is_zero = other.is_zero;
-  return *this;
-}
+                               const AssLegFunction *  assLegFunction)
+  : is_zero(true)
+  , p(order)
+  , center(center)
+  , assLegFunction(assLegFunction)
+  , _L_n_m((order + 1) * (order + 2) / 2, std::complex<double>(0.0, 0.0))
+{}
 
 void
 LocalExpansion::Add(const std::vector<double> &real,
@@ -112,11 +70,10 @@ LocalExpansion::Add(
       unsigned int p = this->p;
       if (other.center.distance(this->center) > 1e-7)
         {
-          dealii::Point<3> blockRelPos =
-            other.GetCenter() + (-1.0 * this->center);
-          double rho        = sqrt(blockRelPos.square());
-          double cos_alpha_ = blockRelPos(2) / rho;
-          double beta       = atan2(blockRelPos(1), blockRelPos(0));
+          dealii::Point<3> blockRelPos;
+          double           rho, cos_alpha, beta;
+          MultipoleExpansion::spherical_coords(
+            center, other.GetCenter(), blockRelPos, rho, cos_alpha, beta);
 
           // cache rotations by beta; could we use simple powers, it would be
           // blazingly fast
@@ -149,8 +106,9 @@ LocalExpansion::Add(
                                 other.GetCoeff(abs(nn), abs(mm)).real(),
                                 GSL_SIGN(mm) *
                                   other.GetCoeff(abs(nn), abs(mm)).imag());
+
                               P_nn_mm = this->assLegFunction->GetAssLegFunSph(
-                                nn - n, abs(mm - m), cos_alpha_);
+                                nn - n, abs(mm - m), cos_alpha);
                               double realFact =
                                 P_nn_mm * rhoFact *
                                 lExp_to_lExp_Coeff[n][m][nn][mm];
@@ -275,28 +233,38 @@ LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
     }
   else
     {
-      unsigned int     p           = this->p;
-      dealii::Point<3> blockRelPos = evalPoint + (-1.0 * this->center);
-      double           rho         = sqrt(blockRelPos.square());
-      double           cos_alpha_  = blockRelPos(2) / rho;
-      double           beta        = atan2(blockRelPos(1), blockRelPos(0));
+      dealii::Point<3> blockRelPos;
+      double           rho, cos_alpha, beta;
+      MultipoleExpansion::spherical_coords(
+        center, evalPoint, blockRelPos, rho, cos_alpha, beta);
+
+      std::vector<std::complex<double>> expbetas;
+      expbetas.reserve(p + 1);
+      expbetas.emplace_back(1);
+      for (unsigned int i = 1; i < p + 1; ++i)
+        {
+          expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
+        }
 
       double P_n_m;
       for (int n = 0; n < int(p) + 1; n++)
         {
-          P_n_m = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha_);
+          P_n_m = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
           double realFact = P_n_m * pow(rho, double(n));
           fieldValue += this->GetCoeff(n, 0) * realFact;
           for (int m = 1; m < n + 1; m++)
             {
-              P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha_);
+              P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
               double realFact = P_n_m * pow(rho, double(n));
               // std::complex <double> complexFact = exp(std::complex
               // <double>(0., 1.*m*beta))*2.*realFact;
 
+              /*
               std::complex<double> complexFact =
                 std::complex<double>(cos(m * beta), sin(m * beta)) * 2. *
                 realFact;
+              */
+              std::complex<double> complexFact = expbetas[m] * 2. * realFact;
 
               fieldValue += this->GetCoeff(n, m) * complexFact;
             }

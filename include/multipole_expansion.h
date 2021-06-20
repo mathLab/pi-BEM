@@ -41,7 +41,7 @@ private:
 
   mutable const AssLegFunction *assLegFunction;
 
-  mutable std::complex<double> *_M_n_m;
+  mutable std::vector<std::complex<double>> _M_n_m;
 
 public:
   MultipoleExpansion();
@@ -49,10 +49,6 @@ public:
   MultipoleExpansion(const unsigned int      order,
                      const dealii::Point<3> &center,
                      const AssLegFunction   *assLegFunction);
-
-  MultipoleExpansion(const MultipoleExpansion &other);
-
-  ~MultipoleExpansion();
 
   void
   Add(const MultipoleExpansion &multipole, const double sol);
@@ -89,12 +85,6 @@ public:
     return this->A_n_m;
   }
 
-  inline std::complex<double> *
-  GetCoeffs() const
-  {
-    return this->_M_n_m;
-  }
-
   inline std::complex<double> &
   GetCoeff(unsigned int n, unsigned int m) const
   {
@@ -112,9 +102,6 @@ public:
   {
     this->_M_n_m[(n) * (n + 1) / 2 + m] += value;
   }
-
-  MultipoleExpansion &
-  operator=(const MultipoleExpansion &other);
 
   static void
   spherical_coords(const dealii::Point<3> &center,
@@ -141,6 +128,7 @@ public:
             double f1 = 1.;
             double f2 = 1.;
             /*
+            //TODO: validate
             //slightly optimized implementation: less multiplications
             for (unsigned int ii = n - m; ii > 0; ii--)
               {

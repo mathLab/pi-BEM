@@ -57,7 +57,7 @@ private:
 
   mutable const AssLegFunction *assLegFunction;
 
-  mutable std::complex<double> *_L_n_m;
+  mutable std::vector<std::complex<double>> _L_n_m;
 
 public:
   LocalExpansion();
@@ -65,10 +65,6 @@ public:
   LocalExpansion(const unsigned int      order,
                  const dealii::Point<3> &center,
                  const AssLegFunction   *assLegFunction);
-
-  LocalExpansion(const LocalExpansion &other);
-
-  ~LocalExpansion();
 
   void
   Add(const std::vector<double> &real, const std::vector<double> &imag);
@@ -106,12 +102,6 @@ public:
     return this->p;
   }
 
-  inline std::complex<double> *
-  GetCoeffs() const
-  {
-    return this->_L_n_m;
-  }
-
   inline std::complex<double> &
   GetCoeff(unsigned int n, unsigned int m) const
   {
@@ -130,9 +120,6 @@ public:
     this->_L_n_m[(n) * (n + 1) / 2 + m] += value;
   }
 
-  LocalExpansion &
-  operator=(const LocalExpansion &other);
-
   static FullMatrix<double>
   A_n_m_Matrix(unsigned int dimension)
   {
@@ -143,6 +130,20 @@ public:
           {
             double f1 = 1.;
             double f2 = 1.;
+            /*
+            //TODO: validate
+            //slightly optimized implementation: less multiplications
+            for (unsigned int ii = n - m; ii > 0; ii--)
+              {
+                f1 *= ii;
+              }
+
+            for (unsigned int ii = n + m; ii > n - m; ii--)
+              {
+                f2 *= (ii);
+              }
+            A_n_m(n, m) = (n % 2 ? -1. : 1.) / (sqrt(f2) * f1);
+            */
 
             for (int ii = n - m; ii > 0; ii--)
               {
@@ -164,8 +165,7 @@ public:
   static LocalExpansionCoeff
   mExp_to_lExp_Coeff_Build(FullMatrix<double> A_n_m, unsigned int p)
   {
-    LocalExpansionCoeff  loc_exp_coeff(p);
-    std::complex<double> imUnit = std::complex<double>(0., 1.);
+    LocalExpansionCoeff loc_exp_coeff(p);
     for (int n = 0; n < int(p) + 1; n++)
       {
         for (int m = 0; m < n + 1; m++)
@@ -177,6 +177,25 @@ public:
                     double realFact = A_n_m(nn, abs(mm)) /
                                       A_n_m(n + nn, abs(m - mm)) *
                                       A_n_m(n, abs(m));
+
+                    /*
+                    //TODO: validate
+                    unsigned int steps   = (abs(m - mm) - abs(m) - abs(mm)) % 4;
+                    int          rotated = 0;
+                    if (steps == 0)
+                      {
+                        rotated = 1;
+                      }
+                    else if (steps == 2)
+                      {
+                        rotated = -1;
+                      }
+                    rotated *= ((nn % 2) ? -1 : 1);
+
+                    realFact *= rotated;
+                    */
+                    // reference implementation
+                    auto imUnit = std::complex<double>(0, 1);
                     realFact *=
                       (pow(imUnit, double(abs(m - mm) - abs(m) - abs(mm))))
                         .real() /
@@ -194,7 +213,6 @@ public:
   static std::vector<std::vector<std::map<int, std::map<int, double>>>>
   lExp_to_lExp_Coeff_Build(FullMatrix<double> A_n_m, unsigned int p)
   {
-    std::complex<double> imUnit = std::complex<double>(0., 1.);
     std::vector<std::vector<std::map<int, std::map<int, double>>>> realCoeff;
     realCoeff.resize(p + 1);
     for (int n = 0; n < int(p) + 1; n++)
@@ -208,6 +226,24 @@ public:
                   {
                     double realFact = A_n_m(nn - n, abs(mm - m)) /
                                       A_n_m(nn, abs(mm)) * A_n_m(n, abs(m));
+                    /*
+                    //TODO: validate
+                                        unsigned int steps   = (abs(mm) - abs(mm
+                       - m) - abs(m)) % 4; int          rotated = 0; if (steps
+                       == 0)
+                                          {
+                                            rotated = 1;
+                                          }
+                                        else if (steps == 2)
+                                          {
+                                            rotated = -1;
+                                          }
+                                        rotated *= (((nn + n) % 2) ? -1 : 1);
+
+                                        realFact *= rotated;
+                                        */
+                    // reference implementation
+                    auto imUnit = std::complex<double>(0, 1);
                     realFact *=
                       (pow(imUnit, double(abs(mm) - abs(mm - m) - abs(m))))
                         .real() *

@@ -207,6 +207,8 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
   have_dirichlet_bc = bem.have_dirichlet_bc;
   if (!have_dirichlet_bc)
     {
+      pcout << "Computing phi shift" << std::endl;
+      // TODO: it seems a bit wasteful to retrieve all n_dofs support pts
       std::vector<Point<dim>> support_points(n_dofs);
       DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
                                                          bem.dh,
@@ -214,14 +216,14 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
       double shift = 0.0;
       if (this_mpi_process == 0)
         {
-          // TODO: is this the instruction that determines the deviance from the
-          // reference solutions?
           shift =
             get_potential().value(support_points[*bem.this_cpu_set.begin()]) -
             get_phi()(*bem.this_cpu_set.begin());
         }
       MPI_Bcast(&shift, 1, MPI_DOUBLE, 0, mpi_communicator);
       vector_shift(get_phi(), shift);
+
+      pcout << "Phi shift of " << shift << std::endl;
     }
 }
 

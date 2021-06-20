@@ -10,65 +10,22 @@ FullMatrix<double> MultipoleExpansion::A_n_m =
   MultipoleExpansion::A_n_m_Matrix(20);
 
 MultipoleExpansion::MultipoleExpansion()
-  : p(0)
+  : is_zero(true)
+  , p(0)
   , center(0, 0, 0)
   , assLegFunction(nullptr)
-  , _M_n_m(nullptr)
-  , is_zero(true)
+  , _M_n_m()
 {}
 
 MultipoleExpansion::MultipoleExpansion(const unsigned int      order,
                                        const dealii::Point<3> &center,
-                                       const AssLegFunction   *assLegFunction)
-{
-  this->p              = order;
-  this->center         = center;
-  this->assLegFunction = assLegFunction;
-  this->_M_n_m = new std::complex<double>[(this->p + 1) * (this->p + 2) / 2];
-  for (unsigned int i = 0; i < (this->p + 1) * (this->p + 2) / 2; ++i)
-    {
-      this->_M_n_m[i] = std::complex<double>(0.0, 0.0);
-    }
-  this->is_zero = true;
-}
-
-MultipoleExpansion::MultipoleExpansion(const MultipoleExpansion &other)
-{
-  this->p              = other.p;
-  this->assLegFunction = other.assLegFunction;
-  this->center         = other.center;
-  this->_M_n_m = new std::complex<double>[(this->p + 1) * (this->p + 2) / 2];
-  memcpy(this->_M_n_m,
-         other.GetCoeffs(),
-         sizeof(std::complex<double>) * (this->p + 1) * (this->p + 2) / 2);
-  this->is_zero = other.is_zero;
-}
-
-MultipoleExpansion &
-MultipoleExpansion::operator=(const MultipoleExpansion &other)
-{
-  this->p              = other.p;
-  this->assLegFunction = other.assLegFunction;
-  this->center         = other.center;
-  if (_M_n_m != NULL)
-    {
-      delete[] _M_n_m;
-    }
-  this->_M_n_m = new std::complex<double>[(this->p + 1) * (this->p + 2) / 2];
-  memcpy(this->_M_n_m,
-         other.GetCoeffs(),
-         sizeof(std::complex<double>) * (this->p + 1) * (this->p + 2) / 2);
-  this->is_zero = other.is_zero;
-  return *this;
-}
-
-MultipoleExpansion::~MultipoleExpansion()
-{
-  if (_M_n_m)
-    {
-      delete[] _M_n_m;
-    }
-}
+                                       const AssLegFunction *  assLegFunction)
+  : is_zero(true)
+  , p(order)
+  , center(center)
+  , assLegFunction(assLegFunction)
+  , _M_n_m((order + 1) * (order + 2) / 2, std::complex<double>(0.0, 0.0))
+{}
 
 void
 MultipoleExpansion::Add(const MultipoleExpansion &multipole, const double sol)
@@ -98,16 +55,10 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
     {
       this->is_zero = false;
 
-      /*
-            dealii::Point<3> pointRelPos = point + (-1.0 * this->center);
-            double           rho         = sqrt(pointRelPos.square());
-            double           cos_alpha  = pointRelPos(2) / rho;
-            double           beta        = atan2(pointRelPos(1),
-         pointRelPos(0));
-            */
       dealii::Point<3> pointRelPos;
       double           rho, cos_alpha, beta;
-      spherical_coords(center, point, pointRelPos, rho, cos_alpha, beta);
+      MultipoleExpansion::spherical_coords(
+        center, point, pointRelPos, rho, cos_alpha, beta);
 
       double P_n_m;
       for (int n = 0; n < int(this->p) + 1; n++)
@@ -117,6 +68,8 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
               P_n_m =
                 this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
               double realFact = P_n_m * pow(rho, double(n)) * strength;
+
+              // TODO: reduce evaluations by flipping nesting of for_n and for_m
               std::complex<double> a =
                 exp(std::complex<double>(0., -m * beta)) * realFact;
 
@@ -140,21 +93,15 @@ MultipoleExpansion::AddNormDer(const double                strength,
 
       dealii::Point<3> pointRelPos;
       double           rho, cos_alpha, beta;
-      spherical_coords(center, point, pointRelPos, rho, cos_alpha, beta);
-      // dealii::Point<3>     pointRelPos = point + (-1.0 * this->center);
-      /*dealii::Tensor<1, 3> normVersor =
-        normal / sqrt(normal[0] * normal[0] + normal[1] * normal[1] +
-                      normal[2] * normal[2]); // normal.square());
-                      */
+      MultipoleExpansion::spherical_coords(
+        center, point, pointRelPos, rho, cos_alpha, beta);
+
       const auto normVersor = normal / normal.norm();
-      // double rho     = sqrt(pointRelPos.square());
-      double dRhodN = (pointRelPos / rho) * normVersor;
-      // double beta    = atan2(pointRelPos(1), pointRelPos(0));
+      double     dRhodN     = (pointRelPos / rho) * normVersor;
       double dBetadN = (dealii::Point<3>(-pointRelPos(1), pointRelPos(0), 0.) /
                         (pow(pointRelPos(0), 2.) + pow(pointRelPos(1), 2.))) *
                        normVersor;
 
-      // double cos_alpha_ = pointRelPos(2) / rho;
       // below, was using cos_alpha_ notice the trailing underscore
       double sin_alpha = std::sqrt(1. - pow(cos_alpha, 2.));
       double dAlphadN  = (dealii::Point<3>(cos_alpha * cos(beta),
@@ -177,6 +124,8 @@ MultipoleExpansion::AddNormDer(const double                strength,
                                                            abs(m),
                                                            cos_alpha) *
                 sin_alpha;
+
+              // TODO: reduce evaluations by flipping nesting of for_n and for_m
               std::complex<double> z =
                 exp(std::complex<double>(0., -double(m) * beta));
 
@@ -215,10 +164,8 @@ MultipoleExpansion::Add(
           */
           dealii::Point<3> blockRelPos;
           double           rho, cos_alpha, beta;
-          spherical_coords(
+          MultipoleExpansion::spherical_coords(
             center, other.center, blockRelPos, rho, cos_alpha, beta);
-
-          std::complex<double> imUnit(0., 1.);
 
           double P_nn_mm;
 
@@ -242,18 +189,38 @@ MultipoleExpansion::Add(
                                 GSL_SIGN(m - mm) *
                                   (other.GetCoeff(abs(n - nn), abs(m - mm)))
                                     .imag());
+
                               P_nn_mm = this->assLegFunction->GetAssLegFunSph(
                                 nn, abs(mm), cos_alpha);
+
                               double realFact =
                                 P_nn_mm * pow(rho, double(nn)) *
                                 A_n_m(abs(nn), abs(mm)) *
                                 A_n_m(abs(n - nn), abs(m - mm)) /
                                 A_n_m(abs(n), abs(m));
 
-                              realFact *=
-                                (pow(imUnit,
-                                     double(abs(m) - abs(mm) - abs(m - mm))))
-                                  .real();
+                              /*
+                              //TODO: validate
+                              unsigned int steps =
+                                abs(m) - abs(mm) - abs(m - mm);
+                              double rotated = 0;
+                              if (steps % 4 == 0)
+                                {
+                                  rotated = 1;
+                                }
+                              else if (steps % 4 == 2)
+                                {
+                                  rotated = -1;
+                                }
+
+                              realFact *= rotated;
+                              */
+
+                              // reference implementation
+                              auto imUnit = std::complex<double>(0, 1);
+                              realFact *= (pow(imUnit,
+                                   double(abs(m) - abs(mm) - abs(m - mm))))
+                                .real();
 
                               z +=
                                 realFact *
@@ -288,16 +255,10 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
     }
   else
     {
-      /*
-      dealii::Point<3> blockRelPos = evalPoint + (-1.0 * this->center);
-      double           rho         = sqrt(blockRelPos.square());
-      double           cos_alpha_  = blockRelPos(2) / rho;
-      double           beta        = atan2(blockRelPos(1), blockRelPos(0));
-      */
-
       dealii::Point<3> blockRelPos;
       double           rho, cos_alpha, beta;
-      spherical_coords(center, evalPoint, blockRelPos, rho, cos_alpha, beta);
+      MultipoleExpansion::spherical_coords(
+        center, evalPoint, blockRelPos, rho, cos_alpha, beta);
 
       double P_n_m;
 

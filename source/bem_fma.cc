@@ -323,9 +323,8 @@ BEMFMA<dim>::direct_integrals()
             if (this_cpu_set.is_element(block1Nodes[i]))
               {
                 copy_data.block_indices.push_back(block1Nodes[i]);
-                copy_data.col_indices.push_back(
-                  std::vector<types::global_dof_index>(directNodes.cbegin(),
-                                                       directNodes.cend()));
+                copy_data.col_indices.emplace_back(directNodes.cbegin(),
+                                                   directNodes.cend());
               }
           }
       }
@@ -554,8 +553,7 @@ BEMFMA<dim>::direct_integrals()
       // nothing to do if instead there are nodes, we start integrating
       if (block1Nodes.size() > 0)
         {
-          // std::cout<<"Nodes in childless block :
-          // "<<block1Nodes.size()<<std::endl; we first get all the blocks in
+          // we first get all the blocks in
           // the intList of the current block (block1) and loop over these
           // blocks, to create a list of ALL the quadrature points that lie in
           // the interaction list blocks: these quad points have to be
@@ -660,8 +658,10 @@ BEMFMA<dim>::direct_integrals()
                               Point<dim> D;
                               double     s = 0.;
 
+                              Assert(this->quadPoints.count(cell) > 0,
+                                     StandardExceptions::ExcInvalidIterator());
                               const Tensor<1, dim> R =
-                                this->quadPoints.at(cell)[*pos] -
+                                this->quadPoints[cell][*pos] -
                                 support_points[nodeIndex];
                               LaplaceKernel::kernels(R, D, s);
 
@@ -675,18 +675,25 @@ BEMFMA<dim>::direct_integrals()
                                    j < this->fma_dh->get_fe().dofs_per_cell;
                                    ++j)
                                 {
+                                  Assert(
+                                    this->quadNormals.count(cell) > 0,
+                                    StandardExceptions::ExcInvalidIterator());
+                                  Assert(
+                                    this->quadShapeFunValues.count(cell) > 0,
+                                    StandardExceptions::ExcInvalidIterator());
+                                  Assert(
+                                    this->quadJxW.count(cell) > 0,
+                                    StandardExceptions::ExcInvalidIterator());
                                   copy_data.vec_local_neumann_matrix_row_i
                                     .back()(j) +=
-                                    ((D * this->quadNormals.at(cell)[*pos]) *
-                                     this->quadShapeFunValues.at(
-                                       cell)[*pos][j] *
-                                     this->quadJxW.at(cell)[*pos]);
+                                    ((D * this->quadNormals[cell][*pos]) *
+                                     this->quadShapeFunValues[cell][*pos][j] *
+                                     this->quadJxW[cell][*pos]);
                                   copy_data.vec_local_dirichlet_matrix_row_i
                                     .back()(j) +=
                                     (s *
-                                     this->quadShapeFunValues.at(
-                                       cell)[*pos][j] *
-                                     this->quadJxW.at(cell)[*pos]);
+                                     this->quadShapeFunValues[cell][*pos][j] *
+                                     this->quadJxW[cell][*pos]);
                                 }
                             }
                         } // end if
@@ -704,6 +711,8 @@ BEMFMA<dim>::direct_integrals()
                                    numbers::invalid_unsigned_int,
                                  ExcInternalError());
 
+                          // TODO: validate
+                          /* //reference
                           const Quadrature<dim - 1> *singular_quadrature =
                             (dim == 2 ?
                                dynamic_cast<Quadrature<dim - 1> *>(
@@ -712,6 +721,12 @@ BEMFMA<dim>::direct_integrals()
                                   dynamic_cast<Quadrature<dim - 1> *>(
                                     &sing_quadratures[singular_index]) :
                                   0));
+                          */
+                          // it's templated anyway, there wouldn't be any need
+                          // for ifs
+                          const Quadrature<dim - 1> *singular_quadrature =
+                            dynamic_cast<Quadrature<dim - 1> *>(
+                              &sing_quadratures[singular_index]);
                           Assert(singular_quadrature, ExcInternalError());
 
                           // once the singular quadrature has been created, we
@@ -722,7 +737,6 @@ BEMFMA<dim>::direct_integrals()
                             *(singular_quadrature),
                             update_jacobians | update_values |
                               update_normal_vectors | update_quadrature_points);
-
                           fe_v_singular.reinit(cell);
 
                           // here are the vectors of the quad points and normals
@@ -765,6 +779,7 @@ BEMFMA<dim>::direct_integrals()
                                 }
                             }
 
+                          // validate: it's allocated elsewhere
                           if (dim == 2)
                             {
                               delete singular_quadrature;
@@ -947,7 +962,7 @@ BEMFMA<dim>::direct_integrals()
                   cell->get_dof_indices(copy_data.vec_local_dof_indices.back());
 
                   // we copy the cell quad points in this set
-                  std::set<types::global_dof_index> &cellQuadPoints =
+                  const std::set<types::global_dof_index> &cellQuadPoints =
                     (*it).second;
 
                   // we start looping on the quad points of the cell: *pos will
@@ -1173,15 +1188,24 @@ BEMFMA<dim>::multipole_integrals()
             for (unsigned int j = 0; j < this->fma_dh->get_fe().dofs_per_cell;
                  ++j)
               {
+                Assert(this->quadShapeFunValues.count(cell) > 0,
+                       StandardExceptions::ExcInvalidIterator());
+                Assert(this->quadJxW.count(cell) > 0,
+                       StandardExceptions::ExcInvalidIterator());
+                Assert(this->quadPoints.count(cell) > 0,
+                       StandardExceptions::ExcInvalidIterator());
+                Assert(
+                  this->quadNormals.count(cell) > 0,
+                  ExcIStandardExceptions::ExcInvalidIteratornternalError());
                 copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j]
-                  .AddNormDer(this->quadShapeFunValues.at(cell)[q][j] *
-                                this->quadJxW.at(cell)[q] / 4 / numbers::PI,
-                              this->quadPoints.at(cell)[q],
-                              this->quadNormals.at(cell)[q]);
+                  .AddNormDer(this->quadShapeFunValues[cell][q][j] *
+                                this->quadJxW[cell][q] / 4 / numbers::PI,
+                              this->quadPoints[cell][q],
+                              this->quadNormals[cell][q]);
                 copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add(
-                  this->quadShapeFunValues.at(cell)[q][j] *
-                    this->quadJxW.at(cell)[q] / 4 / numbers::PI,
-                  this->quadPoints.at(cell)[q]);
+                  this->quadShapeFunValues[cell][q][j] *
+                    this->quadJxW[cell][q] / 4 / numbers::PI,
+                  this->quadPoints[cell][q]);
               }
           } // end loop on cell quadrature points in the block
       }
@@ -1316,12 +1340,15 @@ BEMFMA<dim>::generate_multipole_expansions(
             // this purpose
             for (unsigned int jj = 0; jj < fma_dh->get_fe().dofs_per_cell; ++jj)
               {
-                blockMultipoleExpansionsKer2.at(blockId).Add(
-                  elemMultipoleExpansionsKer2[blockId][cell][jj],
-                  dphi_dn_values(my_local_dof_indices[jj]));
-                blockMultipoleExpansionsKer1.at(blockId).Add(
+                AssertIndexRange(blockId, blockMultipoleExpansionsKer1.size());
+                blockMultipoleExpansionsKer1[blockId].Add(
                   elemMultipoleExpansionsKer1[blockId][cell][jj],
                   phi_values(my_local_dof_indices[jj]));
+
+                AssertIndexRange(blockId, blockMultipoleExpansionsKer2.size());
+                blockMultipoleExpansionsKer2[blockId].Add(
+                  elemMultipoleExpansionsKer2[blockId][cell][jj],
+                  dphi_dn_values(my_local_dof_indices[jj]));
               }
           } // end loop ond block elements
       }
@@ -1404,16 +1431,20 @@ BEMFMA<dim>::generate_multipole_expansions(
       copy_data.parentId = (*block_it)->GetParentId();
 
       // We set the center to the parentId center.
+      AssertIndexRange(copy_data.parentId, blockMultipoleExpansionsKer1.size());
       copy_data.translatedBlockMultipoleExpansionKer1.SetCenter(
-        this->blockMultipoleExpansionsKer1.at(copy_data.parentId).GetCenter());
+        this->blockMultipoleExpansionsKer1[copy_data.parentId].GetCenter());
+      AssertIndexRange(copy_data.parentId, blockMultipoleExpansionsKer2.size());
       copy_data.translatedBlockMultipoleExpansionKer2.SetCenter(
-        this->blockMultipoleExpansionsKer2.at(copy_data.parentId).GetCenter());
+        this->blockMultipoleExpansionsKer2[copy_data.parentId].GetCenter());
 
       // We translate the children blocks to the local array.
+      AssertIndexRange(kk, blockMultipoleExpansionsKer1.size());
       copy_data.translatedBlockMultipoleExpansionKer1.Add(
-        this->blockMultipoleExpansionsKer1.at(kk));
+        this->blockMultipoleExpansionsKer1[kk]);
+      AssertIndexRange(kk, blockMultipoleExpansionsKer2.size());
       copy_data.translatedBlockMultipoleExpansionKer2.Add(
-        this->blockMultipoleExpansionsKer2.at(kk));
+        this->blockMultipoleExpansionsKer2[kk]);
     };
 
   // The copier function, it copies the value from the local array to the parent
@@ -1423,10 +1454,12 @@ BEMFMA<dim>::generate_multipole_expansions(
     // the same we just need to add the value to the expansion wothout any
     // further translation. The MultipoleExpansion class takes care of that
     // automatically.
-    this->blockMultipoleExpansionsKer1.at(copy_data.parentId)
-      .Add(copy_data.translatedBlockMultipoleExpansionKer1);
-    this->blockMultipoleExpansionsKer2.at(copy_data.parentId)
-      .Add(copy_data.translatedBlockMultipoleExpansionKer2);
+    AssertIndexRange(copy_data.parentId, blockMultipoleExpansionsKer1.size());
+    this->blockMultipoleExpansionsKer1[copy_data.parentId].Add(
+      copy_data.translatedBlockMultipoleExpansionKer1);
+    AssertIndexRange(copy_data.parentId, blockMultipoleExpansionsKer2.size());
+    this->blockMultipoleExpansionsKer2[copy_data.parentId].Add(
+      copy_data.translatedBlockMultipoleExpansionKer2);
   };
 
   for (unsigned int level = num_octree_levels; level > 0; level--)
@@ -1594,7 +1627,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
     block_it = this->blocks[*block_it_id];
 
     //*****************definire chi e' on_process qui
-    Point<dim>     center = this->blockLocalExpansionsKer1.at(kk).GetCenter();
+    AssertIndexRange(kk, blockLocalExpansionsKer1.size());
+    Point<dim>     center = this->blockLocalExpansionsKer1[kk].GetCenter();
     LocalExpansion dummy(this->trunc_order, center, &(this->assLegFunction));
     copy_data.blockLocalExpansionKer1 = dummy;
     copy_data.blockLocalExpansionKer2 = dummy;
@@ -1632,10 +1666,12 @@ BEMFMA<dim>::multipole_matr_vect_products(
         // the local expansion of the parent must be translated down into the
         // current block
         types::global_dof_index parentId = block_it->GetParentId();
+        AssertIndexRange(parentId, blockLocalExpansionsKer1.size());
         copy_data.blockLocalExpansionKer1.Add(
-          this->blockLocalExpansionsKer1.at(parentId));
+          this->blockLocalExpansionsKer1[parentId]);
+        AssertIndexRange(parentId, blockLocalExpansionsKer2.size());
         copy_data.blockLocalExpansionKer2.Add(
-          this->blockLocalExpansionsKer2.at(parentId));
+          this->blockLocalExpansionsKer2[parentId]);
 
         for (unsigned int subLevel = 0;
              subLevel < block_it->NumNearNeighLevels();
@@ -1688,7 +1724,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
                      ii++) // loop over each node of (*block_it)
                   {
                     const Point<dim> &nodeBlk1 =
-                      support_points[nodesBlk1Ids.at(ii)];
+                      support_points[nodesBlk1Ids[ii]];
 
                     copy_data.matrVectorProductContributionKer1(ii) +=
                       this->blockMultipoleExpansionsKer1[block2Id].Evaluate(
@@ -1709,10 +1745,12 @@ BEMFMA<dim>::multipole_matr_vect_products(
   auto f_copier_Descend =
     [this, &matrVectProdD, &matrVectProdN, &localTimeEvalNumCalls](
       const DescendCopyData &copy_data) {
-      this->blockLocalExpansionsKer1.at(copy_data.blockId)
-        .Add(copy_data.blockLocalExpansionKer1);
-      this->blockLocalExpansionsKer2.at(copy_data.blockId)
-        .Add(copy_data.blockLocalExpansionKer2);
+      AssertIndexRange(copy_data.blockId, blockLocalExpansionsKer1.size());
+      this->blockLocalExpansionsKer1[copy_data.blockId].Add(
+        copy_data.blockLocalExpansionKer1);
+      AssertIndexRange(copy_data.blockId, blockLocalExpansionsKer2.size());
+      this->blockLocalExpansionsKer2[copy_data.blockId].Add(
+        copy_data.blockLocalExpansionKer2);
 
       for (types::global_dof_index i = 0; i < copy_data.nodesBlk1Ids.size();
            ++i)
@@ -1836,8 +1874,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
             {
               if (this_cpu_set.is_element(nodesBlk1Ids[ii]))
                 {
-                  const Point<dim> &nodeBlk1 =
-                    support_points[nodesBlk1Ids.at(ii)];
+                  const Point<dim> &nodeBlk1 = support_points[nodesBlk1Ids[ii]];
                   matrVectProdD(nodesBlk1Ids[ii]) +=
                     (blockLocalExpansionsKer2[block1Id]).Evaluate(nodeBlk1);
                   matrVectProdN(nodesBlk1Ids[ii]) +=
@@ -2475,8 +2512,14 @@ BEMFMA<dim>::generate_octree_blocking()
                       0)
                     {
                       blocksCount += 1;
+                      // TODO: is there a more compact pattern?
+                      /* //reference
                       blocks[blocksCount] = new OctreeBlock<dim>();
                       blocks[blocksCount]->CopyContent(children[j]);
+                      delete children[j];
+                      */
+                      blocks[blocksCount] =
+                        new OctreeBlock<dim>(std::move(*children[j]));
                       delete children[j];
 
                       parent->AddChild(blocksCount);
@@ -2592,8 +2635,14 @@ BEMFMA<dim>::generate_octree_blocking()
                       0)
                     {
                       blocksCount += 1;
+                      // TODO: is there a more compact pattern?
+                      /* //reference
                       blocks[blocksCount] = new OctreeBlock<dim>();
                       blocks[blocksCount]->CopyContent(children[j]);
+                      delete children[j];
+                      */
+                      blocks[blocksCount] =
+                        new OctreeBlock<dim>(std::move(*children[j]));
                       delete children[j];
 
                       parent->AddChild(blocksCount);

@@ -68,18 +68,14 @@ public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
 private:
-  unsigned int level;
-
+  unsigned int            level;
   types::global_dof_index parentId;
-
-  unsigned int numChildren;
-
+  unsigned int            numChildren;
   types::global_dof_index childrenId[8];
 
+  /// relevant entities at each level
   std::vector<std::set<types::global_dof_index>> nearNeigh;
-
   std::vector<std::set<types::global_dof_index>> intList;
-
   std::vector<std::set<types::global_dof_index>> nonIntList;
 
   Point<dim> pMin;
@@ -98,12 +94,15 @@ public:
               Point<dim>              pMin,
               double                  delta);
 
+  // TODO: not declaring will enable move semantics
+  /*
   OctreeBlock(const OctreeBlock<dim> &other);
 
   ~OctreeBlock();
 
   void
   CopyContent(const OctreeBlock *other);
+  */
 
   void
   AddNode(types::global_dof_index nodeId);

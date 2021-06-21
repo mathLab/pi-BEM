@@ -43,8 +43,10 @@ LocalExpansion::Add(const std::vector<double> &real,
     {
       for (unsigned int n = m; n < this->p + 1; n++)
         {
-          std::complex<double> a(real.at(count), imag.at(count));
-          sum += norm(a);
+          Assert(count < real.size() && count < imag.size(),
+                 ExcInternalError());
+          std::complex<double> a(real[count], imag[count]);
+          sum += std::norm(a);
           this->AddToCoeff(n, n + m, a);
           a = std::conj(a);
           this->AddToCoeff(n, n - m, a);

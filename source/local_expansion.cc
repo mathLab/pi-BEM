@@ -62,7 +62,8 @@ LocalExpansion::Add(const std::vector<double> &real,
 
 void
 LocalExpansion::Add(
-  const LocalExpansion &other) // translation of local expansion
+  const LocalExpansion &             other,
+  std::vector<std::complex<double>> &cache) // translation of local expansion
 {
   if (other.is_zero)
     {
@@ -79,12 +80,12 @@ LocalExpansion::Add(
 
           // cache rotations by beta; could we use simple powers, it would be
           // blazingly fast
-          std::vector<std::complex<double>> expbetas;
-          expbetas.reserve(2 * p + 1);
-          expbetas.emplace_back(1);
+          cache.reserve(2 * p + 1);
+          cache.clear();
+          cache.emplace_back(1);
           for (unsigned int i = 1; i < 2 * p + 1; ++i)
             {
-              expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
+              cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
             }
 
           double P_nn_mm;
@@ -116,8 +117,8 @@ LocalExpansion::Add(
 
                               auto absm    = std::abs(mm - m);
                               auto rotated = ((mm - m) != absm) ?
-                                               std::conj(expbetas[absm]) :
-                                               expbetas[absm];
+                                               std::conj(cache[absm]) :
+                                               cache[absm];
 
                               z += a * rotated * realFact;
                             }
@@ -145,8 +146,20 @@ LocalExpansion::Add(
 
 void
 LocalExpansion::Add(
-  const MultipoleExpansion &multipole) // multipole conversion into local
-                                       // expansion, and addition to the rest
+  const LocalExpansion &other) // translation of local expansion
+{
+  if (!other.is_zero)
+    {
+      std::vector<std::complex<double>> cache;
+      this->Add(other, cache);
+    }
+}
+
+void
+LocalExpansion::Add(const MultipoleExpansion &multipole,
+                    std::vector<std::complex<double>>
+                      &cache) // multipole conversion into local
+                              // expansion, and addition to the rest
 {
   if (multipole.is_zero)
     {
@@ -158,14 +171,12 @@ LocalExpansion::Add(
       MultipoleExpansion::spherical_coords(
         center, multipole.GetCenter(), blockRelPos, rho, cos_alpha, beta);
 
-      // cache rotations by beta; could we use simple powers, it would be
-      // blazingly fast
-      std::vector<std::complex<double>> expbetas;
-      expbetas.reserve(2 * p + 1);
-      expbetas.emplace_back(1);
+      cache.reserve(2 * p + 1);
+      cache.clear();
+      cache.emplace_back(1);
       for (unsigned int i = 1; i < 2 * p + 1; ++i)
         {
-          expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
+          cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 
       double P_nn_mm;
@@ -190,8 +201,8 @@ LocalExpansion::Add(
 
                       auto absm    = std::abs(mm - m);
                       auto rotated = ((mm - m) != absm) ?
-                                       std::conj(expbetas[absm]) :
-                                       expbetas[absm];
+                                       std::conj(cache[absm]) :
+                                       cache[absm];
 
                       z += a * rotated * realFact;
                     }
@@ -208,8 +219,8 @@ LocalExpansion::Add(
 
                       auto absm    = std::abs(mm - m);
                       auto rotated = ((mm - m) != absm) ?
-                                       std::conj(expbetas[absm]) :
-                                       expbetas[absm];
+                                       std::conj(cache[absm]) :
+                                       cache[absm];
 
                       z += a * rotated * realFact;
                     }
@@ -223,8 +234,21 @@ LocalExpansion::Add(
     }
 }
 
+void
+LocalExpansion::Add(
+  const MultipoleExpansion &multipole) // multipole conversion into local
+                                       // expansion, and addition to the rest
+{
+  if (!multipole.is_zero)
+    {
+      std::vector<std::complex<double>> cache;
+      Add(multipole, cache);
+    }
+}
+
 double
-LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
+LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
+                         std::vector<std::complex<double>> &cache)
 {
   std::complex<double> fieldValue = std::complex<double>(0., 0.);
   if (this->is_zero)
@@ -237,13 +261,13 @@ LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
       MultipoleExpansion::spherical_coords(
         center, evalPoint, blockRelPos, rho, cos_alpha, beta);
 
-      std::vector<std::complex<double>> expbetas;
-      expbetas.reserve(p + 1);
-      expbetas.emplace_back(1);
+      cache.reserve(p + 1);
+      cache.clear();
+      cache.emplace_back(1);
       for (unsigned int i = 1; i < p + 1; ++i)
         {
           // TODO: try to use exp
-          expbetas.emplace_back(std::cos(i * beta), std::sin(i * beta));
+          cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 
       double P_n_m;
@@ -258,14 +282,25 @@ LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
             {
               P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
               double realFact = P_n_m * rho2n;
-              // std::complex <double> complexFact = exp(std::complex
-              // <double>(0., 1.*m*beta))*2.*realFact;
 
-              std::complex<double> complexFact = expbetas[m] * 2. * realFact;
+              std::complex<double> complexFact = cache[m] * 2. * realFact;
 
               fieldValue += this->GetCoeff(n, m) * complexFact;
             }
         }
+    }
+
+  return fieldValue.real();
+}
+
+double
+LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
+{
+  std::complex<double> fieldValue = std::complex<double>(0., 0.);
+  if (!this->is_zero)
+    {
+      std::vector<std::complex<double>> cache;
+      return Evaluate(evalPoint, cache);
     }
 
   return fieldValue.real();

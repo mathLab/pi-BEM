@@ -328,8 +328,9 @@ protected:
   /// a map associating each DoF to the
   /// block it belongs to
   /// for each level
-  std::map<types::global_dof_index, std::vector<types::global_dof_index>>
-    dof_to_block;
+  // TODO: deprecated
+  // std::map<types::global_dof_index, std::vector<types::global_dof_index>>
+  // dof_to_block;
 
   /// a map associating each quad point to the
   /// block it belongs to for
@@ -340,7 +341,8 @@ protected:
   /// a map associating each cell with a std::set
   /// containing the surrounding
   /// cells
-  std::map<cell_it, std::set<cell_it>> elem_to_surr_elems;
+  // TODO: deprecated
+  // std::map<cell_it, std::set<cell_it>> elem_to_surr_elems;
 
   /// a vector to store all OctreeBlocks
   /// in which the geometry is divided
@@ -392,7 +394,9 @@ protected:
   /// a std::vector containing std::vectors with
   /// the IDs of blocks with at least one
   /// quad point, for each level
-  std::vector<std::vector<types::global_dof_index>> quad_points_filled_blocks;
+  // TODO: deprecated
+  // std::vector<std::vector<types::global_dof_index>>
+  // quad_points_filled_blocks;
 
   ConditionalOStream pcout;
 
@@ -402,8 +406,9 @@ protected:
   /// This should be erased by the usage of the constraint matrix.
   const std::vector<std::set<types::global_dof_index>> *double_nodes_set;
 
-  std::vector<std::vector<types::global_dof_index>> m2l_flags;
-  IndexSet                                          this_cpu_set;
+  // TODO: deprecated
+  // std::vector<std::vector<types::global_dof_index>> m2l_flags;
+  IndexSet this_cpu_set;
 };
 
 #endif

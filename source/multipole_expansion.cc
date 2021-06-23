@@ -46,7 +46,9 @@ MultipoleExpansion::Add(const MultipoleExpansion &multipole, const double sol)
 }
 
 void
-MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
+MultipoleExpansion::Add(const double                       strength,
+                        const dealii::Point<3> &           point,
+                        std::vector<std::complex<double>> &cache)
 {
   if (strength == 0)
     {
@@ -60,6 +62,16 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
       MultipoleExpansion::spherical_coords(
         center, point, pointRelPos, rho, cos_alpha, beta);
 
+      // cache rotations by beta; could we use simple powers, it would be
+      // blazingly fast
+      cache.reserve(p + 1);
+      cache.clear();
+      cache.emplace_back(1);
+      for (unsigned int i = 1; i < p + 1; ++i)
+        {
+          cache.emplace_back(std::exp(std::complex<double>(0., -(i * beta))));
+        }
+
       double P_n_m;
       for (int n = 0; n < int(this->p) + 1; n++)
         {
@@ -69,20 +81,34 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
                 this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
               double realFact = P_n_m * pow(rho, double(n)) * strength;
 
-              // TODO: reduce evaluations by flipping nesting of for_n and for_m
+              // another option was flipping the nesting of for_n and for_m
+              // better due to skipping memory allocation for the cache
+              /* reference
               std::complex<double> a =
                 exp(std::complex<double>(0., -m * beta)) * realFact;
+              */
+              std::complex<double> a = cache[m] * realFact;
 
               this->AddToCoeff(n, m, a);
             }
         }
     }
 }
+void
+MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
+{
+  if (strength != 0)
+    {
+      std::vector<std::complex<double>> cache;
+      Add(strength, point, cache);
+    }
+}
 
 void
-MultipoleExpansion::AddNormDer(const double                strength,
-                               const dealii::Point<3>     &point,
-                               const dealii::Tensor<1, 3> &normal)
+MultipoleExpansion::AddNormDer(const double                       strength,
+                               const dealii::Point<3> &           point,
+                               const dealii::Tensor<1, 3> &       normal,
+                               std::vector<std::complex<double>> &cache)
 {
   if (strength == 0)
     {
@@ -110,6 +136,16 @@ MultipoleExpansion::AddNormDer(const double                strength,
                          rho) *
                         normVersor;
 
+      // cache rotations by beta; could we use simple powers, it would be
+      // blazingly fast
+      cache.reserve(p + 1);
+      cache.clear();
+      cache.emplace_back(1);
+      for (unsigned int i = 1; i < p + 1; ++i)
+        {
+          cache.emplace_back(std::exp(std::complex<double>(0., -(i * beta))));
+        }
+
       double P_n_m;
       double dP_n_m_sin;
       for (int n = 0; n < int(this->p) + 1; n++)
@@ -125,9 +161,13 @@ MultipoleExpansion::AddNormDer(const double                strength,
                                                            cos_alpha) *
                 sin_alpha;
 
-              // TODO: reduce evaluations by flipping nesting of for_n and for_m
+              // another option was flipping the nesting of for_n and for_m
+              // better due to skipping memory allocation for the cache
+              /*
               std::complex<double> z =
                 exp(std::complex<double>(0., -double(m) * beta));
+              */
+              std::complex<double> z = cache[m];
 
               z *= std::complex<double>(
                 double(n) * pow(rho, double(n) - 1.) * P_n_m * dRhodN -
@@ -142,9 +182,22 @@ MultipoleExpansion::AddNormDer(const double                strength,
 }
 
 void
+MultipoleExpansion::AddNormDer(const double                strength,
+                               const dealii::Point<3> &    point,
+                               const dealii::Tensor<1, 3> &normal)
+{
+  if (strength != 0)
+    {
+      std::vector<std::complex<double>> cache;
+      AddNormDer(strength, point, normal, cache);
+    }
+}
+
+void
 MultipoleExpansion::Add(
-  const MultipoleExpansion
-    &other) // translation of a multipole to its parent center
+  const MultipoleExpansion &other,
+  std::vector<std::complex<double>>
+    &cache) // translation of a multipole to its parent center
 {
   if (other.is_zero)
     {
@@ -160,6 +213,16 @@ MultipoleExpansion::Add(
           double           rho, cos_alpha, beta;
           MultipoleExpansion::spherical_coords(
             center, other.center, blockRelPos, rho, cos_alpha, beta);
+
+          // cache rotations by beta; could we use simple powers, it would be
+          // blazingly fast
+          cache.reserve(p + 1);
+          cache.clear();
+          cache.emplace_back(1);
+          for (unsigned int i = 1; i < p + 1; ++i)
+            {
+              cache.emplace_back(std::exp(std::complex<double>(0., i * beta)));
+            }
 
           double P_nn_mm;
           for (int n = 0; n < int(this->p) + 1; n++)
@@ -216,9 +279,15 @@ MultipoleExpansion::Add(
                                      double(abs(m) - abs(mm) - abs(m - mm))))
                                   .real();
 
+                              /*
                               z +=
                                 realFact *
                                 (a * exp(std::complex<double>(0., -mm * beta)));
+                              */
+                              // TODO: validate
+                              auto rotated =
+                                (mm > 0) ? std::conj(cache[mm]) : cache[-mm];
+                              z += realFact * (a * rotated);
                             }
                         }
                     }
@@ -240,8 +309,18 @@ MultipoleExpansion::Add(
     }
 }
 
+void
+MultipoleExpansion::Add(
+  const MultipoleExpansion
+    &other) // translation of a multipole to its parent center
+{
+  std::vector<std::complex<double>> cache;
+  Add(other, cache);
+}
+
 double
-MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
+MultipoleExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
+                             std::vector<std::complex<double>> &cache)
 {
   std::complex<double> fieldValue(0., 0.);
   if (this->is_zero)
@@ -253,6 +332,14 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
       double           rho, cos_alpha, beta;
       MultipoleExpansion::spherical_coords(
         center, evalPoint, blockRelPos, rho, cos_alpha, beta);
+
+      cache.reserve(p + 1);
+      cache.clear();
+      cache.emplace_back(1);
+      for (unsigned int i = 1; i < p + 1; ++i)
+        {
+          cache.emplace_back(std::exp(std::complex<double>(0., i * beta)));
+        }
 
       double P_n_m;
 
@@ -269,12 +356,22 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
                 this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
               double realFact = P_n_m * rho_n1;
 
+              /*
               fieldValue += this->GetCoeff(n, m) *
                             exp(std::complex<double>(0., m * beta)) * 2. *
                             realFact;
+              */
+              fieldValue += this->GetCoeff(n, m) * cache[m] * 2. * realFact;
             }
         }
     }
 
   return fieldValue.real();
+}
+
+double
+MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
+{
+  std::vector<std::complex<double>> cache;
+  return Evaluate(evalPoint, cache);
 }

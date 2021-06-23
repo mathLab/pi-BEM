@@ -5,10 +5,9 @@
  * Created on April 3, 2015, 6:05 PM
  */
 
-#include "local_expansion_coeff.h"
-
 #include <iostream>
 
+#include "local_expansion_coeff.h"
 #include "string.h"
 
 using std::cout;
@@ -23,13 +22,13 @@ LocalExpansionCoeff::LocalExpansionCoeff()
 LocalExpansionCoeff::LocalExpansionCoeff(const unsigned int &p)
 {
   _p     = p;
-  _coeff = new double[(p + 1) * (p + 1) * (p + 1) * (p + 2) / 2];
+  _coeff = new double[getNumberOfElements()];
 }
 
 LocalExpansionCoeff::LocalExpansionCoeff(const LocalExpansionCoeff &orig)
 {
   _p     = orig._p;
-  _coeff = new double[(_p + 1) * (_p + 1) * (_p + 1) * (_p + 2) / 2];
+  _coeff = new double[getNumberOfElements()];
   memcpy(_coeff, orig._coeff, this->getNumberOfElements());
 }
 

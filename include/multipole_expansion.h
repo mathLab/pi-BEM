@@ -53,19 +53,45 @@ public:
   void
   Add(const MultipoleExpansion &multipole, const double sol);
 
+  /* unused
+  void
+  Add(const MultipoleExpansion &         multipole,
+      const double                       sol,
+      std::vector<std::complex<double>> &cache);
+  */
+
   void
   Add(const double strength, const dealii::Point<3> &point);
 
   void
+  Add(const double                       strength,
+      const dealii::Point<3> &           point,
+      std::vector<std::complex<double>> &cache);
+
+  void
   Add(const MultipoleExpansion &child);
+
+  void
+  Add(const MultipoleExpansion &         child,
+      std::vector<std::complex<double>> &cache);
 
   void
   AddNormDer(const double                strength,
              const dealii::Point<3>     &point,
              const dealii::Tensor<1, 3> &normal);
 
+  void
+  AddNormDer(const double                       strength,
+             const dealii::Point<3> &           point,
+             const dealii::Tensor<1, 3> &       normal,
+             std::vector<std::complex<double>> &cache);
+
   double
   Evaluate(const dealii::Point<3> &evalPoint);
+
+  double
+  Evaluate(const dealii::Point<3> &           evalPoint,
+           std::vector<std::complex<double>> &cache);
 
   inline dealii::Point<3>
   GetCenter() const

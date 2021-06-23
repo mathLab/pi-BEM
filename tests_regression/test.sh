@@ -20,10 +20,13 @@ cmake --build . -j4
 nthreads=1
 ncores_total=4
 
+#modes="direct fma"
+modes="direct fma"
+
 echo "reference problems (np=1 fixed)"
 #generate the baseline - this should be skipped if ref* files are already present
 #logs are saved as ref_* while all other isntances are reg_*
-for mode in direct fma
+for mode in ${modes}
 do
     echo "solver mode ${mode}"
     for func in 1 2
@@ -31,44 +34,51 @@ do
         cp ${startdir}/ref_parameters_bem_3_f${func}_${mode}.prm ./parameters_bem_3.prm
 
         #references should be for np=1; np>1 are regressions
-        for nprocs in 1
-        do
-            if [ ! -f "${startdir}/ref_f${func}_${mode}.log" ]
+        nprocs=1
+        nthreads=1
+        
+        if [ ! -f "${startdir}/ref_f${func}_${mode}.log" ]
+        then
+            echo "reference problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+            export OMP_NUM_THREADS=${nthreads}
+            perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
+            
+            result=${?}
+
+            if (( result == 0 ))
             then
-                echo "reference problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
-                export OMP_NUM_THREADS=${nthreads}
-                perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
-                
-                result=${?}
-    
-                if (( result == 0 ))
-                then
-                    for fn in result_scalar_results result_vector_results #scalar_error vector_error
-                    do
-                        cp ./${fn}.vtu ${startdir}/ref_${fn}_f${func}_${mode}.vtu
-                        
-                        echo "reg_np${nprocs}_${fn}_f${func}_${mode}.vtu"
-                        meshio-info ${startdir}/ref_${fn}_f${func}_${mode}.vtu
-                    done
+                for fn in result_scalar_results result_vector_results #scalar_error vector_error
+                do
+                    cp ./${fn}.vtu ${startdir}/ref_${fn}_f${func}_${mode}.vtu
                     
-                    #the first is for simple reading, the one appending is for python mega pandas dataframing
-                    cp log ${startdir}/ref_f${func}_${mode}.log
-                    cat log >> ${startdir}/ref_f${func}_${mode}_log.log
-                else
-                    echo "error during reference problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
-                fi
-                echo
-                sleep ${cooldown}
+                    echo "reg_np${nprocs}_${fn}_f${func}_${mode}.vtu"
+                    meshio-info ${startdir}/ref_${fn}_f${func}_${mode}.vtu
+                done
+                
+                #the first is for simple reading, the one appending is for python mega pandas dataframing
+                cp log ${startdir}/ref_f${func}_${mode}.log
+                cat log >> ${startdir}/ref_f${func}_${mode}_log.log
+            else
+                echo "error during reference problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+                
+                #the first is for simple reading, the one appending is for python mega pandas dataframing
+                cp log ${startdir}/ref_f${func}_${mode}.err
+                cat log >> ${startdir}/ref_f${func}_${mode}_log.err
             fi
-        done
+            
+            echo
+            sleep ${cooldown}
+        fi
     done
 done
 
 #exit 0
 
+nthreads=1
+
 #solve the simple problem instances with multiple mpi procs
 #logs are saved as reg_*
-for mode in direct fma
+for mode in ${modes}
 do
     echo "regression problems of mode ${mode}"
     for func in 1 2
@@ -80,7 +90,12 @@ do
         do 
             echo "regression problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
             export OMP_NUM_THREADS=${nthreads}
-            perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
+            if ((nprocs > 1))
+            then
+                perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=${nthreads} bem_fma_3d ${nthreads} > log 2>&1
+            else
+                perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=${nthreads} --bind-to none bem_fma_3d ${nthreads} > log 2>&1
+            fi
 
             result=${?}
 
@@ -99,6 +114,10 @@ do
                 cat log >> ${startdir}/reg_np${nprocs}_nt${nthreads}_f${func}_${mode}_log.log
             else
                 echo "error during regression problem ${func} - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+                
+                #the first is for simple reading, the one appending is for python mega pandas dataframing
+                cp log ${startdir}/reg_np${nprocs}_nt${nthreads}_f${func}_${mode}.err
+                cat log >> ${startdir}/reg_np${nprocs}_nt${nthreads}_f${func}_${mode}_log.err
             fi
             echo
             sleep ${cooldown}
@@ -109,7 +128,7 @@ done
 #exit 0
 
 #solve complex problems - each instance shall generate two sets of result files, with f1 and f2 suffix to be compared with references
-for mode in direct fma
+for mode in ${modes}
 do
     cp ${startdir}/ref_parameters_bem_3_complex_${mode}.prm ./parameters_bem_3.prm
 
@@ -117,7 +136,12 @@ do
     do 
         echo "complex problem - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
         export OMP_NUM_THREADS=${nthreads}
-	    perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=1 --bind-to none bem_fma_3d ${nthreads} > log 2>&1
+        if ((nprocs > 1))
+        then
+            perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=${nthreads} bem_fma_3d ${nthreads} > log 2>&1
+        else
+            perf stat --detailed mpirun --np ${nprocs} --map-by node:PE=${nthreads} --bind-to none bem_fma_3d ${nthreads} > log 2>&1
+        fi
 
         result=${?}
 
@@ -149,6 +173,10 @@ do
             cat log >> ${startdir}/reg_np${nprocs}_nt${nthreads}_complex_${mode}_log.log
         else
             echo "error during complex problem - nprocs ${nprocs} - nthreads ${nthreads} - solver ${mode}"
+            
+            #the first is for simple reading, the one appending is for python mega pandas dataframing
+            cp log ${startdir}/reg_np${nprocs}_nt${nthreads}_complex_${mode}.err
+            cat log >> ${startdir}/reg_np${nprocs}_nt${nthreads}_complex_${mode}_log.err
         fi
         echo
         sleep ${cooldown}

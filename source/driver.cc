@@ -103,10 +103,12 @@ Driver<dim>::run()
       computational_domain.read_domain();
       if (global_refinement)
         {
+          Teuchos::TimeMonitor LocalTimer(*MeshTime);
           computational_domain.refine_and_resize(computational_domain.n_cycles);
         }
       else
         {
+          Teuchos::TimeMonitor LocalTimer(*MeshTime);
           // computational_domain.conditional_refine_and_resize(1);
           computational_domain.refine_and_resize(
             computational_domain.pre_global_refinements);
@@ -135,6 +137,7 @@ Driver<dim>::run()
             }
           boundary_conditions.set_current_phi_component(0);
         }
+
         if (!global_refinement && i < local_refinement_cycles)
           {
             // Compute error estimator and local refinement strategy

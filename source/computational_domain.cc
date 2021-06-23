@@ -856,7 +856,7 @@ ComputationalDomain<dim>::conditional_refine_and_resize(
             {
               const double distance_from_center =
                 center.distance(cell->vertex(v));
-              if (std::fabs(distance_from_center) < 1.)
+              if (distance_from_center < 1.)
                 {
                   cell->set_refine_flag();
                   break;
@@ -986,12 +986,17 @@ ComputationalDomain<dim>::make_edges_conformal(
                             {
                               // std::cout<<cell->face(f)->vertex(1)<<"
                               // "<<cell->face(f)->vertex(0)<<std::endl;
-                              if (all_vertices[i].distance(
-                                    cell->face(f)->vertex(0)) < tol)
-                                nodes[kk] = cell->face(f)->vertex(1);
-                              else if (all_vertices[i].distance(
-                                         cell->face(f)->vertex(1)) < tol)
-                                nodes[kk] = cell->face(f)->vertex(0);
+                              if (all_vertices[i].distance_square(
+                                    cell->face(f)->vertex(0)) < (tol * tol))
+                                {
+                                  nodes[kk] = cell->face(f)->vertex(1);
+                                }
+                              else if (all_vertices[i].distance_square(
+                                         cell->face(f)->vertex(1)) <
+                                       (tol * tol))
+                                {
+                                  nodes[kk] = cell->face(f)->vertex(0);
+                                }
                             }
                         }
                       // std::cout<<std::endl;
@@ -1011,10 +1016,10 @@ ComputationalDomain<dim>::make_edges_conformal(
                             {
                               // cout<<parent_face_center.distance((*jt)->face(d)->center())<<"
                               // "<<tol<<endl;
-                              if (parent_face_center.distance(
+                              if (parent_face_center.distance_square(
                                     ((*jt)->face(d)->vertex(0) +
                                      (*jt)->face(d)->vertex(1)) /
-                                    2) < tol)
+                                    2) < (tol * tol))
                                 {
                                   if (isotropic_ref_on_opposite_side)
                                     {
@@ -1074,11 +1079,13 @@ ComputationalDomain<dim>::compute_double_vertex_cache()
 
   for (types::global_dof_index i = 0; i < n_vertex; ++i)
     {
-      for (types::global_dof_index j = 0; j < n_vertex; ++j)
+      double_vertex_vector[i].push_back(i);
+      for (types::global_dof_index j = i+1; j < n_vertex; ++j)
         {
-          if (all_vertices[i].distance(all_vertices[j]) <= toll)
+          if (all_vertices[i].distance_square(all_vertices[j]) <= (toll * toll))
             {
               double_vertex_vector[i].push_back(j);
+              double_vertex_vector[j].push_back(i);
             }
         }
     }

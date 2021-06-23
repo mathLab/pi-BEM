@@ -30,10 +30,8 @@ MultipoleExpansion::MultipoleExpansion(const unsigned int      order,
 void
 MultipoleExpansion::Add(const MultipoleExpansion &multipole, const double sol)
 {
-  if (multipole.is_zero || sol == 0)
-    {
-    }
-  else
+  // TODO: sol testing should use a tolerance
+  if (!multipole.is_zero && sol != 0)
     {
       this->is_zero = false;
       for (int n = 0; n < int(this->p) + 1; n++)
@@ -50,10 +48,8 @@ MultipoleExpansion::Add(const double                       strength,
                         const dealii::Point<3> &           point,
                         std::vector<std::complex<double>> &cache)
 {
-  if (strength == 0)
-    {
-    }
-  else
+  // TODO: strength testing should use a tolerance
+  if (strength != 0)
     {
       this->is_zero = false;
 
@@ -62,8 +58,6 @@ MultipoleExpansion::Add(const double                       strength,
       MultipoleExpansion::spherical_coords(
         center, point, pointRelPos, rho, cos_alpha, beta);
 
-      // cache rotations by beta; could we use simple powers, it would be
-      // blazingly fast
       cache.reserve(p + 1);
       cache.clear();
       cache.emplace_back(1);
@@ -75,18 +69,13 @@ MultipoleExpansion::Add(const double                       strength,
       double P_n_m;
       for (int n = 0; n < int(this->p) + 1; n++)
         {
+          const double rho2n = pow(rho, double(n));
           for (int m = 0; m < n + 1; m++)
             {
               P_n_m =
                 this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
-              double realFact = P_n_m * pow(rho, double(n)) * strength;
+              double realFact = P_n_m * rho2n * strength;
 
-              // another option was flipping the nesting of for_n and for_m
-              // better due to skipping memory allocation for the cache
-              /* reference
-              std::complex<double> a =
-                exp(std::complex<double>(0., -m * beta)) * realFact;
-              */
               std::complex<double> a = cache[m] * realFact;
 
               this->AddToCoeff(n, m, a);
@@ -97,11 +86,8 @@ MultipoleExpansion::Add(const double                       strength,
 void
 MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
 {
-  if (strength != 0)
-    {
-      std::vector<std::complex<double>> cache;
-      Add(strength, point, cache);
-    }
+  std::vector<std::complex<double>> cache;
+  Add(strength, point, cache);
 }
 
 void
@@ -110,10 +96,8 @@ MultipoleExpansion::AddNormDer(const double                       strength,
                                const dealii::Tensor<1, 3> &       normal,
                                std::vector<std::complex<double>> &cache)
 {
-  if (strength == 0)
-    {
-    }
-  else
+  // TODO: strength testing should use a tolerance
+  if (strength != 0)
     {
       this->is_zero = false;
 
@@ -128,7 +112,6 @@ MultipoleExpansion::AddNormDer(const double                       strength,
                         (pow(pointRelPos(0), 2.) + pow(pointRelPos(1), 2.))) *
                        normVersor;
 
-      // below, was using cos_alpha_ notice the trailing underscore
       double sin_alpha = std::sqrt(1. - pow(cos_alpha, 2.));
       double dAlphadN  = (dealii::Point<3>(cos_alpha * cos(beta),
                                           cos_alpha * sin(beta),
@@ -136,8 +119,6 @@ MultipoleExpansion::AddNormDer(const double                       strength,
                          rho) *
                         normVersor;
 
-      // cache rotations by beta; could we use simple powers, it would be
-      // blazingly fast
       cache.reserve(p + 1);
       cache.clear();
       cache.emplace_back(1);
@@ -150,9 +131,11 @@ MultipoleExpansion::AddNormDer(const double                       strength,
       double dP_n_m_sin;
       for (int n = 0; n < int(this->p) + 1; n++)
         {
+          const double rho2n  = pow(rho, double(n));
+          const double rho2n1 = pow(rho, double(n) - 1.);
+
           for (int m = 0; m < n + 1; m++)
             {
-              // below, was using cos_alpha_ notice the trailing underscore
               P_n_m =
                 this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
               dP_n_m_sin =
@@ -161,18 +144,10 @@ MultipoleExpansion::AddNormDer(const double                       strength,
                                                            cos_alpha) *
                 sin_alpha;
 
-              // another option was flipping the nesting of for_n and for_m
-              // better due to skipping memory allocation for the cache
-              /*
-              std::complex<double> z =
-                exp(std::complex<double>(0., -double(m) * beta));
-              */
               std::complex<double> z = cache[m];
-
-              z *= std::complex<double>(
-                double(n) * pow(rho, double(n) - 1.) * P_n_m * dRhodN -
-                  pow(rho, double(n)) * dP_n_m_sin * dAlphadN,
-                -double(m) * pow(rho, double(n)) * P_n_m * dBetadN);
+              z *= std::complex<double>(double(n) * rho2n1 * P_n_m * dRhodN -
+                                          rho2n * dP_n_m_sin * dAlphadN,
+                                        -double(m) * rho2n * P_n_m * dBetadN);
               z *= strength;
 
               this->AddToCoeff(n, m, z);
@@ -186,11 +161,8 @@ MultipoleExpansion::AddNormDer(const double                strength,
                                const dealii::Point<3> &    point,
                                const dealii::Tensor<1, 3> &normal)
 {
-  if (strength != 0)
-    {
-      std::vector<std::complex<double>> cache;
-      AddNormDer(strength, point, normal, cache);
-    }
+  std::vector<std::complex<double>> cache;
+  AddNormDer(strength, point, normal, cache);
 }
 
 void
@@ -199,23 +171,18 @@ MultipoleExpansion::Add(
   std::vector<std::complex<double>>
     &cache) // translation of a multipole to its parent center
 {
-  if (other.is_zero)
-    {
-      this->is_zero = this->is_zero & other.is_zero;
-    }
-  else
+  const double tolerance = 1e-7;
+  if (!other.is_zero)
     {
       this->is_zero             = false;
       FullMatrix<double> &A_n_m = this->GetA_n_m();
-      if (other.center.distance(this->center) > 1e-7)
+      if (other.center.distance_square(this->center) > (tolerance * tolerance))
         {
           dealii::Point<3> blockRelPos;
           double           rho, cos_alpha, beta;
           MultipoleExpansion::spherical_coords(
             center, other.center, blockRelPos, rho, cos_alpha, beta);
 
-          // cache rotations by beta; could we use simple powers, it would be
-          // blazingly fast
           cache.reserve(p + 1);
           cache.clear();
           cache.emplace_back(1);
@@ -279,12 +246,6 @@ MultipoleExpansion::Add(
                                      double(abs(m) - abs(mm) - abs(m - mm))))
                                   .real();
 
-                              /*
-                              z +=
-                                realFact *
-                                (a * exp(std::complex<double>(0., -mm * beta)));
-                              */
-                              // TODO: validate
                               auto rotated =
                                 (mm > 0) ? std::conj(cache[mm]) : cache[-mm];
                               z += realFact * (a * rotated);
@@ -323,10 +284,7 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
                              std::vector<std::complex<double>> &cache)
 {
   std::complex<double> fieldValue(0., 0.);
-  if (this->is_zero)
-    {
-    }
-  else
+  if (!this->is_zero)
     {
       dealii::Point<3> blockRelPos;
       double           rho, cos_alpha, beta;
@@ -346,21 +304,16 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
       for (int n = 0; n < int(this->p) + 1; n++)
         {
           P_n_m = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
-          const double rho_n1 = pow(rho, double(-n - 1));
+          const double rho_n1   = pow(rho, double(-n - 1));
+          double       realFact = P_n_m * rho_n1;
 
-          double realFact = P_n_m * rho_n1;
           fieldValue += this->GetCoeff(n, 0) * realFact;
           for (int m = 1; m < n + 1; m++)
             {
               P_n_m =
                 this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
-              double realFact = P_n_m * rho_n1;
+              realFact = P_n_m * rho_n1;
 
-              /*
-              fieldValue += this->GetCoeff(n, m) *
-                            exp(std::complex<double>(0., m * beta)) * 2. *
-                            realFact;
-              */
               fieldValue += this->GetCoeff(n, m) * cache[m] * 2. * realFact;
             }
         }

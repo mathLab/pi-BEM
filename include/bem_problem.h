@@ -423,7 +423,6 @@ public:
   Vector<double>                    map_points;
 >>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
 
-
   /// these are the std::vectors of std::sets
   /// containing informations on multiple
   /// nodes on the edges: one vector is

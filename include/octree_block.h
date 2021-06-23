@@ -52,6 +52,8 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <boost/container/flat_set.hpp>
+
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -66,6 +68,8 @@ class OctreeBlock
 {
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
+  // std::set<types::global_dof_index>
+  using small_set = boost::container::flat_set<types::global_dof_index>;
 
 private:
   unsigned int            level;
@@ -74,9 +78,10 @@ private:
   types::global_dof_index childrenId[8];
 
   /// relevant entities at each level
-  std::vector<std::set<types::global_dof_index>> nearNeigh;
-  std::vector<std::set<types::global_dof_index>> intList;
-  std::vector<std::set<types::global_dof_index>> nonIntList;
+  // std::set<types::global_dof_index>
+  std::vector<small_set> nearNeigh;
+  std::vector<small_set> intList;
+  std::vector<small_set> nonIntList;
 
   Point<dim> pMin;
 
@@ -93,16 +98,6 @@ public:
               types::global_dof_index parent,
               Point<dim>              pMin,
               double                  delta);
-
-  // TODO: not declaring will enable move semantics
-  /*
-  OctreeBlock(const OctreeBlock<dim> &other);
-
-  ~OctreeBlock();
-
-  void
-  CopyContent(const OctreeBlock *other);
-  */
 
   void
   AddNode(types::global_dof_index nodeId);
@@ -164,7 +159,7 @@ public:
   unsigned int
   NumNearNeighLevels() const;
 
-  const std::set<types::global_dof_index> &
+  const small_set &
   GetNearNeighs(unsigned int sublevel) const;
 
   void
@@ -174,10 +169,10 @@ public:
   types::global_dof_index
   NumIntList(unsigned int sublevel) const;
 
-  const std::set<types::global_dof_index> &
+  const small_set &
   GetIntList(unsigned int sublevel) const;
 
-  const std::vector<std::set<types::global_dof_index>> &
+  const std::vector<small_set> &
   GetIntList() const;
 
   void
@@ -187,7 +182,7 @@ public:
   types::global_dof_index
   NumNonIntList(unsigned int sublevel) const;
 
-  const std::set<types::global_dof_index> &
+  const small_set &
   GetNonIntList(unsigned int sublevel) const;
 
   void

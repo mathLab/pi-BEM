@@ -53,13 +53,6 @@ public:
   void
   Add(const MultipoleExpansion &multipole, const double sol);
 
-  /* unused
-  void
-  Add(const MultipoleExpansion &         multipole,
-      const double                       sol,
-      std::vector<std::complex<double>> &cache);
-  */
-
   void
   Add(const double strength, const dealii::Point<3> &point);
 

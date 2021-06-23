@@ -65,26 +65,22 @@ LocalExpansion::Add(
   const LocalExpansion &             other,
   std::vector<std::complex<double>> &cache) // translation of local expansion
 {
-  if (other.is_zero)
+  const double tolerance = 1e-7;
+  if (!other.is_zero)
     {
-    }
-  else
-    {
-      unsigned int p = this->p;
-      if (other.center.distance(this->center) > 1e-7)
+      if (other.center.distance_square(this->center) > (tolerance * tolerance))
         {
           dealii::Point<3> blockRelPos;
           double           rho, cos_alpha, beta;
           MultipoleExpansion::spherical_coords(
             center, other.GetCenter(), blockRelPos, rho, cos_alpha, beta);
 
-          // cache rotations by beta; could we use simple powers, it would be
-          // blazingly fast
           cache.reserve(2 * p + 1);
           cache.clear();
           cache.emplace_back(1);
           for (unsigned int i = 1; i < 2 * p + 1; ++i)
             {
+              // TODO: test std::exp
               cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
             }
 
@@ -148,11 +144,8 @@ void
 LocalExpansion::Add(
   const LocalExpansion &other) // translation of local expansion
 {
-  if (!other.is_zero)
-    {
-      std::vector<std::complex<double>> cache;
-      this->Add(other, cache);
-    }
+  std::vector<std::complex<double>> cache;
+  this->Add(other, cache);
 }
 
 void
@@ -161,10 +154,7 @@ LocalExpansion::Add(const MultipoleExpansion &multipole,
                       &cache) // multipole conversion into local
                               // expansion, and addition to the rest
 {
-  if (multipole.is_zero)
-    {
-    }
-  else
+  if (!multipole.is_zero)
     {
       dealii::Point<3> blockRelPos;
       double           rho, cos_alpha, beta;
@@ -176,6 +166,7 @@ LocalExpansion::Add(const MultipoleExpansion &multipole,
       cache.emplace_back(1);
       for (unsigned int i = 1; i < 2 * p + 1; ++i)
         {
+          // TODO: test std::exp
           cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 
@@ -239,11 +230,8 @@ LocalExpansion::Add(
   const MultipoleExpansion &multipole) // multipole conversion into local
                                        // expansion, and addition to the rest
 {
-  if (!multipole.is_zero)
-    {
-      std::vector<std::complex<double>> cache;
-      Add(multipole, cache);
-    }
+  std::vector<std::complex<double>> cache;
+  Add(multipole, cache);
 }
 
 double
@@ -251,10 +239,7 @@ LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
                          std::vector<std::complex<double>> &cache)
 {
   std::complex<double> fieldValue = std::complex<double>(0., 0.);
-  if (this->is_zero)
-    {
-    }
-  else
+  if (!this->is_zero)
     {
       dealii::Point<3> blockRelPos;
       double           rho, cos_alpha, beta;
@@ -266,7 +251,7 @@ LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
       cache.emplace_back(1);
       for (unsigned int i = 1; i < p + 1; ++i)
         {
-          // TODO: try to use exp
+          // TODO: test std::exp
           cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 
@@ -280,8 +265,8 @@ LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
           fieldValue += this->GetCoeff(n, 0) * realFact;
           for (int m = 1; m < n + 1; m++)
             {
-              P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
-              double realFact = P_n_m * rho2n;
+              P_n_m    = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
+              realFact = P_n_m * rho2n;
 
               std::complex<double> complexFact = cache[m] * 2. * realFact;
 
@@ -296,12 +281,11 @@ LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
 double
 LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
 {
-  std::complex<double> fieldValue = std::complex<double>(0., 0.);
   if (!this->is_zero)
     {
       std::vector<std::complex<double>> cache;
       return Evaluate(evalPoint, cache);
     }
 
-  return fieldValue.real();
+  return 0;
 }

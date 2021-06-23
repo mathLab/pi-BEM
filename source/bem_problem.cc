@@ -338,6 +338,7 @@ BEMProblem<dim>::reinit()
                quadrature_order,
                singular_quadrature_order);
 
+  /* TODO: unused
   // We need a TrilinosWrappers::MPI::Vector to reinit the SparsityPattern for
   // the parallel mass matrices.
   TrilinosWrappers::MPI::Vector helper(vector_this_cpu_set, mpi_communicator);
@@ -346,7 +347,7 @@ BEMProblem<dim>::reinit()
   trial_index_set =
     DoFTools::dof_indices_with_subdomain_association(gradient_dh,
                                                      this_mpi_process);
-
+  */
   // This is the only way we could create the SparsityPattern, through the
   // Epetramap of an existing vector.
   vector_sparsity_pattern.reinit(vector_this_cpu_set,
@@ -598,7 +599,6 @@ BEMProblem<dim>::compute_double_nodes_set()
 
   edge_set.clear();
   edge_set.set_size(dh.n_dofs());
-
   for (auto cell = dh.begin_active(); cell != dh.end(); ++cell)
     {
       for (unsigned int f = 0; f < GeometryInfo<dim - 1>::faces_per_cell; ++f)
@@ -616,15 +616,30 @@ BEMProblem<dim>::compute_double_nodes_set()
     {
       double_nodes_set[i].insert(i);
     }
-  for (auto i : edge_set) //(types::global_dof_index i=0; i<dh.n_dofs(); ++i)
+  for (auto i : edge_set)
     {
+      auto jiter = edge_set.at(i);
+      ++jiter;
+      for (; jiter != edge_set.end(); ++jiter)
+        {
+          const auto j = *jiter;
+          if (support_points[i].distance_square(support_points[j]) <
+              (tol * tol))
+            {
+              double_nodes_set[i].insert(j);
+              double_nodes_set[j].insert(i);
+            }
+        }
+      /*
       for (auto j : edge_set)
         {
-          if (support_points[i].distance(support_points[j]) < tol)
+          if (support_points[i].distance_square(support_points[j]) <
+              (tol * tol))
             {
               double_nodes_set[i].insert(j);
             }
         }
+      */
     }
 }
 

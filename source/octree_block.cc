@@ -36,63 +36,6 @@ OctreeBlock<dim>::OctreeBlock(unsigned int            level,
   , quadPointsId()
 {}
 
-// TODO: not declaring will enable move semantics
-/*
-OctreeBlock<dim>::OctreeBlock(const OctreeBlock<dim> &other)
-{
-  this->parentId = other.parentId;
-  this->level    = other.level;
-  this->pMin     = other.pMin;
-  this->delta    = other.delta;
-  for (types::global_dof_index i = 0; i < other.nodesId.size(); i++)
-    {
-      this->nodesId.push_back(other.nodesId[i]);
-    }
-  this->quadPointsId = other.quadPointsId;
-  this->numChildren  = other.numChildren;
-  for (unsigned int i = 0; i < this->numChildren; i++)
-    {
-      this->childrenId[i] = other.childrenId[i];
-    }
-  this->nearNeigh  = other.nearNeigh;
-  this->intList    = other.intList;
-  this->nonIntList = other.nonIntList;
-}
-
-template <int dim>
-OctreeBlock<dim>::~OctreeBlock()
-{
-  this->nearNeigh.clear();
-  this->intList.clear();
-  this->nonIntList.clear();
-  this->nodesId.clear();
-  this->quadPointsId.clear();
-}
-
-template <int dim>
-void
-OctreeBlock<dim>::CopyContent(const OctreeBlock<dim> *other)
-{
-  this->parentId = other->parentId;
-  this->level    = other->level;
-  this->pMin     = other->pMin;
-  this->delta    = other->delta;
-  for (types::global_dof_index i = 0; i < other->nodesId.size(); i++)
-    {
-      this->nodesId.push_back(other->nodesId[i]);
-    }
-  this->quadPointsId = other->quadPointsId;
-  this->numChildren  = other->numChildren;
-  for (unsigned int i = 0; i < this->numChildren; i++)
-    {
-      this->childrenId[i] = other->childrenId[i];
-    }
-  this->nearNeigh  = other->nearNeigh;
-  this->intList    = other->intList;
-  this->nonIntList = other->nonIntList;
-}
-*/
-
 template <int dim>
 void
 OctreeBlock<dim>::AddNode(types::global_dof_index nodeId)
@@ -213,7 +156,7 @@ OctreeBlock<dim>::NumNearNeighLevels() const
 }
 
 template <int dim>
-inline const std::set<types::global_dof_index> &
+inline const typename OctreeBlock<dim>::small_set &
 OctreeBlock<dim>::GetNearNeighs(unsigned int sublevel) const
 {
   AssertIndexRange(sublevel, nearNeigh.size());
@@ -239,7 +182,7 @@ OctreeBlock<dim>::NumIntList(unsigned int sublevel) const
 }
 
 template <int dim>
-inline const std::set<types::global_dof_index> &
+inline const typename OctreeBlock<dim>::small_set &
 OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
 {
   AssertIndexRange(sublevel, intList.size());
@@ -247,7 +190,7 @@ OctreeBlock<dim>::GetIntList(unsigned int sublevel) const
 }
 
 template <int dim>
-inline const std::vector<std::set<types::global_dof_index>> &
+inline const std::vector<typename OctreeBlock<dim>::small_set> &
 OctreeBlock<dim>::GetIntList() const
 {
   return this->intList;
@@ -272,7 +215,7 @@ OctreeBlock<dim>::NumNonIntList(unsigned int sublevel) const
 }
 
 template <int dim>
-inline const std::set<types::global_dof_index> &
+inline const typename OctreeBlock<dim>::small_set &
 OctreeBlock<dim>::GetNonIntList(unsigned int sublevel) const
 {
   AssertIndexRange(sublevel, nonIntList.size());
@@ -284,6 +227,10 @@ inline void
 OctreeBlock<dim>::SetNearNeighSize(unsigned int sublevels)
 {
   this->nearNeigh.resize(sublevels);
+  for (auto &s : nearNeigh)
+    {
+      s.reserve(7);
+    }
 }
 
 template <int dim>
@@ -291,6 +238,10 @@ inline void
 OctreeBlock<dim>::SetIntListSize(unsigned int sublevels)
 {
   this->intList.resize(sublevels);
+  for (auto &s : nearNeigh)
+    {
+      s.reserve(7);
+    }
 }
 
 template <int dim>
@@ -298,6 +249,10 @@ inline void
 OctreeBlock<dim>::SetNonIntListSize(unsigned int sublevels)
 {
   this->nonIntList.resize(sublevels);
+  for (auto &s : nearNeigh)
+    {
+      s.reserve(7);
+    }
 }
 
 template <int dim>

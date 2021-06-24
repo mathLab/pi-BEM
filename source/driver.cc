@@ -63,12 +63,10 @@ template <int dim>
 Driver<dim>::~Driver()
 {}
 
-
 template <int dim>
 void
 Driver<dim>::declare_parameters(ParameterHandler &prm)
 {
-  std::cout << "Driver<dim>::declare_parameters" << std::endl;
   prm.declare_entry("Set Global Refinement", "true", Patterns::Bool());
   prm.declare_entry("Potential components", "1", Patterns::Integer());
 }
@@ -77,18 +75,13 @@ template <int dim>
 void
 Driver<dim>::parse_parameters(ParameterHandler &prm)
 {
-  std::cout << "Driver<dim>::parse_parameters" << std::endl;
   global_refinement = prm.get_bool("Set Global Refinement");
   n_components      = prm.get_integer("Potential components");
 
-  std::cout
-    << "Driver<dim>::parse_parameters setting n phi components on dependent objs"
-    << std::endl;
   // what's the order of parse_parameter calls?
   boundary_conditions.set_n_phi_components(n_components);
   bem_problem.set_n_phi_components(n_components);
 }
-
 
 template <int dim>
 void
@@ -98,25 +91,25 @@ Driver<dim>::run()
     Teuchos::TimeMonitor LocalTimer(*TotalTime);
     unsigned int         local_refinement_cycles = 0;
     {
-      // Teuchos::TimeMonitor LocalTimer(*MeshTime);
+      Teuchos::TimeMonitor LocalTimer(*MeshTime);
       // computational_domain.create_initial_mesh();
       computational_domain.read_domain();
       if (global_refinement)
         {
-          Teuchos::TimeMonitor LocalTimer(*MeshTime);
           computational_domain.refine_and_resize(computational_domain.n_cycles);
         }
       else
         {
-          Teuchos::TimeMonitor LocalTimer(*MeshTime);
           // computational_domain.conditional_refine_and_resize(1);
           computational_domain.refine_and_resize(
             computational_domain.pre_global_refinements);
           local_refinement_cycles = computational_domain.n_cycles;
         }
+
       // computational_domain.generate_octree_blocking();
+      computational_domain.update_triangulation();
     }
-    computational_domain.update_triangulation();
+
     for (unsigned int i = 0; i <= local_refinement_cycles; ++i)
       {
         {
@@ -130,44 +123,97 @@ Driver<dim>::run()
           for (unsigned int i = 1; i < boundary_conditions.n_phi_components();
                ++i)
             {
-              std::cout << "solving for component " << i + 1 << std::endl;
+              pcout << "solving for component " << i + 1 << std::endl;
               boundary_conditions.set_current_phi_component(i);
               MPI_Barrier(MPI_COMM_WORLD);
               boundary_conditions.solve_problem(false);
             }
+
           boundary_conditions.set_current_phi_component(0);
         }
 
         if (!global_refinement && i < local_refinement_cycles)
           {
             // Compute error estimator and local refinement strategy
-            // TODO: for the moment, ignore phi's components
             MPI_Barrier(MPI_COMM_WORLD);
-            bem_problem.adaptive_refinement(boundary_conditions.get_phi());
+            if (boundary_conditions.n_phi_components() == 1)
+              {
+                bem_problem.adaptive_refinement(boundary_conditions.get_phi());
+              }
+            else
+              {
+                // drive refinement using phi's norm
+                bem_problem.adaptive_refinement(
+                  boundary_conditions.get_phi_components_norm());
+              }
+
             computational_domain.update_triangulation();
           }
       }
+
     for (unsigned int i = 0; i < boundary_conditions.n_phi_components(); ++i)
       {
-        std::cout << "output component " << i + 1 << std::endl;
+        pcout << "output component " << i + 1 << std::endl;
 
         std::string filename = boundary_conditions.output_file_name;
         if (i)
           {
             filename += "_" + Utilities::int_to_string(i + 1);
           }
+
         boundary_conditions.set_current_phi_component(i);
         MPI_Barrier(MPI_COMM_WORLD);
         boundary_conditions.compute_errors();
         boundary_conditions.output_results(filename);
       }
     boundary_conditions.set_current_phi_component(0);
+
+    /* sample output using the norm vectors
+    if (boundary_conditions.n_phi_components() > 1)
+      {
+        const auto phi_comp_normed =
+          Vector<double>(boundary_conditions.get_phi_components_norm());
+        const auto dphi_dn =
+          Vector<double>(boundary_conditions.get_dphi_dn_components_norm());
+
+        if (!this_mpi_process)
+          {
+            // do something with it
+            DataOut<dim - 1, DoFHandler<dim - 1, dim>> dataout_scalar;
+
+            dataout_scalar.attach_dof_handler(bem_problem.dh);
+
+            dataout_scalar.add_data_vector(
+              phi_comp_normed,
+              "phi",
+              DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
+
+            dataout_scalar.add_data_vector(
+              dphi_dn,
+              "dphi_dn",
+              DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
+
+            //dataout_scalar.add_data_vector(
+            //  alpha,
+            //  "alpha",
+            //  DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
+
+            dataout_scalar.build_patches(
+              *bem_problem.mapping,
+              bem_problem.mapping_degree,
+              DataOut<dim - 1, DoFHandler<dim - 1, dim>>::curved_inner_cells);
+
+            std::ofstream file_scalar("result_scalar_components_norm.vtu");
+
+            dataout_scalar.write_vtu(file_scalar);
+          }
+        }
+    */
     // }
   }
   // Write a summary of all timers
   Teuchos::TimeMonitor::summarize();
 }
-
 
 template class Driver<2>;
 template class Driver<3>;

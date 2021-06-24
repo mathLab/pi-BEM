@@ -2200,6 +2200,7 @@ BEMFMA<dim>::compute_geometry_cache()
         {
           dof_to_elems[dofs[j]].push_back(cell);
         }
+        
       gradient_cell->get_dof_indices(gradient_dofs);
       for (unsigned int j = 0; j < gradient_fe.dofs_per_cell; ++j)
         {

@@ -281,7 +281,7 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                   get_phi()(local_dof_indices[j]) =
                     get_potential().value(support_points[local_dof_indices[j]]);
                   tmp_rhs(local_dof_indices[j]) =
-                    get_potential().value(support_points[local_dof_indices[j]]);
+                    get_phi()(local_dof_indices[j]);
                 }
               else
                 {

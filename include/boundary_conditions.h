@@ -126,7 +126,7 @@ public:
   void
   set_n_phi_components(unsigned int n_components)
   {
-    assert(this->n_components <= n_components);
+    AssertIndexRange(this->n_components, n_components + 1);
     if (this->n_components != n_components)
       {
         winds.resize(n_components);
@@ -147,7 +147,7 @@ public:
   void
   set_current_phi_component(unsigned int component)
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     current_component = component;
     bem.set_current_phi_component(component);
   }
@@ -171,14 +171,14 @@ public:
   const Functions::ParsedFunction<dim> &
   get_wind(unsigned int component) const
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     return *winds[component];
   }
 
   const Functions::ParsedFunction<dim> &
   get_potential(unsigned int component) const
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     return *potentials[component];
   }
 
@@ -198,15 +198,107 @@ public:
   TrilinosWrappers::MPI::Vector &
   get_phi(unsigned int component)
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     return phis[component];
   }
 
   TrilinosWrappers::MPI::Vector &
   get_dphi_dn(unsigned int component)
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     return dphi_dns[component];
+  }
+
+  /// elemetal norm of the combined phi components
+  TrilinosWrappers::MPI::Vector
+  get_phi_components_norm()
+  {
+    TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
+                                             get_phi(0),
+                                             mpi_communicator);
+    accumulate.scale(get_phi(0));
+    for (unsigned int comp = 1; comp < n_components; ++comp)
+      {
+        TrilinosWrappers::MPI::Vector tmp = get_phi(comp);
+        tmp.scale(get_phi(comp));
+        accumulate.add(tmp);
+      }
+    for (auto i : this_cpu_set)
+      {
+        accumulate[i] = std::sqrt(accumulate[i]);
+      }
+
+    // accumulate.compress(VectorOperation::add);
+    accumulate.compress(VectorOperation::insert);
+
+    return accumulate;
+  }
+
+  TrilinosWrappers::MPI::Vector
+  get_dphi_dn_components_norm()
+  {
+    TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
+                                             get_dphi_dn(0),
+                                             mpi_communicator);
+    accumulate.scale(get_dphi_dn(0));
+    for (unsigned int comp = 1; comp < n_components; ++comp)
+      {
+        TrilinosWrappers::MPI::Vector tmp = get_dphi_dn(comp);
+        tmp.scale(get_dphi_dn(comp));
+        accumulate.add(tmp);
+      }
+    for (auto i : this_cpu_set)
+      {
+        accumulate[i] = std::sqrt(accumulate[i]);
+      }
+
+    // accumulate.compress(VectorOperation::add);
+    accumulate.compress(VectorOperation::insert);
+
+    return accumulate;
+  }
+
+  /// get all components as blocks
+  TrilinosWrappers::MPI::BlockVector
+  get_phi_components(const std::vector<unsigned int> &component_idxs)
+  {
+    TrilinosWrappers::MPI::BlockVector ret;
+    std::vector<IndexSet>              indexSets(n_components);
+    for (auto comp : component_idxs)
+      {
+        for (auto i : this_cpu_set)
+          {
+            indexSets[comp].add_index(comp * this_cpu_set.size() + i);
+          }
+        indexSets[comp].compress();
+      }
+
+    ret.reinit(indexSets, mpi_communicator);
+
+    for (auto comp : component_idxs)
+      {
+        for (auto i : this_cpu_set)
+          {
+            ret[comp * this_cpu_set.size() + i] = get_phi(comp)[i];
+          }
+      }
+
+    ret.compress(VectorOperation::add);
+    // ret.compress(VectorOperation::insert);
+
+    return ret;
+  }
+
+  TrilinosWrappers::MPI::BlockVector
+  get_phi_components()
+  {
+    std::vector<unsigned int> component_idxs(n_components);
+    for (unsigned int i = 0; i < n_components; ++i)
+      {
+        component_idxs[i] = i;
+      }
+
+    return get_phi_components(component_idxs);
   }
 
   std::string output_file_name;
@@ -229,14 +321,14 @@ protected:
   Functions::ParsedFunction<dim> &
   get_wind(unsigned int component)
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     return *winds[component];
   }
 
   Functions::ParsedFunction<dim> &
   get_potential(unsigned int component)
   {
-    assert(component < n_components);
+    AssertIndexRange(component, n_components);
     return *potentials[component];
   }
 

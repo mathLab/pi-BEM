@@ -32,7 +32,7 @@ public:
         return false;
       }
 
-    if (lhs.center.distance_square(rhs.center) > tolerance * tolerance)
+    if (lhs.center.distance_square(rhs.center) > (tolerance * tolerance))
       {
         return false;
       }
@@ -153,7 +153,7 @@ public:
               {
                 f2 *= (ii);
               }
-            A_n_m(n, m) = (n % 2 ? -1. : 1.) / (sqrt(f2) * f1);
+            A_n_m(n, m) = (n % 2 ? -1. : 1.) / (std::sqrt(f2) * f1);
             */
 
             for (int ii = n - m; ii > 0; ii--)
@@ -166,7 +166,7 @@ public:
                 f2 *= (ii);
               }
 
-            A_n_m(n, m) = pow(-1., double(n)) / sqrt(f1 * f2);
+            A_n_m(n, m) = std::pow(-1., double(n)) / std::sqrt(f1 * f2);
           }
       }
 
@@ -185,32 +185,15 @@ public:
               {
                 for (int mm = -1 * nn; mm < nn + 1; mm++)
                   {
-                    double realFact = A_n_m(nn, abs(mm)) /
-                                      A_n_m(n + nn, abs(m - mm)) *
-                                      A_n_m(n, abs(m));
+                    double realFact = A_n_m(nn, std::abs(mm)) /
+                                      A_n_m(n + nn, std::abs(m - mm)) *
+                                      A_n_m(n, std::abs(m));
 
-                    /*
-                    //TODO: validate
-                    unsigned int steps   = (abs(m - mm) - abs(m) - abs(mm)) % 4;
-                    int          rotated = 0;
-                    if (steps == 0)
-                      {
-                        rotated = 1;
-                      }
-                    else if (steps == 2)
-                      {
-                        rotated = -1;
-                      }
-                    rotated *= ((nn % 2) ? -1 : 1);
-
-                    realFact *= rotated;
-                    */
                     // reference implementation
-                    auto imUnit = std::complex<double>(0, 1);
-                    realFact *=
-                      (pow(imUnit, double(abs(m - mm) - abs(m) - abs(mm))))
-                        .real() /
-                      pow(-1., nn);
+                    std::complex<double> imUnit(0, 1);
+                    int steps = std::abs(m - mm) - std::abs(m) - std::abs(mm);
+                    realFact *= std::pow(imUnit, double(steps)).real() /
+                                std::pow(-1., nn);
 
                     loc_exp_coeff.set(n, m, nn, mm, realFact);
                   }
@@ -235,30 +218,15 @@ public:
               {
                 for (int mm = -1 * nn; mm < nn + 1; mm++)
                   {
-                    double realFact = A_n_m(nn - n, abs(mm - m)) /
-                                      A_n_m(nn, abs(mm)) * A_n_m(n, abs(m));
-                    /*
-                    //TODO: validate
-                                        unsigned int steps   = (abs(mm) - abs(mm
-                       - m) - abs(m)) % 4; int          rotated = 0; if (steps
-                       == 0)
-                                          {
-                                            rotated = 1;
-                                          }
-                                        else if (steps == 2)
-                                          {
-                                            rotated = -1;
-                                          }
-                                        rotated *= (((nn + n) % 2) ? -1 : 1);
+                    double realFact = A_n_m(nn - n, std::abs(mm - m)) /
+                                      A_n_m(nn, std::abs(mm)) *
+                                      A_n_m(n, std::abs(m));
 
-                                        realFact *= rotated;
-                                        */
                     // reference implementation
-                    auto imUnit = std::complex<double>(0, 1);
-                    realFact *=
-                      (pow(imUnit, double(abs(mm) - abs(mm - m) - abs(m))))
-                        .real() *
-                      pow(-1., nn + n);
+                    std::complex<double> imUnit(0, 1);
+                    int steps = std::abs(mm) - std::abs(mm - m) - std::abs(m);
+                    realFact *= std::pow(imUnit, double(steps)).real() *
+                                std::pow(-1., nn + n);
 
                     realCoeff[n][m][nn][mm] = realFact;
                   }

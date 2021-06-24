@@ -6,6 +6,7 @@
 
 #define GSL_SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 
+// TODO: (template) argument candidates: 20, 10
 FullMatrix<double> LocalExpansion::A_n_m = LocalExpansion::A_n_m_Matrix(20);
 
 LocalExpansionCoeff LocalExpansion::mExp_to_lExp_Coeff =
@@ -54,6 +55,7 @@ LocalExpansion::Add(const std::vector<double> &real,
         }
     }
 
+  // TODO: argument candidate
   if (sum > 1e-20)
     {
       this->is_zero = false;
@@ -65,6 +67,7 @@ LocalExpansion::Add(
   const LocalExpansion &             other,
   std::vector<std::complex<double>> &cache) // translation of local expansion
 {
+  // TODO: argument candidate
   const double tolerance = 1e-7;
   if (!other.is_zero)
     {
@@ -92,21 +95,18 @@ LocalExpansion::Add(
                   std::complex<double> z = std::complex<double>(0., 0.);
                   for (int nn = n; nn < int(p) + 1; nn++)
                     {
-                      double rhoFact = pow(rho, double(nn - n));
+                      double rhoFact = std::pow(rho, double(nn - n));
                       for (int mm = -1 * nn; mm < nn + 1; mm++)
                         {
-                          if (abs(mm - m) > nn - n)
+                          if (std::abs(mm - m) <= nn - n)
                             {
-                            }
-                          else
-                            {
-                              std::complex<double> a = std::complex<double>(
-                                other.GetCoeff(abs(nn), abs(mm)).real(),
+                              std::complex<double> a(
+                                other.GetCoeff(nn, std::abs(mm)).real(),
                                 GSL_SIGN(mm) *
-                                  other.GetCoeff(abs(nn), abs(mm)).imag());
+                                  other.GetCoeff(nn, std::abs(mm)).imag());
 
                               P_nn_mm = this->assLegFunction->GetAssLegFunSph(
-                                nn - n, abs(mm - m), cos_alpha);
+                                nn - n, std::abs(mm - m), cos_alpha);
                               double realFact =
                                 P_nn_mm * rhoFact *
                                 lExp_to_lExp_Coeff[n][m][nn][mm];
@@ -178,14 +178,14 @@ LocalExpansion::Add(const MultipoleExpansion &multipole,
               std::complex<double> z = std::complex<double>(0., 0.);
               for (int nn = 0; nn < int(this->p) + 1; nn++)
                 {
-                  double rhoFact = pow(rho, double(-n - nn - 1));
+                  double rhoFact = std::pow(rho, double(-n - nn - 1));
                   for (int mm = -1 * nn; mm < 0; mm++)
                     {
                       std::complex<double> a =
-                        std::conj(multipole.GetCoeff(nn, abs(mm)));
+                        std::conj(multipole.GetCoeff(nn, std::abs(mm)));
                       P_nn_mm =
                         this->assLegFunction->GetAssLegFunSph(nn + n,
-                                                              abs(mm - m),
+                                                              std::abs(mm - m),
                                                               cos_alpha);
                       double realFact = P_nn_mm * rhoFact *
                                         mExp_to_lExp_Coeff.get(n, m, nn, mm);
@@ -200,10 +200,11 @@ LocalExpansion::Add(const MultipoleExpansion &multipole,
 
                   for (int mm = 0; mm < nn + 1; mm++)
                     {
-                      std::complex<double> a = multipole.GetCoeff(nn, abs(mm));
+                      std::complex<double> a =
+                        multipole.GetCoeff(nn, std::abs(mm));
                       P_nn_mm =
                         this->assLegFunction->GetAssLegFunSph(nn + n,
-                                                              abs(mm - m),
+                                                              std::abs(mm - m),
                                                               cos_alpha);
                       double realFact = P_nn_mm * rhoFact *
                                         mExp_to_lExp_Coeff.get(n, m, nn, mm);
@@ -238,7 +239,7 @@ double
 LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
                          std::vector<std::complex<double>> &cache)
 {
-  std::complex<double> fieldValue = std::complex<double>(0., 0.);
+  std::complex<double> fieldValue(0., 0.);
   if (!this->is_zero)
     {
       dealii::Point<3> blockRelPos;
@@ -258,9 +259,9 @@ LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
       double P_n_m;
       for (int n = 0; n < int(p) + 1; n++)
         {
-          P_n_m        = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
-          double rho2n = pow(rho, double(n));
-          double realFact = P_n_m * rho2n;
+          P_n_m = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
+          const double rho2n    = std::pow(rho, double(n));
+          double       realFact = P_n_m * rho2n;
 
           fieldValue += this->GetCoeff(n, 0) * realFact;
           for (int m = 1; m < n + 1; m++)

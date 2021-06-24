@@ -69,11 +69,10 @@ MultipoleExpansion::Add(const double                       strength,
       double P_n_m;
       for (int n = 0; n < int(this->p) + 1; n++)
         {
-          const double rho2n = pow(rho, double(n));
+          const double rho2n = std::pow(rho, double(n));
           for (int m = 0; m < n + 1; m++)
             {
-              P_n_m =
-                this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
+              P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
               double realFact = P_n_m * rho2n * strength;
 
               std::complex<double> a = cache[m] * realFact;
@@ -108,13 +107,14 @@ MultipoleExpansion::AddNormDer(const double                       strength,
 
       const auto normVersor = normal / normal.norm();
       double     dRhodN     = (pointRelPos / rho) * normVersor;
-      double dBetadN = (dealii::Point<3>(-pointRelPos(1), pointRelPos(0), 0.) /
-                        (pow(pointRelPos(0), 2.) + pow(pointRelPos(1), 2.))) *
-                       normVersor;
+      double     dBetadN =
+        (dealii::Point<3>(-pointRelPos(1), pointRelPos(0), 0.) /
+         (std::pow(pointRelPos(0), 2.) + std::pow(pointRelPos(1), 2.))) *
+        normVersor;
 
-      double sin_alpha = std::sqrt(1. - pow(cos_alpha, 2.));
-      double dAlphadN  = (dealii::Point<3>(cos_alpha * cos(beta),
-                                          cos_alpha * sin(beta),
+      double sin_alpha = std::sqrt(1. - std::pow(cos_alpha, 2.));
+      double dAlphadN  = (dealii::Point<3>(cos_alpha * std::cos(beta),
+                                          cos_alpha * std::sin(beta),
                                           -sin_alpha) /
                          rho) *
                         normVersor;
@@ -131,17 +131,14 @@ MultipoleExpansion::AddNormDer(const double                       strength,
       double dP_n_m_sin;
       for (int n = 0; n < int(this->p) + 1; n++)
         {
-          const double rho2n  = pow(rho, double(n));
-          const double rho2n1 = pow(rho, double(n) - 1.);
+          const double rho2n  = std::pow(rho, double(n));
+          const double rho2n1 = std::pow(rho, double(n) - 1.);
 
           for (int m = 0; m < n + 1; m++)
             {
-              P_n_m =
-                this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
+              P_n_m = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
               dP_n_m_sin =
-                this->assLegFunction->GetAssLegFunSphDeriv(n,
-                                                           abs(m),
-                                                           cos_alpha) *
+                this->assLegFunction->GetAssLegFunSphDeriv(n, m, cos_alpha) *
                 sin_alpha;
 
               std::complex<double> z = cache[m];
@@ -191,6 +188,7 @@ MultipoleExpansion::Add(
               cache.emplace_back(std::exp(std::complex<double>(0., i * beta)));
             }
 
+          // const double imUnitPow[4] = {1, 0, -1, 0};
           double P_nn_mm;
           for (int n = 0; n < int(this->p) + 1; n++)
             {
@@ -199,53 +197,27 @@ MultipoleExpansion::Add(
                   std::complex<double> z(0., 0.);
                   for (int nn = 0; nn < n + 1; nn++)
                     {
+                      const double rho2nn = std::pow(rho, double(nn));
                       for (int mm = -1 * nn; mm < nn + 1; mm++)
                         {
-                          if (abs(m - mm) > n - nn)
+                          if (std::abs(m - mm) <= n - nn)
                             {
-                            }
-                          else
-                            {
-                              std::complex<double> a = std::complex<double>(
-                                (other.GetCoeff(abs(n - nn), abs(m - mm)))
-                                  .real(),
+                              std::complex<double> a(
+                                other.GetCoeff(n - nn, std::abs(m - mm)).real(),
                                 GSL_SIGN(m - mm) *
-                                  (other.GetCoeff(abs(n - nn), abs(m - mm)))
+                                  (other.GetCoeff(n - nn, std::abs(m - mm)))
                                     .imag());
 
                               P_nn_mm = this->assLegFunction->GetAssLegFunSph(
-                                nn, abs(mm), cos_alpha);
+                                nn, std::abs(mm), cos_alpha);
 
                               double realFact =
-                                P_nn_mm * pow(rho, double(nn)) *
-                                A_n_m(abs(nn), abs(mm)) *
-                                A_n_m(abs(n - nn), abs(m - mm)) /
-                                A_n_m(abs(n), abs(m));
+                                P_nn_mm * rho2nn * A_n_m(nn, std::abs(mm)) *
+                                A_n_m(n - nn, std::abs(m - mm)) / A_n_m(n, m);
 
-                              /*
-                              //TODO: validate
-                              unsigned int steps =
-                                abs(m) - abs(mm) - abs(m - mm);
-                              double rotated = 0;
-                              if (steps % 4 == 0)
-                                {
-                                  rotated = 1;
-                                }
-                              else if (steps % 4 == 2)
-                                {
-                                  rotated = -1;
-                                }
-
-                              realFact *= rotated;
-                              */
-
-                              // reference implementation
-                              auto imUnit = std::complex<double>(0, 1);
-                              realFact *=
-                                (pow(imUnit,
-                                     double(abs(m) - abs(mm) - abs(m - mm))))
-                                  .real();
-
+                              std::complex<double> imUnit(0, 1);
+                              int steps = m - abs(mm) - abs(m - mm);
+                              realFact *= std::pow(imUnit, steps).real();
                               auto rotated =
                                 (mm > 0) ? std::conj(cache[mm]) : cache[-mm];
                               z += realFact * (a * rotated);
@@ -304,15 +276,14 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
       for (int n = 0; n < int(this->p) + 1; n++)
         {
           P_n_m = this->assLegFunction->GetAssLegFunSph(n, 0, cos_alpha);
-          const double rho_n1   = pow(rho, double(-n - 1));
-          double       realFact = P_n_m * rho_n1;
+          const double rho2n1   = std::pow(rho, double(-n - 1));
+          double       realFact = P_n_m * rho2n1;
 
           fieldValue += this->GetCoeff(n, 0) * realFact;
           for (int m = 1; m < n + 1; m++)
             {
-              P_n_m =
-                this->assLegFunction->GetAssLegFunSph(n, abs(m), cos_alpha);
-              realFact = P_n_m * rho_n1;
+              P_n_m    = this->assLegFunction->GetAssLegFunSph(n, m, cos_alpha);
+              realFact = P_n_m * rho2n1;
 
               fieldValue += this->GetCoeff(n, m) * cache[m] * 2. * realFact;
             }

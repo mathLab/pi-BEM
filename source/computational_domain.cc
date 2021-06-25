@@ -648,9 +648,7 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
       // the refined cells counter is zeroed at the start of each cycle
       refinedCellCounter = 0;
       // we loop on the all the triangulation active cells
-      Triangulation<2, 3>::active_cell_iterator cell = tria.begin_active();
-      Triangulation<2, 3>::active_cell_iterator endc = tria.end();
-      for (; cell != endc; ++cell)
+      for (auto &cell : tria.active_cell_iterators())
         {
           // the following lines determine if the cell is more elongated
           // in its 0 or 1 direction
@@ -714,9 +712,7 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
           // the refined cells counter is zeroed at the start of each cycle
           refinedCellCounter = 0;
           // we loop on the all the triangulation active cells
-          Triangulation<2, 3>::active_cell_iterator cell = tria.begin_active();
-          Triangulation<2, 3>::active_cell_iterator endc = tria.end();
-          for (; cell != endc; ++cell)
+          for (const auto &cell : tria.active_cell_iterators())
             {
               // In the following lines, we try to come up with an estimation
               // of the cell normal. It is obtained from the average of the
@@ -847,9 +843,7 @@ ComputationalDomain<dim>::conditional_refine_and_resize(
 
   for (unsigned int step = 0; step < refinement_level; ++step)
     {
-      auto cell = tria.begin_active();
-      auto endc = tria.end();
-      for (; cell != endc; ++cell)
+      for (auto &cell : tria.active_cell_iterators())
         {
           for (unsigned int v = 0; v < GeometryInfo<dim - 1>::vertices_per_cell;
                ++v)
@@ -863,6 +857,7 @@ ComputationalDomain<dim>::conditional_refine_and_resize(
                 }
             }
         }
+
       tria.prepare_coarsening_and_refinement();
       tria.execute_coarsening_and_refinement();
 
@@ -926,10 +921,7 @@ ComputationalDomain<dim>::make_edges_conformal(
 {
   if (with_double_nodes == false)
     {
-      auto cell = tria.begin_active();
-      auto endc = tria.end();
-
-      for (cell = tria.begin_active(); cell != endc; ++cell)
+      for (const auto &cell : tria.active_cell_iterators())
         {
           for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
             if (cell->face(f)->at_boundary()) // dovrei essere su un buondary
@@ -943,6 +935,7 @@ ComputationalDomain<dim>::make_edges_conformal(
                   }
               }
         }
+
       tria.prepare_coarsening_and_refinement();
       tria.execute_coarsening_and_refinement();
     }
@@ -1080,7 +1073,7 @@ ComputationalDomain<dim>::compute_double_vertex_cache()
   for (types::global_dof_index i = 0; i < n_vertex; ++i)
     {
       double_vertex_vector[i].push_back(i);
-      for (types::global_dof_index j = i+1; j < n_vertex; ++j)
+      for (types::global_dof_index j = i + 1; j < n_vertex; ++j)
         {
           if (all_vertices[i].distance_square(all_vertices[j]) <= (toll * toll))
             {
@@ -1090,12 +1083,10 @@ ComputationalDomain<dim>::compute_double_vertex_cache()
         }
     }
 
-  auto cell = tria.begin_active();
-  auto endc = tria.end();
   vert_to_elems.clear();
   edge_cells.clear();
 
-  for (cell = tria.begin_active(); cell != endc; ++cell)
+  for (const auto &cell : tria.active_cell_iterators())
     {
       std::vector<Point<dim>> cell_vertices(
         GeometryInfo<dim - 1>::vertices_per_cell);

@@ -27,7 +27,9 @@ public:
       this->dofs->begin_active();
     while ((cell != this->dofs->end()) &&
            (cell->subdomain_id() != subdomain_id))
-      ++cell;
+      {
+        ++cell;
+      }
     return cell;
   }
 
@@ -247,7 +249,6 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                                                      bem.gradient_dh,
                                                      vec_support_points);
 
-  cell_it cell = bem.dh.begin_active(), endc = bem.dh.end();
 
   const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
@@ -257,7 +258,7 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                               update_values | update_normal_vectors |
                                 update_quadrature_points | update_JxW_values);
 
-  for (cell = bem.dh.begin_active(); cell != endc; ++cell)
+  for (const auto &cell : bem.dh.active_cell_iterators())
     {
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);

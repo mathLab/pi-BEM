@@ -541,7 +541,8 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
   std::vector<types::global_dof_index> gradient_dofs(
     gradient_fe->dofs_per_cell);
   unsigned int helper_dirichlet = 0;
-  for (auto cell = dh.begin_active(); cell != dh.end(); ++cell)
+
+  for (const auto &cell : dh.active_cell_iterators())
     {
       if (cell->subdomain_id() == this_mpi_process)
         {
@@ -599,7 +600,7 @@ BEMProblem<dim>::compute_double_nodes_set()
 
   edge_set.clear();
   edge_set.set_size(dh.n_dofs());
-  for (auto cell = dh.begin_active(); cell != dh.end(); ++cell)
+  for (const auto &cell : dh.active_cell_iterators())
     {
       for (unsigned int f = 0; f < GeometryInfo<dim - 1>::faces_per_cell; ++f)
         {
@@ -738,7 +739,7 @@ BEMProblem<dim>::assemble_system()
   Point<dim> D;
   double     s;
 
-  for (auto cell = dh.begin_active(); cell != dh.end(); ++cell)
+  for (const auto &cell : dh.active_cell_iterators())
     {
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);
@@ -2000,7 +2001,6 @@ BEMProblem<dim>::compute_gradients(
 
   cell_it vector_cell = gradient_dh.begin_active();
   cell_it cell = dh.begin_active(), endc = dh.end();
-
   for (; cell != endc; ++cell, ++vector_cell)
     {
       Assert(cell->index() == vector_cell->index(), ExcInternalError());
@@ -2148,7 +2148,6 @@ BEMProblem<dim>::compute_surface_gradients(
 
   cell_it vector_cell = gradient_dh.begin_active();
   cell_it cell = dh.begin_active(), endc = dh.end();
-
   for (; cell != endc; ++cell, ++vector_cell)
     {
       Assert(cell->index() == vector_cell->index(), ExcInternalError());
@@ -2594,10 +2593,7 @@ BEMProblem<dim>::compute_normals()
                                           vector_dofs_per_cell);
   Vector<double>     local_normals_rhs(vector_dofs_per_cell);
 
-  cell_it vector_cell = gradient_dh.begin_active(),
-          vector_endc = gradient_dh.end();
-
-  for (; vector_cell != vector_endc; ++vector_cell)
+  for (const auto &vector_cell : gradient_dh.active_cell_iterators())
     {
       if (vector_cell->subdomain_id() == this_mpi_process)
         {

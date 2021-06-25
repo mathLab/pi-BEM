@@ -1571,6 +1571,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
       }
   };
 
+  // each instance is independent
   parallel_for(blocked_range<types::global_dof_index>(0,
                                                       num_blocks,
                                                       tbb_granularity),
@@ -1864,6 +1865,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
         }
     };
 
+  // nodes are being used with no sharing; only leaf nodes are expanded
   parallel_for(blocked_range<types::global_dof_index>(0,
                                                       childlessList.size(),
                                                       tbb_granularity),
@@ -2160,21 +2162,6 @@ BEMFMA<dim>::compute_geometry_cache()
                                                      *fma_dh,
                                                      support_points);
 
-  // for the gradient dofs finding coupled
-  // dofs is a little bit difficult, as the
-  // gradient is a vectorial function: usually
-  // in such case the dofs are numbered
-  // so that for each support point dim
-  // consecutive dofs represent each component
-  // of the vector field: in this case
-  // (and only in this case) the following
-  // piece of code works
-
-  cell_it gradient_cell = gradient_dh.begin_active(),
-          gradient_endc = gradient_dh.end();
-
-  cell_it cell = fma_dh->begin_active(); //, endc = fma_dh->end();
-
   std::vector<types::global_dof_index> dofs(fma_dh->get_fe().dofs_per_cell);
   std::vector<types::global_dof_index> gradient_dofs(
     fma_dh->get_fe().dofs_per_cell);
@@ -2191,6 +2178,20 @@ BEMFMA<dim>::compute_geometry_cache()
   // mappa che associa ad ogni cella un set contenente le celle circostanti
   // elem_to_surr_elems.clear();
 
+  // for the gradient dofs finding coupled
+  // dofs is a little bit difficult, as the
+  // gradient is a vectorial function: usually
+  // in such case the dofs are numbered
+  // so that for each support point dim
+  // consecutive dofs represent each component
+  // of the vector field: in this case
+  // (and only in this case) the following
+  // piece of code works
+
+  // the only coupling is the index check
+  cell_it gradient_cell = gradient_dh.begin_active(),
+          gradient_endc = gradient_dh.end();
+  cell_it cell          = fma_dh->begin_active();
   for (; gradient_cell != gradient_endc; ++cell, ++gradient_cell)
     {
       Assert(cell->index() == gradient_cell->index(), ExcInternalError());
@@ -2200,7 +2201,7 @@ BEMFMA<dim>::compute_geometry_cache()
         {
           dof_to_elems[dofs[j]].push_back(cell);
         }
-        
+
       gradient_cell->get_dof_indices(gradient_dofs);
       for (unsigned int j = 0; j < gradient_fe.dofs_per_cell; ++j)
         {
@@ -2348,8 +2349,8 @@ BEMFMA<dim>::generate_octree_blocking()
 
   std::vector<types::global_dof_index> local_dof_indices(
     fma_dh->get_fe().dofs_per_cell);
-  cell_it cell = fma_dh->begin_active(), endc = fma_dh->end();
-  for (cell = fma_dh->begin_active(); cell != endc; ++cell)
+
+  for (const auto &cell : fma_dh->active_cell_iterators())
     {
       fe_v.reinit(cell);
       const unsigned int n_q_points = fe_v.n_quadrature_points;

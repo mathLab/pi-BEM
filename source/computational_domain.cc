@@ -597,17 +597,17 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
 
       for (unsigned int i = 0; i < cad_surfaces.size(); ++i)
         {
-          pcout << i << endl;
+          pcout << "CAD surface: " << i << endl;
           max_tol =
             fmax(max_tol, OpenCASCADE::get_shape_tolerance(cad_surfaces[i]));
-          pcout << max_tol << endl;
+          pcout << "maximum tolerance so far: " << max_tol << endl;
         }
       for (unsigned int i = 0; i < cad_curves.size(); ++i)
         {
-          pcout << i + cad_surfaces.size() << endl;
+          pcout << "CAD curve: " << i + cad_surfaces.size() << endl;
           max_tol =
             fmax(max_tol, OpenCASCADE::get_shape_tolerance(cad_curves[i]));
-          pcout << max_tol << endl;
+          pcout << "maximum tolerance so far: " << max_tol << endl;
         }
 
       const double tolerance = cad_to_projectors_tolerance_ratio * max_tol;

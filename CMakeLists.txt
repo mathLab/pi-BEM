@@ -64,6 +64,8 @@ OPTION(BEM_ENABLE_TESTING
 "Enable deal.II style tests in this application." ON)
 
 
+FIND_PACKAGE(OpenMP REQUIRED)
+
 # We one library and one target for each type of deal.II library
 # we found. If you compiled deal.II with both Release and Debug
 # mode, this will generate both Release and Debug programs for you

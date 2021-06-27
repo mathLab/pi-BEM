@@ -415,7 +415,6 @@ template <int dim>
 void
 BEMProblem<dim>::declare_parameters(ParameterHandler &prm)
 {
-  std::cout << "BEMProblem<dim>::declare_parameters" << std::endl;
   // In the solver section, we set
   // all SolverControl
   // parameters. The object will then
@@ -481,7 +480,6 @@ template <int dim>
 void
 BEMProblem<dim>::parse_parameters(ParameterHandler &prm)
 {
-  std::cout << "BEMProblem<dim>::parse_parameters" << std::endl;
   prm.enter_subsection("Solver");
   solver_control.parse_parameters(prm);
   prm.leave_subsection();

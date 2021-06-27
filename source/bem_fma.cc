@@ -301,14 +301,6 @@ BEMFMA<dim>::direct_integrals()
                 // of direct nodes
                 cell_it cell = (*it).first;
                 cell->get_dof_indices(local_dof_indices);
-                /*
-                for (unsigned int j = 0;
-                     j < this->fma_dh->get_fe().dofs_per_cell;
-                     j++)
-                  {
-                    directNodes.insert(local_dof_indices[j]);
-                  }
-                */
                 directNodes.insert(local_dof_indices.cbegin(),
                                    local_dof_indices.cend());
               }
@@ -339,8 +331,6 @@ BEMFMA<dim>::direct_integrals()
   auto f_init_prec_copier = [this](const InitPrecCopy &copy_data) {
     for (types::global_dof_index i = 0; i < copy_data.col_indices.size(); ++i)
       {
-        // TODO: use add_entries (const size_type row, ForwardIterator begin,
-        // ForwardIterator end, const bool indices_are_unique_and_sorted=false)
         this->init_prec_sparsity_pattern.add_entries(
           copy_data.block_indices[i],
           copy_data.col_indices[i].begin(),
@@ -377,79 +367,79 @@ BEMFMA<dim>::direct_integrals()
       // the current block but that are of greater size. Once again we use
       // IndexSet to know if we the node in the block belong to the current
       // proccesor.
-      auto f_init_prec_level_worker =
-        [this, &startBlockLevel, &level](types::global_dof_index jj,
-                                         InitPrecScratch &,
-                                         InitPrecCopy &copy_data) {
-          copy_data.block_indices.clear();
-          copy_data.col_indices.clear();
+      auto f_init_prec_level_worker = [this,
+                                       &startBlockLevel,
+                                       &level](types::global_dof_index jj,
+                                               InitPrecScratch &,
+                                               InitPrecCopy &copy_data) {
+        copy_data.block_indices.clear();
+        copy_data.col_indices.clear();
 
-          OctreeBlock<dim> *block1 =
-            this->blocks[this->dofs_filled_blocks[level][jj]];
-          // std::vector<types::global_dof_index>
-          const auto &nodesBlk1Ids = block1->GetBlockNodeList();
-          std::vector<types::global_dof_index> local_dof_indices(
-            this->fma_dh->get_fe().dofs_per_cell);
+        OctreeBlock<dim> *block1 =
+          this->blocks[this->dofs_filled_blocks[level][jj]];
+        // std::vector<types::global_dof_index>
+        const auto &nodesBlk1Ids = block1->GetBlockNodeList();
+        std::vector<types::global_dof_index> local_dof_indices(
+          this->fma_dh->get_fe().dofs_per_cell);
 
-          // again, no need to perform next operations if block has no nodes
-          if (nodesBlk1Ids.size() > 0) // !!!CHECK, IT SEEMS TO BE USELESS
-            {
-              // for each block containing nodes, loop over all sublevels in his
-              // NN list (this is because if a block remains childless BEFORE
-              // the last level, at this point we need to compute all its
-              // contributions up to the bottom level)
+        // again, no need to perform next operations if block has no nodes
+        if (nodesBlk1Ids.size() > 0) // !!!CHECK, IT SEEMS TO BE USELESS
+          {
+            // for each block containing nodes, loop over all sublevels in his
+            // NN list (this is because if a block remains childless BEFORE
+            // the last level, at this point we need to compute all its
+            // contributions up to the bottom level)
 
-              for (unsigned int subLevel = 0;
-                   subLevel < block1->NumNearNeighLevels();
-                   subLevel++)
-                {
-                  // in this vectors we are saving the nodes needing direct
-                  // integrals
-                  std::set<types::global_dof_index> directNodes;
-                  // std::set<types::global_dof_index>
-                  const auto &nonIntList = block1->GetNonIntList(subLevel);
+            for (unsigned int subLevel = 0;
+                 subLevel < block1->NumNearNeighLevels();
+                 subLevel++)
+              {
+                // in this vectors we are saving the nodes needing direct
+                // integrals
+                std::set<types::global_dof_index> directNodes;
+                // std::set<types::global_dof_index>
+                const auto &nonIntList = block1->GetNonIntList(subLevel);
 
-                  // loop over well separated blocks of higher size (level): in
-                  // this case we must use direct evaluation: for each block we
-                  // get the quad points list
-                  for (auto pos = nonIntList.begin();
-                       pos != nonIntList.lower_bound(startBlockLevel);
-                       pos++)
-                    {
-                      OctreeBlock<dim> *block2 = this->blocks[*pos];
-                      // std::map<cell_it, std::vector<types::global_dof_index>>
-                      const auto &blockQuadPointsList =
-                        block2->GetBlockQuadPointsList();
+                // loop over well separated blocks of higher size (level): in
+                // this case we must use direct evaluation: for each block we
+                // get the quad points list
+                for (auto pos = nonIntList.begin();
+                     pos != nonIntList.lower_bound(startBlockLevel);
+                     pos++)
+                  {
+                    OctreeBlock<dim> *block2 = this->blocks[*pos];
+                    // std::map<cell_it, std::vector<types::global_dof_index>>
+                    const auto &blockQuadPointsList =
+                      block2->GetBlockQuadPointsList();
 
-                      // we loop on the cells of the quad blocks (*it.first
-                      // pointer) and put their dofs in the direct list
-                      for (auto it = blockQuadPointsList.begin();
-                           it != blockQuadPointsList.end();
-                           it++)
-                        {
-                          cell_it cell = (*it).first;
-                          cell->get_dof_indices(local_dof_indices);
-                          directNodes.insert(local_dof_indices.cbegin(),
-                                             local_dof_indices.cend());
-                        }
-                    } // end loop over blocks of a sublevel of nonIntList
+                    // we loop on the cells of the quad blocks (*it.first
+                    // pointer) and put their dofs in the direct list
+                    for (auto it = blockQuadPointsList.begin();
+                         it != blockQuadPointsList.end();
+                         it++)
+                      {
+                        cell_it cell = (*it).first;
+                        cell->get_dof_indices(local_dof_indices);
+                        directNodes.insert(local_dof_indices.cbegin(),
+                                           local_dof_indices.cend());
+                      }
+                  } // end loop over blocks of a sublevel of nonIntList
 
-                  // we use the nodes in directList, to create the sparsity
-                  // pattern
-                  for (types::global_dof_index i = 0; i < nodesBlk1Ids.size();
-                       i++)
-                    {
-                      if (this_cpu_set.is_element(nodesBlk1Ids[i]))
-                        {
-                          copy_data.block_indices.push_back(nodesBlk1Ids[i]);
-                          copy_data.col_indices.push_back(
-                            std::vector<types::global_dof_index>(
-                              directNodes.begin(), directNodes.end()));
-                        }
-                    }
-                } // end loop over sublevels
-            }     // end if: is there any node in the block?
-        };
+                // we use the nodes in directList, to create the sparsity
+                // pattern
+                for (types::global_dof_index i = 0; i < nodesBlk1Ids.size();
+                     i++)
+                  {
+                    if (this_cpu_set.is_element(nodesBlk1Ids[i]))
+                      {
+                        copy_data.block_indices.push_back(nodesBlk1Ids[i]);
+                        copy_data.col_indices.emplace_back(directNodes.begin(),
+                                                           directNodes.end());
+                      }
+                  }
+              } // end loop over sublevels
+          }     // end if: is there any node in the block?
+      };
 
       // we loop over blocks of each level. We call WorkStream with the same
       // copier as before.
@@ -471,7 +461,7 @@ BEMFMA<dim>::direct_integrals()
     double(init_prec_sparsity_pattern.n_nonzero_elements()) /
     double(fma_dh->n_dofs() * fma_dh->n_dofs()) * 100.;
 
-  pcout << init_prec_sparsity_pattern.n_nonzero_elements()
+  pcout << "Preconditioner: " << init_prec_sparsity_pattern.n_nonzero_elements()
         << " Nonzeros out of " << fma_dh->n_dofs() * fma_dh->n_dofs() << ":  "
         << filling_percentage << "%" << std::endl;
 
@@ -601,14 +591,8 @@ BEMFMA<dim>::direct_integrals()
                        it != directQuadPoints.end();
                        it++)
                     {
-                      // the vectors with the local integrals for the cell must
-                      // first be zeroed
-                      /*
-                      copy_data.vec_local_neumann_matrix_row_i.push_back(
-                        Vector<double>(this->fma_dh->get_fe().dofs_per_cell));
-                      copy_data.vec_local_dirichlet_matrix_row_i.push_back(
-                        Vector<double>(this->fma_dh->get_fe().dofs_per_cell));
-                      */
+                      // the vectors with the local integrals for the cell
+                      // must first be zeroed
                       copy_data.vec_local_neumann_matrix_row_i.emplace_back(
                         this->fma_dh->get_fe().dofs_per_cell);
                       copy_data.vec_local_dirichlet_matrix_row_i.emplace_back(
@@ -616,14 +600,9 @@ BEMFMA<dim>::direct_integrals()
 
                       // we get the first entry of the map, i.e. the cell
                       // pointer and we check if the cell contains the current
-                      // node, to decide if singular of regular quadrature is to
-                      // be used
+                      // node, to decide if singular of regular quadrature is
+                      // to be used
                       cell_it cell = (*it).first;
-                      /*
-                      copy_data.vec_local_dof_indices.push_back(
-                        std::vector<types::global_dof_index>(
-                          this->fma_dh->get_fe().dofs_per_cell));
-                      */
                       copy_data.vec_local_dof_indices.emplace_back(
                         this->fma_dh->get_fe().dofs_per_cell);
                       cell->get_dof_indices(
@@ -1883,6 +1862,7 @@ BEMFMA<dim>::FMA_preconditioner(
   const TrilinosWrappers::MPI::Vector &alpha,
   AffineConstraints<double>           &c) // TO BE CHANGED!!!
 {
+  pcout << "Computing FMA preconditioner" << std::endl;
   Teuchos::TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different
   // sparsity pattern with respect to the non constrained one. we must here
@@ -1986,7 +1966,8 @@ BEMFMA<dim>::FMA_preconditioner(
                   foo_copy);
 
   final_prec_sparsity_pattern.compress();
-  std::cout << final_prec_sparsity_pattern.n_nonzero_elements() << std::endl;
+  pcout << "Sparsity pattern nonzeros: "
+        << final_prec_sparsity_pattern.n_nonzero_elements() << std::endl;
   final_preconditioner.reinit(final_prec_sparsity_pattern);
 
   // now we assemble the final preconditioner matrix: the loop works
@@ -2143,6 +2124,7 @@ BEMFMA<dim>::FMA_preconditioner(
 
   // Finally we can initialize the ILU final preconditioner.
   preconditioner.initialize(final_preconditioner);
+  pcout << "...done" << std::endl;
 
   return preconditioner;
 }

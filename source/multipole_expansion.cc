@@ -1,8 +1,8 @@
+#include "multipole_expansion.h"
+
 #include <deal.II/base/point.h>
 
 #include <iostream>
-
-#include "multipole_expansion.h"
 
 #define GSL_SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 

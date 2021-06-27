@@ -6,8 +6,6 @@
 
 using namespace std;
 
-#include "../include/computational_domain.h"
-
 // @sect4{ComputationalDomain::ComputationalDomain and
 // ComputationalDomain::read_parameters}
 // The constructor initializes the

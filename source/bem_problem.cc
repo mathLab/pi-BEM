@@ -1,10 +1,11 @@
+#include "../include/bem_problem.h"
+
 #include <deal.II/numerics/error_estimator.h>
 
 #include <iomanip>
 #include <iostream>
 #include <memory>
 
-#include "../include/bem_problem.h"
 #include "../include/laplace_kernel.h"
 #include "../include/singular_kernel_integral.h"
 #include "Teuchos_TimeMonitor.hpp"

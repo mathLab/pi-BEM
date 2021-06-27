@@ -1,6 +1,7 @@
+#include "../include/driver.h"
+
 #include <sys/time.h>
 
-#include "../include/driver.h"
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::RCP;

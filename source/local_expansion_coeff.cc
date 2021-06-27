@@ -5,9 +5,10 @@
  * Created on April 3, 2015, 6:05 PM
  */
 
+#include "local_expansion_coeff.h"
+
 #include <iostream>
 
-#include "local_expansion_coeff.h"
 #include "string.h"
 
 using std::cout;

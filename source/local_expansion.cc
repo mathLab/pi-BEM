@@ -1,8 +1,8 @@
+#include "local_expansion.h"
+
 #include <math.h>
 
 #include <iostream>
-
-#include "local_expansion.h"
 
 #define GSL_SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 

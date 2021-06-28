@@ -129,14 +129,11 @@ template <int dim>
 void
 BEMFMA<dim>::direct_integrals()
 {
-  direct_integrals_tbb();
-  /*
 #ifdef _OPENMP
   direct_integrals_omp();
 #else
   direct_integrals_tbb();
 #endif
-*/
 }
 
 template <int dim>
@@ -2161,6 +2158,24 @@ BEMFMA<2>::multipole_matr_vect_products(const TrilinosWrappers::MPI::Vector &,
                                         TrilinosWrappers::MPI::Vector &) const
 {}
 
+template <>
+void
+BEMFMA<2>::multipole_matr_vect_products_tbb(
+  const TrilinosWrappers::MPI::Vector &,
+  const TrilinosWrappers::MPI::Vector &,
+  TrilinosWrappers::MPI::Vector &,
+  TrilinosWrappers::MPI::Vector &) const
+{}
+
+template <>
+void
+BEMFMA<2>::multipole_matr_vect_products_omp(
+  const TrilinosWrappers::MPI::Vector &,
+  const TrilinosWrappers::MPI::Vector &,
+  TrilinosWrappers::MPI::Vector &,
+  TrilinosWrappers::MPI::Vector &) const
+{}
+
 // The following functions takes care of the descending phase of the FMA.
 template <int dim>
 void
@@ -2170,11 +2185,32 @@ BEMFMA<dim>::multipole_matr_vect_products(
   TrilinosWrappers::MPI::Vector       &matrVectProdN,
   TrilinosWrappers::MPI::Vector       &matrVectProdD) const
 {
-  pcout << "Computing multipole matrix-vector products... " << std::endl;
+#ifdef _OPENMP
+  multipole_matr_vect_products_omp(phi_values,
+                                   dphi_dn_values,
+                                   matrVectProdN,
+                                   matrVectProdD);
+#else
+  multipole_matr_vect_products_tbb(phi_values,
+                                   dphi_dn_values,
+                                   matrVectProdN,
+                                   matrVectProdD);
+#endif
+}
+
+template <int dim>
+void
+BEMFMA<dim>::multipole_matr_vect_products_tbb(
+  const TrilinosWrappers::MPI::Vector &phi_values,
+  const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+  TrilinosWrappers::MPI::Vector &      matrVectProdN,
+  TrilinosWrappers::MPI::Vector &      matrVectProdD) const
+{
+  pcout << "Computing multipole matrix-vector products (TBB)..." << std::endl;
   Teuchos::TimeMonitor LocalTimer(*MatrVec);
 
-  // and here we compute the direct integral contributions (stored in two sparse
-  // matrices)
+  // and here we compute the direct integral contributions (stored in two
+  // sparse matrices)
   prec_neumann_matrix.vmult(matrVectProdN, phi_values);
   prec_dirichlet_matrix.vmult(matrVectProdD, dphi_dn_values);
 
@@ -2200,7 +2236,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
 
   // First of all we need to create all the empty expansiones for all the
   // blocks. This is an embarassingly parallel operation that we can perform
-  // using the ThreadGroup strategy without requiring any synchronization time.
+  // using the ThreadGroup strategy without requiring any synchronization
+  // time.
   auto f_local_creation_tbb = [this](blocked_range<types::global_dof_index> r) {
     for (types::global_dof_index ii = r.begin(); ii < r.end(); ++ii)
       {
@@ -2224,14 +2261,14 @@ BEMFMA<dim>::multipole_matr_vect_products(
 
   // In order to perform the descending phase properly we need WorkStream.
   // Inside the worker we check the IndexSet for the MPI parallelisation. The
-  // scaracth is empty once again since this class only has to copy from parents
-  // to children. As in the ascending phase we use captures in order to pass
-  // global information to the worker and the copier
+  // scaracth is empty once again since this class only has to copy from
+  // parents to children. As in the ascending phase we use captures in order
+  // to pass global information to the worker and the copier
   struct DescendScratchData
   {};
 
-  // Basically we are applying a local to global operation so we need only great
-  // care in the copy.
+  // Basically we are applying a local to global operation so we need only
+  // great care in the copy.
   struct DescendCopyData
   {
     DescendCopyData(const BEMFMA<dim> *dummy_fma)
@@ -2259,8 +2296,8 @@ BEMFMA<dim>::multipole_matr_vect_products(
       localTimeEvalNumCalls = in_vec.localTimeEvalNumCalls;
     };
 
-    // The Destructor needs to make foo_fma to point to NULL (for this reason it
-    // is mutable const)
+    // The Destructor needs to make foo_fma to point to NULL (for this reason
+    // it is mutable const)
     ~DescendCopyData(){};
 
     types::global_dof_index              start;
@@ -2276,136 +2313,138 @@ BEMFMA<dim>::multipole_matr_vect_products(
 
   // The worker function, it copies the value about the parent from the global
   // memory at a certain level to local array in copy.data
-  auto f_worker_Descend = [this, &support_points](
-                            std::vector<types::global_dof_index>::const_iterator
-                              block_it_id,
-                            DescendScratchData &,
-                            DescendCopyData              &copy_data,
-                            const types::global_dof_index start) {
 
-    copy_data.start            = start;
-    copy_data.blockId          = *block_it_id;
-    types::global_dof_index kk = *block_it_id;
-    OctreeBlock<dim>       *block_it;
-    block_it = this->blocks[*block_it_id];
+  auto f_worker_Descend =
+    [this, &support_points](
+      std::vector<types::global_dof_index>::const_iterator block_it_id,
+      DescendScratchData &,
+      DescendCopyData &             copy_data,
+      const types::global_dof_index start) {
+      copy_data.start                  = start;
+      copy_data.blockId                = *block_it_id;
+      types::global_dof_index kk       = *block_it_id;
+      OctreeBlock<dim> *      block_it = this->blocks[*block_it_id];
 
-    //*****************definire chi e' on_process qui
-    AssertIndexRange(kk, blockLocalExpansionsKer1.size());
-    Point<dim>     center = this->blockLocalExpansionsKer1[kk].GetCenter();
-    LocalExpansion dummy(this->trunc_order, center, &(this->assLegFunction));
-    copy_data.blockLocalExpansionKer1 = dummy;
-    copy_data.blockLocalExpansionKer2 = dummy;
-    // TODO: could the level be captured by the lambda? as they go in waves
-    unsigned int level = 0;
-    for (unsigned int lev = 0; lev < this->num_octree_levels + 1; lev++)
-      {
-        if (kk >= this->startLevel[lev] && kk <= this->endLevel[lev])
-          {
-            level = lev;
-            break;
-          }
-      }
+      //*****************definire chi e' on_process qui
+      AssertIndexRange(kk, blockLocalExpansionsKer1.size());
+      Point<dim>     center = this->blockLocalExpansionsKer1[kk].GetCenter();
+      LocalExpansion dummy(this->trunc_order, center, &(this->assLegFunction));
+      copy_data.blockLocalExpansionKer1 = dummy;
+      copy_data.blockLocalExpansionKer2 = dummy;
+      // TODO: could the level be captured by the lambda? as they go in waves
+      unsigned int level = 0;
+      for (unsigned int lev = 0; lev < this->num_octree_levels + 1; lev++)
+        {
+          if (kk >= this->startLevel[lev] && kk <= this->endLevel[lev])
+            {
+              level = lev;
+              break;
+            }
+        }
 
-    types::global_dof_index startBlockLevel = this->startLevel[level];
-    types::global_dof_index endBlockLevel   = this->endLevel[level];
-    // std::vector<types::global_dof_index>
-    const auto &nodesBlk1Ids = block_it->GetBlockNodeList();
-    bool        on_process   = false;
-    for (auto ind : nodesBlk1Ids)
-      {
-        if (this->this_cpu_set.is_element(ind))
-          {
-            on_process = true;
-            break;
-          }
-      }
+      types::global_dof_index startBlockLevel = this->startLevel[level];
+      types::global_dof_index endBlockLevel   = this->endLevel[level];
+      // std::vector<types::global_dof_index>
+      const auto &nodesBlk1Ids = block_it->GetBlockNodeList();
+      bool        on_process   = false;
+      for (auto ind : nodesBlk1Ids)
+        {
+          if (this->this_cpu_set.is_element(ind))
+            {
+              on_process = true;
+              break;
+            }
+        }
 
-    copy_data.nodesBlk1Ids = nodesBlk1Ids;
-    copy_data.matrVectorProductContributionKer1.reinit(nodesBlk1Ids.size());
-    copy_data.matrVectorProductContributionKer2.reinit(nodesBlk1Ids.size());
+      copy_data.nodesBlk1Ids = nodesBlk1Ids;
+      copy_data.matrVectorProductContributionKer1.reinit(nodesBlk1Ids.size());
+      copy_data.matrVectorProductContributionKer2.reinit(nodesBlk1Ids.size());
 
-    if (on_process)
-      {
-        std::vector<std::complex<double>> cache;
-        // the local expansion of the parent must be translated down into the
-        // current block
-        types::global_dof_index parentId = block_it->GetParentId();
-        AssertIndexRange(parentId, blockLocalExpansionsKer1.size());
-        copy_data.blockLocalExpansionKer1.Add(
-          this->blockLocalExpansionsKer1[parentId], cache);
-        AssertIndexRange(parentId, blockLocalExpansionsKer2.size());
-        copy_data.blockLocalExpansionKer2.Add(
-          this->blockLocalExpansionsKer2[parentId], cache);
+      if (on_process)
+        {
+          std::vector<std::complex<double>> cache;
+          // the local expansion of the parent must be translated down into
+          // the current block
+          types::global_dof_index parentId = block_it->GetParentId();
+          AssertIndexRange(parentId, blockLocalExpansionsKer1.size());
+          copy_data.blockLocalExpansionKer1.Add(
+            this->blockLocalExpansionsKer1[parentId], cache);
+          AssertIndexRange(parentId, blockLocalExpansionsKer2.size());
+          copy_data.blockLocalExpansionKer2.Add(
+            this->blockLocalExpansionsKer2[parentId], cache);
 
-        for (unsigned int subLevel = 0;
-             subLevel < block_it->NumNearNeighLevels();
-             subLevel++)
-          {
-            // we get the nonIntList of each block
-            // std::set<dealii::types::boundary_id>
-            const auto &nonIntList = block_it->GetNonIntList(subLevel);
+          for (unsigned int subLevel = 0;
+               subLevel < block_it->NumNearNeighLevels();
+               subLevel++)
+            {
+              // we get the nonIntList of each block
+              // std::set<dealii::types::boundary_id>
+              const auto &nonIntList = block_it->GetNonIntList(subLevel);
 
-            // we start converting into local expansions, all the multipole
-            // expansions of all the blocks in nonIntList, that are of the same
-            // size (level) of the current block. To perform the conversion, we
-            // use another member of the LocalExpansion class. Note that all the
-            // contributions to the integrals of blocks bigger than current
-            // block had already been considered in the direct integrals method
-            // (the bounds of the local and multipole expansion do not hold in
-            // such case)
-            for (auto pos1 = nonIntList.lower_bound(startBlockLevel);
-                 pos1 != nonIntList.upper_bound(endBlockLevel);
-                 pos1++) // loop over NNs of NNs and add them to intList
-              {
-                types::global_dof_index block2Id = *pos1;
+              // we start converting into local expansions, all the multipole
+              // expansions of all the blocks in nonIntList, that are of the
+              // same size (level) of the current block. To perform the
+              // conversion, we use another member of the LocalExpansion
+              // class. Note that all the contributions to the integrals of
+              // blocks bigger than current block had already been considered
+              // in the direct integrals method (the bounds of the local and
+              // multipole expansion do not hold in such case)
+              for (auto pos1 = nonIntList.lower_bound(startBlockLevel);
+                   pos1 != nonIntList.upper_bound(endBlockLevel);
+                   pos1++) // loop over NNs of NNs and add them to intList
+                {
+                  types::global_dof_index block2Id = *pos1;
 
-                copy_data.blockLocalExpansionKer1.Add(
-                  this->blockMultipoleExpansionsKer1[block2Id], cache);
-                copy_data.blockLocalExpansionKer2.Add(
-                  this->blockMultipoleExpansionsKer2[block2Id], cache);
-              } // end loop over well separated blocks of the same size (level)
+                  copy_data.blockLocalExpansionKer1.Add(
+                    this->blockMultipoleExpansionsKer1[block2Id], cache);
+                  copy_data.blockLocalExpansionKer2.Add(
+                    this->blockMultipoleExpansionsKer2[block2Id], cache);
+                } // end loop over well separated blocks of the same size
+                  // (level)
 
-            // loop over well separated blocks of the smaller size (level)----->
-            // use multipoles without local expansions
+              // loop over well separated blocks of the smaller size
+              // (level)-----> use multipoles without local expansions
 
-            // we now have to loop over blocks in the nonIntList that are
-            // smaller than the current blocks: in this case the bound for the
-            // conversion of a multipole into local expansion does not hold, but
-            // the bound for the evaluation of the multipole expansions does
-            // hold: thus, we will simply evaluate the multipole expansions of
-            // such blocks for each node in the block
-            for (auto pos1 = nonIntList.upper_bound(endBlockLevel);
-                 pos1 != nonIntList.end();
-                 pos1++)
-              {
-                types::global_dof_index block2Id = *pos1;
+              // we now have to loop over blocks in the nonIntList that are
+              // smaller than the current blocks: in this case the bound for
+              // the conversion of a multipole into local expansion does not
+              // hold, but the bound for the evaluation of the multipole
+              // expansions does hold: thus, we will simply evaluate the
+              // multipole expansions of such blocks for each node in the
+              // block
+              for (auto pos1 = nonIntList.upper_bound(endBlockLevel);
+                   pos1 != nonIntList.end();
+                   pos1++)
+                {
+                  types::global_dof_index block2Id = *pos1;
 
-                // TODO: restore functionality without forcing thread safety
-                // Teuchos::TimeMonitor LocalTimer(*LocEval);
-                // copy_data.localTimeEvalNumCalls++;
+                  // TODO: restore functionality without forcing thread safety
+                  // Teuchos::TimeMonitor LocalTimer(*LocEval);
+                  // copy_data.localTimeEvalNumCalls++;
 
-                for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size();
-                     ii++) // loop over each node of (*block_it)
-                  {
-                    const Point<dim> &nodeBlk1 =
-                      support_points[nodesBlk1Ids[ii]];
+                  for (types::global_dof_index ii = 0; ii < nodesBlk1Ids.size();
+                       ii++) // loop over each node of (*block_it)
+                    {
+                      const Point<dim> &nodeBlk1 =
+                        support_points[nodesBlk1Ids[ii]];
 
-                    copy_data.matrVectorProductContributionKer1(ii) +=
-                      this->blockMultipoleExpansionsKer1[block2Id].Evaluate(
-                        nodeBlk1, cache);
-                    copy_data.matrVectorProductContributionKer2(ii) +=
-                      this->blockMultipoleExpansionsKer2[block2Id].Evaluate(
-                        nodeBlk1, cache);
-                  }
-              } // end loop over well separated blocks of smaller size (level)
-          }     // end loop over all sublevels in  nonIntlist
-      }
-  };
+                      copy_data.matrVectorProductContributionKer1(ii) +=
+                        this->blockMultipoleExpansionsKer1[block2Id].Evaluate(
+                          nodeBlk1, cache);
+                      copy_data.matrVectorProductContributionKer2(ii) +=
+                        this->blockMultipoleExpansionsKer2[block2Id].Evaluate(
+                          nodeBlk1, cache);
+                    }
+                } // end loop over well separated blocks of smaller size
+                  // (level)
+            }     // end loop over all sublevels in  nonIntlist
+        }
+    };
 
   int localTimeEvalNumCalls = 0;
-  // The copier function, it copies the value from the local array to the parent
-  // blocks and it fills the actual parallel vector of the matrix vector
-  // products.
+  // The copier function, it copies the value from the local array to the
+  // parent blocks and it fills the actual parallel vector of the matrix
+  // vector products.
   auto f_copier_Descend =
     [this, &matrVectProdD, &matrVectProdN, &localTimeEvalNumCalls](
       const DescendCopyData &copy_data) {
@@ -2436,11 +2475,12 @@ BEMFMA<dim>::multipole_matr_vect_products(
       types::global_dof_index endBlockLevel   = endLevel[level];
 
       // to reduce computational cost, we decide to loop on the list of blocks
-      // which contain at least one node (the local and multipole expansion will
-      // be finally evaluated at the nodes positions)
+      // which contain at least one node (the local and multipole expansion
+      // will be finally evaluated at the nodes positions)
 
-      // TODO WE COULD SPLIT THIS LOOP OVER THE BLOCKS OVER ALL THE PROCESSORS,
-      // THEN DO A TRILINOS.ADD WITH DIFFERENT MAPS. HERE WE NEED A FULL ONE.
+      // TODO WE COULD SPLIT THIS LOOP OVER THE BLOCKS OVER ALL THE
+      // PROCESSORS, THEN DO A TRILINOS.ADD WITH DIFFERENT MAPS. HERE WE NEED
+      // A FULL ONE.
       DescendScratchData sample_scratch;
       DescendCopyData    sample_copy(this);
 
@@ -2516,6 +2556,308 @@ BEMFMA<dim>::multipole_matr_vect_products(
   pcout << "...done computing multipole matrix-vector products" << std::endl;
 }
 
+
+template <int dim>
+void
+BEMFMA<dim>::multipole_matr_vect_products_omp(
+  const TrilinosWrappers::MPI::Vector &phi_values,
+  const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+  TrilinosWrappers::MPI::Vector &      matrVectProdN,
+  TrilinosWrappers::MPI::Vector &      matrVectProdD) const
+{
+  pcout << "Computing multipole matrix-vector products (OpenMP)..."
+        << std::endl;
+  Teuchos::TimeMonitor LocalTimer(*MatrVec);
+
+  // and here we compute the direct integral contributions (stored in two
+  // sparse matrices)
+  prec_neumann_matrix.vmult(matrVectProdN, phi_values);
+  prec_dirichlet_matrix.vmult(matrVectProdD, dphi_dn_values);
+
+  // from here on, we compute the multipole expansions contributions
+  // we start cleaning past sessions
+  // store old values
+
+  // TODO: would not need clear-resize if LocalExpansion's copy assignement is
+  // correct
+  blockLocalExpansionsKer1.clear();
+  blockLocalExpansionsKer2.clear();
+
+  blockLocalExpansionsKer1.resize(num_blocks);
+  blockLocalExpansionsKer2.resize(num_blocks);
+
+  // we declare some familiar variables that will be useful in the method
+  std::vector<Point<dim>> support_points(fma_dh->n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*fma_mapping,
+                                                     *fma_dh,
+                                                     support_points);
+
+  // reset current expansions
+#pragma omp parallel for
+  for (unsigned int i = 0; i < this->num_blocks; ++i)
+    {
+      const auto blockCenter = this->blocks[i]->GetCenter();
+
+      this->blockLocalExpansionsKer1[i] =
+        LocalExpansion(this->trunc_order, blockCenter, &(this->assLegFunction));
+      this->blockLocalExpansionsKer2[i] =
+        LocalExpansion(this->trunc_order, blockCenter, &(this->assLegFunction));
+    }
+
+  // this scope is only for the local evaluation timer
+  {
+    Teuchos::TimeMonitor LocalTimer(*LocEval);
+    // first, convert non-well separated blocks' expansions to the interacting
+    // blocks
+    unsigned int localTimeEvalNumCalls = 0;
+#pragma omp parallel reduction(+ : localTimeEvalNumCalls)
+    {
+      // one cache for each thread, will be reused in the various stages
+      std::vector<std::complex<double>> cache;
+      // TODO: these can be probably deleted safely, writing directly on the
+      // final objects since the work is well partitioned and the tasks have the
+      // correct dependencies
+      // LocalExpansion thread_blockLocalExpansionKer1;
+      // LocalExpansion thread_blockLocalExpansionKer2;
+      Vector<double> thread_matrVectorProductContributionKer1;
+      Vector<double> thread_matrVectorProductContributionKer2;
+
+#pragma omp single
+      {
+        // traverse the octree;
+        for (unsigned int level = 1; level < this->num_octree_levels + 1;
+             level++)
+          {
+            auto startBlockLevel = this->startLevel[level];
+            auto endBlockLevel   = this->endLevel[level];
+
+            // The Workstream has to run only if there are blocks in the current
+            // level. Then it basically performs a loop over all the blocks in
+            // the current level.
+            for (const auto blockId : this->dofs_filled_blocks[level])
+              {
+                const OctreeBlock<dim> *block1 = this->blocks[blockId];
+
+#pragma omp task depend(in                                     \
+                        : this->blocks[block1->GetParentId()]) \
+  depend(out                                                   \
+         : this->blocks[blockId])                              \
+    firstprivate(blockId, block1, level, startBlockLevel, endBlockLevel)
+                {
+                  const auto &nodesBlk1Ids = block1->GetBlockNodeList();
+
+                  bool proceed = false;
+                  for (auto idx : nodesBlk1Ids)
+                    {
+                      if (this->this_cpu_set.is_element(idx))
+                        {
+                          proceed = true;
+                          break;
+                        }
+                    }
+
+                  if (proceed)
+                    {
+                      AssertIndexRange(blockId,
+                                       this->blockLocalExpansionsKer1.size());
+                      Point<dim> center =
+                        this->blockLocalExpansionsKer1[blockId].GetCenter();
+
+                      // reset the local expansions and Vectors with the
+                      // contributions
+                      /*
+                      LocalExpansion dummy(this->trunc_order,
+                                           center,
+                                           &(this->assLegFunction));
+                      */
+                      // thread_blockLocalExpansionKer1 = dummy;
+                      // thread_blockLocalExpansionKer2 = dummy;
+
+                      thread_matrVectorProductContributionKer1.reinit(
+                        nodesBlk1Ids.size());
+                      thread_matrVectorProductContributionKer2.reinit(
+                        nodesBlk1Ids.size());
+
+                      // init with the expansion from the parent
+                      types::global_dof_index parentId = block1->GetParentId();
+                      AssertIndexRange(parentId,
+                                       this->blockLocalExpansionsKer1.size());
+                      // thread_blockLocalExpansionKer1.Add(
+                      this->blockLocalExpansionsKer1[blockId].Add(
+                        this->blockLocalExpansionsKer1[parentId], cache);
+                      AssertIndexRange(parentId,
+                                       this->blockLocalExpansionsKer2.size());
+                      // thread_blockLocalExpansionKer2.Add(
+                      this->blockLocalExpansionsKer2[blockId].Add(
+                        this->blockLocalExpansionsKer2[parentId], cache);
+
+                      for (unsigned int subLevel = 0;
+                           subLevel < block1->NumNearNeighLevels();
+                           subLevel++)
+                        {
+                          // for each level, for each non interacting block in
+                          // that level
+                          const auto &nonIntList =
+                            block1->GetNonIntList(subLevel);
+
+                          // first, combine the expansions from blocks at the
+                          // current level
+
+                          // we start converting into local
+                          // expansions, all the multipole expansions of all
+                          // the blocks in nonIntList, that are of the same
+                          // size (level) of the current block. To perform the
+                          // conversion, we use another member of the
+                          // LocalExpansion class. Note that all the
+                          // contributions to the integrals of blocks bigger
+                          // than current block had already been considered in
+                          // the direct integrals method (the bounds of the
+                          // local and multipole expansion do not hold in such
+                          // case)
+                          for (auto pos2 =
+                                 nonIntList.lower_bound(startBlockLevel);
+                               pos2 != nonIntList.upper_bound(endBlockLevel);
+                               pos2++) // loop over NNs of NNs and add them to
+                                       // intList
+                            {
+                              types::global_dof_index block2Id = *pos2;
+
+                              AssertIndexRange(
+                                block2Id,
+                                this->blockMultipoleExpansionsKer1.size());
+                              // thread_blockLocalExpansionKer1.Add(
+                              this->blockLocalExpansionsKer1[blockId].Add(
+                                this->blockMultipoleExpansionsKer1[block2Id],
+                                cache);
+                              AssertIndexRange(
+                                block2Id,
+                                this->blockMultipoleExpansionsKer2.size());
+                              // thread_blockLocalExpansionKer2.Add(
+                              this->blockLocalExpansionsKer2[blockId].Add(
+                                this->blockMultipoleExpansionsKer2[block2Id],
+                                cache);
+                            }
+
+                          // then, expansions of blocks from deeper levels
+                          // (that is, smaller blocks)
+
+                          // we now have to loop over blocks in the nonIntList
+                          // that are smaller than the current blocks: in this
+                          // case the bound for the conversion of a multipole
+                          // into local expansion does not hold, but the bound
+                          // for the evaluation of the multipole expansions
+                          // does hold: thus, we will simply evaluate the
+                          // multipole expansions of such blocks for each node
+                          // in the block
+                          for (auto pos2 =
+                                 nonIntList.upper_bound(endBlockLevel);
+                               pos2 != nonIntList.end();
+                               pos2++)
+                            {
+                              types::global_dof_index block2Id = *pos2;
+
+                              for (types::global_dof_index ii = 0;
+                                   ii < nodesBlk1Ids.size();
+                                   ii++)
+                                {
+                                  const Point<dim> &nodeBlk1 =
+                                    support_points[nodesBlk1Ids[ii]];
+
+                                  // TODO: if going directly on the
+                                  // this->matrVector* objs, can ditch ii
+                                  thread_matrVectorProductContributionKer1(
+                                    ii) +=
+                                    this->blockMultipoleExpansionsKer1[block2Id]
+                                      .Evaluate(nodeBlk1, cache);
+                                  thread_matrVectorProductContributionKer2(
+                                    ii) +=
+                                    this->blockMultipoleExpansionsKer2[block2Id]
+                                      .Evaluate(nodeBlk1, cache);
+                                }
+                            }
+                        }
+
+                        // everything has been accumulated in the thread_*
+                        // variables
+                        /*
+                        AssertIndexRange(blockId,
+                                         this->blockLocalExpansionsKer1.size());
+                        this->blockLocalExpansionsKer1[blockId].Add(
+                          thread_blockLocalExpansionKer1, cache);
+                        AssertIndexRange(blockId,
+                                         this->blockLocalExpansionsKer2.size());
+                        this->blockLocalExpansionsKer2[blockId].Add(
+                          thread_blockLocalExpansionKer2, cache);
+                        */
+
+                        // synch here shouldn't be needed; but on an i7, using
+                        // 2mpi 2omp there's an error in the Petra vector add
+                        // which does not manifest with Xmpi 1omp (nor with 1mpi
+                        // Xomp, but that seems more like a fluke)
+                        // is the add method somehow conflicting across threads?
+#pragma omp critical(matrVectProdN_add)
+                      {
+                        matrVectProdN.add(
+                          nodesBlk1Ids,
+                          thread_matrVectorProductContributionKer1);
+                      }
+#pragma omp critical(matrVectProdD_add)
+                      {
+                        matrVectProdD.add(
+                          nodesBlk1Ids,
+                          thread_matrVectorProductContributionKer2);
+                      }
+                    }
+                }
+              }
+          }
+      }
+    }
+
+    // add the actual number of calls done as if the timer was created
+    // inside the workers
+    for (unsigned int i = 0; i < localTimeEvalNumCalls; ++i)
+      {
+        LocEval->incrementNumCalls();
+      }
+  }
+
+// finally, when the loop over levels is done, we need to evaluate local
+// expansions of all childless blocks, at each block node(s). This is an
+// embarassingly parallel operation so it can be easily performed using
+// ThreadGroup. We also check the IndexSet to perform the mixed TBB-MPI
+// parallelisation.
+#pragma omp parallel
+  {
+    std::vector<std::complex<double>> cache;
+
+#pragma omp for
+    for (unsigned int i = 0; i < this->childlessList.size(); ++i)
+      {
+        types::global_dof_index blockId = this->childlessList[i];
+        const OctreeBlock<dim> *block1  = this->blocks[blockId];
+
+        const auto &nodesBlk1Ids = block1->GetBlockNodeList();
+        for (auto idx : nodesBlk1Ids)
+          {
+            if (this->this_cpu_set.is_element(idx))
+              {
+                const Point<dim> &nodeBlk1 = support_points[idx];
+
+                matrVectProdN(idx) +=
+                  this->blockLocalExpansionsKer1[blockId].Evaluate(nodeBlk1,
+                                                                   cache);
+                matrVectProdD(idx) +=
+                  this->blockLocalExpansionsKer2[blockId].Evaluate(nodeBlk1,
+                                                                   cache);
+              }
+          }
+      }
+  }
+
+  pcout << "...done computing multipole matrix-vector products" << std::endl;
+}
+
 // this method computes the preconditioner needed for the GMRES:
 // to do it, it needs to receive the alpha vector from the bem_problem
 // class, along with the constraint matrix of the bem problem
@@ -2524,7 +2866,6 @@ TrilinosWrappers::PreconditionILU &
 BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha,
                                 AffineConstraints<double> &          c)
 {
-  return FMA_preconditioner_tbb(alpha, c);
 #ifdef _OPENMP
   return FMA_preconditioner_omp(alpha, c);
 #else
@@ -2616,10 +2957,9 @@ BEMFMA<dim>::FMA_preconditioner_tbb(
   PrecCopy    foo_copy;
   PrecScratch foo_scratch;
 
-  // The following Workstream replaces a for cycle on all dofs to check all the
-  // constraints.
-  // WorkStream::run(0, fma_dh->n_dofs(), f_worker_prec, f_copier_prec,
-  // foo_scratch, foo_copy);
+  // The following Workstream replaces a for cycle on all dofs to check all
+  // the constraints. WorkStream::run(0, fma_dh->n_dofs(), f_worker_prec,
+  // f_copier_prec, foo_scratch, foo_copy);
   WorkStream::run(this_cpu_set.begin(),
                   this_cpu_set.end(),
                   f_worker_prec,
@@ -2636,8 +2976,8 @@ BEMFMA<dim>::FMA_preconditioner_tbb(
   // exactly like the previous one
 
   // We need a worker function that fills the final sparisty pattern once its
-  // sparsity pattern has been set up. In this case no race condition occurs in
-  // the worker so we can let it copy in the global memory.
+  // sparsity pattern has been set up. In this case no race condition occurs
+  // in the worker so we can let it copy in the global memory.
   auto f_sparsity_filler_tbb = [this, &c](unsigned int pos_begin,
                                           unsigned int pos_end) {
     for (unsigned int iter = pos_begin; iter != pos_end; ++iter)
@@ -2774,8 +3114,8 @@ BEMFMA<dim>::FMA_preconditioner_omp(
   // exactly like the previous one
 
   // We need a worker function that fills the final sparisty pattern once its
-  // sparsity pattern has been set up. In this case no race condition occurs in
-  // the worker so we can let it copy in the global memory.
+  // sparsity pattern has been set up. In this case no race condition occurs
+  // in the worker so we can let it copy in the global memory.
 
 #pragma omp parallel for schedule(dynamic)
   for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
@@ -2909,7 +3249,8 @@ BEMFMA<dim>::compute_geometry_cache()
   //       {
   //         // std::set<types::global_dof_index>
   //         const auto &duplicates = (*double_nodes_set)[dofs[j]];
-  //         for (auto pos = duplicates.begin(); pos != duplicates.end(); pos++)
+  //         for (auto pos = duplicates.begin(); pos != duplicates.end();
+  //         pos++)
   //           {
   //             /*
   //             std::vector<cell_it> dof_cell_list = dof_to_elems[*pos];
@@ -2992,8 +3333,8 @@ BEMFMA<dim>::generate_octree_blocking()
 
   // qui di seguito vengono reinizializzate strutture utili al multipolo
 
-  // mappa che associa ad ogni dof un vettore con i blocchi cui essa appartiene
-  // per ogni livello
+  // mappa che associa ad ogni dof un vettore con i blocchi cui essa
+  // appartiene per ogni livello
   // TODO: validate
   // dof_to_block.clear();
 
@@ -3288,7 +3629,8 @@ BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
 
                       parent->AddChild(blocksCount);
-                      // std::map<cell_it, std::vector<types::global_dof_index>>
+                      // std::map<cell_it,
+                      // std::vector<types::global_dof_index>>
                       const auto &blockQuadPointsList =
                         blocks[blocksCount]->GetBlockQuadPointsList();
                       for (auto it = blockQuadPointsList.begin();
@@ -3413,7 +3755,8 @@ BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
 
                       parent->AddChild(blocksCount);
-                      // std::map<cell_it, std::vector<types::global_dof_index>>
+                      // std::map<cell_it,
+                      // std::vector<types::global_dof_index>>
                       const auto &blockQuadPointsList =
                         blocks[blocksCount]->GetBlockQuadPointsList();
                       for (auto it = blockQuadPointsList.begin();
@@ -3506,10 +3849,11 @@ BEMFMA<dim>::generate_octree_blocking()
                       // if a block is childless, we must assign now the nodes
                  and quad
                       // points that belong to it for all the next levels
-                      for (types::global_dof_index kk = 0; kk < nodesId.size();
-                 kk++)
+                      for (types::global_dof_index kk = 0; kk <
+                 nodesId.size(); kk++)
                         {
-                          for (unsigned int j = level + 1; j < num_octree_levels
+                          for (unsigned int j = level + 1; j <
+                 num_octree_levels
                  + 1; j++)
                             {
                               dof_to_block[nodesId[kk]].push_back(jj);
@@ -3623,8 +3967,8 @@ BEMFMA<dim>::generate_octree_blocking()
                pos++)
             {
               if (blocks[*pos]->GetBlockChildrenNum() ==
-                  0) // if a parent's near neigh is childless, he can be a near
-                     // neigh: let's check
+                  0) // if a parent's near neigh is childless, he can be a
+                     // near neigh: let's check
                 {
                   types::global_dof_index block2Id = *pos;
                   OctreeBlock<dim>       *block2   = blocks[block2Id];
@@ -3911,8 +4255,8 @@ BEMFMA<dim>::generate_octree_blocking()
                                     }
                                 }
                             } // fine caso dim == 2
-                        } // fine loop sui figli di ciascun nearest neighbor del
-                          // blocco childless
+                        }     // fine loop sui figli di ciascun nearest neighbor
+                              // del blocco childless
                     } // fine loop sui nearest neighbors del blocco childless
                 }     // fine loop sui subLevels (da quello del blocco childless
                       // all'ultimo)
@@ -3981,14 +4325,14 @@ BEMFMA<dim>::generate_octree_blocking()
             }
 
           for (unsigned int subLevel = 0; subLevel < block1->GetNearNeighSize();
-               subLevel++) // for each block, loop over all sublevels in his NN
-                           // list (to account for childless blocks)
+               subLevel++) // for each block, loop over all sublevels in his
+                           // NN list (to account for childless blocks)
             {
               // now use intList to compute nonIntList
               // std::set<types::global_dof_index>
               const auto &intList = block1->GetIntList(subLevel);
-              // TODO: this is a less than desirable pattern, there's no need to
-              // duplicate this set
+              // TODO: this is a less than desirable pattern, there's no need
+              // to duplicate this set
               const typename OctreeBlock<dim>::small_set *parentIntList =
                 nullptr;
               if (subLevel == 0)

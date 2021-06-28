@@ -178,6 +178,22 @@ public:
     TrilinosWrappers::MPI::Vector       &matrVectProdN,
     TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 
+
+  void
+  multipole_matr_vect_products_tbb(
+    const TrilinosWrappers::MPI::Vector &phi_values,
+    const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+    TrilinosWrappers::MPI::Vector &      matrVectProdN,
+    TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
+
+
+  void
+  multipole_matr_vect_products_omp(
+    const TrilinosWrappers::MPI::Vector &phi_values,
+    const TrilinosWrappers::MPI::Vector &dphi_dn_values,
+    TrilinosWrappers::MPI::Vector &      matrVectProdN,
+    TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
+
   /// this methods creates the adaptive
   /// octree partitioning of the domain,
   /// needed by the FMA algorithm.

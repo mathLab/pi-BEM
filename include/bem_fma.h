@@ -124,6 +124,12 @@ public:
   void
   direct_integrals();
 
+  void
+  direct_integrals_tbb();
+
+  void
+  direct_integrals_omp();
+
   /// Method computing the multipole
   /// expansion containing the integrals
   /// values for each bottom level block.

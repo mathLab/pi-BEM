@@ -1,9 +1,11 @@
 #define TOLL 0.001
 
-#include "../include/bem_fma.h"
+#include <omp.h>
+
 
 #include <functional>
 
+#include "../include/bem_fma.h"
 #include "../include/laplace_kernel.h"
 #include "Teuchos_TimeMonitor.hpp"
 using Teuchos::RCP;
@@ -127,7 +129,21 @@ template <int dim>
 void
 BEMFMA<dim>::direct_integrals()
 {
-  pcout << "Computing direct integrals..." << std::endl;
+  direct_integrals_tbb();
+  /*
+#ifdef _OPENMP
+  direct_integrals_omp();
+#else
+  direct_integrals_tbb();
+#endif
+  */
+}
+
+template <int dim>
+void
+BEMFMA<dim>::direct_integrals_tbb()
+{
+  pcout << "Computing direct integrals (TBB)..." << std::endl;
   Teuchos::TimeMonitor LocalTimer(*DirInt);
   // The following function performs
   // the direct integrals
@@ -1045,6 +1061,653 @@ BEMFMA<dim>::direct_integrals()
   pcout << "...done computing direct integrals" << std::endl;
 }
 
+template <int dim>
+void
+BEMFMA<dim>::direct_integrals_omp()
+{
+  pcout << "Computing direct integrals (OpenMP)..." << std::endl;
+  Teuchos::TimeMonitor LocalTimer(*DirInt);
+  // The following function performs the direct integrals for the fast multipole
+  // algorithm and saves the results into two sparse matrices which will be also
+  // used for precondictioning: the actual preconditioner is a third sparse
+  // matrix declaration of the 3d singular quadrature to be used
+
+  // We compute a vector containing all the possible singular quadratures. We
+  // need them to properly treat the direct contributions among nodes on the
+  // same block.
+  // TODO: is this the same as BEMProblem::get_singular_quadrature()?
+  // potentially, there's a different dh
+  const auto                    dofs_per_cell = fma_dh->get_fe().dofs_per_cell;
+  std::vector<QTelles<dim - 1>> sing_quadratures;
+  sing_quadratures.reserve(dofs_per_cell);
+  for (unsigned int i = 0; i < dofs_per_cell; ++i)
+    {
+      sing_quadratures.push_back(
+        QTelles<dim - 1>(singular_quadrature_order,
+                         fma_dh->get_fe().get_unit_support_points()[i]));
+    }
+
+  // vector containing the ids of the dofs
+  // of each cell: it will be used to transfer
+  // the computed local rows of the matrices
+  // into the global matrices
+  // std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+  // vector to store parts of rows of neumann
+  // and dirichlet matrix obtained in local
+  // operations
+  Vector<double> local_neumann_matrix_row_i(dofs_per_cell);
+  Vector<double> local_dirichlet_matrix_row_i(dofs_per_cell);
+
+  // Now that we have checked that
+  // the number of vertices is equal
+  // to the number of degrees of
+  // freedom, we construct a vector
+  // of support points which will be
+  // used in the local integrations:
+  std::vector<Point<dim>> support_points(fma_dh->n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*fma_mapping,
+                                                     *fma_dh,
+                                                     support_points);
+
+  // After doing so, we can start the
+  // integration loop over all cells,
+  // where we first initialize the
+  // FEValues object and get the
+  // values of $\mathbf{\tilde v}$ at
+  // the quadrature points (this
+  // vector field should be constant,
+  // but it doesn't hurt to be more
+  // general):
+
+  // first, we (re)initialize the
+  // preconditioning matricies by
+  // generating the corresponding
+  // sparsity pattern, obtained by
+  // means of the octree blocking
+  // the idea here is that we take
+  // each childless block containing
+  // at least a dof (such dof index is i)
+  // and its interaction list.
+  // for each of the dofs i
+  // we create a set with all the
+  // dofs (this dof index is j) of the
+  // elements having
+  // at least one quad point in the
+  // interaction list blocks: these
+  // dofs will determine the non null
+  // elements ij of the precondition
+  // matrix
+
+  /// TODO: understand the bandwith of the preconditioner
+  types::global_dof_index preconditioner_band =
+    125 * fma_dh->get_fe().dofs_per_cell;
+  init_prec_sparsity_pattern.reinit(this_cpu_set,
+                                    mpi_communicator,
+                                    preconditioner_band);
+
+  /*
+  shared(this,
+         dofs_per_cell,
+         sing_quadratures,
+         local_dof_indices,
+         local_neumann_matrix_row_i,
+         local_dirichlet_matrix_row_i,
+         support_points)
+  */
+
+// 1: assemble the preconditioner sparsity pattern
+//  1.1: assemble from (the interacting blocks of) the leaf octcells
+#pragma omp parallel
+  {
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+#pragma omp for schedule(dynamic)
+    for (unsigned int i = 0; i < this->childlessList.size(); ++i)
+      {
+        const OctreeBlock<dim> *block1 = this->blocks[childlessList[i]];
+        // if the block doesn't contain dofs belonging to the current mpi
+        // proc, it can be skipped
+        bool proceed = false;
+        for (const auto idx : block1->GetBlockNodeList())
+          {
+            if (this->this_cpu_set.is_element(idx))
+              {
+                proceed = true;
+                break;
+              }
+          }
+
+        if (proceed)
+          {
+            // if block1 contains nodes,
+            // we need to get all the quad points
+            // in the intList blocks of block1
+            // (such quad points will be used for
+            // direct integrals)
+
+            // get the deepest interacting octcells
+            const auto &block1IntList =
+              block1->GetIntList(block1->GetIntListSize() - 1);
+
+            // in this set we will put all the
+            // dofs of the cell to whom
+            // the quad points belong
+            std::set<types::global_dof_index> directNodes;
+
+            // start looping on the intList
+            // blocks (block2 here)
+            for (const auto blockId2 : block1IntList)
+              {
+                // get the list of quad points
+                // in block2 and loop on it; but it's only using the
+                // cell, it the loop container was a vector it would be
+                // better
+                for (const auto &pair :
+                     blocks[blockId2]->GetBlockQuadPointsList())
+                  {
+                    // the key of the map (*it.first pointer) is
+                    // the cell of the quad point: we will
+                    // get its dofs and put them in the set
+                    // of direct nodes
+                    pair.first->get_dof_indices(local_dof_indices);
+                    directNodes.insert(local_dof_indices.cbegin(),
+                                       local_dof_indices.cend());
+                  }
+              }
+            // directNodes contains all the dofs that interact with the
+            // current block
+
+            // the loop over blocks in intList
+            // is over: for all the nodes in
+            // block1, we know nodes in directNodes
+            // list have direct integrals, so
+            // we use them to create the
+            // direct contributions matrices
+            // sparsity pattern
+            boost::container::flat_set<types::global_dof_index> flattened(
+              directNodes.cbegin(), directNodes.cend());
+            for (const auto idx : block1->GetBlockNodeList())
+              {
+                if (this->this_cpu_set.is_element(idx))
+                  {
+                    // unfortunately, the sparsity pattern is not yet
+                    // allocated entirely and it requires synch
+#pragma omp critical
+                    {
+                      /*
+                      std::cout << "rank " << this_mpi_process << " omp thread "
+                                << omp_get_thread_num()
+                                << " before calling add_entries" << std::endl;
+                      */
+                      this->init_prec_sparsity_pattern.add_entries(
+                        idx, flattened.cbegin(), flattened.cend(), true);
+                    }
+                  }
+              }
+          }
+      }
+  }
+
+//  1.2: assemble from (the non interacting blocks of) the
+#pragma omp parallel
+  {
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+// tree traversal is a more interesting scenario than the flat leaf nodes list
+// so, we will use tasks
+#pragma omp single
+    {
+      for (unsigned int level = 1; level < num_octree_levels + 1; level++)
+        {
+          for (const auto &blockId : this->dofs_filled_blocks[level])
+            {
+              // blockId has at least a dof
+              const OctreeBlock<dim> *block1 = this->blocks[blockId];
+              // each task processes a block; it will only execute after the
+              // parent's; again, there's synch when inserting new positions in
+              // the sparsity pattern
+#pragma omp task depend(in                                     \
+                        : this->blocks[block1->GetParentId()]) \
+  depend(out                                                   \
+         : this->blocks[blockId]) firstprivate(blockId, block1, level)
+              {
+                // again, this block is interesting only if it contains dofs of
+                // this mpi proc
+                // if the block doesn't contain dofs belonging to the current
+                // mpi proc, it can be skipped
+                bool proceed = false;
+                for (const auto idx : block1->GetBlockNodeList())
+                  {
+                    if (this->this_cpu_set.is_element(idx))
+                      {
+                        proceed = true;
+                        break;
+                      }
+                  }
+
+                if (proceed)
+                  {
+                    for (unsigned int subLevel = 0;
+                         subLevel < block1->NumNearNeighLevels();
+                         subLevel++)
+                      {
+                        std::set<types::global_dof_index> directNodes;
+
+                        const auto &nonIntList =
+                          block1->GetNonIntList(subLevel);
+
+                        // loop over well separated blocks of higher size
+                        // (level): in this case we must use direct evaluation:
+                        // for each block we get the quad points list
+                        for (auto pos = nonIntList.begin();
+                             pos !=
+                             nonIntList.lower_bound(this->startLevel[level]);
+                             pos++)
+                          {
+                            const OctreeBlock<dim> *block2 = this->blocks[*pos];
+
+                            // get the list of quad points
+                            // in block2 and loop on it; but it's only using
+                            // the cell, it the loop container was a vector it
+                            // would be better
+                            for (const auto &pair :
+                                 block2->GetBlockQuadPointsList())
+                              {
+                                // the key of the map (*it.first pointer) is
+                                // the cell of the quad point: we will
+                                // get its dofs and put them in the set
+                                // of direct nodes
+                                pair.first->get_dof_indices(local_dof_indices);
+                                directNodes.insert(local_dof_indices.cbegin(),
+                                                   local_dof_indices.cend());
+                              }
+                          } // end loop over blocks of a sublevel of nonIntList
+
+                        // we use the nodes in directList, to create the
+                        // sparsity pattern
+                        boost::container::flat_set<types::global_dof_index>
+                          flattened(directNodes.cbegin(), directNodes.cend());
+                        for (const auto idx : block1->GetBlockNodeList())
+                          {
+                            if (this->this_cpu_set.is_element(idx))
+                              {
+                                // unfortunately, the sparsity pattern is not
+                                // yet allocated entirely and it requires synch
+#pragma omp critical
+                                {
+                                  this->init_prec_sparsity_pattern.add_entries(
+                                    idx,
+                                    flattened.cbegin(),
+                                    flattened.cend(),
+                                    true);
+                                }
+                              }
+                          }
+                      } // end loop over sublevels
+                  }
+              }
+            }
+        }
+    }
+  }
+
+  // sparsity pattern is ready and can be compressed; the direct matrices
+  // and the preconditioner one are the initialized with the sparsity
+  // pattern just computed
+  init_prec_sparsity_pattern.compress();
+  double filling_percentage =
+    double(init_prec_sparsity_pattern.n_nonzero_elements()) /
+    double(fma_dh->n_dofs() * fma_dh->n_dofs()) * 100.;
+
+  pcout << "Preconditioner: " << init_prec_sparsity_pattern.n_nonzero_elements()
+        << " Nonzeros out of " << fma_dh->n_dofs() * fma_dh->n_dofs() << ":  "
+        << filling_percentage << "%" << std::endl;
+
+  prec_neumann_matrix.reinit(init_prec_sparsity_pattern);
+  prec_dirichlet_matrix.reinit(init_prec_sparsity_pattern);
+  init_preconditioner.reinit(init_prec_sparsity_pattern);
+
+  // 2: assemble the actual preconditioners
+  //  2.1: loop over leaf blocks
+#pragma omp parallel
+  {
+#pragma omp for schedule(dynamic)
+    for (unsigned int i = 0; i < this->childlessList.size(); ++i)
+      {
+        const OctreeBlock<dim> *block1 = this->blocks[childlessList[i]];
+        // if the block doesn't contain dofs belonging to the current mpi
+        // proc, it can be skipped
+        bool proceed = false;
+        for (const auto idx : block1->GetBlockNodeList())
+          {
+            if (this->this_cpu_set.is_element(idx))
+              {
+                proceed = true;
+                break;
+              }
+          }
+
+        if (proceed)
+          {
+            std::map<cell_it, std::set<types::global_dof_index>>
+                                                 directQuadPoints;
+            std::vector<types::global_dof_index> local_dofs(dofs_per_cell);
+
+            // loop over the deepest blocks that are well-separated from
+            // block1
+            unsigned int intListNumLevs = block1->GetIntListSize();
+            for (const auto blockId : block1->GetIntList(intListNumLevs - 1))
+              {
+                const OctreeBlock<dim> *block2 = this->blocks[blockId];
+
+                // merge their quadrature points, cell by cell
+                for (const auto &pair : block2->GetBlockQuadPointsList())
+                  {
+                    directQuadPoints[pair.first].insert(pair.second.begin(),
+                                                        pair.second.end());
+                  }
+              }
+
+            // actual integration from
+            for (const auto idx : block1->GetBlockNodeList())
+              {
+                if (this->this_cpu_set.is_element(idx))
+                  {
+                    for (const auto &pair : directQuadPoints)
+                      {
+                        const auto  cell       = pair.first;
+                        const auto &qpointIdxs = pair.second;
+                        cell->get_dof_indices(local_dofs);
+                        // allocate buffers
+                        std::vector<double> vec_local_neumann_matrix_row_i(
+                          dofs_per_cell, 0);
+                        std::vector<double> vec_local_dirichlet_matrix_row_i(
+                          dofs_per_cell, 0);
+
+                        // this is the contribution from cell: pair.first
+                        // if dof idx is part (either itself or a double)
+                        // of said cell, it requires a special quadrature
+
+                        bool         is_singular = false;
+                        unsigned int singular_index =
+                          numbers::invalid_unsigned_int;
+                        for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                          {
+                            // recall const
+                            // std::vector<std::set<types::global_dof_index>>
+                            // *double_nodes_set
+                            if ((*double_nodes_set)[idx].count(local_dofs[j]) >
+                                0)
+                              {
+                                singular_index = j;
+                                is_singular    = true;
+                                break;
+                              }
+                          }
+
+                        if (!is_singular)
+                          {
+                            for (const auto &qpointIdx : qpointIdxs)
+                              {
+                                // here we compute the distance R between
+                                // the node and the quad point
+                                Point<dim> D;
+                                double     s = 0.;
+
+                                Assert(
+                                  this->quadPoints.count(cell) > 0,
+                                  StandardExceptions::ExcInvalidIterator());
+                                const Tensor<1, dim> R =
+                                  this->quadPoints[cell][qpointIdx] -
+                                  support_points[idx];
+                                LaplaceKernel::kernels(R, D, s);
+
+                                Assert(
+                                  this->quadNormals.count(cell) > 0,
+                                  StandardExceptions::ExcInvalidIterator());
+                                Assert(
+                                  this->quadShapeFunValues.count(cell) > 0,
+                                  StandardExceptions::ExcInvalidIterator());
+                                Assert(
+                                  this->quadJxW.count(cell) > 0,
+                                  StandardExceptions::ExcInvalidIterator());
+
+                                // and here are the integrals for each of
+                                // the degrees of freedom of the cell:
+                                // note how the quadrature values
+                                // (position, normals, jacobianXweight,
+                                // shape functions) are taken from the
+                                // precomputed ones in
+                                // ComputationalDomain class
+                                for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                                  {
+                                    const double m =
+                                      this->quadShapeFunValues[cell][qpointIdx]
+                                                              [j] *
+                                      quadJxW[cell][qpointIdx];
+
+                                    vec_local_neumann_matrix_row_i[j] +=
+                                      (D * this->quadNormals[cell][qpointIdx]) *
+                                      m;
+                                    vec_local_dirichlet_matrix_row_i[j] +=
+                                      s * m;
+                                  }
+                              }
+                          }
+                        else
+                          {
+                            Assert(singular_index !=
+                                     numbers::invalid_unsigned_int,
+                                   ExcInternalError());
+
+                            const Quadrature<dim - 1> *singular_quadrature =
+                              dynamic_cast<Quadrature<dim - 1> *>(
+                                &sing_quadratures[singular_index]);
+                            Assert(singular_quadrature, ExcInternalError());
+
+                            // once the singular quadrature has been
+                            // created, we employ it to create the
+                            // corresponding fe_values
+                            FEValues<dim - 1, dim> fe_v_singular(
+                              *fma_mapping,
+                              this->fma_dh->get_fe(),
+                              *singular_quadrature,
+                              update_jacobians | update_values |
+                                update_normal_vectors |
+                                update_quadrature_points);
+                            fe_v_singular.reinit(cell);
+
+                            const auto &singular_normals =
+                              fe_v_singular.get_normal_vectors();
+                            const auto &singular_q_points =
+                              fe_v_singular.get_quadrature_points();
+
+                            for (unsigned int q = 0;
+                                 q < singular_quadrature->size();
+                                 ++q)
+                              {
+                                Point<dim> D;
+                                double     s = 0.;
+
+                                const Tensor<1, dim> R =
+                                  singular_q_points[q] - support_points[idx];
+                                LaplaceKernel::kernels(R, D, s);
+
+                                for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                                  {
+                                    const double m =
+                                      fe_v_singular.shape_value(j, q) *
+                                      fe_v_singular.JxW(q);
+
+                                    vec_local_neumann_matrix_row_i[j] +=
+                                      (D * singular_normals[q]) * m;
+                                    vec_local_dirichlet_matrix_row_i[j] +=
+                                      s * m;
+                                  }
+                              }
+                          }
+
+                        // the preconditioners have been fully allocated,
+                        // there is no conflict
+                        this->prec_neumann_matrix.add(
+                          idx, local_dofs, vec_local_neumann_matrix_row_i);
+                        this->prec_dirichlet_matrix.add(
+                          idx, local_dofs, vec_local_dirichlet_matrix_row_i);
+
+                        // TODO: these might change for each dof, cannot
+                        // use the compact method
+                        for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                          {
+                            if ((*dirichlet_nodes)(local_dofs[j]) > 0.8)
+                              {
+                                this->init_preconditioner.add(
+                                  idx,
+                                  local_dofs[j],
+                                  -vec_local_dirichlet_matrix_row_i[j]);
+                              }
+                            else
+                              {
+                                this->init_preconditioner.add(
+                                  idx,
+                                  local_dofs[j],
+                                  vec_local_neumann_matrix_row_i[j]);
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+  }
+//  2.2: loop over the well separated blocks from levels above the current
+#pragma omp parallel
+  {
+    std::vector<types::global_dof_index> local_dofs(dofs_per_cell);
+// again, use tasks instead of flat loop;
+#pragma omp single
+    {
+      for (unsigned int level = 1; level < num_octree_levels + 1; level++)
+        {
+          for (const auto &blockId : this->dofs_filled_blocks[level])
+            {
+              // blockId has at least a dof
+              const OctreeBlock<dim> *block1 = this->blocks[blockId];
+              // each task processes a block; it will only execute after the
+              // parent's; again, there's synch when inserting new positions in
+              // the sparsity pattern
+#pragma omp task depend(in                                     \
+                        : this->blocks[block1->GetParentId()]) \
+  depend(out                                                   \
+         : this->blocks[blockId]) firstprivate(blockId, block1, level)
+              {
+                for (const auto idx : block1->GetBlockNodeList())
+                  {
+                    if (this->this_cpu_set.is_element(idx))
+                      {
+                        std::map<cell_it, std::set<types::global_dof_index>>
+                          directQuadPoints;
+
+                        for (unsigned int subLevel = 0;
+                             subLevel < block1->NumNearNeighLevels();
+                             subLevel++)
+                          {
+                            const auto &nonIntList =
+                              block1->GetNonIntList(subLevel);
+                            for (auto pos = nonIntList.begin();
+                                 pos != nonIntList.lower_bound(
+                                          this->startLevel[level]);
+                                 pos++)
+                              {
+                                const OctreeBlock<dim> *block2 =
+                                  this->blocks[*pos];
+
+                                // merge their quadrature points, cell by cell
+                                for (const auto &pair :
+                                     block2->GetBlockQuadPointsList())
+                                  {
+                                    directQuadPoints[pair.first].insert(
+                                      pair.second.begin(), pair.second.end());
+                                  }
+                              }
+                          }
+
+                        for (const auto &pair : directQuadPoints)
+                          {
+                            const auto  cell       = pair.first;
+                            const auto &qpointIdxs = pair.second;
+                            cell->get_dof_indices(local_dofs);
+                            // allocate buffers
+                            std::vector<double> vec_local_neumann_matrix_row_i(
+                              dofs_per_cell, 0);
+                            std::vector<double>
+                              vec_local_dirichlet_matrix_row_i(dofs_per_cell,
+                                                               0);
+
+                            for (const auto qpointIdx : qpointIdxs)
+                              {
+                                const Tensor<1, dim> R =
+                                  this->quadPoints[cell][qpointIdx] -
+                                  support_points[idx];
+                                Point<dim> D;
+                                double     s = 0.;
+                                LaplaceKernel::kernels(R, D, s);
+
+                                for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                                  {
+                                    const double m =
+                                      this->quadShapeFunValues[cell][qpointIdx]
+                                                              [j] *
+                                      this->quadJxW[cell][qpointIdx];
+
+                                    vec_local_neumann_matrix_row_i[j] +=
+                                      (D * this->quadNormals[cell][qpointIdx]) *
+                                      m;
+                                    vec_local_dirichlet_matrix_row_i[j] +=
+                                      s * m;
+                                  }
+                              }
+
+                            // the preconditioners have been fully allocated,
+                            // there is no conflict
+                            this->prec_neumann_matrix.add(
+                              idx, local_dofs, vec_local_neumann_matrix_row_i);
+                            this->prec_dirichlet_matrix.add(
+                              idx,
+                              local_dofs,
+                              vec_local_dirichlet_matrix_row_i);
+
+                            // TODO: these might change for each dof, cannot
+                            // use the compact method
+                            for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                              {
+                                if ((*dirichlet_nodes)(local_dofs[j]) > 0.8)
+                                  {
+                                    this->init_preconditioner.add(
+                                      idx,
+                                      local_dofs[j],
+                                      -vec_local_dirichlet_matrix_row_i[j]);
+                                  }
+                                else
+                                  {
+                                    this->init_preconditioner.add(
+                                      idx,
+                                      local_dofs[j],
+                                      vec_local_neumann_matrix_row_i[j]);
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+            }
+        }
+    }
+  }
+
+  pcout << "...done computing direct integrals" << std::endl;
+}
+
 template <>
 void
 BEMFMA<2>::multipole_integrals()
@@ -1901,8 +2564,6 @@ BEMFMA<dim>::FMA_preconditioner(
     unsigned int i = *iter;
     copy_data.sparsity_row.clear();
 
-    // if (this->this_cpu_set.is_element(i))
-    //  {
     copy_data.row = i;
     if (c.is_constrained(i))
       {
@@ -1928,27 +2589,15 @@ BEMFMA<dim>::FMA_preconditioner(
               }
           }
       }
-    //  }
   };
 
   // We only need a for cycle to add the indices to the sparsity pattern.
   auto f_copier_prec = [this](const PrecCopy &copy_data) {
-    // if (this->this_cpu_set.is_element(copy_data.row))
-    //  {
-    /*
-    for (types::global_dof_index i = 0; i < copy_data.sparsity_row.size();
-         ++i)
-      {
-        this->final_prec_sparsity_pattern.add(copy_data.row,
-                                              copy_data.sparsity_row[i]);
-      }
-    */
     this->final_prec_sparsity_pattern.add_entries(
       copy_data.row,
       copy_data.sparsity_row.begin(),
       copy_data.sparsity_row.end(),
       false);
-    //  }
   };
 
   PrecCopy    foo_copy;
@@ -1976,52 +2625,6 @@ BEMFMA<dim>::FMA_preconditioner(
   // We need a worker function that fills the final sparisty pattern once its
   // sparsity pattern has been set up. In this case no race condition occurs in
   // the worker so we can let it copy in the global memory.
-  /*
-  auto f_sparsity_filler_tbb = [this,
-                                &c](blocked_range<types::global_dof_index> r) {
-    for (types::global_dof_index i = r.begin(); i < r.end(); ++i)
-      {
-        if (this_cpu_set.is_element(i))
-          {
-            if (c.is_constrained(i))
-              {
-                final_preconditioner.set(i, i, 1);
-                // constrainednodes entries are taken from the bem problem
-                // constraint matrix
-                const std::vector<std::pair<types::global_dof_index, double>>
-                  *entries = c.get_constraint_entries(i);
-                for (types::global_dof_index j = 0; j < entries->size(); ++j)
-                  {
-                    final_preconditioner.set(i,
-                                             (*entries)[j].first,
-                                             (*entries)[j].second);
-                  }
-              }
-            else
-              {
-                // other nodes entries are taken from the unconstrained
-                // preconditioner matrix
-                for (unsigned int j = 0; j < fma_dh->n_dofs(); ++j)
-                  {
-                    // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO,
-                    // tanto lui già conosce le matrici.
-                    if (init_prec_sparsity_pattern.exists(i, j))
-                      {
-                        final_preconditioner.set(i,
-                                                 j,
-                                                 init_preconditioner(i, j));
-                      }
-                  }
-              }
-          }
-      }
-  };
-
-  parallel_for(blocked_range<types::global_dof_index>(0,
-                                                      fma_dh->n_dofs(),
-                                                      tbb_granularity),
-               f_sparsity_filler_tbb);
-  */
   auto f_sparsity_filler_tbb = [this, &c](unsigned int pos_begin,
                                           unsigned int pos_end) {
     for (unsigned int iter = pos_begin; iter != pos_end; ++iter)
@@ -2032,16 +2635,6 @@ BEMFMA<dim>::FMA_preconditioner(
             final_preconditioner.set(i, i, 1);
             // constrainednodes entries are taken from the bem problem
             // constraint matrix
-            /*
-            const std::vector<std::pair<types::global_dof_index, double>>
-              *entries = c.get_constraint_entries(i);
-            for (types::global_dof_index j = 0; j < entries->size(); ++j)
-              {
-                final_preconditioner.set(i,
-                                         (*entries)[j].first,
-                                         (*entries)[j].second);
-              }
-            */
             for (const auto &entry : *c.get_constraint_entries(i))
               {
                 final_preconditioner.set(i, entry.first, entry.second);
@@ -2074,30 +2667,6 @@ BEMFMA<dim>::FMA_preconditioner(
   final_preconditioner.compress(VectorOperation::insert);
 
   // In order to add alpha we can again use the parallel_for strategy.
-  /*
-  auto f_alpha_adder_tbb = [this, &c, &alpha](
-                             blocked_range<types::global_dof_index> r) {
-    for (types::global_dof_index i = r.begin(); i < r.end(); ++i)
-      {
-        if (this_cpu_set.is_element(i))
-          {
-            if ((*(dirichlet_nodes))(i) == 0 && !(c.is_constrained(i)))
-              {
-                final_preconditioner.add(i, i, alpha(i));
-              }
-            else // this is just to avoid a deadlock. we need a better strategy
-              {
-                final_preconditioner.add(i, i, 0);
-              }
-          }
-      }
-  };
-
-  parallel_for(blocked_range<types::global_dof_index>(0,
-                                                      fma_dh->n_dofs(),
-                                                      tbb_granularity),
-               f_alpha_adder_tbb);
-  */
   auto f_alpha_adder_tbb = [this, &c, &alpha](unsigned int pos_begin,
                                               unsigned int pos_end) {
     for (unsigned int iter = pos_begin; iter != pos_end; ++iter)
@@ -2124,7 +2693,7 @@ BEMFMA<dim>::FMA_preconditioner(
 
   // Finally we can initialize the ILU final preconditioner.
   preconditioner.initialize(final_preconditioner);
-  pcout << "...done" << std::endl;
+  pcout << "...done computing FMA preconditioner" << std::endl;
 
   return preconditioner;
 }

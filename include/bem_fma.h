@@ -209,6 +209,14 @@ public:
   FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha,
                      AffineConstraints<double>           &c);
 
+  TrilinosWrappers::PreconditionILU &
+  FMA_preconditioner_tbb(const TrilinosWrappers::MPI::Vector &alpha,
+                         AffineConstraints<double> &          c);
+
+  TrilinosWrappers::PreconditionILU &
+  FMA_preconditioner_omp(const TrilinosWrappers::MPI::Vector &alpha,
+                         AffineConstraints<double> &          c);
+
 protected:
   /// Three pointers to the problem parameters to be set equal to
   /// the ones in the calling problem through the init function

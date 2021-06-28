@@ -1,6 +1,7 @@
-
-
 #include "driver.h"
+#ifdef _OPENMP
+#  include <omp.h>
+#endif
 
 int
 main(int argc, char *argv[])
@@ -15,6 +16,9 @@ main(int argc, char *argv[])
       else
         {
           threads = atoi(argv[1]);
+#ifdef _OPENMP
+          omp_set_num_threads(threads);
+#endif
         }
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, threads);
 

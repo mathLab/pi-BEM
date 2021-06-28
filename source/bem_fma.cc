@@ -136,7 +136,7 @@ BEMFMA<dim>::direct_integrals()
 #else
   direct_integrals_tbb();
 #endif
-  */
+*/
 }
 
 template <int dim>
@@ -2521,11 +2521,24 @@ BEMFMA<dim>::multipole_matr_vect_products(
 // class, along with the constraint matrix of the bem problem
 template <int dim>
 TrilinosWrappers::PreconditionILU &
-BEMFMA<dim>::FMA_preconditioner(
+BEMFMA<dim>::FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha,
+                                AffineConstraints<double> &          c)
+{
+  return FMA_preconditioner_tbb(alpha, c);
+#ifdef _OPENMP
+  return FMA_preconditioner_omp(alpha, c);
+#else
+  return FMA_preconditioner_tbb(alpha, c);
+#endif
+}
+
+template <int dim>
+TrilinosWrappers::PreconditionILU &
+BEMFMA<dim>::FMA_preconditioner_tbb(
   const TrilinosWrappers::MPI::Vector &alpha,
   AffineConstraints<double>           &c) // TO BE CHANGED!!!
 {
-  pcout << "Computing FMA preconditioner" << std::endl;
+  pcout << "Computing FMA preconditioner (TBB)" << std::endl;
   Teuchos::TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different
   // sparsity pattern with respect to the non constrained one. we must here
@@ -2694,6 +2707,131 @@ BEMFMA<dim>::FMA_preconditioner(
   // Finally we can initialize the ILU final preconditioner.
   preconditioner.initialize(final_preconditioner);
   pcout << "...done computing FMA preconditioner" << std::endl;
+
+  return preconditioner;
+}
+
+template <int dim>
+TrilinosWrappers::PreconditionILU &
+BEMFMA<dim>::FMA_preconditioner_omp(
+  const TrilinosWrappers::MPI::Vector &alpha,
+  AffineConstraints<double> &          c) // TO BE CHANGED!!!
+{
+  pcout << "Computing FMA preconditioner (OpenMP)" << std::endl;
+  Teuchos::TimeMonitor LocalTimer(*PrecondTime);
+
+  auto max_threads = omp_get_max_threads();
+
+  auto dofs_per_cell = fma_dh->get_fe().dofs_per_cell;
+  // the final preconditioner (with constraints) has a slightly different
+  // sparsity pattern with respect to the non constrained one. we must here
+  // initialize such sparsity pattern
+  final_prec_sparsity_pattern.reinit(this_cpu_set,
+                                     mpi_communicator,
+                                     (types::global_dof_index)125 *
+                                       dofs_per_cell);
+
+#pragma omp parallel for schedule(dynamic)
+  for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
+    {
+      unsigned int idx = this->this_cpu_set.nth_index_in_set(i);
+      if (c.is_constrained(idx))
+        {
+          this->final_prec_sparsity_pattern.add(idx, idx);
+          // constrained nodes entries are taken from the bem problem
+          // constraint matrix
+          for (const auto &pair : *c.get_constraint_entries(idx))
+            {
+#pragma omp critical
+              {
+                this->final_prec_sparsity_pattern.add(idx, pair.first);
+              }
+            }
+        }
+      else
+        {
+          // other nodes entries are taken from the unconstrained
+          // preconditioner matrix
+          for (unsigned int j = 0; j < this->fma_dh->n_dofs(); ++j)
+            {
+              if (this->init_prec_sparsity_pattern.exists(idx, j))
+                {
+#pragma omp critical
+                  {
+                    this->final_prec_sparsity_pattern.add(idx, j);
+                  }
+                }
+            }
+        }
+    }
+
+  final_prec_sparsity_pattern.compress();
+  pcout << "Sparsity pattern nonzeros: "
+        << final_prec_sparsity_pattern.n_nonzero_elements() << std::endl;
+  final_preconditioner.reinit(final_prec_sparsity_pattern);
+
+  // now we assemble the final preconditioner matrix: the loop works
+  // exactly like the previous one
+
+  // We need a worker function that fills the final sparisty pattern once its
+  // sparsity pattern has been set up. In this case no race condition occurs in
+  // the worker so we can let it copy in the global memory.
+
+#pragma omp parallel for schedule(dynamic)
+  for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
+    {
+      unsigned int idx = this->this_cpu_set.nth_index_in_set(i);
+      if (c.is_constrained(idx))
+        {
+          this->final_preconditioner.set(idx, idx, 1);
+          // constrainednodes entries are taken from the bem problem
+          // constraint matrix
+          for (const auto &pair : *c.get_constraint_entries(idx))
+            {
+              this->final_preconditioner.set(idx, pair.first, pair.second);
+            }
+        }
+      else
+        {
+          // other nodes entries are taken from the unconstrained
+          // preconditioner matrix
+          for (unsigned int j = 0; j < this->fma_dh->n_dofs(); ++j)
+            {
+              if (this->init_prec_sparsity_pattern.exists(idx, j))
+                {
+                  this->final_preconditioner.set(
+                    idx, j, this->init_preconditioner(idx, j));
+                }
+            }
+        }
+    }
+
+  // The compress operation makes all the vectors on different processors
+  // compliant.
+  final_preconditioner.compress(VectorOperation::insert);
+
+#pragma omp parallel for schedule(dynamic)
+  for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
+    {
+      unsigned int idx = this->this_cpu_set.nth_index_in_set(i);
+      if ((*(this->dirichlet_nodes))(idx) == 0 && !(c.is_constrained(idx)))
+        {
+          this->final_preconditioner.add(idx, idx, alpha(idx));
+        }
+      else // this is just to avoid a deadlock. we need a better strategy
+        {
+          this->final_preconditioner.add(idx, idx, 0);
+        }
+    }
+
+  final_preconditioner.compress(VectorOperation::add);
+  final_preconditioner.compress(VectorOperation::insert);
+
+  // Finally we can initialize the ILU final preconditioner.
+  preconditioner.initialize(final_preconditioner);
+  pcout << "...done computing FMA preconditioner" << std::endl;
+
+  omp_set_num_threads(max_threads);
 
   return preconditioner;
 }

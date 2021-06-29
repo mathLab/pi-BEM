@@ -99,9 +99,11 @@ FOREACH(_build_type ${_d2_build_types})
 		ADD_EXECUTABLE(${_exe} ${_main})
 
 		
-		message("OpenMP_CXX_FLAGS: ${OpenMP_CXX_FLAGS}")
-		
-		TARGET_LINK_LIBRARIES(${_exe} ${_lib} OpenMP::OpenMP_CXX)
+		IF (OPENMP_FOUND)
+		    TARGET_LINK_LIBRARIES(${_exe} ${_lib} OpenMP::OpenMP_CXX)
+		ELSE()
+		    TARGET_LINK_LIBRARIES(${_exe} ${_lib})
+        ENDIF()
 		target_compile_definitions(${_exe} PUBLIC DEAL_II_DIMENSION=${_dim} )
 		DEAL_II_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
 	ENDFOREACH()

@@ -1058,6 +1058,7 @@ BEMFMA<dim>::direct_integrals_tbb()
   pcout << "...done computing direct integrals" << std::endl;
 }
 
+#ifdef _OPENMP
 template <int dim>
 void
 BEMFMA<dim>::direct_integrals_omp()
@@ -1155,11 +1156,11 @@ BEMFMA<dim>::direct_integrals_omp()
 
 // 1: assemble the preconditioner sparsity pattern
 //  1.1: assemble from (the interacting blocks of) the leaf octcells
-#pragma omp parallel
+#  pragma omp parallel
   {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-#pragma omp for schedule(dynamic)
+#  pragma omp for schedule(dynamic)
     for (unsigned int i = 0; i < this->childlessList.size(); ++i)
       {
         const OctreeBlock<dim> *block1 = this->blocks[childlessList[i]];
@@ -1230,7 +1231,7 @@ BEMFMA<dim>::direct_integrals_omp()
                   {
                     // unfortunately, the sparsity pattern is not yet
                     // allocated entirely and it requires synch
-#pragma omp critical
+#  pragma omp critical
                     {
                       /*
                       std::cout << "rank " << this_mpi_process << " omp thread "
@@ -1247,13 +1248,14 @@ BEMFMA<dim>::direct_integrals_omp()
   }
 
 //  1.2: assemble from (the non interacting blocks of) the
-#pragma omp parallel
+#  pragma omp parallel
   {
+    std::set<types::global_dof_index>    directNodes;
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
 // tree traversal is a more interesting scenario than the flat leaf nodes list
 // so, we will use tasks
-#pragma omp single
+#  pragma omp single
     {
       for (unsigned int level = 1; level < num_octree_levels + 1; level++)
         {
@@ -1264,10 +1266,10 @@ BEMFMA<dim>::direct_integrals_omp()
               // each task processes a block; it will only execute after the
               // parent's; again, there's synch when inserting new positions in
               // the sparsity pattern
-#pragma omp task depend(in                                     \
-                        : this->blocks[block1->GetParentId()]) \
-  depend(out                                                   \
-         : this->blocks[blockId]) firstprivate(blockId, block1, level)
+#  pragma omp task depend(in                                     \
+                          : this->blocks[block1->GetParentId()]) \
+    depend(out                                                   \
+           : this->blocks[blockId]) firstprivate(blockId, block1, level)
               {
                 // again, this block is interesting only if it contains dofs of
                 // this mpi proc
@@ -1289,7 +1291,7 @@ BEMFMA<dim>::direct_integrals_omp()
                          subLevel < block1->NumNearNeighLevels();
                          subLevel++)
                       {
-                        std::set<types::global_dof_index> directNodes;
+                        directNodes.clear();
 
                         const auto &nonIntList =
                           block1->GetNonIntList(subLevel);
@@ -1331,7 +1333,7 @@ BEMFMA<dim>::direct_integrals_omp()
                               {
                                 // unfortunately, the sparsity pattern is not
                                 // yet allocated entirely and it requires synch
-#pragma omp critical
+#  pragma omp critical
                                 {
                                   this->init_prec_sparsity_pattern.add_entries(
                                     idx,
@@ -1367,9 +1369,13 @@ BEMFMA<dim>::direct_integrals_omp()
 
   // 2: assemble the actual preconditioners
   //  2.1: loop over leaf blocks
-#pragma omp parallel
+#  pragma omp parallel
   {
-#pragma omp for schedule(dynamic)
+    std::map<cell_it, std::set<types::global_dof_index>> directQuadPoints;
+    std::vector<types::global_dof_index> local_dofs(dofs_per_cell);
+    std::vector<double> vec_local_neumann_matrix_row_i(dofs_per_cell);
+    std::vector<double> vec_local_dirichlet_matrix_row_i(dofs_per_cell);
+#  pragma omp for schedule(dynamic)
     for (unsigned int i = 0; i < this->childlessList.size(); ++i)
       {
         const OctreeBlock<dim> *block1 = this->blocks[childlessList[i]];
@@ -1387,9 +1393,7 @@ BEMFMA<dim>::direct_integrals_omp()
 
         if (proceed)
           {
-            std::map<cell_it, std::set<types::global_dof_index>>
-                                                 directQuadPoints;
-            std::vector<types::global_dof_index> local_dofs(dofs_per_cell);
+            directQuadPoints.clear();
 
             // loop over the deepest blocks that are well-separated from
             // block1
@@ -1417,10 +1421,11 @@ BEMFMA<dim>::direct_integrals_omp()
                         const auto &qpointIdxs = pair.second;
                         cell->get_dof_indices(local_dofs);
                         // allocate buffers
-                        std::vector<double> vec_local_neumann_matrix_row_i(
-                          dofs_per_cell, 0);
-                        std::vector<double> vec_local_dirichlet_matrix_row_i(
-                          dofs_per_cell, 0);
+                        for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                          {
+                            vec_local_neumann_matrix_row_i[i]   = 0;
+                            vec_local_dirichlet_matrix_row_i[i] = 0;
+                          }
 
                         // this is the contribution from cell: pair.first
                         // if dof idx is part (either itself or a double)
@@ -1578,11 +1583,15 @@ BEMFMA<dim>::direct_integrals_omp()
       }
   }
 //  2.2: loop over the well separated blocks from levels above the current
-#pragma omp parallel
+#  pragma omp parallel
   {
+    std::map<cell_it, std::set<types::global_dof_index>> directQuadPoints;
     std::vector<types::global_dof_index> local_dofs(dofs_per_cell);
+    std::vector<double> vec_local_neumann_matrix_row_i(dofs_per_cell);
+    std::vector<double> vec_local_dirichlet_matrix_row_i(dofs_per_cell);
+
 // again, use tasks instead of flat loop;
-#pragma omp single
+#  pragma omp single
     {
       for (unsigned int level = 1; level < num_octree_levels + 1; level++)
         {
@@ -1593,17 +1602,16 @@ BEMFMA<dim>::direct_integrals_omp()
               // each task processes a block; it will only execute after the
               // parent's; again, there's synch when inserting new positions in
               // the sparsity pattern
-#pragma omp task depend(in                                     \
-                        : this->blocks[block1->GetParentId()]) \
-  depend(out                                                   \
-         : this->blocks[blockId]) firstprivate(blockId, block1, level)
+#  pragma omp task depend(in                                     \
+                          : this->blocks[block1->GetParentId()]) \
+    depend(out                                                   \
+           : this->blocks[blockId]) firstprivate(blockId, block1, level)
               {
                 for (const auto idx : block1->GetBlockNodeList())
                   {
                     if (this->this_cpu_set.is_element(idx))
                       {
-                        std::map<cell_it, std::set<types::global_dof_index>>
-                          directQuadPoints;
+                        directQuadPoints.clear();
 
                         for (unsigned int subLevel = 0;
                              subLevel < block1->NumNearNeighLevels();
@@ -1635,11 +1643,11 @@ BEMFMA<dim>::direct_integrals_omp()
                             const auto &qpointIdxs = pair.second;
                             cell->get_dof_indices(local_dofs);
                             // allocate buffers
-                            std::vector<double> vec_local_neumann_matrix_row_i(
-                              dofs_per_cell, 0);
-                            std::vector<double>
-                              vec_local_dirichlet_matrix_row_i(dofs_per_cell,
-                                                               0);
+                            for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                              {
+                                vec_local_neumann_matrix_row_i[i]   = 0;
+                                vec_local_dirichlet_matrix_row_i[i] = 0;
+                              }
 
                             for (const auto qpointIdx : qpointIdxs)
                               {
@@ -1704,6 +1712,7 @@ BEMFMA<dim>::direct_integrals_omp()
 
   pcout << "...done computing direct integrals" << std::endl;
 }
+#endif
 
 template <>
 void
@@ -2167,6 +2176,7 @@ BEMFMA<2>::multipole_matr_vect_products_tbb(
   TrilinosWrappers::MPI::Vector &) const
 {}
 
+#ifdef _OPENMP
 template <>
 void
 BEMFMA<2>::multipole_matr_vect_products_omp(
@@ -2175,6 +2185,7 @@ BEMFMA<2>::multipole_matr_vect_products_omp(
   TrilinosWrappers::MPI::Vector &,
   TrilinosWrappers::MPI::Vector &) const
 {}
+#endif
 
 // The following functions takes care of the descending phase of the FMA.
 template <int dim>
@@ -2557,6 +2568,7 @@ BEMFMA<dim>::multipole_matr_vect_products_tbb(
 }
 
 
+#ifdef _OPENMP
 template <int dim>
 void
 BEMFMA<dim>::multipole_matr_vect_products_omp(
@@ -2578,7 +2590,7 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
   // we start cleaning past sessions
   // store old values
 
-  // TODO: would not need clear-resize if LocalExpansion's copy assignement is
+  // TODO: would not need clear-resize if LocalExpansion's copy assignement were
   // correct
   blockLocalExpansionsKer1.clear();
   blockLocalExpansionsKer2.clear();
@@ -2593,7 +2605,7 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
                                                      support_points);
 
   // reset current expansions
-#pragma omp parallel for
+#  pragma omp parallel for
   for (unsigned int i = 0; i < this->num_blocks; ++i)
     {
       const auto blockCenter = this->blocks[i]->GetCenter();
@@ -2610,19 +2622,17 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
     // first, convert non-well separated blocks' expansions to the interacting
     // blocks
     unsigned int localTimeEvalNumCalls = 0;
-#pragma omp parallel reduction(+ : localTimeEvalNumCalls)
+#  pragma omp parallel reduction(+ : localTimeEvalNumCalls)
     {
       // one cache for each thread, will be reused in the various stages
       std::vector<std::complex<double>> cache;
       // TODO: these can be probably deleted safely, writing directly on the
       // final objects since the work is well partitioned and the tasks have the
       // correct dependencies
-      // LocalExpansion thread_blockLocalExpansionKer1;
-      // LocalExpansion thread_blockLocalExpansionKer2;
       Vector<double> thread_matrVectorProductContributionKer1;
       Vector<double> thread_matrVectorProductContributionKer2;
 
-#pragma omp single
+#  pragma omp single
       {
         // traverse the octree;
         for (unsigned int level = 1; level < this->num_octree_levels + 1;
@@ -2638,11 +2648,11 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
               {
                 const OctreeBlock<dim> *block1 = this->blocks[blockId];
 
-#pragma omp task depend(in                                     \
-                        : this->blocks[block1->GetParentId()]) \
-  depend(out                                                   \
-         : this->blocks[blockId])                              \
-    firstprivate(blockId, block1, level, startBlockLevel, endBlockLevel)
+#  pragma omp task depend(in                                     \
+                          : this->blocks[block1->GetParentId()]) \
+    depend(out                                                   \
+           : this->blocks[blockId])                              \
+      firstprivate(blockId, block1, level, startBlockLevel, endBlockLevel)
                 {
                   const auto &nodesBlk1Ids = block1->GetBlockNodeList();
 
@@ -2658,21 +2668,8 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
 
                   if (proceed)
                     {
-                      AssertIndexRange(blockId,
-                                       this->blockLocalExpansionsKer1.size());
-                      Point<dim> center =
-                        this->blockLocalExpansionsKer1[blockId].GetCenter();
-
-                      // reset the local expansions and Vectors with the
+                      // reset the local Vectors with the
                       // contributions
-                      /*
-                      LocalExpansion dummy(this->trunc_order,
-                                           center,
-                                           &(this->assLegFunction));
-                      */
-                      // thread_blockLocalExpansionKer1 = dummy;
-                      // thread_blockLocalExpansionKer2 = dummy;
-
                       thread_matrVectorProductContributionKer1.reinit(
                         nodesBlk1Ids.size());
                       thread_matrVectorProductContributionKer2.reinit(
@@ -2682,12 +2679,10 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
                       types::global_dof_index parentId = block1->GetParentId();
                       AssertIndexRange(parentId,
                                        this->blockLocalExpansionsKer1.size());
-                      // thread_blockLocalExpansionKer1.Add(
                       this->blockLocalExpansionsKer1[blockId].Add(
                         this->blockLocalExpansionsKer1[parentId], cache);
                       AssertIndexRange(parentId,
                                        this->blockLocalExpansionsKer2.size());
-                      // thread_blockLocalExpansionKer2.Add(
                       this->blockLocalExpansionsKer2[blockId].Add(
                         this->blockLocalExpansionsKer2[parentId], cache);
 
@@ -2725,14 +2720,12 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
                               AssertIndexRange(
                                 block2Id,
                                 this->blockMultipoleExpansionsKer1.size());
-                              // thread_blockLocalExpansionKer1.Add(
                               this->blockLocalExpansionsKer1[blockId].Add(
                                 this->blockMultipoleExpansionsKer1[block2Id],
                                 cache);
                               AssertIndexRange(
                                 block2Id,
                                 this->blockMultipoleExpansionsKer2.size());
-                              // thread_blockLocalExpansionKer2.Add(
                               this->blockLocalExpansionsKer2[blockId].Add(
                                 this->blockMultipoleExpansionsKer2[block2Id],
                                 cache);
@@ -2755,6 +2748,25 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
                                pos2++)
                             {
                               types::global_dof_index block2Id = *pos2;
+
+                              // this can fail with a segfault, probably due to
+                              // accessing dof idxs outside this mpi rank
+                              // using a temporary Vector and a hard-synch
+                              // add() solves the issue
+                              /*
+                              for (auto idx : nodesBlk1Ids)
+                                {
+                                  const Point<dim> &nodeBlk1 =
+                                    support_points[idx];
+
+                                  matrVectProdN(idx) +=
+                                    this->blockMultipoleExpansionsKer1[block2Id]
+                                      .Evaluate(nodeBlk1, cache);
+                                  matrVectProdD(idx) +=
+                                    this->blockMultipoleExpansionsKer2[block2Id]
+                                      .Evaluate(nodeBlk1, cache);
+                                }
+                              */
 
                               for (types::global_dof_index ii = 0;
                                    ii < nodesBlk1Ids.size();
@@ -2779,29 +2791,18 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
 
                         // everything has been accumulated in the thread_*
                         // variables
-                        /*
-                        AssertIndexRange(blockId,
-                                         this->blockLocalExpansionsKer1.size());
-                        this->blockLocalExpansionsKer1[blockId].Add(
-                          thread_blockLocalExpansionKer1, cache);
-                        AssertIndexRange(blockId,
-                                         this->blockLocalExpansionsKer2.size());
-                        this->blockLocalExpansionsKer2[blockId].Add(
-                          thread_blockLocalExpansionKer2, cache);
-                        */
 
-                        // synch here shouldn't be needed; but on an i7, using
-                        // 2mpi 2omp there's an error in the Petra vector add
-                        // which does not manifest with Xmpi 1omp (nor with 1mpi
-                        // Xomp, but that seems more like a fluke)
-                        // is the add method somehow conflicting across threads?
-#pragma omp critical(matrVectProdN_add)
+                        // explicit synch here; the result Vectors might be
+                        // mpi-distributed and contributions might touch on dofs
+                        // outside current rank - pass through compact .add
+                        // calls, guarded separately
+#  pragma omp critical(matrVectProdN_add)
                       {
                         matrVectProdN.add(
                           nodesBlk1Ids,
                           thread_matrVectorProductContributionKer1);
                       }
-#pragma omp critical(matrVectProdD_add)
+#  pragma omp critical(matrVectProdD_add)
                       {
                         matrVectProdD.add(
                           nodesBlk1Ids,
@@ -2827,11 +2828,11 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
 // embarassingly parallel operation so it can be easily performed using
 // ThreadGroup. We also check the IndexSet to perform the mixed TBB-MPI
 // parallelisation.
-#pragma omp parallel
+#  pragma omp parallel
   {
     std::vector<std::complex<double>> cache;
 
-#pragma omp for
+#  pragma omp for
     for (unsigned int i = 0; i < this->childlessList.size(); ++i)
       {
         types::global_dof_index blockId = this->childlessList[i];
@@ -2844,6 +2845,7 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
               {
                 const Point<dim> &nodeBlk1 = support_points[idx];
 
+                // no synch needed: idx is on this mpi rank
                 matrVectProdN(idx) +=
                   this->blockLocalExpansionsKer1[blockId].Evaluate(nodeBlk1,
                                                                    cache);
@@ -2857,6 +2859,7 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
 
   pcout << "...done computing multipole matrix-vector products" << std::endl;
 }
+#endif
 
 // this method computes the preconditioner needed for the GMRES:
 // to do it, it needs to receive the alpha vector from the bem_problem
@@ -3051,6 +3054,7 @@ BEMFMA<dim>::FMA_preconditioner_tbb(
   return preconditioner;
 }
 
+#ifdef _OPENMP
 template <int dim>
 TrilinosWrappers::PreconditionILU &
 BEMFMA<dim>::FMA_preconditioner_omp(
@@ -3071,7 +3075,7 @@ BEMFMA<dim>::FMA_preconditioner_omp(
                                      (types::global_dof_index)125 *
                                        dofs_per_cell);
 
-#pragma omp parallel for schedule(dynamic)
+#  pragma omp parallel for schedule(dynamic)
   for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
     {
       unsigned int idx = this->this_cpu_set.nth_index_in_set(i);
@@ -3082,7 +3086,7 @@ BEMFMA<dim>::FMA_preconditioner_omp(
           // constraint matrix
           for (const auto &pair : *c.get_constraint_entries(idx))
             {
-#pragma omp critical
+#  pragma omp critical
               {
                 this->final_prec_sparsity_pattern.add(idx, pair.first);
               }
@@ -3096,7 +3100,7 @@ BEMFMA<dim>::FMA_preconditioner_omp(
             {
               if (this->init_prec_sparsity_pattern.exists(idx, j))
                 {
-#pragma omp critical
+#  pragma omp critical
                   {
                     this->final_prec_sparsity_pattern.add(idx, j);
                   }
@@ -3117,7 +3121,7 @@ BEMFMA<dim>::FMA_preconditioner_omp(
   // sparsity pattern has been set up. In this case no race condition occurs
   // in the worker so we can let it copy in the global memory.
 
-#pragma omp parallel for schedule(dynamic)
+#  pragma omp parallel for schedule(dynamic)
   for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
     {
       unsigned int idx = this->this_cpu_set.nth_index_in_set(i);
@@ -3150,7 +3154,7 @@ BEMFMA<dim>::FMA_preconditioner_omp(
   // compliant.
   final_preconditioner.compress(VectorOperation::insert);
 
-#pragma omp parallel for schedule(dynamic)
+#  pragma omp parallel for schedule(dynamic)
   for (unsigned int i = 0; i < this->this_cpu_set.n_elements(); ++i)
     {
       unsigned int idx = this->this_cpu_set.nth_index_in_set(i);
@@ -3268,6 +3272,7 @@ BEMFMA<dim>::compute_geometry_cache()
 
   pcout << "...done" << std::endl;
 }
+#endif
 
 // The following is the function
 // which creates the octree blocking

@@ -127,8 +127,10 @@ public:
   void
   direct_integrals_tbb();
 
+#ifdef _OPENMP
   void
   direct_integrals_omp();
+#endif
 
   /// Method computing the multipole
   /// expansion containing the integrals
@@ -178,7 +180,6 @@ public:
     TrilinosWrappers::MPI::Vector       &matrVectProdN,
     TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 
-
   void
   multipole_matr_vect_products_tbb(
     const TrilinosWrappers::MPI::Vector &phi_values,
@@ -186,13 +187,14 @@ public:
     TrilinosWrappers::MPI::Vector &      matrVectProdN,
     TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
 
-
+#ifdef _OPENMP
   void
   multipole_matr_vect_products_omp(
     const TrilinosWrappers::MPI::Vector &phi_values,
     const TrilinosWrappers::MPI::Vector &dphi_dn_values,
     TrilinosWrappers::MPI::Vector &      matrVectProdN,
     TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
+#endif
 
   /// this methods creates the adaptive
   /// octree partitioning of the domain,
@@ -229,9 +231,11 @@ public:
   FMA_preconditioner_tbb(const TrilinosWrappers::MPI::Vector &alpha,
                          AffineConstraints<double> &          c);
 
+#ifdef _OPENMP
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_omp(const TrilinosWrappers::MPI::Vector &alpha,
                          AffineConstraints<double> &          c);
+#endif
 
 protected:
   /// Three pointers to the problem parameters to be set equal to

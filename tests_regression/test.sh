@@ -45,7 +45,6 @@ then
     #logs are saved as ref_* while all other isntances are reg_*
     for solver in ${solvers}
     do
-        echo "solver solver ${solver}"
         for func in 1 2
         do
             cp ${startdir}/ref_parameters_bem_3_f${func}_${solver}.prm ./parameters_bem_3.prm
@@ -73,7 +72,6 @@ then
     #logs are saved as reg_*
     for solver in ${solvers}
     do
-        echo "regression problems of solver ${solver}"
         for func in 1 2
         do
             cp ${startdir}/ref_parameters_bem_3_f${func}_${solver}.prm ./parameters_bem_3.prm

@@ -64,7 +64,12 @@ OPTION(BEM_ENABLE_TESTING
 "Enable deal.II style tests in this application." ON)
 
 
-FIND_PACKAGE(OpenMP REQUIRED)
+IF($ENV{PBEM_OPENMP})
+    message("compiling with OpenMP threading")
+    FIND_PACKAGE(OpenMP REQUIRED)
+ELSE()
+    message("compiling with TBB threading")
+ENDIF()
 #-fopenmp was not used in compiling .o files, it was substituted with -fopenmp-simd
 IF (OPENMP_FOUND)
     add_definitions("-fopenmp")

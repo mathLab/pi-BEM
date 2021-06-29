@@ -27,16 +27,37 @@ fi
 #-- plain scalar phi, v2; different function
 #-- basic 2-component phi, (v1, v2)
 
-nprocs=1
-nthreads=1
-ntotalcores=4
+if [ -z "$nprocs" ]
+then
+    nprocs=1
+fi
+if [ -z "$nthreads" ]
+then
+    nthreads=1
+fi
+if [ -z "$ntotalcores" ]
+then
+    ntotalcores=4
+fi
 
 #solvers="direct fma"
-solvers="fma"
+if [ -z "$solvers" ]
+then
+    solvers="direct fma"
+fi
 
+if [ -z "$do_reference" ]
+then
 do_reference=
+fi
+if [ -z "$do_simple" ]
+then
 do_simple=
+fi
+if [ -z "$do_complex" ]
+then
 do_complex=1
+fi
 
 if [ -n "$do_reference" ]
 then
@@ -77,7 +98,7 @@ then
             cp ${startdir}/ref_parameters_bem_3_f${func}_${solver}.prm ./parameters_bem_3.prm
 
             #references should be for np=1; np>1 are regressions
-            for nprocs in 2 4
+            for nprocs in 1 2 4
             do 
                 for ((nthreads=1; nthreads <= ntotalcores/nprocs; nthreads *= 2))
                 do

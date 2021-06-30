@@ -1,26 +1,28 @@
 #!/bin/bash
 
 export PBEM_OPENMP=
-reps=1
+reps=5
+cooldown=30
+export solvers="fma"
 
+comment="
 #explicit base: can only do 1-component
 tag=base
-echo "====== checkout ${tag} ======"
+echo '====== checkout ${tag} ======'
 git checkout ${tag} ../include
 git checkout ${tag} ../source
 
 #very crude pathing due to my Teuchos not being compiled with threading support
-cp bem_fma_patched_base.cc ../source/bem_fma.cc
+#cp bem_fma_patched_base.cc ../source/bem_fma.cc
     
 rm -rf logs_${tag}
 mkdir -p logs_${tag}
 
 #only use single-component prms
-export do_reference=1
-export do_simple=1
-export do_complex=
+export do_reference=
+export do_simple=
+export do_complex=1
 
-export solvers="fma"
 
 rm reg* ref*.log
 for ((i=0; i<reps; ++i))
@@ -29,14 +31,16 @@ do
 done
 
 mv *_log.log logs_${tag}/
+"
 
 #==============================
 #these guys instead can do all
-export do_reference=1
-export do_simple=1
+export do_reference=
+export do_simple=
 export do_complex=1
 
-for tag in opt001 opt002
+for tag in complex_vectors #opt001 opt002
+do
     echo "====== checkout ${tag} ======"
     git checkout ${tag} ../include
     git checkout ${tag} ../source

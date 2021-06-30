@@ -3,7 +3,10 @@
 spack env activate wass
 
 startdir=$(pwd)
-cooldown=60
+if [ -z "$cooldown" ]
+then
+    cooldown=60
+fi
 
 source test_utils_rc
 

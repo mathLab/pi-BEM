@@ -3,7 +3,7 @@
 export PBEM_OPENMP=
 reps=5
 cooldown=30
-export solvers="fma"
+export solvers="direct fma"
 
 comment="
 #explicit base: can only do 1-component
@@ -11,9 +11,6 @@ tag=base
 echo '====== checkout ${tag} ======'
 git checkout ${tag} ../include
 git checkout ${tag} ../source
-
-#very crude pathing due to my Teuchos not being compiled with threading support
-#cp bem_fma_patched_base.cc ../source/bem_fma.cc
     
 rm -rf logs_${tag}
 mkdir -p logs_${tag}

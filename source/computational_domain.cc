@@ -6,6 +6,8 @@
 
 using namespace std;
 
+#include "../include/computational_domain.h"
+
 // @sect4{ComputationalDomain::ComputationalDomain and
 // ComputationalDomain::read_parameters}
 // The constructor initializes the
@@ -113,6 +115,17 @@ ComputationalDomain<dim>::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("Neumann boundary ids",
                       "0,110,110",
                       Patterns::List(Patterns::Integer(0)));
+    prm.declare_entry(
+      "Manifold to boundary map",
+      "0,0,1,1",
+      Patterns::List(Patterns::Integer(0)),
+      "To be interpreted as a succession of key, value ids such that all cells\n"
+      "assigned to manifold key will use boundary id value.\n"
+      "The boundary conditions are resolved based on the latter, as follows:\n"
+      "1 - Floor wind\n"
+      "2 - Wall wind\n"
+      "3 - Potential\n"
+      "4 - Wind\n");
   }
   prm.leave_subsection();
 
@@ -151,6 +164,8 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
+    manifold2boundary_map.clear();
+
     std::vector<std::string> dirichlet_string_list =
       Utilities::split_string_list(prm.get("Dirichlet boundary ids"));
     dirichlet_boundary_ids.resize(dirichlet_string_list.size());
@@ -158,6 +173,8 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
       {
         std::istringstream reader(dirichlet_string_list[i]);
         reader >> dirichlet_boundary_ids[i];
+        manifold2boundary_map[dirichlet_boundary_ids[i]] =
+          dirichlet_boundary_ids[i];
       }
 
     std::vector<std::string> neumann_string_list =
@@ -167,9 +184,34 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
       {
         std::istringstream reader(neumann_string_list[i]);
         reader >> neumann_boundary_ids[i];
+        manifold2boundary_map[neumann_boundary_ids[i]] =
+          neumann_boundary_ids[i];
+      }
+
+    std::vector<std::string> manifold2boundary_list =
+      Utilities::split_string_list(prm.get("Manifold to boundary map"));
+    if (manifold2boundary_list.size())
+      {
+        Assert(manifold2boundary_list.size() % 2 == 0, ExcInternalError());
+        // read the list a pair at a time
+        for (unsigned int i = 0; i < manifold2boundary_list.size(); i += 2)
+          {
+            std::istringstream key_reader(manifold2boundary_list[i]);
+            std::istringstream value_reader(manifold2boundary_list[i + 1]);
+            types::manifold_id manifold;
+            key_reader >> manifold;
+            value_reader >> manifold2boundary_map[manifold];
+          }
       }
   }
   prm.leave_subsection();
+
+  pcout << "Manifold to boundary map is:" << std::endl;
+  for (const auto &pair : manifold2boundary_map)
+    {
+      pcout << "manifold " << pair.first << " is on boundary " << pair.second
+            << std::endl;
+    }
 }
 
 // @sect4{ComputationalDomain::read_domain}
@@ -244,11 +286,30 @@ ComputationalDomain<dim>::read_domain()
     }
   else if (input_grid_format == "inp")
     {
+      // material id is applied as manifold id
       gi.read_ucd(in, true);
     }
   else
     {
       Assert(false, ExcNotImplemented());
+    }
+
+  // TODO: use manifold2boundary to traverse the mesh and set the proper values
+  for (auto &cell : tria.active_cell_iterators())
+    {
+      // material to manifold; this is by default for .inp
+      if (cell->material_id() && !cell->manifold_id())
+        {
+          cell->set_manifold_id(cell->material_id());
+        }
+
+      // once manifold id are applied correctly
+      auto iter = manifold2boundary_map.find(cell->manifold_id());
+      if (cell->at_boundary() && iter != manifold2boundary_map.end())
+        {
+          // cell->set_all_boundary_ids(iter->second);
+          cell->set_boundary_id(iter->second);
+        }
     }
 
   if (input_grid_name == "../grids/coarse_sphere" ||
@@ -748,12 +809,18 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
               // the refinement of the manifold_id associated with the present
               // cell
               double cell_size;
-              if (int(cell->material_id()) - 1 < (int)cad_surfaces.size())
+              if (cell->manifold_id() &&
+                  (cell->manifold_id() != numbers::flat_manifold_id) &&
+                  (cell->manifold_id() - 1 < cad_surfaces.size()))
                 {
                   // if so, the cad_surface associated with the present
                   // manifold_id is identified...
                   TopoDS_Shape neededShape =
-                    cad_surfaces[int(cell->material_id()) - 1];
+                    cad_surfaces[cell->manifold_id() - 1];
+
+                  // pcout << "Refining from manifold " << cell->manifold_id()
+                  //       << std::endl;
+
                   // ...and used to set up a line intersection to project the
                   // cell center on the CAD surface along the direction
                   // specified by the previously computed cell normal
@@ -780,6 +847,9 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
                   // corresponding to the minimum curvature radius
                   cell_size = 2 * dealii::numbers::PI / cells_per_circle *
                               curvature_radius;
+
+                  // pcout << "Refined succesfully from manifold "
+                  //       << cell->manifold_id() << std::endl;
                 }
               else
                 {
@@ -917,6 +987,7 @@ ComputationalDomain<dim>::make_edges_conformal(
   const bool with_double_nodes,
   const bool isotropic_ref_on_opposite_side)
 {
+  pcout << "Making edges conformal..." << std::endl;
   if (with_double_nodes == false)
     {
       for (const auto &cell : tria.active_cell_iterators())

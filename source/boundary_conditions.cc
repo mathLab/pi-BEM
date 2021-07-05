@@ -15,6 +15,8 @@
 
 #include <deal.II/grid/filtered_iterator.h>
 
+#include "../include/boundary_conditions.h"
+
 template <int dim, class DH = DoFHandler<dim, dim + 1>>
 class FilteredDataOut : public DataOut<dim, DH>
 {
@@ -111,35 +113,117 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  // hardcoded multiple components part - is there a way to dynamically query
-  // the number of comps?
-  prm.enter_subsection("Wind function 2 2d");
+  // Floor potentials (that is, the scalar phi at the bottom of the domain)
+  prm.enter_subsection("Floor wind 2d");
   {
     Functions::ParsedFunction<2>::declare_parameters(prm, 2);
     prm.set("Function expression", "1; 1");
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Wind function 2 3d");
+  prm.enter_subsection("Floor wind 3d");
   {
     Functions::ParsedFunction<3>::declare_parameters(prm, 3);
     prm.set("Function expression", "1; 1; 1");
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Potential 2 2d");
+  // Wall potentials (that is, the scalar phi at the walls)
+  prm.enter_subsection("Wall wind 2d");
   {
-    Functions::ParsedFunction<2>::declare_parameters(prm);
-    prm.set("Function expression", "x+y");
+    Functions::ParsedFunction<2>::declare_parameters(prm, 2);
+    prm.set("Function expression", "1; 1");
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Potential 2 3d");
+  prm.enter_subsection("Wall wind 3d");
   {
-    Functions::ParsedFunction<3>::declare_parameters(prm);
-    prm.set("Function expression", "x+y+z");
+    Functions::ParsedFunction<3>::declare_parameters(prm, 3);
+    prm.set("Function expression", "1; 1; 1");
   }
   prm.leave_subsection();
+
+  // hardcoded multiple components part - is there a way to dynamically query
+  // the number of comps?
+  for (unsigned int comp = 1; comp < MAX_COMPS; ++comp)
+    {
+      // Winds (that is, the phi gradient on the wetted)
+      std::string section = std::string("Wind function ") +
+                            Utilities::int_to_string(comp + 1) + " " +
+                            std::string("2d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<2>::declare_parameters(prm, 2);
+        prm.set("Function expression", "1; 1");
+      }
+      prm.leave_subsection();
+
+      section = std::string("Wind function ") +
+                Utilities::int_to_string(comp + 1) + " " + std::string("3d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<3>::declare_parameters(prm, 3);
+        prm.set("Function expression", "1; 1; 1");
+      }
+      prm.leave_subsection();
+
+      // Potentials (that is, the scalar phi on the domain surface)
+      section = std::string("Potential ") + Utilities::int_to_string(comp + 1) +
+                " " + std::string("2d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<2>::declare_parameters(prm);
+        prm.set("Function expression", "x+y");
+      }
+      prm.leave_subsection();
+
+      section = std::string("Potential ") + Utilities::int_to_string(comp + 1) +
+                " " + std::string("3d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<3>::declare_parameters(prm);
+        prm.set("Function expression", "x+y+z");
+      }
+      prm.leave_subsection();
+
+      // Floor potentials (that is, the scalar phi at the bottom of the domain)
+      section = std::string("Floor wind ") +
+                Utilities::int_to_string(comp + 1) + " " + std::string("2d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<2>::declare_parameters(prm, 2);
+        prm.set("Function expression", "1; 1");
+      }
+      prm.leave_subsection();
+
+      section = std::string("Floor wind ") +
+                Utilities::int_to_string(comp + 1) + " " + std::string("3d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<3>::declare_parameters(prm, 3);
+        prm.set("Function expression", "1; 1; 1");
+      }
+      prm.leave_subsection();
+
+      // Wall potentials (that is, the scalar phi at the walls)
+      section = std::string("Wall wind ") + Utilities::int_to_string(comp + 1) +
+                " " + std::string("2d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<2>::declare_parameters(prm, 2);
+        prm.set("Function expression", "1; 1");
+      }
+      prm.leave_subsection();
+
+      section = std::string("Wall wind ") + Utilities::int_to_string(comp + 1) +
+                " " + std::string("3d");
+      prm.enter_subsection(section);
+      {
+        Functions::ParsedFunction<1>::declare_parameters(prm, 3);
+        prm.set("Function expression", "1; 1; 1");
+      }
+      prm.leave_subsection();
+    }
 }
 
 template <int dim>
@@ -164,23 +248,57 @@ BoundaryConditions<dim>::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  for (unsigned int i = 1; i < n_components; ++i)
+  prm.enter_subsection(std::string("Wall wind ") +
+                       Utilities::int_to_string(dim) + std::string("d"));
+  {
+    wallwinds[0].reset(new Functions::ParsedFunction<dim>(dim));
+    wallwinds[0]->parse_parameters(prm);
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection(std::string("Floor wind ") +
+                       Utilities::int_to_string(dim) + std::string("d"));
+  {
+    floorwinds[0].reset(new Functions::ParsedFunction<dim>(dim));
+    floorwinds[0]->parse_parameters(prm);
+  }
+  prm.leave_subsection();
+
+  for (unsigned int comp = 1; comp < n_components; ++comp)
     {
       prm.enter_subsection(std::string("Wind function ") +
-                           Utilities::int_to_string(i + 1) + " " +
+                           Utilities::int_to_string(comp + 1) + " " +
                            Utilities::int_to_string(dim) + std::string("d"));
       {
-        winds[i].reset(new Functions::ParsedFunction<dim>(dim));
-        winds[i]->parse_parameters(prm);
+        winds[comp].reset(new Functions::ParsedFunction<dim>(dim));
+        winds[comp]->parse_parameters(prm);
       }
       prm.leave_subsection();
 
       prm.enter_subsection(std::string("Potential ") +
-                           Utilities::int_to_string(i + 1) + " " +
+                           Utilities::int_to_string(comp + 1) + " " +
                            Utilities::int_to_string(dim) + std::string("d"));
       {
-        potentials[i].reset(new Functions::ParsedFunction<dim>(1));
-        potentials[i]->parse_parameters(prm);
+        potentials[comp].reset(new Functions::ParsedFunction<dim>(1));
+        potentials[comp]->parse_parameters(prm);
+      }
+      prm.leave_subsection();
+
+      prm.enter_subsection(std::string("Wall wind ") +
+                           Utilities::int_to_string(comp + 1) + " " +
+                           Utilities::int_to_string(dim) + std::string("d"));
+      {
+        wallwinds[comp].reset(new Functions::ParsedFunction<dim>(dim));
+        wallwinds[comp]->parse_parameters(prm);
+      }
+      prm.leave_subsection();
+
+      prm.enter_subsection(std::string("Floor wind ") +
+                           Utilities::int_to_string(comp + 1) + " " +
+                           Utilities::int_to_string(dim) + std::string("d"));
+      {
+        floorwinds[comp].reset(new Functions::ParsedFunction<dim>(dim));
+        floorwinds[comp]->parse_parameters(prm);
       }
       prm.leave_subsection();
     }
@@ -192,6 +310,8 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
 {
   get_potential().set_time(0);
   get_wind().set_time(0);
+  get_wallwind().set_time(0);
+  get_floorwind().set_time(0);
 
   const types::global_dof_index    n_dofs = bem.dh.n_dofs();
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
@@ -273,8 +393,13 @@ BoundaryConditions<dim>::prepare_bem_vectors()
               bool neumann   = false;
               for (auto dbound : comp_dom.dirichlet_boundary_ids)
                 {
-                  if (cell->material_id() == dbound)
+                  if (cell->boundary_id() == dbound)
                     {
+                      Assert((cell->boundary_id() == dbound) ==
+                               (cell->boundary_id() ==
+                                static_cast<types::boundary_id>(
+                                  BoundaryType::freesurface)),
+                             ExcInternalError());
                       dirichlet = true;
                       break;
                     }
@@ -291,8 +416,19 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                 {
                   for (auto nbound : comp_dom.neumann_boundary_ids)
                     {
-                      if (cell->material_id() == nbound)
+                      if (cell->boundary_id() == nbound)
                         {
+                          Assert((cell->boundary_id() == nbound) ==
+                                   (cell->boundary_id() ==
+                                      static_cast<types::boundary_id>(
+                                        BoundaryType::floor) ||
+                                    cell->boundary_id() ==
+                                      static_cast<types::boundary_id>(
+                                        BoundaryType::wall) ||
+                                    cell->boundary_id() ==
+                                      static_cast<types::boundary_id>(
+                                        BoundaryType::hull)),
+                                 ExcInternalError());
                           neumann = true;
                           break;
                         }
@@ -301,8 +437,27 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                   if (neumann)
                     {
                       Vector<double> imposed_pot_grad(dim);
-                      get_wind().vector_value(
-                        support_points[local_dof_indices[j]], imposed_pot_grad);
+                      switch (static_cast<BoundaryType>(cell->boundary_id()))
+                        {
+                          case BoundaryType::floor:
+                            get_floorwind().vector_value(
+                              support_points[local_dof_indices[j]],
+                              imposed_pot_grad);
+                            break;
+                          case BoundaryType::wall:
+                            get_wallwind().vector_value(
+                              support_points[local_dof_indices[j]],
+                              imposed_pot_grad);
+                            break;
+                          case BoundaryType::hull:
+                            get_wind().vector_value(
+                              support_points[local_dof_indices[j]],
+                              imposed_pot_grad);
+                            break;
+                        }
+                      // get_wind().vector_value(
+                      //   support_points[local_dof_indices[j]],
+                      //   imposed_pot_grad);
                       double tmp_dphi_dn = 0;
                       double normy       = 0;
 
@@ -378,6 +533,7 @@ BoundaryConditions<dim>::compute_errors()
                                         VectorTools::L2_norm);
       phi_max_error = difference_per_cell.linfty_norm();
 
+      // TODO: how to change this, to account for the different formulations?
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.gradient_dh,
                                         localized_gradient_solution,
@@ -393,6 +549,7 @@ BoundaryConditions<dim>::compute_errors()
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double>> grads_nodes_errs(bem.dh.n_dofs(),
                                                    Vector<double>(dim));
+      // TODO: how to change this, to account for the different formulations?
       get_wind().vector_value_list(support_points, grads_nodes_errs);
       for (types::global_dof_index d = 0; d < dim; ++d)
         {
@@ -420,6 +577,7 @@ BoundaryConditions<dim>::compute_errors()
       Vector<double>              dphi_dn_node_error(bem.dh.n_dofs());
       std::vector<Vector<double>> dphi_dn_nodes_errs(bem.dh.n_dofs(),
                                                      Vector<double>(dim));
+      // TODO: how to change this, to account for the different formulations?
       get_wind().vector_value_list(support_points, dphi_dn_nodes_errs);
       dphi_dn_node_error = 0.;
       for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)

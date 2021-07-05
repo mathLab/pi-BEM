@@ -76,6 +76,15 @@ template <int dim>
 class BoundaryConditions : public ParameterAcceptor
 {
 public:
+  enum class BoundaryType : types::boundary_id
+  {
+    invalid = 0,
+    floor,
+    wall,
+    freesurface,
+    hull
+  };
+
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
                      BEMProblem<dim> &         bem,
                      const MPI_Comm            comm         = MPI_COMM_WORLD,
@@ -84,6 +93,8 @@ public:
     , current_component(0)
     , winds(n_components)
     , potentials(n_components)
+    , wallwinds(n_components)
+    , floorwinds(n_components)
     , comp_dom(comp_dom)
     , bem(bem)
     , phis(n_components)
@@ -131,6 +142,8 @@ public:
       {
         winds.resize(n_components);
         potentials.resize(n_components);
+        wallwinds.resize(n_components);
+        floorwinds.resize(n_components);
         phis.resize(n_components);
         dphi_dns.resize(n_components);
 
@@ -167,6 +180,18 @@ public:
     return *potentials[current_component];
   }
 
+  const Functions::ParsedFunction<dim> &
+  get_wallwind() const
+  {
+    return *wallwinds[current_component];
+  }
+
+  const Functions::ParsedFunction<dim> &
+  get_floorwind() const
+  {
+    return *floorwinds[current_component];
+  }
+
   // otherwise, explicitly request the desired component
   const Functions::ParsedFunction<dim> &
   get_wind(unsigned int component) const
@@ -180,6 +205,20 @@ public:
   {
     AssertIndexRange(component, n_components);
     return *potentials[component];
+  }
+
+  const Functions::ParsedFunction<dim> &
+  get_wallwind(unsigned int component) const
+  {
+    AssertIndexRange(component, n_components);
+    return *wallwinds[component];
+  }
+
+  const Functions::ParsedFunction<dim> &
+  get_floorwind(unsigned int component) const
+  {
+    AssertIndexRange(component, n_components);
+    return *floorwinds[component];
   }
 
   // same as above, for the Vectors; however, retrieve non-const&
@@ -317,6 +356,18 @@ protected:
     return *potentials[current_component];
   }
 
+  Functions::ParsedFunction<dim> &
+  get_wallwind()
+  {
+    return *wallwinds[current_component];
+  }
+
+  Functions::ParsedFunction<dim> &
+  get_floorwind()
+  {
+    return *floorwinds[current_component];
+  }
+
   // otherwise, explicitly request the desired component
   Functions::ParsedFunction<dim> &
   get_wind(unsigned int component)
@@ -332,10 +383,28 @@ protected:
     return *potentials[component];
   }
 
+  Functions::ParsedFunction<dim> &
+  get_wallwind(unsigned int component)
+  {
+    AssertIndexRange(component, n_components);
+    return *wallwinds[component];
+  }
+
+  Functions::ParsedFunction<dim> &
+  get_floorwind(unsigned int component)
+  {
+    AssertIndexRange(component, n_components);
+    return *floorwinds[component];
+  }
+
+  static const unsigned int MAX_COMPS = 16;
+
   unsigned int n_components;
   unsigned int current_component;
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> winds;
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> potentials;
+  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> wallwinds;
+  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> floorwinds;
 
   std::string node_displacement_type;
 

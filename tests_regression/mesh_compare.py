@@ -3,7 +3,7 @@ import meshio
 import numpy as np
 
 if len(sys.argv) < 3:
-    print(f"Usage: {argv[0]} mesh0 mesh1 [atol]")
+    print(f"Usage: {sys.argv[0]} mesh0 mesh1 [atol]")
     exit(1)
 
 atol = 1e-10

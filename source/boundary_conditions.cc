@@ -16,6 +16,7 @@
 #include <deal.II/grid/filtered_iterator.h>
 
 #include "../include/boundary_conditions.h"
+#include "../include/vector_tools_integrate_difference.h"
 
 template <int dim, class DH = DoFHandler<dim, dim + 1>>
 class FilteredDataOut : public DataOut<dim, DH>
@@ -517,11 +518,32 @@ BoundaryConditions<dim>::compute_errors()
 
       Vector<double> grad_difference_per_cell(comp_dom.tria.n_active_cells());
       std::vector<Point<dim>> support_points(bem.dh.n_dofs());
-      double                  phi_max_error; // = localized_phi.linfty_norm();
       Vector<double> difference_per_cell(comp_dom.tria.n_active_cells());
       DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
                                                          bem.dh,
                                                          support_points);
+
+      // map material (an indirection step to boundary) to the actual expression
+      std::map<types::material_id, const Function<dim, double> *>
+        bcond_functions;
+
+      // first, build the map for the potential itself
+      for (const auto &pair : comp_dom.manifold2boundary_map)
+        {
+          switch (static_cast<BoundaryType>(pair.second))
+            {
+              case BoundaryType::freesurface:
+                bcond_functions[pair.first] = &get_potential();
+                break;
+              case BoundaryType::floor:
+              case BoundaryType::wall:
+              case BoundaryType::hull:
+              case BoundaryType::invalid:
+              default:
+                // undefined -> no difference
+                break;
+            }
+        }
 
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.dh,
@@ -531,9 +553,40 @@ BoundaryConditions<dim>::compute_errors()
                                         QGauss<(dim - 1)>(
                                           2 * (2 * bem.fe->degree + 1)),
                                         VectorTools::L2_norm);
-      phi_max_error = difference_per_cell.linfty_norm();
+      // integrate_difference_based_on_material_id(*bem.mapping,
+      //                                           bem.dh,
+      //                                           localized_phi,
+      //                                           bcond_functions,
+      //                                           difference_per_cell,
+      //                                           QGauss<(dim - 1)>(
+      //                                             2 * (2 * bem.fe->degree +
+      //                                             1)),
+      //                                           VectorTools::L2_norm);
+      double phi_max_error = difference_per_cell.linfty_norm();
 
-      // TODO: how to change this, to account for the different formulations?
+      bcond_functions.clear();
+      // now, build the map for the gradient
+      for (const auto &pair : comp_dom.manifold2boundary_map)
+        {
+          switch (static_cast<BoundaryType>(pair.second))
+            {
+              case BoundaryType::floor:
+                bcond_functions[pair.first] = &get_floorwind();
+                break;
+              case BoundaryType::wall:
+                bcond_functions[pair.first] = &get_wallwind();
+                break;
+              case BoundaryType::hull:
+                bcond_functions[pair.first] = &get_wind();
+                break;
+              case BoundaryType::freesurface:
+              case BoundaryType::invalid:
+              default:
+                // undefined -> no difference
+                break;
+            }
+        }
+
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.gradient_dh,
                                         localized_gradient_solution,
@@ -542,14 +595,22 @@ BoundaryConditions<dim>::compute_errors()
                                         QGauss<(dim - 1)>(
                                           2 * (2 * bem.fe->degree + 1)),
                                         VectorTools::L2_norm);
+      // integrate_difference_based_on_material_id(*bem.mapping,
+      //                                           bem.gradient_dh,
+      //                                           localized_gradient_solution,
+      //                                           bcond_functions,
+      //                                           grad_difference_per_cell,
+      //                                           QGauss<(dim - 1)>(
+      //                                             2 * (2 * bem.fe->degree +
+      //                                             1)),
+      //                                           VectorTools::L2_norm);
       const double grad_L2_error = grad_difference_per_cell.l2_norm();
-
-      const double L2_error = difference_per_cell.l2_norm();
+      const double L2_error      = difference_per_cell.l2_norm();
 
       Vector<double> vector_gradients_node_error(bem.gradient_dh.n_dofs());
       std::vector<Vector<double>> grads_nodes_errs(bem.dh.n_dofs(),
                                                    Vector<double>(dim));
-      // TODO: how to change this, to account for the different formulations?
+      // TODO: change to use mappping
       get_wind().vector_value_list(support_points, grads_nodes_errs);
       for (types::global_dof_index d = 0; d < dim; ++d)
         {
@@ -562,6 +623,8 @@ BoundaryConditions<dim>::compute_errors()
         }
       vector_gradients_node_error *= -1.0;
       vector_gradients_node_error.add(1., localized_gradient_solution);
+      const double grad_phi_max_error =
+        vector_gradients_node_error.linfty_norm();
 
       Vector<double>      phi_node_error(bem.dh.n_dofs());
       std::vector<double> phi_nodes_errs(bem.dh.n_dofs());
@@ -577,7 +640,7 @@ BoundaryConditions<dim>::compute_errors()
       Vector<double>              dphi_dn_node_error(bem.dh.n_dofs());
       std::vector<Vector<double>> dphi_dn_nodes_errs(bem.dh.n_dofs(),
                                                      Vector<double>(dim));
-      // TODO: how to change this, to account for the different formulations?
+      // TODO: change to use mappping
       get_wind().vector_value_list(support_points, dphi_dn_nodes_errs);
       dphi_dn_node_error = 0.;
       for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
@@ -605,15 +668,10 @@ BoundaryConditions<dim>::compute_errors()
         VectorTools::L2_norm);
       const double dphi_dn_L2_error = difference_per_cell_2.l2_norm();
 
-      const double grad_phi_max_error =
-        vector_gradients_node_error.linfty_norm();
-      const types::global_dof_index n_active_cells =
-        comp_dom.tria.n_active_cells();
-      const types::global_dof_index n_dofs = bem.dh.n_dofs();
-
-      pcout << "   Number of active cells:       " << n_active_cells
-            << std::endl
-            << "   Number of degrees of freedom: " << n_dofs << std::endl;
+      pcout << "   Number of active cells:       "
+            << comp_dom.tria.n_active_cells() << std::endl;
+      pcout << "   Number of degrees of freedom: " << bem.dh.n_dofs()
+            << std::endl;
 
       pcout << "Phi Nodes error L_inf norm: " << phi_max_error << std::endl;
       pcout << "Phi Cells error L_2 norm: " << L2_error << std::endl;

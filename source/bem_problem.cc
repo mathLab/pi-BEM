@@ -328,6 +328,7 @@ BEMProblem<dim>::reinit()
 
   dirichlet_nodes.reinit(this_cpu_set, mpi_communicator);
   neumann_nodes.reinit(this_cpu_set, mpi_communicator);
+  robin_nodes.reinit(this_cpu_set, mpi_communicator);
   compute_dirichlet_and_neumann_dofs_vectors();
   compute_double_nodes_set();
 
@@ -533,30 +534,68 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 
   Vector<double> non_partitioned_dirichlet_nodes(dh.n_dofs());
   Vector<double> non_partitioned_neumann_nodes(dh.n_dofs());
+  Vector<double> non_partitioned_robin_nodes(dh.n_dofs());
 
+  // defaulting to neumann
   vector_shift(non_partitioned_neumann_nodes, 1.);
   std::vector<types::global_dof_index> dofs(fe->dofs_per_cell);
-  std::vector<types::global_dof_index> gradient_dofs(
-    gradient_fe->dofs_per_cell);
-  unsigned int helper_dirichlet = 0;
+  unsigned int                         helper_dirichlet = 0;
 
   for (const auto &cell : dh.active_cell_iterators())
     {
       if (cell->subdomain_id() == this_mpi_process)
         {
-          for (auto dummy : comp_dom.dirichlet_boundary_ids)
+          bool is_dirichlet = std::find(comp_dom.dirichlet_boundary_ids.begin(),
+                                        comp_dom.dirichlet_boundary_ids.end(),
+                                        cell->boundary_id()) !=
+                              comp_dom.dirichlet_boundary_ids.end();
+          if (is_dirichlet)
             {
-              if (dummy == cell->boundary_id())
+              cell->get_dof_indices(dofs);
+              for (auto i : dofs)
+                {
+                  // mark dofs on masking vectors
+                  non_partitioned_dirichlet_nodes(i) = 1;
+                  non_partitioned_neumann_nodes(i)   = 0;
+                  // non_partitioned_robin_nodes(i)   = 0;
+                }
+
+              helper_dirichlet = 1;
+            }
+          else
+            {
+              bool is_neumann = std::find(comp_dom.neumann_boundary_ids.begin(),
+                                          comp_dom.neumann_boundary_ids.end(),
+                                          cell->boundary_id()) !=
+                                comp_dom.neumann_boundary_ids.end();
+              if (is_neumann)
                 {
                   cell->get_dof_indices(dofs);
                   for (auto i : dofs)
                     {
-                      non_partitioned_dirichlet_nodes(i) = 1;
-                      non_partitioned_neumann_nodes(i)   = 0;
+                      // mark dofs on masking vectors
+                      non_partitioned_dirichlet_nodes(i) = 0;
+                      non_partitioned_neumann_nodes(i)   = 1;
+                      // non_partitioned_robin_nodes(i)   = 0;
                     }
-
-                  helper_dirichlet = 1;
-                  break;
+                }
+              else
+                {
+#ifdef DEBUG
+                  bool is_robin = std::find(comp_dom.robin_boundary_ids.begin(),
+                                            comp_dom.robin_boundary_ids.end(),
+                                            cell->boundary_id()) !=
+                                  comp_dom.robin_boundary_ids.end();
+                  Assert(is_robin, ExcInternalError());
+#endif
+                  cell->get_dof_indices(dofs);
+                  for (auto i : dofs)
+                    {
+                      // mark dofs on masking vectors
+                      // non_partitioned_dirichlet_nodes(i) = 0;
+                      non_partitioned_neumann_nodes(i) = 0;
+                      non_partitioned_robin_nodes(i)   = 1;
+                    }
                 }
             }
         }
@@ -566,7 +605,24 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
     {
       dirichlet_nodes(i) = non_partitioned_dirichlet_nodes(i);
       neumann_nodes(i)   = non_partitioned_neumann_nodes(i);
+      robin_nodes(i)     = non_partitioned_robin_nodes(i);
     }
+
+  {
+    Vector<double> localized_dirichlet(dirichlet_nodes);
+    pcout << "Number of Dirichlet dofs: "
+          << (int)(localized_dirichlet.size() *
+                   localized_dirichlet.mean_value())
+          << std::endl;
+    Vector<double> localized_neumann(neumann_nodes);
+    pcout << "Number of Neumann dofs: "
+          << (int)(localized_neumann.size() * localized_neumann.mean_value())
+          << std::endl;
+    Vector<double> localized_robin(robin_nodes);
+    pcout << "Number of Robin dofs: "
+          << (int)(localized_robin.size() * localized_robin.mean_value())
+          << std::endl;
+  }
 
   unsigned int helper_dirichlet_2;
   MPI_Allreduce(&helper_dirichlet,
@@ -1445,12 +1501,19 @@ void
 BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
                        const TrilinosWrappers::MPI::Vector &src) const
 {
+  // the Robin nodes participate with their unknowns carrying phi
+  //(alpha + N) * serv_phi - D * serv_dphi_dn
+  // becomes
+  //(alpha + N) * (serv_phi + serv_phi_robin) - D * (serv_dphi_dn -
+  // robin_matrix_diagonal.scale(serv_phi_robin))
+
   serv_phi = src;
   if (!have_dirichlet_bc)
     {
       vector_shift(serv_phi, -serv_phi.l2_norm());
     }
-  serv_dphi_dn = src;
+  serv_dphi_dn   = src;
+  serv_phi_robin = serv_phi;
 
   TrilinosWrappers::MPI::Vector matrVectProdN;
   TrilinosWrappers::MPI::Vector matrVectProdD;
@@ -1462,9 +1525,14 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
 
   serv_phi.scale(neumann_nodes);
   serv_dphi_dn.scale(dirichlet_nodes);
+  serv_phi_robin.scale(robin_nodes);
 
   if (solution_method == "Direct")
     {
+      serv_phi += serv_phi_robin;
+      serv_phi_robin.scale(robin_matrix_diagonal);
+      serv_dphi_dn -= serv_phi_robin;
+
       dirichlet_matrix.vmult(dst, serv_dphi_dn);
       dst *= -1;
       neumann_matrix.vmult_add(dst, serv_phi);
@@ -1476,14 +1544,17 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
 
       fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
+      serv_phi += serv_phi_robin;
+      serv_phi_robin.scale(robin_matrix_diagonal);
+      serv_dphi_dn -= serv_phi_robin;
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
                                        matrVectProdD);
-      serv_phi.scale(alpha);
       dst += matrVectProdD;
       dst *= -1;
       dst += matrVectProdN;
+      serv_phi.scale(alpha);
       dst += serv_phi;
     }
 
@@ -1499,6 +1570,11 @@ void
 BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
                              const TrilinosWrappers::MPI::Vector &src) const
 {
+  // the Robin nodes participate with their unknowns carrying phi; the
+  // inhomogeneity is accounted for as if included in dphi_dn
+  //-(alpha + N) * serv_phi + D * serv_dphi_dn
+  // becomes
+  //-(alpha + N) * serv_phi + D * (serv_dphi_dn + robin_rhs)
   serv_phi     = src;
   serv_dphi_dn = src;
 
@@ -1508,6 +1584,7 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
   matrVectProdN.reinit(this_cpu_set, mpi_communicator);
   matrVectProdD.reinit(this_cpu_set, mpi_communicator);
 
+  // Robin nodes are accounted for by robin_rhs
   serv_phi.scale(dirichlet_nodes);
   serv_dphi_dn.scale(neumann_nodes);
 
@@ -1517,6 +1594,7 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
       serv_phi.scale(alpha);
       dst += serv_phi;
       dst *= -1;
+      serv_dphi_dn += robin_rhs;
       dirichlet_matrix.vmult_add(dst, serv_dphi_dn);
     }
   else
@@ -1524,6 +1602,7 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
 
       fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
+      serv_dphi_dn += robin_rhs;
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
@@ -1590,13 +1669,19 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
 
   for (auto i : this_cpu_set)
     {
-      if (dirichlet_nodes(i) == 0)
+      if (neumann_nodes(i) == 1)
         {
           phi(i) = sol(i);
         }
-      else
+      else if (dirichlet_nodes(i) == 1)
         {
           dphi_dn(i) = sol(i);
+        }
+      else
+        {
+          Assert(robin_nodes(i) == 1, ExcInternalError());
+          phi(i)     = sol(i);
+          dphi_dn(i) = robin_rhs(i) - robin_matrix_diagonal(i) * phi(i);
         }
     }
 
@@ -1653,6 +1738,7 @@ BEMProblem<dim>::compute_constraints(
     get_vector_surface_gradients_solution());
   Vector<double> localized_normals(get_vector_normals_solution());
   Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
+  Vector<double> localized_neumann_nodes(neumann_nodes);
   Vector<double> loc_tmp_rhs(tmp_rhs.size());
   loc_tmp_rhs = tmp_rhs;
 
@@ -1673,12 +1759,9 @@ BEMProblem<dim>::compute_constraints(
   // we start looping on the dofs
   for (types::global_dof_index i = 0; i < tmp_rhs.size(); i++)
     {
-      // if (this_cpu_set.is_element(i))
-      // {
       // in the next line we compute the "first" among the set of double nodes:
       // this node is the first dirichlet node in the set, and if no dirichlet
       // node is there, we get the first neumann node
-
       auto doubles        = double_nodes_set[i];
       auto firstOfDoubles = *doubles.begin();
       for (auto j : doubles)
@@ -1696,7 +1779,7 @@ BEMProblem<dim>::compute_constraints(
       if (i == firstOfDoubles)
         {
           // the vector entry corresponding to the first node of the set does
-          // not need modification, thus we erase it form the set
+          // i is the source of the constraints, thus we erase it from the set
           doubles.erase(i);
 
           // if the current (first) node is a dirichlet node, for all its
@@ -1721,7 +1804,7 @@ BEMProblem<dim>::compute_constraints(
                         // dofs_domain_association[i]); types::global_dof_index
                         // owner_el_2 =
                         // DoFTools::count_dofs_with_subdomain_association (dh,
-                        // dofs_domain_association[j]);
+                        // dofs_domain_association[*it]);
 
                         for (unsigned int idim = 0; idim < dim; ++idim)
                           {
@@ -1743,8 +1826,7 @@ BEMProblem<dim>::compute_constraints(
                                                localized_normals[index2];
                           }
 
-                        // TODO: does this ever give something much different
-                        // from 1.?
+                        // TODO: validate
                         normal_distance /= normal_distance;
                         if (normal_distance < 1e-4)
                           {
@@ -1756,10 +1838,16 @@ BEMProblem<dim>::compute_constraints(
                             // this is the dirichlet-dirichlet case on sharp
                             // edges: both normal gradients can be computed from
                             // surface gradients of phi and assingned as BC
-                            c.add_line(j);
                             double norm_i_norm_j = 0;
                             double surf_j_norm_i = 0;
                             double surf_i_norm_j = 0;
+
+                            // types::global_dof_index owner_el_1 =
+                            // DoFTools::count_dofs_with_subdomain_association
+                            // (dh, dofs_domain_association[i]);
+                            // types::global_dof_index owner_el_2 =
+                            // DoFTools::count_dofs_with_subdomain_association
+                            // (dh, dofs_domain_association[*it]);
 
                             // We no longer have a std::vector of Point<dim> so
                             // we need to perform the scalar product
@@ -1827,6 +1915,9 @@ BEMProblem<dim>::compute_constraints(
                 }
             }
         }
+
+      // pcout << "processed double node constraints for dof " << i <<
+      // std::endl;
     }
 
   c.merge(c_hn);
@@ -1899,7 +1990,7 @@ BEMProblem<dim>::assemble_preconditioner()
             {
               if (dirichlet_nodes(i) == 0)
                 {
-                  // Nodo di Neumann
+                  // Nodo di Neumann - or Robin
                   band_system.add(i, j, neumann_matrix(i, j));
 
                   if (i == j)
@@ -1927,8 +2018,8 @@ BEMProblem<dim>::compute_gradients(
 {
   Teuchos::TimeMonitor LocalTimer(*GradientTime);
 
-  // We need the solution to be stored on a parallel vector with ghost elements.
-  // We let Trilinos take care of it.
+  // We need the solution to be stored on a parallel vector with ghost
+  // elements. We let Trilinos take care of it.
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
   phi.reinit(glob_phi, false, true);
   TrilinosWrappers::MPI::Vector dphi_dn(ghosted_set);
@@ -2058,7 +2149,7 @@ BEMProblem<dim>::compute_gradients(
         }
     }
 
-  // At this point we can compress anything and solve via GMRES.
+  // At this point we can compress everything and solve via GMRES.
   vector_gradients_matrix.compress(VectorOperation::add);
   vector_gradients_rhs.compress(VectorOperation::add);
 

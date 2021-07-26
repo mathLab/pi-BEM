@@ -254,6 +254,7 @@ public:
   /// the material ID numbers in the mesh
   /// input file, for the neumann_nodes
   std::vector<unsigned int> neumann_boundary_ids;
+  std::vector<unsigned int> robin_boundary_ids;
 
   std::map<unsigned int, unsigned int> manifold2boundary_map;
 

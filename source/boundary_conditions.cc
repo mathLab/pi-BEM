@@ -144,6 +144,13 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.enter_subsection("Robin coefficients");
+  {
+    Functions::ParsedFunction<3>::declare_parameters(prm, 3);
+    prm.set("Function expression", "1; 1; 0");
+  }
+  prm.leave_subsection();
+
   // hardcoded multiple components part - is there a way to dynamically query
   // the number of comps?
   for (unsigned int comp = 1; comp < MAX_COMPS; ++comp)
@@ -224,6 +231,14 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
         prm.set("Function expression", "1; 1; 1");
       }
       prm.leave_subsection();
+
+      prm.enter_subsection("Robin coefficients " +
+                           Utilities::int_to_string(comp + 1));
+      {
+        Functions::ParsedFunction<dim>::declare_parameters(prm, 3);
+        prm.set("Function expression", "1; 1; 0");
+      }
+      prm.leave_subsection();
     }
 }
 
@@ -265,6 +280,13 @@ BoundaryConditions<dim>::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.enter_subsection(std::string("Robin coefficients"));
+  {
+    robin_coeffs[0].reset(new Functions::ParsedFunction<dim>(dim));
+    robin_coeffs[0]->parse_parameters(prm);
+  }
+  prm.leave_subsection();
+
   for (unsigned int comp = 1; comp < n_components; ++comp)
     {
       prm.enter_subsection(std::string("Wind function ") +
@@ -302,6 +324,14 @@ BoundaryConditions<dim>::parse_parameters(ParameterHandler &prm)
         floorwinds[comp]->parse_parameters(prm);
       }
       prm.leave_subsection();
+
+      prm.enter_subsection(std::string("Robin coefficients ") +
+                           Utilities::int_to_string(comp + 1));
+      {
+        robin_coeffs[comp].reset(new Functions::ParsedFunction<dim>(3));
+        robin_coeffs[comp]->parse_parameters(prm);
+      }
+      prm.leave_subsection();
     }
 }
 
@@ -313,6 +343,7 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
   get_wind().set_time(0);
   get_wallwind().set_time(0);
   get_floorwind().set_time(0);
+  get_robin_coeffs().set_time(0);
 
   const types::global_dof_index    n_dofs = bem.dh.n_dofs();
   std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
@@ -382,6 +413,11 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                               update_values | update_normal_vectors |
                                 update_quadrature_points | update_JxW_values);
 
+  // TODO: this isn't very clean
+  bem.robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_rhs.reinit(this_cpu_set, mpi_communicator);
+  Vector<double> coeffs(3);
+
   for (const auto &cell : bem.dh.active_cell_iterators())
     {
       fe_v.reinit(cell);
@@ -390,24 +426,19 @@ BoundaryConditions<dim>::prepare_bem_vectors()
         {
           if (this_cpu_set.is_element(local_dof_indices[j]))
             {
-              bool dirichlet = false;
-              bool neumann   = false;
-              for (auto dbound : comp_dom.dirichlet_boundary_ids)
-                {
-                  if (cell->boundary_id() == dbound)
-                    {
-                      Assert((cell->boundary_id() == dbound) ==
-                               (cell->boundary_id() ==
-                                static_cast<types::boundary_id>(
-                                  BoundaryType::freesurface)),
-                             ExcInternalError());
-                      dirichlet = true;
-                      break;
-                    }
-                }
+              bool dirichlet =
+                std::find(comp_dom.dirichlet_boundary_ids.begin(),
+                          comp_dom.dirichlet_boundary_ids.end(),
+                          cell->boundary_id()) !=
+                comp_dom.dirichlet_boundary_ids.end();
 
               if (dirichlet)
                 {
+                  // TODO: update boundary conditions check, evaluation
+                  Assert(cell->boundary_id() == static_cast<types::boundary_id>(
+                                                  BoundaryType::freesurface),
+                         ExcInternalError());
+
                   get_phi()(local_dof_indices[j]) =
                     get_potential().value(support_points[local_dof_indices[j]]);
                   tmp_rhs(local_dof_indices[j]) =
@@ -415,29 +446,26 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                 }
               else
                 {
-                  for (auto nbound : comp_dom.neumann_boundary_ids)
-                    {
-                      if (cell->boundary_id() == nbound)
-                        {
-                          Assert((cell->boundary_id() == nbound) ==
-                                   (cell->boundary_id() ==
-                                      static_cast<types::boundary_id>(
-                                        BoundaryType::floor) ||
-                                    cell->boundary_id() ==
-                                      static_cast<types::boundary_id>(
-                                        BoundaryType::wall) ||
-                                    cell->boundary_id() ==
-                                      static_cast<types::boundary_id>(
-                                        BoundaryType::hull)),
-                                 ExcInternalError());
-                          neumann = true;
-                          break;
-                        }
-                    }
+                  bool neumann =
+                    std::find(comp_dom.neumann_boundary_ids.begin(),
+                              comp_dom.neumann_boundary_ids.end(),
+                              cell->boundary_id()) !=
+                    comp_dom.neumann_boundary_ids.end();
 
                   if (neumann)
                     {
                       Vector<double> imposed_pot_grad(dim);
+
+                      // TODO: update boundary conditions check and evaluation
+                      Assert(
+                        cell->boundary_id() == static_cast<types::boundary_id>(
+                                                 BoundaryType::floor) ||
+                          cell->boundary_id() ==
+                            static_cast<types::boundary_id>(
+                              BoundaryType::wall) ||
+                          cell->boundary_id() ==
+                            static_cast<types::boundary_id>(BoundaryType::hull),
+                        ExcInternalError());
                       switch (static_cast<BoundaryType>(cell->boundary_id()))
                         {
                           case BoundaryType::floor:
@@ -456,13 +484,11 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                               imposed_pot_grad);
                             break;
                           case BoundaryType::freesurface:
+                          case BoundaryType::freesurface_robin:
                           case BoundaryType::invalid:
                           default:
                             break;
                         }
-                      // get_wind().vector_value(
-                      //   support_points[local_dof_indices[j]],
-                      //   imposed_pot_grad);
                       double tmp_dphi_dn = 0;
                       double normy       = 0;
 
@@ -492,13 +518,30 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                     }
                   else
                     {
+                      // TODO: is there a good initial value for the Robin
+                      // nodes? possibly, setting tmp_rhs=coeffs(2) and phi =
+                      // coeffs(2)/coeffs(0)
                       tmp_rhs(local_dof_indices[j])       = 0;
                       get_dphi_dn()(local_dof_indices[j]) = 0;
+
+                      // evaluate robin coefficients
+                      // coeffs(0) * phi + coeffs(1) * dphi_dn = coeffs(2)
+                      get_robin_coeffs().vector_value(
+                        support_points[local_dof_indices[j]], coeffs);
+                      bem.robin_matrix_diagonal(local_dof_indices[j]) =
+                        coeffs(0) / coeffs(1);
+                      bem.robin_rhs(local_dof_indices[j]) =
+                        coeffs(2) / coeffs(1);
+
+                      // pcout << "set robin datastructs @ dof "
+                      //       << local_dof_indices[j] << std::endl;
                     }
                 }
             }
         }
     }
+
+  // debug
 }
 
 template <int dim>
@@ -509,10 +552,10 @@ BoundaryConditions<dim>::compute_errors()
 
   // We still need to communicate our results to compute the errors.
   bem.compute_gradients(get_phi(), get_dphi_dn());
-  Vector<double> localized_gradient_solution(
-    bem.get_vector_gradients_solution()); // vector_gradients_solution
   Vector<double> localized_phi(get_phi());
   Vector<double> localized_dphi_dn(get_dphi_dn());
+  Vector<double> localized_gradient_solution(
+    bem.get_vector_gradients_solution()); // vector_gradients_solution
   Vector<double> localised_normals(bem.get_vector_normals_solution());
 
   // We let only the first processor do the error computations
@@ -520,8 +563,34 @@ BoundaryConditions<dim>::compute_errors()
     {
       pcout << "computing errors on P0" << std::endl;
 
-      Vector<double>          phi_diff_cell(comp_dom.tria.n_active_cells());
-      Vector<double>          gradphi_diff_cell(comp_dom.tria.n_active_cells());
+      // pcout << "comp_dom.tria.n_active_cells() "
+      //       << comp_dom.tria.n_active_cells() << std::endl;
+      // pcout << "bem.dh.n_dofs() " << bem.dh.n_dofs() << std::endl;
+      // pcout << "bem.gradient_dh.n_dofs() " << bem.gradient_dh.n_dofs()
+      //       << std::endl;
+
+      // pcout << "localized_phi.size() " << localized_phi.size() << std::endl;
+      // pcout << "localized_dphi_dn.size() " << localized_dphi_dn.size()
+      //       << std::endl;
+      // pcout << "localized_gradient_solution.size() "
+      //       << localized_gradient_solution.size() << std::endl;
+      // pcout << "localised_normals.size() " << localised_normals.size()
+      //       << std::endl;
+
+      Vector<double>      phi_diff_cell(comp_dom.tria.n_active_cells());
+      Vector<double>      phi_diff_node(bem.dh.n_dofs());
+      std::vector<double> phi_refval_node(bem.dh.n_dofs());
+
+      Vector<double> dphi_dn_diff_cell(comp_dom.tria.n_active_cells());
+      Vector<double> dphi_dn_diff_node(bem.dh.n_dofs());
+      std::vector<Vector<double>> dphi_dn_refval_node(bem.dh.n_dofs(),
+                                                      Vector<double>(dim));
+
+      Vector<double> gradphi_diff_cell(comp_dom.tria.n_active_cells());
+      Vector<double> gradphi_diff_node(bem.gradient_dh.n_dofs());
+      std::vector<Vector<double>> gradphi_refval_node(bem.dh.n_dofs(),
+                                                      Vector<double>(dim));
+
       std::vector<Point<dim>> support_points(bem.dh.n_dofs());
       DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
                                                          bem.dh,
@@ -542,6 +611,7 @@ BoundaryConditions<dim>::compute_errors()
               case BoundaryType::floor:
               case BoundaryType::wall:
               case BoundaryType::hull:
+              case BoundaryType::freesurface_robin:
               case BoundaryType::invalid:
               default:
                 // undefined -> no difference
@@ -549,23 +619,14 @@ BoundaryConditions<dim>::compute_errors()
             }
         }
 
-      VectorTools::integrate_difference(*bem.mapping,
-                                        bem.dh,
-                                        localized_phi,
-                                        get_potential(),
-                                        phi_diff_cell,
-                                        QGauss<(dim - 1)>(
-                                          2 * (2 * bem.fe->degree + 1)),
-                                        VectorTools::L2_norm);
-      // integrate_difference_based_on_material_id(*bem.mapping,
-      //                                           bem.dh,
-      //                                           localized_phi,
-      //                                           bcond_functions,
-      //                                           phi_diff_cell,
-      //                                           QGauss<(dim - 1)>(
-      //                                             2 * (2 * bem.fe->degree +
-      //                                             1)),
-      //                                           VectorTools::L2_norm);
+      integrate_difference_based_on_material_id(*bem.mapping,
+                                                bem.dh,
+                                                localized_phi,
+                                                bcond_functions,
+                                                phi_diff_cell,
+                                                QGauss<(dim - 1)>(
+                                                  2 * (2 * bem.fe->degree + 1)),
+                                                VectorTools::L2_norm);
 
       bcond_functions.clear();
       // now, build the map for the gradient
@@ -583,6 +644,7 @@ BoundaryConditions<dim>::compute_errors()
                 bcond_functions[pair.first] = &get_wind();
                 break;
               case BoundaryType::freesurface:
+              case BoundaryType::freesurface_robin:
               case BoundaryType::invalid:
               default:
                 // undefined -> no difference
@@ -590,74 +652,186 @@ BoundaryConditions<dim>::compute_errors()
             }
         }
 
-      VectorTools::integrate_difference(*bem.mapping,
-                                        bem.gradient_dh,
-                                        localized_gradient_solution,
-                                        get_wind(),
-                                        gradphi_diff_cell,
-                                        QGauss<(dim - 1)>(
-                                          2 * (2 * bem.fe->degree + 1)),
-                                        VectorTools::L2_norm);
-      // integrate_difference_based_on_material_id(*bem.mapping,
-      //                                           bem.gradient_dh,
-      //                                           localized_gradient_solution,
-      //                                           bcond_functions,
-      //                                           gradphi_diff_cell,
-      //                                           QGauss<(dim - 1)>(
-      //                                             2 * (2 * bem.fe->degree +
-      //                                             1)),
-      //                                           VectorTools::L2_norm);
+      integrate_difference_based_on_material_id(*bem.mapping,
+                                                bem.gradient_dh,
+                                                localized_gradient_solution,
+                                                bcond_functions,
+                                                gradphi_diff_cell,
+                                                QGauss<(dim - 1)>(
+                                                  2 * (2 * bem.fe->degree + 1)),
+                                                VectorTools::L2_norm);
 
-      Vector<double>              gradphi_diff_node(bem.gradient_dh.n_dofs());
-      std::vector<Vector<double>> gradphi_refval_node(bem.dh.n_dofs(),
-                                                      Vector<double>(dim));
-      // TODO: change to use mappping
-      get_wind().vector_value_list(support_points, gradphi_refval_node);
-      for (types::global_dof_index d = 0; d < dim; ++d)
+      IndexSet                  covered;
+      std::vector<BoundaryType> boundaries = {BoundaryType::floor,
+                                              BoundaryType::wall,
+                                              BoundaryType::hull};
+      for (auto btype : boundaries)
         {
-          for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
+          std::set<types::boundary_id> selected = {
+            static_cast<types::boundary_id>(btype)};
+          IndexSet bdofs;
+          // DoFTools::extract_boundary_dofs(bem.gradient_dh,
+          //                                 ComponentMask(),
+          //                                 bdofs,
+          //                                 selected);
+          std::vector<types::global_dof_index> dofs(
+            bem.gradient_fe->dofs_per_cell);
+          for (const auto &cell : bem.gradient_dh.active_cell_iterators())
             {
-              gradphi_diff_node
-                [bem.vec_original_to_sub_wise[d * bem.dh.n_dofs() + i]] =
-                  gradphi_refval_node[bem.original_to_sub_wise[i]][d];
+              if (cell->is_locally_owned() &&
+                  selected.count(cell->boundary_id()))
+                {
+                  cell->get_dof_indices(dofs);
+
+                  bdofs.add_indices(dofs.begin(), dofs.end());
+                }
+            }
+          bdofs.compress();
+
+          bdofs.subtract_set(covered);
+          if (!bdofs.is_empty())
+            {
+              switch (btype)
+                {
+                  case BoundaryType::floor:
+                    get_floorwind().vector_value_list(support_points,
+                                                      gradphi_refval_node);
+                    break;
+                  case BoundaryType::wall:
+                    get_wallwind().vector_value_list(support_points,
+                                                     gradphi_refval_node);
+                    break;
+                  case BoundaryType::hull:
+                    get_wind().vector_value_list(support_points,
+                                                 gradphi_refval_node);
+                    break;
+                  case BoundaryType::freesurface:
+                  case BoundaryType::freesurface_robin:
+                  case BoundaryType::invalid:
+                  default:
+                    break;
+                }
+
+              for (auto i : bdofs)
+                {
+                  gradphi_diff_node[bem.vec_original_to_sub_wise[i]] =
+                    gradphi_refval_node
+                      [bem.original_to_sub_wise[i % bem.dh.n_dofs()]]
+                      [i / bem.dh.n_dofs()];
+                }
+              covered.add_indices(bdofs);
             }
         }
+
       gradphi_diff_node *= -1.0;
       gradphi_diff_node.add(1., localized_gradient_solution);
 
-      Vector<double>      phi_diff_node(bem.dh.n_dofs());
-      std::vector<double> phi_refval_node(bem.dh.n_dofs());
-      get_potential().value_list(support_points, phi_refval_node);
-      for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
-        {
-          phi_diff_node[i] = phi_refval_node[i];
-        }
+      covered.clear();
+      {
+        std::set<types::boundary_id> selected = {
+          static_cast<types::boundary_id>(BoundaryType::freesurface)};
+        IndexSet bdofs;
+        // DoFTools::extract_boundary_dofs(bem.dh,
+        //                                 ComponentMask(),
+        //                                 bdofs,
+        //                                 selected);
+        std::vector<types::global_dof_index> dofs(bem.fe->dofs_per_cell);
+        for (const auto &cell : bem.dh.active_cell_iterators())
+          {
+            if (cell->is_locally_owned() && selected.count(cell->boundary_id()))
+              {
+                cell->get_dof_indices(dofs);
+
+                bdofs.add_indices(dofs.begin(), dofs.end());
+              }
+          }
+        bdofs.compress();
+
+        bdofs.subtract_set(covered);
+        if (!bdofs.is_empty())
+          {
+            get_potential().value_list(support_points, phi_refval_node);
+
+            for (auto i : bdofs)
+              {
+                phi_diff_node[i] = phi_refval_node.at(i);
+              }
+            covered.add_indices(bdofs);
+          }
+      }
 
       phi_diff_node *= -1.0;
       phi_diff_node.add(1., localized_phi);
 
-      Vector<double>              dphi_dn_diff_node(bem.dh.n_dofs());
-      std::vector<Vector<double>> dphi_dn_refval_node(bem.dh.n_dofs(),
-                                                      Vector<double>(dim));
-      // TODO: change to use mappping
-      get_wind().vector_value_list(support_points, dphi_dn_refval_node);
-      dphi_dn_diff_node = 0.;
-      for (types::global_dof_index i = 0; i < bem.dh.n_dofs(); ++i)
+      covered.clear();
+      // TODO: calc this when doing gradphi...
+      boundaries = {BoundaryType::floor,
+                    BoundaryType::wall,
+                    BoundaryType::hull};
+      for (auto btype : boundaries)
         {
-          for (unsigned int d = 0; d < dim; ++d)
+          std::set<types::boundary_id> selected = {
+            static_cast<types::boundary_id>(btype)};
+          IndexSet bdofs;
+          // DoFTools::extract_boundary_dofs(bem.gradient_dh,
+          //                                 ComponentMask(),
+          //                                 bdofs,
+          //                                 selected);
+          std::vector<types::global_dof_index> dofs(
+            bem.gradient_fe->dofs_per_cell);
+          for (const auto &cell : bem.gradient_dh.active_cell_iterators())
             {
-              dphi_dn_diff_node[bem.original_to_sub_wise[i]] +=
-                localised_normals
-                  [bem.vec_original_to_sub_wise[i + d * bem.dh.n_dofs()]] *
-                dphi_dn_refval_node[bem.original_to_sub_wise[i]][d];
+              if (cell->is_locally_owned() &&
+                  selected.count(cell->boundary_id()))
+                {
+                  cell->get_dof_indices(dofs);
+
+                  bdofs.add_indices(dofs.begin(), dofs.end());
+                }
+            }
+          bdofs.compress();
+
+          bdofs.subtract_set(covered);
+          if (!bdofs.is_empty())
+            {
+              switch (btype)
+                {
+                  case BoundaryType::floor:
+                    get_floorwind().vector_value_list(support_points,
+                                                      dphi_dn_refval_node);
+                    break;
+                  case BoundaryType::wall:
+                    get_wallwind().vector_value_list(support_points,
+                                                     dphi_dn_refval_node);
+                    break;
+                  case BoundaryType::hull:
+                    get_wind().vector_value_list(support_points,
+                                                 dphi_dn_refval_node);
+                    break;
+                  case BoundaryType::freesurface:
+                  case BoundaryType::freesurface_robin:
+                  case BoundaryType::invalid:
+                  default:
+                    break;
+                }
+
+              for (auto i : bdofs)
+                {
+                  dphi_dn_diff_node
+                    [bem.original_to_sub_wise[i % bem.dh.n_dofs()]] +=
+                    localised_normals[bem.vec_original_to_sub_wise[i]] *
+                    dphi_dn_refval_node
+                      [bem.original_to_sub_wise[i % bem.dh.n_dofs()]]
+                      [i / bem.dh.n_dofs()];
+                }
+
+              covered.add_indices(bdofs);
             }
         }
 
       dphi_dn_diff_node *= -1.0;
       dphi_dn_diff_node.add(1., localized_dphi_dn);
 
-
-      Vector<double> dphi_dn_diff_cell(comp_dom.tria.n_active_cells());
       VectorTools::integrate_difference(*bem.mapping,
                                         bem.dh,
                                         dphi_dn_diff_node,
@@ -667,30 +841,26 @@ BoundaryConditions<dim>::compute_errors()
                                           2 * (2 * bem.fe->degree + 1)),
                                         VectorTools::L2_norm);
 
-      double       phi_max_error      = phi_diff_cell.linfty_norm();
-      const double L2_error           = phi_diff_cell.l2_norm();
-      const double dphi_dn_L2_error   = dphi_dn_diff_cell.l2_norm();
-      const double grad_phi_max_error = gradphi_diff_node.linfty_norm();
-      const double grad_L2_error      = gradphi_diff_cell.l2_norm();
-
       pcout << "   Number of active cells:       "
             << comp_dom.tria.n_active_cells() << std::endl;
       pcout << "   Number of degrees of freedom: " << bem.dh.n_dofs()
             << std::endl;
 
       // TODO: phi_max_error should probably use the phi_diff_node vector
-      pcout << "Phi Nodes error L_inf norm: " << phi_max_error << std::endl;
-      pcout << "Phi Cells error L_2 norm: " << L2_error << std::endl;
+      pcout << "Phi Nodes error L_inf norm: " << phi_diff_node.linfty_norm()
+            << std::endl;
+      pcout << "Phi Cells error L_2 norm: " << phi_diff_cell.l2_norm()
+            << std::endl;
 
       pcout << "dPhidN Nodes error L_inf norm: "
             << dphi_dn_diff_node.linfty_norm() << std::endl;
-      // TODO: this, too, is on cells
-      pcout << "dPhidN Nodes error L_2 norm: " << dphi_dn_L2_error << std::endl;
+      pcout << "dPhidN Cells error L_2 norm: " << dphi_dn_diff_cell.l2_norm()
+            << std::endl;
 
-      pcout << "Phi Nodes Gradient error L_inf norm: " << grad_phi_max_error
-            << std::endl;
-      pcout << "Phi Cells Gradient  error L_2 norm: " << grad_L2_error
-            << std::endl;
+      pcout << "Phi Nodes Gradient error L_inf norm: "
+            << gradphi_diff_node.linfty_norm() << std::endl;
+      pcout << "Phi Cells Gradient  error L_2 norm: "
+            << gradphi_diff_cell.l2_norm() << std::endl;
 
       std::string filename_vector = "vector_error.vtu";
       std::vector<DataComponentInterpretation::DataComponentInterpretation>

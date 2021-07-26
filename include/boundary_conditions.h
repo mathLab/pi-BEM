@@ -78,11 +78,12 @@ class BoundaryConditions : public ParameterAcceptor
 public:
   enum class BoundaryType : types::boundary_id
   {
-    invalid = 0,
-    floor,
-    wall,
-    freesurface,
-    hull
+    invalid           = 0,
+    floor             = 1, // neumann
+    wall              = 2, // neumann
+    freesurface       = 3, // dirichlet
+    hull              = 4, // neumann
+    freesurface_robin = 5, // robin
   };
 
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
@@ -95,6 +96,7 @@ public:
     , potentials(n_components)
     , wallwinds(n_components)
     , floorwinds(n_components)
+    , robin_coeffs(n_components)
     , comp_dom(comp_dom)
     , bem(bem)
     , phis(n_components)
@@ -144,6 +146,7 @@ public:
         potentials.resize(n_components);
         wallwinds.resize(n_components);
         floorwinds.resize(n_components);
+        robin_coeffs.resize(n_components);
         phis.resize(n_components);
         dphi_dns.resize(n_components);
 
@@ -192,6 +195,12 @@ public:
     return *floorwinds[current_component];
   }
 
+  const Functions::ParsedFunction<dim> &
+  get_robin_coeffs() const
+  {
+    return *robin_coeffs[current_component];
+  }
+
   // otherwise, explicitly request the desired component
   const Functions::ParsedFunction<dim> &
   get_wind(unsigned int component) const
@@ -219,6 +228,13 @@ public:
   {
     AssertIndexRange(component, n_components);
     return *floorwinds[component];
+  }
+
+  const Functions::ParsedFunction<dim> &
+  get_robin_coeffs(unsigned int component) const
+  {
+    AssertIndexRange(component, n_components);
+    return *robin_coeffs[component];
   }
 
   // same as above, for the Vectors; however, retrieve non-const&
@@ -368,6 +384,12 @@ protected:
     return *floorwinds[current_component];
   }
 
+  Functions::ParsedFunction<dim> &
+  get_robin_coeffs()
+  {
+    return *robin_coeffs[current_component];
+  }
+
   // otherwise, explicitly request the desired component
   Functions::ParsedFunction<dim> &
   get_wind(unsigned int component)
@@ -397,6 +419,13 @@ protected:
     return *floorwinds[component];
   }
 
+  Functions::ParsedFunction<dim> &
+  get_robin_coeffs(unsigned int component)
+  {
+    AssertIndexRange(component, n_components);
+    return *robin_coeffs[component];
+  }
+
   static const unsigned int MAX_COMPS = 16;
 
   unsigned int n_components;
@@ -405,6 +434,7 @@ protected:
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> potentials;
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> wallwinds;
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> floorwinds;
+  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> robin_coeffs;
 
   std::string node_displacement_type;
 

@@ -69,6 +69,11 @@ Driver<dim>::declare_parameters(ParameterHandler &prm)
 {
   prm.declare_entry("Set Global Refinement", "true", Patterns::Bool());
   prm.declare_entry("Potential components", "1", Patterns::Integer());
+  prm.declare_entry(
+    "Complex components",
+    "0",
+    Patterns::List(Patterns::Integer(0)),
+    "Lists the indices of the real components of complex-valued problems; 0 means no complex problem is present");
 }
 
 template <int dim>
@@ -81,6 +86,27 @@ Driver<dim>::parse_parameters(ParameterHandler &prm)
   // what's the order of parse_parameter calls?
   boundary_conditions.set_n_phi_components(n_components);
   bem_problem.set_n_phi_components(n_components);
+
+  std::vector<std::string> complex_problems_list =
+    Utilities::split_string_list(prm.get("Complex components"));
+  if (complex_problems_list.size())
+    {
+      for (unsigned int i = 0; i < complex_problems_list.size(); ++i)
+        {
+          std::istringstream key_reader(complex_problems_list[i]);
+          types::manifold_id id;
+          key_reader >> id;
+          if (id)
+            {
+              Assert(
+                complex_problems.count(id - 1) == 0 &&
+                  complex_problems.count(id) == 0,
+                ExcMessage(
+                  "Found soperposition of real and imaginary components of complex problems"))
+                complex_problems.insert(id - 1);
+            }
+        }
+    }
 }
 
 template <int dim>
@@ -116,17 +142,27 @@ Driver<dim>::run()
           Teuchos::TimeMonitor LocalTimer(*SolveTime);
           bem_problem.reinit();
           MPI_Barrier(MPI_COMM_WORLD);
-          boundary_conditions.solve_problem();
 
-          // other components: does not neeed to call reinit(), as it's "just"
-          // sparsity patterns
-          for (unsigned int i = 1; i < boundary_conditions.n_phi_components();
+          for (unsigned int i = 0; i < boundary_conditions.n_phi_components();
                ++i)
             {
-              pcout << "solving for component " << i + 1 << std::endl;
               boundary_conditions.set_current_phi_component(i);
+              if (!complex_problems.count(i))
+                {
+                  pcout << "solving for component " << i + 1 << std::endl;
+                  // this is a purely real problem
+                  boundary_conditions.solve_problem(i == 0);
+                }
+              else
+                {
+                  pcout << "solving for components " << i + 1 << " real and "
+                        << i + 2 << " imaginary" << std::endl;
+                  // this is a complex-valued problem
+                  boundary_conditions.solve_complex_problem(i == 0);
+
+                  ++i;
+                }
               MPI_Barrier(MPI_COMM_WORLD);
-              boundary_conditions.solve_problem(false);
             }
 
           boundary_conditions.set_current_phi_component(0);

@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "../include/bem_problem.h"
+#include "../include/constrained_matrix_complex.h"
 #include "../include/laplace_kernel.h"
 #include "../include/singular_kernel_integral.h"
 #include "Teuchos_TimeMonitor.hpp"
@@ -95,7 +96,6 @@ BEMProblem<3>::BEMProblem(ComputationalDomain<3> &comp_dom,
   , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
   , vector_gradients_solutions(n_components)
   , vector_surface_gradients_solutions(n_components)
-  , vector_normals_solutions(n_components)
 {
   // Only output on first processor.
   pcout.set_condition(this_mpi_process == 0);
@@ -116,7 +116,6 @@ BEMProblem<2>::BEMProblem(ComputationalDomain<2> &comp_dom,
   , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
   , vector_gradients_solutions(n_components)
   , vector_surface_gradients_solutions(n_components)
-  , vector_normals_solutions(n_components)
 {
   // Only output on first processor.
   pcout.set_condition(this_mpi_process == 0);
@@ -293,11 +292,15 @@ BEMProblem<dim>::reinit()
 
   // standard TrilinosWrappers::MPI::Vector reinitialization.
   system_rhs.reinit(this_cpu_set, mpi_communicator);
+  system_rhs_imag.reinit(this_cpu_set, mpi_communicator);
   sol.reinit(this_cpu_set, mpi_communicator);
   alpha.reinit(this_cpu_set, mpi_communicator);
   serv_phi.reinit(this_cpu_set, mpi_communicator);
+  serv_phi_imag.reinit(this_cpu_set, mpi_communicator);
   serv_dphi_dn.reinit(this_cpu_set, mpi_communicator);
+  serv_dphi_dn_imag.reinit(this_cpu_set, mpi_communicator);
   serv_tmp_rhs.reinit(this_cpu_set, mpi_communicator);
+  serv_tmp_rhs_imag.reinit(this_cpu_set, mpi_communicator);
 
   // TrilinosWrappers::SparsityPattern for the BEM matricesreinitialization
   pcout << "re-initializing sparsity patterns and matrices" << std::endl;
@@ -1567,7 +1570,120 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
 
 template <int dim>
 void
-BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
+BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
+                       TrilinosWrappers::MPI::Vector &      dst_imag,
+                       const TrilinosWrappers::MPI::Vector &src,
+                       const TrilinosWrappers::MPI::Vector &src_imag) const
+{
+  // the Robin nodes participate with their unknowns carrying phi
+  //(alpha + N) * serv_phi - D * serv_dphi_dn
+  // becomes
+  //(alpha + N) * (serv_phi + serv_phi_robin) - D * (serv_dphi_dn -
+  // robin_matrix_diagonal.scale(serv_phi_robin))
+
+  serv_phi      = src;
+  serv_phi_imag = src_imag;
+  if (!have_dirichlet_bc)
+    {
+      auto shift = std::sqrt(serv_phi.norm_sqr() + serv_phi_imag.l2_norm());
+      vector_shift(serv_phi, -shift);
+      vector_shift(serv_phi_imag, -shift);
+    }
+  serv_dphi_dn        = src;
+  serv_dphi_dn_imag   = src_imag;
+  serv_phi_robin      = serv_phi;
+  serv_phi_robin_imag = serv_phi_imag;
+
+  TrilinosWrappers::MPI::Vector matrVectProdN;
+  TrilinosWrappers::MPI::Vector matrVectProdN_imag;
+  TrilinosWrappers::MPI::Vector matrVectProdD;
+  TrilinosWrappers::MPI::Vector matrVectProdD_imag;
+  TrilinosWrappers::MPI::Vector tmp1, tmp2;
+
+  matrVectProdN.reinit(this_cpu_set, mpi_communicator);
+  matrVectProdN_imag.reinit(this_cpu_set, mpi_communicator);
+  matrVectProdD.reinit(this_cpu_set, mpi_communicator);
+  matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
+  tmp1.reinit(this_cpu_set, mpi_communicator);
+  tmp2.reinit(this_cpu_set, mpi_communicator);
+
+  dst      = 0;
+  dst_imag = 0;
+
+  serv_phi.scale(neumann_nodes);
+  serv_phi_imag.scale(neumann_nodes);
+  serv_dphi_dn_imag.scale(dirichlet_nodes);
+  serv_dphi_dn.scale(dirichlet_nodes);
+  serv_phi_robin.scale(robin_nodes);
+  serv_phi_robin_imag.scale(robin_nodes);
+
+  if (solution_method == "Direct")
+    {
+      serv_phi += serv_phi_robin;
+      serv_phi_imag += serv_phi_robin_imag;
+      // robin_matrix_diagonal is complex
+      // serv_dphi_dn += -robin_matrix_diagonal*serv_phi +
+      // robin_matrix_diagonal_imag * serv_phi_imag
+      // and
+      // serv_dphi_dn_imag += -robin_matrix_diagonal_imag*serv_phi -
+      // robin_matrix_diagonal * serv_phi_imag
+      tmp1 = serv_phi_robin;
+      tmp1.scale(robin_matrix_diagonal);
+      tmp2 = serv_phi_robin_imag;
+      tmp2.scale(robin_matrix_diagonal_imag);
+      serv_dphi_dn -= tmp1;
+      serv_dphi_dn += tmp2;
+
+      // these can be destructive
+      serv_phi_robin.scale(robin_matrix_diagonal_imag);
+      serv_phi_robin_imag.scale(robin_matrix_diagonal);
+      serv_dphi_dn_imag -= serv_phi_robin;
+      serv_dphi_dn_imag -= serv_phi_robin_imag;
+
+      dirichlet_matrix.vmult(dst, serv_dphi_dn);
+      dirichlet_matrix.vmult(dst_imag, serv_dphi_dn_imag);
+      dst *= -1;
+      dst_imag *= -1;
+      neumann_matrix.vmult_add(dst, serv_phi);
+      neumann_matrix.vmult_add(dst_imag, serv_phi_imag);
+      serv_phi.scale(alpha);
+      serv_phi_imag.scale(alpha);
+      dst += serv_phi;
+      dst_imag += serv_phi_imag;
+    }
+  else
+    {
+      AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
+      // TODO: this is much more involved, expansions are to be redone for each
+      // product?
+      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
+      serv_phi += serv_phi_robin;
+      serv_phi_robin.scale(robin_matrix_diagonal);
+      serv_dphi_dn -= serv_phi_robin;
+      fma.multipole_matr_vect_products(serv_phi,
+                                       serv_dphi_dn,
+                                       matrVectProdN,
+                                       matrVectProdD);
+      dst += matrVectProdD;
+      dst *= -1;
+      dst += matrVectProdN;
+      serv_phi.scale(alpha);
+      dst += serv_phi;
+    }
+
+  if (!have_dirichlet_bc)
+    {
+      auto shift = std::sqrt(dst.norm_sqr() + dst_imag.l2_norm());
+      vector_shift(dst, -shift);
+      vector_shift(dst_imag, -shift);
+    }
+  dst.compress(VectorOperation::add);
+  dst_imag.compress(VectorOperation::add);
+}
+
+template <int dim>
+void
+BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
                              const TrilinosWrappers::MPI::Vector &src) const
 {
   // the Robin nodes participate with their unknowns carrying phi; the
@@ -1612,6 +1728,83 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
       dst += serv_phi;
       dst *= -1;
       dst += matrVectProdD;
+    }
+}
+
+template <int dim>
+void
+BEMProblem<dim>::compute_rhs(
+  TrilinosWrappers::MPI::Vector &      dst,
+  TrilinosWrappers::MPI::Vector &      dst_imag,
+  const TrilinosWrappers::MPI::Vector &src,
+  const TrilinosWrappers::MPI::Vector &src_imag) const
+{
+  // the Robin nodes participate with their unknowns carrying phi; the
+  // inhomogeneity is accounted for as if included in dphi_dn
+  //-(alpha + N) * serv_phi + D * serv_dphi_dn
+  // becomes
+  //-(alpha + N) * serv_phi + D * (serv_dphi_dn + robin_rhs)
+  serv_phi          = src;
+  serv_phi_imag     = src_imag;
+  serv_dphi_dn      = src;
+  serv_dphi_dn_imag = src_imag;
+
+  static TrilinosWrappers::MPI::Vector matrVectProdN;
+  static TrilinosWrappers::MPI::Vector matrVectProdN_imag;
+  static TrilinosWrappers::MPI::Vector matrVectProdD;
+  static TrilinosWrappers::MPI::Vector matrVectProdD_imag;
+
+  matrVectProdN.reinit(this_cpu_set, mpi_communicator);
+  matrVectProdN_imag.reinit(this_cpu_set, mpi_communicator);
+  matrVectProdD.reinit(this_cpu_set, mpi_communicator);
+  matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
+
+  // Robin nodes are accounted for by robin_rhs
+  serv_phi.scale(dirichlet_nodes);
+  serv_phi_imag.scale(dirichlet_nodes);
+  serv_dphi_dn.scale(neumann_nodes);
+  serv_dphi_dn_imag.scale(neumann_nodes);
+
+  if (solution_method == "Direct")
+    {
+      neumann_matrix.vmult(dst, serv_phi);
+      neumann_matrix.vmult(dst_imag, serv_phi_imag);
+      serv_phi.scale(alpha);
+      serv_phi_imag.scale(alpha);
+      dst += serv_phi;
+      dst_imag += serv_phi_imag;
+      dst *= -1;
+      dst_imag *= -1;
+      serv_dphi_dn += robin_rhs;
+      serv_dphi_dn_imag += robin_rhs_imag;
+      dirichlet_matrix.vmult_add(dst, serv_dphi_dn);
+      dirichlet_matrix.vmult_add(dst_imag, serv_dphi_dn_imag);
+    }
+  else
+    {
+      AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
+
+      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
+      serv_dphi_dn += robin_rhs;
+      serv_dphi_dn_imag += robin_rhs_imag;
+      fma.multipole_matr_vect_products(serv_phi,
+                                       serv_dphi_dn,
+                                       matrVectProdN,
+                                       matrVectProdD);
+      fma.multipole_matr_vect_products(serv_phi_imag,
+                                       serv_dphi_dn_imag,
+                                       matrVectProdN_imag,
+                                       matrVectProdD_imag);
+      serv_phi.scale(alpha);
+      serv_phi_imag.scale(alpha);
+      dst += matrVectProdN;
+      dst_imag += matrVectProdN_imag;
+      dst += serv_phi;
+      dst_imag += serv_phi_imag;
+      dst *= -1;
+      dst_imag *= -1;
+      dst += matrVectProdD;
+      dst_imag += matrVectProdD_imag;
     }
 }
 
@@ -1692,6 +1885,224 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
   dphi_dn.compress(VectorOperation::insert);
 }
 
+template <int dim>
+void
+BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
+                              TrilinosWrappers::MPI::Vector &      phi_imag,
+                              TrilinosWrappers::MPI::Vector &      dphi_dn,
+                              TrilinosWrappers::MPI::Vector &      dphi_dn_imag,
+                              const TrilinosWrappers::MPI::Vector &tmp_rhs,
+                              const TrilinosWrappers::MPI::Vector &tmp_rhs_imag)
+{
+  Teuchos::TimeMonitor                       LocalTimer(*LacSolveTime);
+  SolverGMRES<TrilinosWrappers::MPI::Vector> solver(
+    solver_control,
+    SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(100));
+
+  // TODO: needs to assemble and pass double-length sol and rhs
+  // the ConstrainedComplexMatrix will need to split and reconstruct the
+  // subvectors at each iteration
+  // must take care of the subvector constraints
+  // imaginary part has the same indexes as the real one, shifted by the
+  // original size
+
+  system_rhs      = 0;
+  system_rhs_imag = 0;
+  sol             = 0;
+  alpha           = 0;
+
+  compute_alpha();
+  compute_rhs(system_rhs, system_rhs_imag, tmp_rhs, tmp_rhs_imag);
+
+  compute_constraints(constr_cpu_set, constraints, tmp_rhs);
+  set_current_phi_component(current_component + 1);
+  compute_constraints(constr_cpu_set, constraints_imag, tmp_rhs_imag);
+  set_current_phi_component(current_component - 1);
+
+  // assemble the complex datastructs
+  IndexSet complex_cpu_set(2 * this_cpu_set.size());
+  complex_cpu_set.add_indices(this_cpu_set);
+  complex_cpu_set.add_indices(this_cpu_set, this_cpu_set.size());
+  complex_cpu_set.compress();
+  TrilinosWrappers::MPI::Vector sol_complex;
+  TrilinosWrappers::MPI::Vector system_rhs_complex;
+
+  sol_complex.reinit(complex_cpu_set, mpi_communicator);
+  system_rhs_complex.reinit(complex_cpu_set, mpi_communicator);
+
+  for (auto i : this_cpu_set)
+    {
+      system_rhs_complex(i)                       = system_rhs(i);
+      system_rhs_complex(i + this_cpu_set.size()) = system_rhs_imag(i);
+    }
+
+  ConstrainedComplexOperator<TrilinosWrappers::MPI::Vector, BEMProblem<dim>> cc(
+    *this, constraints, constraints_imag, constr_cpu_set, mpi_communicator);
+
+  cc.distribute_rhs(system_rhs_complex);
+  system_rhs_complex.compress(VectorOperation::insert);
+
+  if (solution_method == "Direct")
+    {
+      // TODO: find a way to assemble a double size preconditioner
+      TrilinosWrappers::SparseMatrix    band_system_complex;
+      TrilinosWrappers::PreconditionILU preconditioner_complex;
+      TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern_complex;
+      preconditioner_sparsity_pattern_complex.reinit(complex_cpu_set,
+                                                     mpi_communicator,
+                                                     (types::global_dof_index)
+                                                       preconditioner_band);
+
+      for (auto i : this_cpu_set)
+        {
+          auto from = (i >= preconditioner_band / 2) ?
+                        (i - preconditioner_band / 2) :
+                        (types::global_dof_index)0;
+          auto to =
+            std::min((types::global_dof_index)(i + preconditioner_band / 2),
+                     this_cpu_set.size());
+
+          for (auto j = from; j < to; ++j)
+            {
+              preconditioner_sparsity_pattern_complex.add(i, j);
+              preconditioner_sparsity_pattern_complex.add(
+                i + this_cpu_set.size(), j + this_cpu_set.size());
+            }
+        }
+      preconditioner_sparsity_pattern_complex.compress();
+      band_system_complex.reinit(preconditioner_sparsity_pattern_complex);
+
+      for (auto i : this_cpu_set)
+        {
+          if (constraints.is_constrained(i))
+            {
+              band_system_complex.add(i, i, 1);
+              band_system_complex.add(i + this_cpu_set.size(),
+                                      i + this_cpu_set.size(),
+                                      1);
+            }
+          else
+            {
+              auto from = (i >= preconditioner_band / 2) ?
+                            (i - preconditioner_band / 2) :
+                            (types::global_dof_index)0;
+              auto to =
+                std::min((types::global_dof_index)i + preconditioner_band / 2,
+                         this_cpu_set.size());
+
+              for (auto j = from; j < to; ++j)
+                {
+                  if (dirichlet_nodes(i) == 0)
+                    {
+                      band_system_complex.add(i, j, neumann_matrix(i, j));
+                      band_system_complex.add(i + this_cpu_set.size(),
+                                              j + this_cpu_set.size(),
+                                              neumann_matrix(i, j));
+                      // with Robin nodes, the only paired value appears at
+                      // this_cpu_set.size() columns on the right - this is only
+                      // engaged in very small problems
+                      if ((robin_nodes(i) == 1) &&
+                          (i + this_cpu_set.size() == j))
+                        {
+                          band_system_complex.add(i,
+                                                  j,
+                                                  -dirichlet_matrix(i, i) *
+                                                    robin_matrix_diagonal_imag(
+                                                      i));
+                          band_system_complex.add(j,
+                                                  i,
+                                                  dirichlet_matrix(i, i) *
+                                                    robin_matrix_diagonal(i));
+                        }
+
+                      if (i == j)
+                        {
+                          band_system_complex.add(i, j, alpha(i));
+                          band_system_complex.add(i + this_cpu_set.size(),
+                                                  j + this_cpu_set.size(),
+                                                  alpha(i));
+
+                          if (robin_nodes(i) == 1)
+                            {
+                              band_system_complex.add(i,
+                                                      j,
+                                                      dirichlet_matrix(i, j) *
+                                                        robin_matrix_diagonal(
+                                                          i));
+                              band_system_complex.add(
+                                i,
+                                j,
+                                dirichlet_matrix(i, j) *
+                                  robin_matrix_diagonal_imag(i));
+                            }
+                        }
+                    }
+                  else
+                    {
+                      band_system_complex.add(i, j, -dirichlet_matrix(i, j));
+                      band_system_complex.add(i + this_cpu_set.size(),
+                                              j + this_cpu_set.size(),
+                                              -dirichlet_matrix(i, j));
+                    }
+                }
+            }
+        }
+      preconditioner_complex.initialize(band_system_complex);
+
+      sol_complex.sadd(1., 0., system_rhs_complex);
+      solver.solve(cc, sol_complex, system_rhs_complex, preconditioner_complex);
+    }
+  else
+    {
+      AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
+      AssertThrow(false, ExcMessage("Unimplemented"));
+
+      TrilinosWrappers::PreconditionILU &fma_preconditioner =
+        fma.FMA_preconditioner(alpha, constraints);
+      solver.solve(cc, sol, system_rhs, fma_preconditioner);
+    }
+
+  for (auto i : this_cpu_set)
+    {
+      if (neumann_nodes(i) == 1)
+        {
+          phi(i)      = sol_complex(i);
+          phi_imag(i) = sol_complex(i + this_cpu_set.size());
+        }
+      else if (dirichlet_nodes(i) == 1)
+        {
+          dphi_dn(i)      = sol_complex(i);
+          dphi_dn_imag(i) = sol_complex(i + this_cpu_set.size());
+        }
+      else
+        {
+          Assert(robin_nodes(i) == 1, ExcInternalError());
+          phi(i)      = sol_complex(i);
+          phi_imag(i) = sol_complex(i + this_cpu_set.size());
+          // retrieval of dphi_dn using complex coefficients
+          std::complex<double> c0_c1(robin_matrix_diagonal(i),
+                                     robin_matrix_diagonal_imag(i));
+          std::complex<double> c2_c1(robin_rhs(i), robin_rhs_imag(i));
+          std::complex<double> ph(phi(i), phi_imag(i));
+          std::complex<double> dph_dn(c2_c1 - c0_c1 * ph);
+          dphi_dn(i)      = std::real(dph_dn);
+          dphi_dn_imag(i) = std::imag(dph_dn);
+        }
+    }
+
+  phi(this_cpu_set.nth_index_in_set(0)) = phi(this_cpu_set.nth_index_in_set(0));
+  phi_imag(this_cpu_set.nth_index_in_set(0)) =
+    phi_imag(this_cpu_set.nth_index_in_set(0));
+  dphi_dn(this_cpu_set.nth_index_in_set(0)) =
+    dphi_dn(this_cpu_set.nth_index_in_set(0));
+  dphi_dn_imag(this_cpu_set.nth_index_in_set(0)) =
+    dphi_dn_imag(this_cpu_set.nth_index_in_set(0));
+  phi.compress(VectorOperation::insert);
+  phi_imag.compress(VectorOperation::insert);
+  dphi_dn.compress(VectorOperation::insert);
+  dphi_dn_imag.compress(VectorOperation::insert);
+}
+
 // This method performs a Bem resolution,
 // either in a direct or multipole method
 template <int dim>
@@ -1722,6 +2133,35 @@ BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
 
 template <int dim>
 void
+BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
+                       TrilinosWrappers::MPI::Vector &      phi_imag,
+                       TrilinosWrappers::MPI::Vector &      dphi_dn,
+                       TrilinosWrappers::MPI::Vector &      dphi_dn_imag,
+                       const TrilinosWrappers::MPI::Vector &tmp_rhs,
+                       const TrilinosWrappers::MPI::Vector &tmp_rhs_imag,
+                       bool                                 reset_matrix)
+{
+  if (reset_matrix)
+    {
+      if (solution_method == "Direct")
+        {
+          assemble_system();
+        }
+      else
+        {
+          AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
+
+          fma.generate_octree_blocking();
+          fma.direct_integrals();
+          fma.multipole_integrals();
+        }
+    }
+
+  solve_system(phi, phi_imag, dphi_dn, dphi_dn_imag, tmp_rhs, tmp_rhs_imag);
+}
+
+template <int dim>
+void
 BEMProblem<dim>::compute_constraints(
   IndexSet                            &c_cpu_set,
   AffineConstraints<double>           &c,
@@ -1736,7 +2176,7 @@ BEMProblem<dim>::compute_constraints(
   // vector needed to set inhomogeneities has to be copied locally
   Vector<double> localized_surface_gradients(
     get_vector_surface_gradients_solution());
-  Vector<double> localized_normals(get_vector_normals_solution());
+  Vector<double> localized_normals(vector_normals_solution);
   Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
   Vector<double> localized_neumann_nodes(neumann_nodes);
   Vector<double> loc_tmp_rhs(tmp_rhs.size());
@@ -1996,6 +2436,12 @@ BEMProblem<dim>::assemble_preconditioner()
                   if (i == j)
                     {
                       band_system.add(i, j, alpha(i));
+                      // TODO: account for Robin node
+                      if (robin_nodes(i) == 1)
+                        {
+                          band_system.add(
+                            i, j, dirichlet_matrix(i, j) * robin_rhs(i));
+                        }
                     }
                 }
               else
@@ -2650,7 +3096,7 @@ void
 BEMProblem<dim>::compute_normals()
 {
   Teuchos::TimeMonitor LocalTimer(*NormalsTime);
-  get_vector_normals_solution().reinit(vector_this_cpu_set, mpi_communicator);
+  vector_normals_solution.reinit(vector_this_cpu_set, mpi_communicator);
 
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
@@ -2735,11 +3181,11 @@ BEMProblem<dim>::compute_normals()
   mass_prec.initialize(vector_normals_matrix);
 
   solver.solve(vector_normals_matrix,
-               get_vector_normals_solution(),
+               vector_normals_solution,
                vector_normals_rhs,
                mass_prec);
 
-  vector_constraints.distribute(get_vector_normals_solution());
+  vector_constraints.distribute(vector_normals_solution);
 }
 
 template <int dim>

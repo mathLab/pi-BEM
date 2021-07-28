@@ -118,10 +118,28 @@ public:
   parse_parameters(ParameterHandler &prm) override;
 
   void
-  prepare_bem_vectors();
+  prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs);
+
+  void
+  prepare_robin_datastructs(
+    TrilinosWrappers::MPI::Vector &robin_matrix_diagonal,
+    TrilinosWrappers::MPI::Vector &robin_rhs);
+
+  void
+  prepare_robin_datastructs(
+    TrilinosWrappers::MPI::Vector &robin_matrix_diagonal,
+    TrilinosWrappers::MPI::Vector &robin_matrix_diagonal_imag,
+    TrilinosWrappers::MPI::Vector &robin_rhs,
+    TrilinosWrappers::MPI::Vector &robin_rhs_imag);
 
   void
   solve_problem(bool reset_matrix = true);
+
+  // solves the complex problem where the real parts of b.conditions and Robin
+  // coefficients are given by the current component data structs, the imaginary
+  // parts from the next component
+  void
+  solve_complex_problem(bool reset_matrix = true);
 
   void
   output_results(const std::string);

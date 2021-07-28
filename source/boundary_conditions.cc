@@ -84,8 +84,6 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
 {
   prm.declare_entry("Output file name", "result", Patterns::Anything());
 
-  prm.declare_entry("Potential components", "1", Patterns::Integer());
-
   prm.enter_subsection("Wind function 2d");
   {
     Functions::ParsedFunction<2>::declare_parameters(prm, 2);
@@ -357,8 +355,12 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
   tmp_rhs.reinit(this_cpu_set, mpi_communicator);
 
   pcout << "Computing normal vector" << std::endl;
-  bem.compute_normals();
-  prepare_bem_vectors();
+  if (reset_matrix)
+    {
+      bem.compute_normals();
+    }
+  prepare_bem_vectors(tmp_rhs);
+  prepare_robin_datastructs(bem.robin_matrix_diagonal, bem.robin_rhs);
 
   bem.solve(get_phi(), get_dphi_dn(), tmp_rhs, reset_matrix);
   have_dirichlet_bc = bem.have_dirichlet_bc;
@@ -386,15 +388,113 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
 
 template <int dim>
 void
-BoundaryConditions<dim>::prepare_bem_vectors()
+BoundaryConditions<dim>::solve_complex_problem(bool reset_matrix)
 {
-  Teuchos::TimeMonitor          LocalTimer(*PrepareTime);
-  const types::global_dof_index n_dofs = bem.dh.n_dofs();
+  // real parts - current component
+  get_potential().set_time(0);
+  get_wind().set_time(0);
+  get_wallwind().set_time(0);
+  get_floorwind().set_time(0);
+  get_robin_coeffs().set_time(0);
+  // imaginary parts - next component
+  get_potential(current_component + 1).set_time(0);
+  get_wind(current_component + 1).set_time(0);
+  get_wallwind(current_component + 1).set_time(0);
+  get_floorwind(current_component + 1).set_time(0);
+  get_robin_coeffs(current_component + 1).set_time(0);
+
+  const types::global_dof_index    n_dofs = bem.dh.n_dofs();
+  std::vector<types::subdomain_id> dofs_domain_association(n_dofs);
+  DoFTools::get_subdomain_association(bem.dh, dofs_domain_association);
+  this_cpu_set.clear();
+  this_cpu_set = bem.this_cpu_set;
+  this_cpu_set.compress();
+
+  // real parts - current component
+  // get_phi().reinit(this_cpu_set, mpi_communicator);
+  // get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
+  tmp_rhs.reinit(this_cpu_set, mpi_communicator);
+  // imaginary parts - next component
+  // get_phi(current_component + 1).reinit(this_cpu_set, mpi_communicator);
+  // get_dphi_dn(current_component + 1).reinit(this_cpu_set, mpi_communicator);
+  TrilinosWrappers::MPI::Vector tmp_rhs_imag;
+  tmp_rhs_imag.reinit(this_cpu_set, mpi_communicator);
+
+  if (reset_matrix)
+    {
+      pcout << "Computing normal vector" << std::endl;
+      bem.compute_normals();
+    }
+  pcout << "Preparing BEM vectors - real" << std::endl;
+  // TODO: these calls waste the retrieval of the support points
+  // real parts - current component
+  prepare_bem_vectors(tmp_rhs);
+  // imaginary parts - next component
+  set_current_phi_component(current_component + 1);
+  pcout << "Preparing BEM vectors - imaginary" << std::endl;
+  prepare_bem_vectors(tmp_rhs_imag);
+  set_current_phi_component(current_component - 1);
+
+  pcout << "Preparing Robin data structures" << std::endl;
+  prepare_robin_datastructs(bem.robin_matrix_diagonal,
+                            bem.robin_matrix_diagonal_imag,
+                            bem.robin_rhs,
+                            bem.robin_rhs_imag);
+
+  pcout << "Solve complex problem" << std::endl;
+  bem.solve(get_phi(),
+            get_phi(current_component + 1),
+            get_dphi_dn(),
+            get_dphi_dn(current_component + 1),
+            tmp_rhs,
+            tmp_rhs_imag,
+            reset_matrix);
+  have_dirichlet_bc = bem.have_dirichlet_bc;
+  if (!have_dirichlet_bc)
+    {
+      pcout << "Computing phi shift of real part" << std::endl;
+      // TODO: it seems a bit wasteful to retrieve all n_dofs support pts
+      std::vector<Point<dim>> support_points(n_dofs);
+      DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
+                                                         bem.dh,
+                                                         support_points);
+      double shift = 0.0;
+      if (this_mpi_process == 0)
+        {
+          shift =
+            get_potential().value(support_points[*bem.this_cpu_set.begin()]) -
+            get_phi()(*bem.this_cpu_set.begin());
+        }
+      MPI_Bcast(&shift, 1, MPI_DOUBLE, 0, mpi_communicator);
+      vector_shift(get_phi(), shift);
+
+      pcout << "Phi shift of real part : " << shift << std::endl;
+      pcout << "Computing phi shift of imaginary part" << std::endl;
+      shift = 0.0;
+      if (this_mpi_process == 0)
+        {
+          shift = get_potential(current_component + 1)
+                    .value(support_points[*bem.this_cpu_set.begin()]) -
+                  get_phi(current_component + 1)(*bem.this_cpu_set.begin());
+        }
+      MPI_Bcast(&shift, 1, MPI_DOUBLE, 0, mpi_communicator);
+      vector_shift(get_phi(current_component + 1), shift);
+
+      pcout << "Phi shift of imaginary part : " << shift << std::endl;
+    }
+}
+
+template <int dim>
+void
+BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
+{
+  Teuchos::TimeMonitor LocalTimer(*PrepareTime);
 
   get_phi().reinit(this_cpu_set, mpi_communicator);
   get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
 
-  std::vector<Point<dim>> support_points(n_dofs);
+  const types::global_dof_index n_dofs = bem.dh.n_dofs();
+  std::vector<Point<dim>>       support_points(n_dofs);
   DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
                                                      bem.dh,
                                                      support_points);
@@ -413,11 +513,15 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                               update_values | update_normal_vectors |
                                 update_quadrature_points | update_JxW_values);
 
-  // TODO: this isn't very clean
-  bem.robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
-  bem.robin_rhs.reinit(this_cpu_set, mpi_communicator);
-  Vector<double> coeffs(3);
+  // pcout << "local_dof_indices elements: " << local_dof_indices.size()
+  //       << std::endl;
+  // pcout << "phi elements: " << get_phi().size() << std::endl;
+  // pcout << "dphi_dn elements: " << get_phi().size() << std::endl;
+  // pcout << "support_points elements: " << support_points.size() << std::endl;
+  // pcout << "vec_support_points elements: " << vec_support_points.size()
+  //       << std::endl;
 
+  Vector<double> coeffs(3);
   for (const auto &cell : bem.dh.active_cell_iterators())
     {
       fe_v.reinit(cell);
@@ -439,10 +543,10 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                                                   BoundaryType::freesurface),
                          ExcInternalError());
 
-                  get_phi()(local_dof_indices[j]) =
+                  // pcout << "Dirichlet node" << std::endl;
+                  rhs(local_dof_indices[j]) =
                     get_potential().value(support_points[local_dof_indices[j]]);
-                  tmp_rhs(local_dof_indices[j]) =
-                    get_phi()(local_dof_indices[j]);
+                  get_phi()(local_dof_indices[j]) = rhs(local_dof_indices[j]);
                 }
               else
                 {
@@ -454,8 +558,6 @@ BoundaryConditions<dim>::prepare_bem_vectors()
 
                   if (neumann)
                     {
-                      Vector<double> imposed_pot_grad(dim);
-
                       // TODO: update boundary conditions check and evaluation
                       Assert(
                         cell->boundary_id() == static_cast<types::boundary_id>(
@@ -466,6 +568,8 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                           cell->boundary_id() ==
                             static_cast<types::boundary_id>(BoundaryType::hull),
                         ExcInternalError());
+
+                      Vector<double> imposed_pot_grad(dim);
                       switch (static_cast<BoundaryType>(cell->boundary_id()))
                         {
                           case BoundaryType::floor:
@@ -489,6 +593,8 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                           default:
                             break;
                         }
+
+                      // pcout << "Neumann node" << std::endl;
                       double tmp_dphi_dn = 0;
                       double normy       = 0;
 
@@ -505,43 +611,163 @@ BoundaryConditions<dim>::prepare_bem_vectors()
                             ExcMessage(
                               "vector cpu set and cpu set are inconsistent"));
 
-                          tmp_dphi_dn +=
-                            imposed_pot_grad[d] *
-                            bem.get_vector_normals_solution()[vec_index];
-                          normy +=
-                            bem.get_vector_normals_solution()[vec_index] *
-                            bem.get_vector_normals_solution()[vec_index];
+                          tmp_dphi_dn += imposed_pot_grad[d] *
+                                         bem.vector_normals_solution[vec_index];
+                          normy += bem.vector_normals_solution[vec_index] *
+                                   bem.vector_normals_solution[vec_index];
                         }
 
-                      tmp_rhs(local_dof_indices[j])       = tmp_dphi_dn;
+                      rhs(local_dof_indices[j])           = tmp_dphi_dn;
                       get_dphi_dn()(local_dof_indices[j]) = tmp_dphi_dn;
                     }
                   else
                     {
+                      // pcout << "Robin node" << std::endl;
                       // TODO: is there a good initial value for the Robin
                       // nodes? possibly, setting tmp_rhs=coeffs(2) and phi =
                       // coeffs(2)/coeffs(0)
-                      tmp_rhs(local_dof_indices[j])       = 0;
+                      rhs(local_dof_indices[j])           = 0;
+                      get_phi()(local_dof_indices[j])     = 0;
                       get_dphi_dn()(local_dof_indices[j]) = 0;
-
-                      // evaluate robin coefficients
-                      // coeffs(0) * phi + coeffs(1) * dphi_dn = coeffs(2)
-                      get_robin_coeffs().vector_value(
-                        support_points[local_dof_indices[j]], coeffs);
-                      bem.robin_matrix_diagonal(local_dof_indices[j]) =
-                        coeffs(0) / coeffs(1);
-                      bem.robin_rhs(local_dof_indices[j]) =
-                        coeffs(2) / coeffs(1);
-
-                      // pcout << "set robin datastructs @ dof "
-                      //       << local_dof_indices[j] << std::endl;
                     }
                 }
             }
         }
     }
+}
 
-  // debug
+template <int dim>
+void
+BoundaryConditions<dim>::prepare_robin_datastructs(
+  TrilinosWrappers::MPI::Vector &robin_matrix_diagonal,
+  TrilinosWrappers::MPI::Vector &robin_rhs)
+{
+  Teuchos::TimeMonitor LocalTimer(*PrepareTime);
+
+  const types::global_dof_index n_dofs = bem.dh.n_dofs();
+  std::vector<Point<dim>>       support_points(n_dofs);
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
+                                                     bem.dh,
+                                                     support_points);
+
+  const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+  robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  robin_rhs.reinit(this_cpu_set, mpi_communicator);
+
+  Vector<double>                    coeffs(3);
+  std::set<types::global_dof_index> processed;
+  for (const auto &cell : bem.dh.active_cell_iterators())
+    {
+      bool dirichlet =
+        std::find(comp_dom.dirichlet_boundary_ids.begin(),
+                  comp_dom.dirichlet_boundary_ids.end(),
+                  cell->boundary_id()) != comp_dom.dirichlet_boundary_ids.end();
+      bool neumann =
+        std::find(comp_dom.neumann_boundary_ids.begin(),
+                  comp_dom.neumann_boundary_ids.end(),
+                  cell->boundary_id()) != comp_dom.neumann_boundary_ids.end();
+
+      if (!dirichlet && !neumann)
+        {
+          cell->get_dof_indices(local_dof_indices);
+          for (unsigned int j = 0; j < dofs_per_cell; ++j)
+            {
+              if (this_cpu_set.is_element(local_dof_indices[j]) &&
+                  !processed.count(local_dof_indices[j]))
+                {
+                  // evaluate robin coefficients
+                  // coeffs(0) * phi + coeffs(1) * dphi_dn = coeffs(2)
+                  get_robin_coeffs().vector_value(
+                    support_points[local_dof_indices[j]], coeffs);
+                  robin_matrix_diagonal(local_dof_indices[j]) =
+                    coeffs(0) / coeffs(1);
+                  robin_rhs(local_dof_indices[j]) = coeffs(2) / coeffs(1);
+
+                  // pcout << "set robin datastructs @ dof "
+                  //       << local_dof_indices[j] << std::endl;
+                  processed.insert(local_dof_indices[j]);
+                }
+            }
+        }
+    }
+}
+
+template <int dim>
+void
+BoundaryConditions<dim>::prepare_robin_datastructs(
+  TrilinosWrappers::MPI::Vector &robin_matrix_diagonal,
+  TrilinosWrappers::MPI::Vector &robin_matrix_diagonal_imag,
+  TrilinosWrappers::MPI::Vector &robin_rhs,
+  TrilinosWrappers::MPI::Vector &robin_rhs_imag)
+{
+  Teuchos::TimeMonitor LocalTimer(*PrepareTime);
+
+  const types::global_dof_index n_dofs = bem.dh.n_dofs();
+  std::vector<Point<dim>>       support_points(n_dofs);
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
+                                                     bem.dh,
+                                                     support_points);
+
+  const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+  robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  robin_rhs.reinit(this_cpu_set, mpi_communicator);
+  robin_matrix_diagonal_imag.reinit(this_cpu_set, mpi_communicator);
+  robin_rhs_imag.reinit(this_cpu_set, mpi_communicator);
+
+  Vector<double>                    coeffs(3);
+  Vector<double>                    coeffs_imag(3);
+  std::set<types::global_dof_index> processed;
+  for (const auto &cell : bem.dh.active_cell_iterators())
+    {
+      bool dirichlet =
+        std::find(comp_dom.dirichlet_boundary_ids.begin(),
+                  comp_dom.dirichlet_boundary_ids.end(),
+                  cell->boundary_id()) != comp_dom.dirichlet_boundary_ids.end();
+      bool neumann =
+        std::find(comp_dom.neumann_boundary_ids.begin(),
+                  comp_dom.neumann_boundary_ids.end(),
+                  cell->boundary_id()) != comp_dom.neumann_boundary_ids.end();
+
+      if (!dirichlet && !neumann)
+        {
+          cell->get_dof_indices(local_dof_indices);
+          for (unsigned int j = 0; j < dofs_per_cell; ++j)
+            {
+              if (this_cpu_set.is_element(local_dof_indices[j]) &&
+                  !processed.count(local_dof_indices[j]))
+                {
+                  // evaluate robin coefficients
+                  // coeffs(0) * phi + coeffs(1) * dphi_dn = coeffs(2)
+                  get_robin_coeffs().vector_value(
+                    support_points[local_dof_indices[j]], coeffs);
+                  get_robin_coeffs(current_component + 1)
+                    .vector_value(support_points[local_dof_indices[j]],
+                                  coeffs_imag);
+                  std::complex<double> c0(coeffs(0), coeffs_imag(0));
+                  std::complex<double> c1(coeffs(1), coeffs_imag(1));
+                  std::complex<double> c2(coeffs(2), coeffs_imag(2));
+
+                  std::complex<double> diag = c0 / c1;
+                  std::complex<double> rhs  = c2 / c1;
+
+                  robin_matrix_diagonal(local_dof_indices[j]) = std::real(diag);
+                  robin_matrix_diagonal_imag(local_dof_indices[j]) =
+                    std::imag(diag);
+                  robin_rhs(local_dof_indices[j])      = std::real(rhs);
+                  robin_rhs_imag(local_dof_indices[j]) = std::imag(rhs);
+
+                  // pcout << "set robin datastructs @ dof "
+                  //       << local_dof_indices[j] << " diag: " << diag
+                  //       << " rhs: " << rhs << std::endl;
+                  processed.insert(local_dof_indices[j]);
+                }
+            }
+        }
+    }
 }
 
 template <int dim>
@@ -556,7 +782,7 @@ BoundaryConditions<dim>::compute_errors()
   Vector<double> localized_dphi_dn(get_dphi_dn());
   Vector<double> localized_gradient_solution(
     bem.get_vector_gradients_solution()); // vector_gradients_solution
-  Vector<double> localised_normals(bem.get_vector_normals_solution());
+  Vector<double> localised_normals(bem.vector_normals_solution);
 
   // We let only the first processor do the error computations
   if (this_mpi_process == 0)
@@ -915,7 +1141,7 @@ BoundaryConditions<dim>::output_results(const std::string filename)
   const Vector<double> localized_gradients(bem.get_vector_gradients_solution());
   const Vector<double> localized_surf_gradients(
     bem.get_vector_surface_gradients_solution());
-  const Vector<double> localized_normals(bem.get_vector_normals_solution());
+  const Vector<double> localized_normals(bem.vector_normals_solution);
 
   if (this_mpi_process == 0)
     {

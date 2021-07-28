@@ -124,7 +124,8 @@ protected:
 
   ParameterHandler prm;
 
-  bool global_refinement;
+  bool          global_refinement;
+  std::set<int> complex_problems;
 
   const unsigned int n_mpi_processes;
   const unsigned int this_mpi_process;

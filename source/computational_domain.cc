@@ -128,7 +128,9 @@ ComputationalDomain<dim>::declare_parameters(ParameterHandler &prm)
       "1 - Floor wind\n"
       "2 - Wall wind\n"
       "3 - Potential\n"
-      "4 - Wind\n");
+      "4 - Wind\n"
+      "5 - Freesurface Robin coefficients\n"
+      "6 - Wall Robin coefficients\n");
   }
   prm.leave_subsection();
 

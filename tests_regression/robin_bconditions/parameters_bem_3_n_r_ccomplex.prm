@@ -1,0 +1,227 @@
+# Listing of Parameters
+# ---------------------
+subsection BEMFMA<3>
+  set Granularity for TBB simple for cycles = 10
+
+
+  subsection FMA Params
+    set FMA Truncation Order = 6
+  end
+
+  subsection Octree Params
+    set Maximum Number of Collocation Points per Childless Block = 20
+    set Number of Octree Levels                                  = 10
+  end
+
+end
+
+
+subsection BEMProblem<3>
+  set Continuos gradient across edges = true
+  set Mapping Q Degree                = 1
+  set Mapping Type                    = FE
+  set Preconditioner                  = ILU
+  set Solution method                 = Direct
+
+
+  subsection Quadrature rules
+    set Quadrature order          = 4
+    set Quadrature type           = gauss
+    set Singular quadrature order = 5
+  end
+
+  subsection Solver
+    set Log frequency = 1
+    set Log history   = false
+    set Log result    = true
+    set Max steps     = 100
+    set Tolerance     = 1.e-10
+  end
+
+end
+
+
+subsection BoundaryConditions<3>
+  set Output file name     = result
+
+  subsection Potential 3d
+    set Function constants  = 
+    set Function expression = x+y+z+2
+    set Variable names      = x,y,z,t
+  end
+
+  subsection Wind function 3d
+    set Function constants  = 
+    set Function expression = 1; 1; 1
+    set Variable names      = x,y,z,t
+  end
+  
+  subsection Floor wind 3d
+    set Function constants  = 
+    set Function expression = 1; 1; 1
+    set Variable names      = x,y,z,t
+  end
+
+  subsection Wall wind 3d
+    set Function constants  = 
+    set Function expression = 1; 1; 1
+    set Variable names      = x,y,z,t
+  end
+  
+  subsection Robin coefficients
+    set Function constants  = 
+    set Function expression = 1/(2*(x+y+z+2)); 1; x+y+z+1
+    set Variable names      = x,y,z,t
+  end 
+
+  subsection Potential 2 3d
+    set Function constants  = 
+    set Function expression = -x-y-z-2
+    set Variable names      = x,y,z,t
+  end
+
+  subsection Wind function 2 3d
+    set Function constants  = 
+    set Function expression = -1; -1; -1
+    set Variable names      = x,y,z,t
+  end
+  
+  subsection Floor wind 2 3d
+    set Function constants  = 
+    set Function expression = -1; -1; -1
+    set Variable names      = x,y,z,t
+  end
+
+  subsection Wall wind 2 3d
+    set Function constants  = 
+    set Function expression = -1; -1; -1
+    set Variable names      = x,y,z,t
+  end
+  
+  subsection Robin coefficients 2
+    set Function constants  = 
+    set Function expression = 1/(2*(x+y+z+2)); 0; -x-y-z
+    set Variable names      = x,y,z,t
+  end 
+
+end
+
+
+subsection ComputationalDomain<3>
+  set Axis x dimension                                                         = 1.
+  set Axis y dimension                                                         = 1.
+  set Axis z dimension                                                         = 1.
+  set Cad tolerance to projectors tolerance ratio                              = 100
+  set Cells per circle                                                         = 12
+  set Input grid format                                                        = inp
+  set Input grid name                                                          = grids/coarse_sphere_curves
+  set Input path to CAD files                                                  = grids/coarse_sphere_curves_iges/
+  set Max aspect ratio                                                         = 3.5
+  set Maximum number of curvature adaptive refinement cycles                   = 2
+  set Number of cycles                                                         = 2
+  set Number of global refinement to be executed before local refinement cycle = 0
+  set Surface curvature adaptive refinement                                    = true
+  set Use a spheroid                                                           = false
+  set Use iges surfaces and curves                                             = true
+
+
+  subsection Boundary Conditions ID Numbers
+    set Dirichlet boundary ids   = 110,110
+    set Neumann boundary ids     = 1,110,110
+    set Robin boundary ids       = 2,110,110
+    
+    # To be interpreted as a succession of key, value ids such that all cells
+    # assigned to manifold key will use boundary id value.
+    # The boundary conditions are resolved based on the latter, as follows:
+    # 1 - Floor wind
+    # 2 - Wall wind
+    # 3 - Potential
+    # 4 - Wind
+    # 5 - Robin b. conditions
+    set Manifold to boundary map = 0,3,1,1,2,5
+  end
+
+end
+
+
+subsection Driver<3>
+  set Potential components  = 2
+  set Set Global Refinement = true
+  set Complex components    = 1
+end
+
+
+subsection Scalar FE
+  # How to partition the finite element. This information can be used to
+  # construct block matrices and vectors, as well as to create names for
+  # solution vectors, or error tables. A repeated component is interpreted as
+  # a vector field, with dimension equal to the number of repetitions (up to
+  # 3). This is used in conjunction with a ParsedFiniteElement class, to
+  # generate arbitrary finite dimensional spaces.
+  set Blocking of the finite element = u
+
+  # The finite element space to use. For vector finite elements use the
+  # notation FESystem[FE_Q(2)^2-FE_DGP(1)] (e.g. Navier-Stokes).
+  set Finite element space           = FE_Q(1)
+end
+
+
+subsection Scalar data out
+  set Files to save in run directory = 
+  set Incremental run prefix         = 
+  set Output format                  = vtu
+  set Output partitioning            = false
+  set Problem base name              = solution
+  # Comma separated list of names for the components. If a name is repeated,
+  # then the repeated names are grouped into vectors.
+  set Solution names                 = u
+  set Subdivisions                   = 1
+end
+
+
+subsection Vector FE
+  # How to partition the finite element. This information can be used to
+  # construct block matrices and vectors, as well as to create names for
+  # solution vectors, or error tables. A repeated component is interpreted as
+  # a vector field, with dimension equal to the number of repetitions (up to
+  # 3). This is used in conjunction with a ParsedFiniteElement class, to
+  # generate arbitrary finite dimensional spaces.
+  set Blocking of the finite element = u, u, u
+
+  # The finite element space to use. For vector finite elements use the
+  # notation FESystem[FE_Q(2)^2-FE_DGP(1)] (e.g. Navier-Stokes).
+  set Finite element space           = FESystem[FE_Q(1)^3]
+end
+
+
+subsection Vector data out
+  set Files to save in run directory = 
+  set Incremental run prefix         = 
+  set Output format                  = vtu
+  set Output partitioning            = false
+  set Problem base name              = solution
+  # Comma separated list of names for the components. If a name is repeated,
+  # then the repeated names are grouped into vectors.
+  set Solution names                 = u
+  set Subdivisions                   = 1
+end
+
+
+subsection deal2lkit::ParsedGridRefinement
+  # Coarsening fraction.
+  set Bottom fraction                        = 0.1
+
+  # Maximum number of cells.
+  set Maximum number of cells (if available) = 0
+
+  # Maximum number of cells.
+  set Order (optimize)                       = 2
+
+  # Refinement strategy to use. fraction|number
+  set Refinement strategy                    = fraction
+
+  # Refinement fraction.
+  set Top fraction                           = 0.3
+end
+
+

@@ -363,8 +363,8 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
   prepare_robin_datastructs(bem.robin_matrix_diagonal, bem.robin_rhs);
 
   bem.solve(get_phi(), get_dphi_dn(), tmp_rhs, reset_matrix);
-  have_dirichlet_bc = bem.have_dirichlet_bc;
-  if (!have_dirichlet_bc)
+
+  if (!bem.can_determine_phi)
     {
       pcout << "Computing phi shift" << std::endl;
       // TODO: it seems a bit wasteful to retrieve all n_dofs support pts
@@ -449,8 +449,8 @@ BoundaryConditions<dim>::solve_complex_problem(bool reset_matrix)
             tmp_rhs,
             tmp_rhs_imag,
             reset_matrix);
-  have_dirichlet_bc = bem.have_dirichlet_bc;
-  if (!have_dirichlet_bc)
+
+  if (!bem.can_determine_phi)
     {
       pcout << "Computing phi shift of real part" << std::endl;
       // TODO: it seems a bit wasteful to retrieve all n_dofs support pts
@@ -521,6 +521,9 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
   // pcout << "vec_support_points elements: " << vec_support_points.size()
   //       << std::endl;
 
+  // Vector<double> localized_dirichlet_nodes(bem.dirichlet_nodes);
+  // Vector<double> localized_neumann_nodes(bem.neumann_nodes);
+
   Vector<double> coeffs(3);
   for (const auto &cell : bem.dh.active_cell_iterators())
     {
@@ -530,12 +533,7 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
         {
           if (this_cpu_set.is_element(local_dof_indices[j]))
             {
-              bool dirichlet =
-                std::find(comp_dom.dirichlet_boundary_ids.begin(),
-                          comp_dom.dirichlet_boundary_ids.end(),
-                          cell->boundary_id()) !=
-                comp_dom.dirichlet_boundary_ids.end();
-
+              bool dirichlet = bem.dirichlet_nodes(local_dof_indices[j]) == 1;
               if (dirichlet)
                 {
                   // TODO: update boundary conditions check, evaluation
@@ -550,12 +548,7 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
                 }
               else
                 {
-                  bool neumann =
-                    std::find(comp_dom.neumann_boundary_ids.begin(),
-                              comp_dom.neumann_boundary_ids.end(),
-                              cell->boundary_id()) !=
-                    comp_dom.neumann_boundary_ids.end();
-
+                  bool neumann = bem.neumann_nodes(local_dof_indices[j]) == 1;
                   if (neumann)
                     {
                       // TODO: update boundary conditions check and evaluation

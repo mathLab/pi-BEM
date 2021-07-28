@@ -522,6 +522,9 @@ public:
   /// for Neumann nodes
   TrilinosWrappers::MPI::Vector neumann_nodes;
   TrilinosWrappers::MPI::Vector robin_nodes;
+  TrilinosWrappers::MPI::Vector dirichlet_flags;
+  TrilinosWrappers::MPI::Vector neumann_flags;
+  TrilinosWrappers::MPI::Vector robin_flags;
 
   /// The IndexSet for the problem without considering any ghost element for the
   /// scalar FE
@@ -552,7 +555,7 @@ public:
   std::vector<types::global_dof_index> vec_original_to_sub_wise;
   std::vector<types::global_dof_index> vec_sub_wise_to_original;
 
-  bool have_dirichlet_bc;
+  bool can_determine_phi;
 
   BEMFMA<dim> fma;
 };

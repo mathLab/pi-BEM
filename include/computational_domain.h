@@ -256,7 +256,8 @@ public:
   std::vector<unsigned int> neumann_boundary_ids;
   std::vector<unsigned int> robin_boundary_ids;
 
-  std::map<unsigned int, unsigned int> manifold2boundary_map;
+  std::map<unsigned int, unsigned int> manifold2bcondition_map;
+  std::map<unsigned int, unsigned int> manifold2bcondition_slot_map;
 
   MPI_Comm mpi_communicator;
 

@@ -6,6 +6,7 @@
 
 using namespace std;
 
+#include "../include/boundary_conditions.h"
 #include "../include/computational_domain.h"
 
 // @sect4{ComputationalDomain::ComputationalDomain and
@@ -110,27 +111,19 @@ ComputationalDomain<dim>::declare_parameters(ParameterHandler &prm)
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
     prm.declare_entry("Dirichlet boundary ids",
-                      "1,110,110",
-                      Patterns::List(Patterns::Integer(0)));
-    prm.declare_entry("Neumann boundary ids",
                       "0,110,110",
                       Patterns::List(Patterns::Integer(0)));
+    prm.declare_entry("Neumann boundary ids",
+                      "1",
+                      Patterns::List(Patterns::Integer(0)));
     prm.declare_entry("Robin boundary ids",
-                      "2,110,110",
+                      "2",
                       Patterns::List(Patterns::Integer(0)));
     prm.declare_entry(
-      "Manifold to boundary map",
-      "0,0,1,1",
+      "Manifold to boundary slot map",
+      "0,0, 1,0, 2,0",
       Patterns::List(Patterns::Integer(0)),
-      "To be interpreted as a succession of key, value ids such that all cells\n"
-      "assigned to manifold key will use boundary id value.\n"
-      "The boundary conditions are resolved based on the latter, as follows:\n"
-      "1 - Floor wind\n"
-      "2 - Wall wind\n"
-      "3 - Potential\n"
-      "4 - Wind\n"
-      "5 - Freesurface Robin coefficients\n"
-      "6 - Wall Robin coefficients\n");
+      "For each manifold, specify the boundary condition slot identifying the function to be used\n");
   }
   prm.leave_subsection();
 
@@ -169,7 +162,7 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Boundary Conditions ID Numbers");
   {
-    manifold2boundary_map.clear();
+    manifold2bcondition_map.clear();
 
     std::vector<std::string> dirichlet_string_list =
       Utilities::split_string_list(prm.get("Dirichlet boundary ids"));
@@ -178,8 +171,8 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
       {
         std::istringstream reader(dirichlet_string_list[i]);
         reader >> dirichlet_boundary_ids[i];
-        manifold2boundary_map[dirichlet_boundary_ids[i]] =
-          dirichlet_boundary_ids[i];
+        manifold2bcondition_map[dirichlet_boundary_ids[i]] =
+          BoundaryConditionType::dirichlet;
       }
 
     std::vector<std::string> neumann_string_list =
@@ -189,8 +182,17 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
       {
         std::istringstream reader(neumann_string_list[i]);
         reader >> neumann_boundary_ids[i];
-        manifold2boundary_map[neumann_boundary_ids[i]] =
-          neumann_boundary_ids[i];
+
+        auto find = std::find(dirichlet_boundary_ids.begin(),
+                              dirichlet_boundary_ids.end(),
+                              neumann_boundary_ids[i]);
+        AssertThrow(
+          find == dirichlet_boundary_ids.end(),
+          ExcMessage(
+            "Found overlap between Dirichlet boundary ids and Neumann's"));
+
+        manifold2bcondition_map[neumann_boundary_ids[i]] =
+          BoundaryConditionType::neumann;
       }
 
     std::vector<std::string> robin_string_list =
@@ -200,31 +202,63 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
       {
         std::istringstream reader(robin_string_list[i]);
         reader >> robin_boundary_ids[i];
-        manifold2boundary_map[robin_boundary_ids[i]] = robin_boundary_ids[i];
+
+        auto find = std::find(dirichlet_boundary_ids.begin(),
+                              dirichlet_boundary_ids.end(),
+                              robin_boundary_ids[i]);
+        AssertThrow(
+          find == dirichlet_boundary_ids.end(),
+          ExcMessage(
+            "Found overlap between Dirichlet boundary ids and Robin's"));
+        find = std::find(neumann_boundary_ids.begin(),
+                         neumann_boundary_ids.end(),
+                         robin_boundary_ids[i]);
+        AssertThrow(
+          find == neumann_boundary_ids.end(),
+          ExcMessage("Found overlap between Neumann boundary ids and Robin's"));
+
+        manifold2bcondition_map[robin_boundary_ids[i]] =
+          BoundaryConditionType::robin;
       }
 
-    std::vector<std::string> manifold2boundary_list =
-      Utilities::split_string_list(prm.get("Manifold to boundary map"));
-    if (manifold2boundary_list.size())
+    manifold2bcondition_slot_map.clear();
+    std::vector<std::string> slots_string_list =
+      Utilities::split_string_list(prm.get("Manifold to boundary slot map"));
+    Assert(slots_string_list.size() % 2 == 0, ExcInternalError());
+    for (unsigned int i = 0; i < slots_string_list.size(); i += 2)
       {
-        Assert(manifold2boundary_list.size() % 2 == 0, ExcInternalError());
-        // read the list a pair at a time
-        for (unsigned int i = 0; i < manifold2boundary_list.size(); i += 2)
-          {
-            std::istringstream key_reader(manifold2boundary_list[i]);
-            std::istringstream value_reader(manifold2boundary_list[i + 1]);
-            types::manifold_id manifold;
-            key_reader >> manifold;
-            value_reader >> manifold2boundary_map[manifold];
-          }
+        std::istringstream key_reader(slots_string_list[i]);
+        std::istringstream value_reader(slots_string_list[i + 1]);
+        types::manifold_id manifold;
+        key_reader >> manifold;
+        value_reader >> manifold2bcondition_slot_map[manifold];
+        AssertIndexRange(manifold2bcondition_slot_map[manifold],
+                         BoundaryConditions<dim>::MAX_CONDITION_SLOTS);
       }
   }
   prm.leave_subsection();
 
   pcout << "Manifold to boundary map is:" << std::endl;
-  for (const auto &pair : manifold2boundary_map)
+  for (const auto &pair : manifold2bcondition_map)
     {
-      pcout << "manifold " << pair.first << " is on boundary " << pair.second
+      pcout << "manifold " << pair.first << " is of type ";
+      switch (pair.second)
+        {
+          case BoundaryConditionType::dirichlet:
+            pcout << "dirichlet";
+            break;
+          case BoundaryConditionType::neumann:
+            pcout << "neumann";
+            break;
+          case BoundaryConditionType::robin:
+            pcout << "robin";
+            break;
+          case BoundaryConditionType::invalid:
+          default:
+            pcout << "invalid";
+            break;
+        }
+      pcout << " with slot " << manifold2bcondition_slot_map[pair.first]
             << std::endl;
     }
 }
@@ -331,8 +365,8 @@ ComputationalDomain<dim>::read_domain()
         }
 
       // once manifold id are applied correctly
-      auto iter = manifold2boundary_map.find(cell->manifold_id());
-      if (cell->at_boundary() && iter != manifold2boundary_map.end())
+      auto iter = manifold2bcondition_map.find(cell->manifold_id());
+      if (cell->at_boundary() && iter != manifold2bcondition_map.end())
         {
           // cell->set_all_boundary_ids(iter->second);
           cell->set_boundary_id(iter->second);

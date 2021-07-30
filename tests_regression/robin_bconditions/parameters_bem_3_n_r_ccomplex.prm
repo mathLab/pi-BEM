@@ -42,68 +42,79 @@ end
 
 
 subsection BoundaryConditions<3>
-  set Output file name     = result
+  set Output file name = result
 
-  subsection Potential 3d
+  subsection Potential 0 0 3d
     set Function constants  = 
     set Function expression = x+y+z+2
     set Variable names      = x,y,z,t
   end
 
-  subsection Wind function 3d
+  subsection Potential 0 1 3d
     set Function constants  = 
-    set Function expression = 1; 1; 1
+    set Function expression = x+y+z
     set Variable names      = x,y,z,t
   end
-  
-  subsection Floor wind 3d
+
+  subsection Wind function 0 0 3d
     set Function constants  = 
     set Function expression = 1; 1; 1
     set Variable names      = x,y,z,t
   end
 
-  subsection Wall wind 3d
+  subsection Wind function 0 1 3d
     set Function constants  = 
     set Function expression = 1; 1; 1
     set Variable names      = x,y,z,t
   end
   
-  subsection Robin coefficients
+  subsection Robin coefficients 0 0 3d
     set Function constants  = 
     set Function expression = 1/(2*(x+y+z+2)); 1; x+y+z+1
     set Variable names      = x,y,z,t
-  end 
+  end
 
-  subsection Potential 2 3d
+  subsection Robin coefficients 0 1 3d
+    set Function constants  = 
+    set Function expression = 1/(2*(x+y+z+2)); 1; x+y+z+1
+    set Variable names      = x,y,z,t
+  end
+
+  subsection Potential 1 0 3d
     set Function constants  = 
     set Function expression = -x-y-z-2
     set Variable names      = x,y,z,t
   end
 
-  subsection Wind function 2 3d
+  subsection Potential 1 1 3d
     set Function constants  = 
-    set Function expression = -1; -1; -1
+    set Function expression = -x-y-z-2
     set Variable names      = x,y,z,t
   end
-  
-  subsection Floor wind 2 3d
+
+  subsection Wind function 1 0 3d
     set Function constants  = 
     set Function expression = -1; -1; -1
     set Variable names      = x,y,z,t
   end
 
-  subsection Wall wind 2 3d
+  subsection Wind function 1 1 3d
     set Function constants  = 
     set Function expression = -1; -1; -1
     set Variable names      = x,y,z,t
   end
   
-  subsection Robin coefficients 2
+  subsection Robin coefficients 1 0 3d
     set Function constants  = 
     set Function expression = 1/(2*(x+y+z+2)); 0; -x-y-z
     set Variable names      = x,y,z,t
   end 
 
+  subsection Robin coefficients 1 1 3d
+    set Function constants  = 
+    set Function expression = 1/(2*(x+y+z+2)); 0; -x-y-z
+    set Variable names      = x,y,z,t
+  end
 end
 
 
@@ -127,18 +138,12 @@ subsection ComputationalDomain<3>
 
   subsection Boundary Conditions ID Numbers
     set Dirichlet boundary ids   = 110,110
-    set Neumann boundary ids     = 1,110,110
-    set Robin boundary ids       = 2,110,110
-    
-    # To be interpreted as a succession of key, value ids such that all cells
-    # assigned to manifold key will use boundary id value.
-    # The boundary conditions are resolved based on the latter, as follows:
-    # 1 - Floor wind
-    # 2 - Wall wind
-    # 3 - Potential
-    # 4 - Wind
-    # 5 - Robin b. conditions
-    set Manifold to boundary map = 0,3,1,1,2,5
+    set Neumann boundary ids     = 1
+    set Robin boundary ids       = 2
+
+    # For each manifold, specify the boundary condition slot identifying the
+    # function to be used
+    set Manifold to boundary slot map = 0,0, 1,0, 2,0
   end
 
 end

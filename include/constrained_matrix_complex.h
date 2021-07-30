@@ -13,20 +13,20 @@
 // Authors: Nicola Giuliani, Andrea Mola, Luca Heltai
 
 #ifndef __deal2__constrained_matrix_complex_h
-#  define __deal2__constrained_matrix_complex_h
+#define __deal2__constrained_matrix_complex_h
 
-#  include <deal.II/base/config.h>
+#include <deal.II/base/config.h>
 
-#  include <deal.II/base/memory_consumption.h>
-#  include <deal.II/base/smartpointer.h>
-#  include <deal.II/base/thread_management.h>
-#  include <deal.II/base/types.h>
+#include <deal.II/base/memory_consumption.h>
+#include <deal.II/base/smartpointer.h>
+#include <deal.II/base/thread_management.h>
+#include <deal.II/base/types.h>
 
-#  include <deal.II/lac/affine_constraints.h>
-#  include <deal.II/lac/vector_memory.h>
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/vector_memory.h>
 
-#  include <algorithm>
-#  include <vector>
+#include <algorithm>
+#include <vector>
 
 DEAL_II_NAMESPACE_OPEN
 
@@ -34,17 +34,6 @@ template <typename number>
 class Vector;
 template <class VECTOR>
 class ConstrainedMatrixBlock;
-
-
-/*! @addtogroup Matrix2
- *@{
- */
-
-
-/**
- *
- * @author Luca Heltai 2011
- */
 
 template <class VEC, class MATRIX>
 class ConstrainedComplexOperator
@@ -97,13 +86,6 @@ private:
   unsigned int this_mpi_process;
 };
 
-/*@}*/
-/*---------------------- Inline functions -----------------------------------*/
-
-
-//--------------------------------Iterators--------------------------------------//
-
-
 template <class VEC, class MATRIX>
 void
 ConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
@@ -112,11 +94,6 @@ ConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
   // store localized constrained values
   VEC loc_src(constr_cpu_set_complex);
   loc_src.reinit(src, false, true);
-
-  // std::cout<<"in vector "<<std::endl;
-  // for (unsigned int i = 0; i < src.size(); i++)
-  //     if (src.locally_owned_elements().is_element(i))
-  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<loc_src(i)<<std::endl;
 
   // split into real, imag
   c_src      = 0;
@@ -144,14 +121,10 @@ ConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
   matrix.vmult(c_dst, c_src);
   c_dst.compress(VectorOperation::add);
 
-  // for (unsigned int i = 0; i < src.size(); ++i)
   for (auto i : matrix.this_cpu_set)
     {
-      // if ((constraints.is_constrained(i)) &&
-      //     (src.locally_owned_elements().is_element(i)))
       if (constraints.is_constrained(i))
         {
-          // dst(i) -= dst(i);
           dst(i) += src(i) - dst(i);
           dst(i + imag_offset) += src(i + imag_offset) - dst(i + imag_offset);
 
@@ -159,17 +132,12 @@ ConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
             {
               dst(i) -= entry.second * loc_src(entry.first);
             }
-          // can the coefficients be different? or, this is just a repeat of the
-          // first loop with an offset?
+
           for (const auto &entry : *constraints_imag.get_constraint_entries(i))
             {
               dst(i + imag_offset) -=
                 entry.second * loc_src(entry.first + imag_offset);
             }
-          // const std::vector<std::pair<types::global_dof_index, double>>
-          //   *entries = constraints.get_constraint_entries(i);
-          // for (unsigned int j = 0; j < entries->size(); ++j)
-          //   dst(i) -= (*entries)[j].second * loc_src((*entries)[j].first);
         }
       else
         {
@@ -179,17 +147,6 @@ ConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
     }
 
   dst.compress(VectorOperation::add);
-  // constraints.condense(dst);
-  // std::cout<<"out vector "<<std::endl;
-  // for (unsigned int i = 0; i < dst.size(); i++)
-  //     if (dst.locally_owned_elements().is_element(i))
-  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<dst(i)<<std::endl;
-
-  // std::cout<<"check vector "<<std::endl;
-  // for (unsigned int i = 0; i < dst.size(); i++)
-  //     if (dst.locally_owned_elements().is_element(i) &&
-  //     !(dummy.is_element(i)))
-  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<dst(i)<<std::endl;
 }
 
 template <class VEC, class MATRIX>
@@ -217,4 +174,3 @@ ConstrainedComplexOperator<VEC, MATRIX>::distribute_rhs(VEC &rhs) const
 DEAL_II_NAMESPACE_CLOSE
 
 #endif
-/*----------------------------   filtered_matrix.h ---------------------------*/

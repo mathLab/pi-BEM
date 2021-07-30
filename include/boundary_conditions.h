@@ -62,7 +62,17 @@
 
 #include "../include/bem_problem.h"
 #include "../include/computational_domain.h"
+
 using namespace dealii;
+
+enum BoundaryConditionType
+{
+  dirichlet,
+  neumann,
+  robin,
+  invalid
+};
+
 /**
  * - BoundaryCondition. The class handles the boundary conditions. In particular
  *   - it reads the boundary conditions for the potential and its normal
@@ -76,15 +86,8 @@ template <int dim>
 class BoundaryConditions : public ParameterAcceptor
 {
 public:
-  enum class BoundaryType : types::boundary_id
-  {
-    invalid           = 0,
-    floor             = 1, // neumann
-    wall              = 2, // neumann
-    freesurface       = 3, // dirichlet
-    hull              = 4, // neumann
-    freesurface_robin = 5, // robin
-  };
+  static constexpr unsigned int MAX_COMPONENTS      = 14;
+  static constexpr unsigned int MAX_CONDITION_SLOTS = 2;
 
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
                      BEMProblem<dim> &         bem,
@@ -92,11 +95,9 @@ public:
                      unsigned int              n_components = 1)
     : n_components(n_components)
     , current_component(0)
-    , winds(n_components)
-    , potentials(n_components)
-    , wallwinds(n_components)
-    , floorwinds(n_components)
-    , robin_coeffs(n_components)
+    , winds(n_components * MAX_CONDITION_SLOTS)
+    , potentials(n_components * MAX_CONDITION_SLOTS)
+    , robin_coeffs(n_components * MAX_CONDITION_SLOTS)
     , comp_dom(comp_dom)
     , bem(bem)
     , phis(n_components)
@@ -145,7 +146,7 @@ public:
   output_results(const std::string);
 
   void
-  compute_errors();
+  compute_errors(bool complex, bool current_is_real);
 
   // the components are activated one at a time
   unsigned int
@@ -160,11 +161,9 @@ public:
     AssertIndexRange(this->n_components, n_components + 1);
     if (this->n_components != n_components)
       {
-        winds.resize(n_components);
-        potentials.resize(n_components);
-        wallwinds.resize(n_components);
-        floorwinds.resize(n_components);
-        robin_coeffs.resize(n_components);
+        winds.resize(n_components * MAX_CONDITION_SLOTS);
+        potentials.resize(n_components * MAX_CONDITION_SLOTS);
+        robin_coeffs.resize(n_components * MAX_CONDITION_SLOTS);
         phis.resize(n_components);
         dphi_dns.resize(n_components);
 
@@ -189,70 +188,47 @@ public:
   // wrap extraction of current component; public interface retrieves const&
   // objects
   // The argument-less methods retrieve the current component
-  const Functions::ParsedFunction<dim> &
-  get_wind() const
-  {
-    return *winds[current_component];
-  }
+  // const Functions::ParsedFunction<dim> &
+  // get_wind(unsigned int slot) const
+  // {
+  //   return *winds[current_component * MAX_CONDITION_SLOTS + slot];
+  // }
 
-  const Functions::ParsedFunction<dim> &
-  get_potential() const
-  {
-    return *potentials[current_component];
-  }
+  // const Functions::ParsedFunction<dim> &
+  // get_potential(unsigned int slot) const
+  // {
+  //   return *potentials[current_component * MAX_CONDITION_SLOTS + slot];
+  // }
 
-  const Functions::ParsedFunction<dim> &
-  get_wallwind() const
-  {
-    return *wallwinds[current_component];
-  }
-
-  const Functions::ParsedFunction<dim> &
-  get_floorwind() const
-  {
-    return *floorwinds[current_component];
-  }
-
-  const Functions::ParsedFunction<dim> &
-  get_robin_coeffs() const
-  {
-    return *robin_coeffs[current_component];
-  }
+  // const Functions::ParsedFunction<dim> &
+  // get_robin_coeffs(unsigned int slot) const
+  // {
+  //   return *robin_coeffs[current_component * MAX_CONDITION_SLOTS + slot];
+  // }
 
   // otherwise, explicitly request the desired component
   const Functions::ParsedFunction<dim> &
-  get_wind(unsigned int component) const
+  get_wind(unsigned int component, unsigned int slot) const
   {
-    AssertIndexRange(component, n_components);
-    return *winds[component];
+    AssertIndexRange(component * MAX_CONDITION_SLOTS + slot,
+                     n_components * MAX_CONDITION_SLOTS);
+    return *winds[component * MAX_CONDITION_SLOTS + slot];
   }
 
   const Functions::ParsedFunction<dim> &
-  get_potential(unsigned int component) const
+  get_potential(unsigned int component, unsigned int slot) const
   {
-    AssertIndexRange(component, n_components);
-    return *potentials[component];
+    AssertIndexRange(component * MAX_CONDITION_SLOTS + slot,
+                     n_components * MAX_CONDITION_SLOTS);
+    return *potentials[component * MAX_CONDITION_SLOTS + slot];
   }
 
   const Functions::ParsedFunction<dim> &
-  get_wallwind(unsigned int component) const
+  get_robin_coeffs(unsigned int component, unsigned int slot) const
   {
-    AssertIndexRange(component, n_components);
-    return *wallwinds[component];
-  }
-
-  const Functions::ParsedFunction<dim> &
-  get_floorwind(unsigned int component) const
-  {
-    AssertIndexRange(component, n_components);
-    return *floorwinds[component];
-  }
-
-  const Functions::ParsedFunction<dim> &
-  get_robin_coeffs(unsigned int component) const
-  {
-    AssertIndexRange(component, n_components);
-    return *robin_coeffs[component];
+    AssertIndexRange(component * MAX_CONDITION_SLOTS + slot,
+                     n_components * MAX_CONDITION_SLOTS);
+    return *robin_coeffs[component * MAX_CONDITION_SLOTS + slot];
   }
 
   // same as above, for the Vectors; however, retrieve non-const&
@@ -377,81 +353,36 @@ public:
   std::string output_file_name;
 
 protected:
-  // wrap extraction of current component
+  // non const extractors: needed for set_time
   Functions::ParsedFunction<dim> &
-  get_wind()
+  get_wind(unsigned int component, unsigned int slot)
   {
-    return *winds[current_component];
+    AssertIndexRange(component * MAX_CONDITION_SLOTS + slot,
+                     n_components * MAX_CONDITION_SLOTS);
+    return *winds[component * MAX_CONDITION_SLOTS + slot];
   }
 
   Functions::ParsedFunction<dim> &
-  get_potential()
+  get_potential(unsigned int component, unsigned int slot)
   {
-    return *potentials[current_component];
+    AssertIndexRange(component * MAX_CONDITION_SLOTS + slot,
+                     n_components * MAX_CONDITION_SLOTS);
+    return *potentials[component * MAX_CONDITION_SLOTS + slot];
   }
 
   Functions::ParsedFunction<dim> &
-  get_wallwind()
+  get_robin_coeffs(unsigned int component, unsigned int slot)
   {
-    return *wallwinds[current_component];
+    AssertIndexRange(component * MAX_CONDITION_SLOTS + slot,
+                     n_components * MAX_CONDITION_SLOTS);
+    return *robin_coeffs[component * MAX_CONDITION_SLOTS + slot];
   }
-
-  Functions::ParsedFunction<dim> &
-  get_floorwind()
-  {
-    return *floorwinds[current_component];
-  }
-
-  Functions::ParsedFunction<dim> &
-  get_robin_coeffs()
-  {
-    return *robin_coeffs[current_component];
-  }
-
-  // otherwise, explicitly request the desired component
-  Functions::ParsedFunction<dim> &
-  get_wind(unsigned int component)
-  {
-    AssertIndexRange(component, n_components);
-    return *winds[component];
-  }
-
-  Functions::ParsedFunction<dim> &
-  get_potential(unsigned int component)
-  {
-    AssertIndexRange(component, n_components);
-    return *potentials[component];
-  }
-
-  Functions::ParsedFunction<dim> &
-  get_wallwind(unsigned int component)
-  {
-    AssertIndexRange(component, n_components);
-    return *wallwinds[component];
-  }
-
-  Functions::ParsedFunction<dim> &
-  get_floorwind(unsigned int component)
-  {
-    AssertIndexRange(component, n_components);
-    return *floorwinds[component];
-  }
-
-  Functions::ParsedFunction<dim> &
-  get_robin_coeffs(unsigned int component)
-  {
-    AssertIndexRange(component, n_components);
-    return *robin_coeffs[component];
-  }
-
-  static const unsigned int MAX_COMPS = 16;
 
   unsigned int n_components;
   unsigned int current_component;
+  // each vector holds MAX_COMPONENTS * MAX_CONDITION_SLOTS functions
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> winds;
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> potentials;
-  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> wallwinds;
-  std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> floorwinds;
   std::vector<std::unique_ptr<Functions::ParsedFunction<dim>>> robin_coeffs;
 
   std::string node_displacement_type;
@@ -476,7 +407,7 @@ protected:
 
   unsigned int this_mpi_process;
 
-  bool have_dirichlet_bc;
+  bool can_determine_phi;
 
   IndexSet this_cpu_set;
 

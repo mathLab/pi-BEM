@@ -67,6 +67,7 @@ template <int dim>
 void
 Driver<dim>::declare_parameters(ParameterHandler &prm)
 {
+  pcout << "Driver::declare_parameters" << std::endl;
   prm.declare_entry("Set Global Refinement", "true", Patterns::Bool());
   prm.declare_entry("Potential components", "1", Patterns::Integer());
   prm.declare_entry(
@@ -198,8 +199,23 @@ Driver<dim>::run()
           }
 
         boundary_conditions.set_current_phi_component(i);
-        MPI_Barrier(MPI_COMM_WORLD);
-        boundary_conditions.compute_errors();
+        if (!complex_problems.count(i))
+          {
+            pcout << "error for component " << i + 1 << std::endl;
+            boundary_conditions.compute_errors(false, true);
+          }
+        else
+          {
+            pcout << "error for components " << i + 1 << " real and " << i + 2
+                  << " imaginary" << std::endl;
+            boundary_conditions.compute_errors(true, true);
+            boundary_conditions.output_results(filename);
+
+            ++i;
+            filename += "_" + Utilities::int_to_string(i + 1);
+            boundary_conditions.set_current_phi_component(i);
+            boundary_conditions.compute_errors(true, false);
+          }
         boundary_conditions.output_results(filename);
       }
     boundary_conditions.set_current_phi_component(0);

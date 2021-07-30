@@ -72,9 +72,9 @@ Driver<dim>::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Potential components", "1", Patterns::Integer());
   prm.declare_entry(
     "Complex components",
-    "0",
+    "",
     Patterns::List(Patterns::Integer(0)),
-    "Lists the indices of the real components of complex-valued problems; 0 means no complex problem is present");
+    "Lists the indices of the real components of complex-valued problems; empty means no complex problem is present");
 }
 
 template <int dim>
@@ -88,6 +88,7 @@ Driver<dim>::parse_parameters(ParameterHandler &prm)
   boundary_conditions.set_n_phi_components(n_components);
   bem_problem.set_n_phi_components(n_components);
 
+  complex_problems.clear();
   std::vector<std::string> complex_problems_list =
     Utilities::split_string_list(prm.get("Complex components"));
   if (complex_problems_list.size())
@@ -100,13 +101,18 @@ Driver<dim>::parse_parameters(ParameterHandler &prm)
           if (id)
             {
               Assert(
-                complex_problems.count(id - 1) == 0 &&
-                  complex_problems.count(id) == 0,
+                complex_problems.count(id) == 0 &&
+                  complex_problems.count(id - 1) == 0,
                 ExcMessage(
-                  "Found soperposition of real and imaginary components of complex problems"))
-                complex_problems.insert(id - 1);
+                  "Found soperposition of real and imaginary components of complex problems"));
             }
+          complex_problems.insert(id);
         }
+    }
+
+  for (auto i : complex_problems)
+    {
+      pcout << "Found complex problem " << i << ", " << (i + 1) << std::endl;
     }
 }
 
@@ -150,14 +156,14 @@ Driver<dim>::run()
               boundary_conditions.set_current_phi_component(i);
               if (!complex_problems.count(i))
                 {
-                  pcout << "solving for component " << i + 1 << std::endl;
+                  pcout << "solving for component " << i << std::endl;
                   // this is a purely real problem
                   boundary_conditions.solve_problem(i == 0);
                 }
               else
                 {
-                  pcout << "solving for components " << i + 1 << " real and "
-                        << i + 2 << " imaginary" << std::endl;
+                  pcout << "solving for components " << i << " real and "
+                        << i + 1 << " imaginary" << std::endl;
                   // this is a complex-valued problem
                   boundary_conditions.solve_complex_problem(i == 0);
 

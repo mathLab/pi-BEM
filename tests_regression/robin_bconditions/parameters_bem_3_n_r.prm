@@ -116,7 +116,7 @@ end
 subsection Driver<3>
   set Potential components  = 1
   set Set Global Refinement = true
-  set Complex components    = 0
+  set Complex components    =
 end
 
 

@@ -353,23 +353,12 @@ ComputationalDomain<dim>::read_domain()
       used_spherical_manifold = true;
     }
 
-  // TODO: use manifold2boundary to traverse the mesh and set the proper values
   for (auto &cell : tria.active_cell_iterators())
     {
       // material to manifold; this is by default for .inp
       if (cell->material_id() && !cell->manifold_id())
         {
           cell->set_manifold_id(cell->material_id());
-          // pcout << "setting manifold " << cell->manifold_id()
-          //       << " from material " << cell->material_id() << std::endl;
-        }
-
-      // once manifold id are applied correctly
-      auto iter = manifold2bcondition_map.find(cell->manifold_id());
-      if (cell->at_boundary() && iter != manifold2bcondition_map.end())
-        {
-          // cell->set_all_boundary_ids(iter->second);
-          cell->set_boundary_id(iter->second);
         }
     }
 }
@@ -667,9 +656,9 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
       bool         go_on = true;
       while (go_on == true)
         {
-          std::string color_filename = (input_cad_path + "Color_" +
+          std::string   color_filename = (input_cad_path + "Color_" +
                                         Utilities::int_to_string(ii) + ".iges");
-          ifstream    f(color_filename);
+          std::ifstream f(color_filename);
           if (f.good())
             {
               pcout << "Found the " << ii << "-th file" << endl;
@@ -689,9 +678,9 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
       go_on = true;
       while (go_on == true)
         {
-          std::string edge_filename = (input_cad_path + "Curve_" +
+          std::string   edge_filename = (input_cad_path + "Curve_" +
                                        Utilities::int_to_string(ii) + ".iges");
-          ifstream    f(edge_filename);
+          std::ifstream f(edge_filename);
           if (f.good())
             {
               pcout << ii << "-th file exists" << endl;

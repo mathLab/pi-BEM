@@ -283,17 +283,17 @@ BoundaryConditions<dim>::solve_complex_problem(bool reset_matrix)
       pcout << "Computing normal vector" << std::endl;
       bem.compute_normals();
     }
-  pcout << "Preparing BEM vectors - real" << std::endl;
+  // pcout << "Preparing BEM vectors - real" << std::endl;
   // TODO: these calls waste the retrieval of the support points
   // real parts - current component
   prepare_bem_vectors(tmp_rhs);
   // imaginary parts - next component
   set_current_phi_component(current_component + 1);
-  pcout << "Preparing BEM vectors - imaginary" << std::endl;
+  // pcout << "Preparing BEM vectors - imaginary" << std::endl;
   prepare_bem_vectors(tmp_rhs_imag);
   set_current_phi_component(current_component - 1);
 
-  pcout << "Preparing Robin data structures" << std::endl;
+  // pcout << "Preparing Robin data structures" << std::endl;
   prepare_robin_datastructs(bem.robin_matrix_diagonal,
                             bem.robin_matrix_diagonal_imag,
                             bem.robin_rhs,
@@ -408,18 +408,6 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
                   bool neumann = bem.neumann_nodes(local_dof_indices[j]) == 1;
                   if (neumann)
                     {
-                      // TODO: update boundary conditions check and evaluation
-                      // Assert(
-                      //   cell->boundary_id() ==
-                      //   static_cast<types::boundary_id>(
-                      //                            BoundaryType::floor) ||
-                      //     cell->boundary_id() ==
-                      //       static_cast<types::boundary_id>(
-                      //         BoundaryType::wall) ||
-                      //     cell->boundary_id() ==
-                      //       static_cast<types::boundary_id>(BoundaryType::hull),
-                      //   ExcInternalError());
-
                       Vector<double> imposed_pot_grad(dim);
                       get_wind(current_component, slot)
                         .vector_value(support_points[local_dof_indices[j]],
@@ -455,8 +443,7 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
                     {
                       // pcout << "Robin node" << std::endl;
                       // TODO: is there a good initial value for the Robin
-                      // nodes? possibly, setting tmp_rhs=coeffs(2) and phi =
-                      // coeffs(2)/coeffs(0)
+                      // nodes?
                       rhs(local_dof_indices[j])           = 0;
                       get_phi()(local_dof_indices[j])     = 0;
                       get_dphi_dn()(local_dof_indices[j]) = 0;
@@ -631,20 +618,6 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
     {
       pcout << "computing errors on P0" << std::endl;
 
-      // pcout << "comp_dom.tria.n_active_cells() "
-      //       << comp_dom.tria.n_active_cells() << std::endl;
-      // pcout << "bem.dh.n_dofs() " << bem.dh.n_dofs() << std::endl;
-      // pcout << "bem.gradient_dh.n_dofs() " << bem.gradient_dh.n_dofs()
-      //       << std::endl;
-
-      // pcout << "localized_phi.size() " << localized_phi.size() << std::endl;
-      // pcout << "localized_dphi_dn.size() " << localized_dphi_dn.size()
-      //       << std::endl;
-      // pcout << "localized_gradient_solution.size() "
-      //       << localized_gradient_solution.size() << std::endl;
-      // pcout << "localised_normals.size() " << localised_normals.size()
-      //       << std::endl;
-
       Vector<double> phi_diff_cell(comp_dom.tria.n_active_cells());
       Vector<double> phi_diff_node(bem.dh.n_dofs());
 
@@ -655,6 +628,7 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
       Vector<double> gradphi_diff_node(bem.gradient_dh.n_dofs());
 
       // Vector<double> robinc_diff_cell(comp_dom.tria.n_active_cells());
+      Vector<double> robin_diff_cell(comp_dom.tria.n_active_cells());
       Vector<double> robin_diff_node(bem.dh.n_dofs());
       Vector<double> coeffs(3);
       Vector<double> coeffs_other(3);
@@ -776,9 +750,6 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
                           for (unsigned int d = 0; d < dim; ++d)
                             {
                               auto vec_dof = d * bem.dh.n_dofs() + dof;
-                              // TODO: if this must then be interpolated or
-                              // interact with the mesh, needs to have subwise
-                              // indexing
                               gradphi_diff_node
                                 [bem.vec_original_to_sub_wise[vec_dof]] +=
                                 std::abs(
@@ -903,6 +874,15 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
                                           2 * (2 * bem.fe->degree + 1)),
                                         VectorTools::L2_norm);
 
+      VectorTools::integrate_difference(*bem.mapping,
+                                        bem.dh,
+                                        robin_diff_node,
+                                        ZeroFunction<dim, double>(1),
+                                        robin_diff_cell,
+                                        QGauss<(dim - 1)>(
+                                          2 * (2 * bem.fe->degree + 1)),
+                                        VectorTools::L2_norm);
+
       pcout << "   Number of active cells:       "
             << comp_dom.tria.n_active_cells() << std::endl;
       pcout << "   Number of degrees of freedom: " << bem.dh.n_dofs()
@@ -927,13 +907,12 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
       pcout << "Robin Nodes Residual error L_inf norm: "
             << robin_diff_node.linfty_norm() << std::endl;
       pcout << "Robin Nodes Residual error L_2 norm: "
-            << robin_diff_node.l2_norm() << std::endl;
+            << robin_diff_cell.l2_norm() << std::endl;
 
       std::string filename_vector =
         "error" +
-        (current_component ?
-           "_" + Utilities::int_to_string(current_component + 1) :
-           "") +
+        (current_component ? "_" + Utilities::int_to_string(current_component) :
+                             "") +
         "_vector.vtu";
       std::vector<DataComponentInterpretation::DataComponentInterpretation>
         data_component_interpretation(
@@ -956,9 +935,8 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
 
       std::string filename_scalar =
         "error" +
-        (current_component ?
-           "_" + Utilities::int_to_string(current_component + 1) :
-           "") +
+        (current_component ? "_" + Utilities::int_to_string(current_component) :
+                             "") +
         "_scalar.vtu";
       DataOut<dim - 1, DoFHandler<dim - 1, dim>> dataout_scalar;
       dataout_scalar.attach_dof_handler(bem.dh);

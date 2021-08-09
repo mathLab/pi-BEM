@@ -259,53 +259,53 @@ public:
   }
 
   /// elemetal norm of the combined phi components
-  TrilinosWrappers::MPI::Vector
-  get_phi_components_norm()
-  {
-    TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
-                                             get_phi(0),
-                                             mpi_communicator);
-    accumulate.scale(get_phi(0));
-    for (unsigned int comp = 1; comp < n_components; ++comp)
-      {
-        TrilinosWrappers::MPI::Vector tmp = get_phi(comp);
-        tmp.scale(get_phi(comp));
-        accumulate.add(tmp);
-      }
-    for (auto i : this_cpu_set)
-      {
-        accumulate[i] = std::sqrt(accumulate[i]);
-      }
+  // TrilinosWrappers::MPI::Vector
+  // get_phi_components_norm()
+  // {
+  //   TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
+  //                                            get_phi(0),
+  //                                            mpi_communicator);
+  //   accumulate.scale(get_phi(0));
+  //   for (unsigned int comp = 1; comp < n_components; ++comp)
+  //     {
+  //       TrilinosWrappers::MPI::Vector tmp = get_phi(comp);
+  //       tmp.scale(get_phi(comp));
+  //       accumulate.add(tmp);
+  //     }
+  //   for (auto i : this_cpu_set)
+  //     {
+  //       accumulate[i] = std::sqrt(accumulate[i]);
+  //     }
 
-    // accumulate.compress(VectorOperation::add);
-    accumulate.compress(VectorOperation::insert);
+  //   // accumulate.compress(VectorOperation::add);
+  //   accumulate.compress(VectorOperation::insert);
 
-    return accumulate;
-  }
+  //   return accumulate;
+  // }
 
-  TrilinosWrappers::MPI::Vector
-  get_dphi_dn_components_norm()
-  {
-    TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
-                                             get_dphi_dn(0),
-                                             mpi_communicator);
-    accumulate.scale(get_dphi_dn(0));
-    for (unsigned int comp = 1; comp < n_components; ++comp)
-      {
-        TrilinosWrappers::MPI::Vector tmp = get_dphi_dn(comp);
-        tmp.scale(get_dphi_dn(comp));
-        accumulate.add(tmp);
-      }
-    for (auto i : this_cpu_set)
-      {
-        accumulate[i] = std::sqrt(accumulate[i]);
-      }
+  // TrilinosWrappers::MPI::Vector
+  // get_dphi_dn_components_norm()
+  // {
+  //   TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
+  //                                            get_dphi_dn(0),
+  //                                            mpi_communicator);
+  //   accumulate.scale(get_dphi_dn(0));
+  //   for (unsigned int comp = 1; comp < n_components; ++comp)
+  //     {
+  //       TrilinosWrappers::MPI::Vector tmp = get_dphi_dn(comp);
+  //       tmp.scale(get_dphi_dn(comp));
+  //       accumulate.add(tmp);
+  //     }
+  //   for (auto i : this_cpu_set)
+  //     {
+  //       accumulate[i] = std::sqrt(accumulate[i]);
+  //     }
 
-    // accumulate.compress(VectorOperation::add);
-    accumulate.compress(VectorOperation::insert);
+  //   // accumulate.compress(VectorOperation::add);
+  //   accumulate.compress(VectorOperation::insert);
 
-    return accumulate;
-  }
+  //   return accumulate;
+  // }
 
   /// get all components as blocks
   TrilinosWrappers::MPI::BlockVector

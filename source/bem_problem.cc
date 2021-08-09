@@ -1868,7 +1868,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
   Teuchos::TimeMonitor                       LocalTimer(*LacSolveTime);
   SolverGMRES<TrilinosWrappers::MPI::Vector> solver(
     solver_control,
-    SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(100));
+    SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(1000));
 
   system_rhs = 0;
   sol        = 0;
@@ -1944,7 +1944,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
   Teuchos::TimeMonitor                       LocalTimer(*LacSolveTime);
   SolverGMRES<TrilinosWrappers::MPI::Vector> solver(
     solver_control,
-    SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(100));
+    SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(1000));
 
   // TODO: needs to assemble and pass double-length sol and rhs
   // the ConstrainedComplexMatrix will need to split and reconstruct the
@@ -2039,15 +2039,15 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 
               for (auto j = from; j < to; ++j)
                 {
-                  if (dirichlet_nodes(i) == 0)
+                  if (dirichlet_nodes(j) == 0)
                     {
+                      // neumann and robin nodes are implicitly merged, here
                       band_system_complex.add(i, j, neumann_matrix(i, j));
                       band_system_complex.add(i + this_cpu_set.size(),
                                               j + this_cpu_set.size(),
                                               neumann_matrix(i, j));
-                      // with Robin nodes, the only paired value appears at
-                      // this_cpu_set.size() columns on the right - this is only
-                      // engaged in very small problems
+                      // with Robin nodes, there are paired values (real-imag
+                      // pairs) - this is only engaged in very small problems
                       // if ((robin_nodes(i) == 1) &&
                       //     (i + this_cpu_set.size() == j))
                       //   {
@@ -2062,26 +2062,47 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
                       //                               robin_matrix_diagonal(i));
                       //   }
 
+                      if (robin_nodes(j) == 1)
+                        {
+                          // scale the row from D, using the robin matrix
+                          // diagonal
+                          // for now, ignore the pairing parts
+                          band_system_complex.add(i,
+                                                  j,
+                                                  dirichlet_matrix(i, j) *
+                                                    robin_matrix_diagonal(j));
+                          band_system_complex.add(i + this_cpu_set.size(),
+                                                  j + this_cpu_set.size(),
+                                                  dirichlet_matrix(i, j) *
+                                                    robin_matrix_diagonal(j));
+
+                          // check for pairing elements
+                          if ((robin_nodes(i) == 1) &&
+                              j + this_cpu_set.size() <
+                                i + preconditioner_band / 2)
+                            {
+                              // the pairing element of the current real
+                              // variable and its imag version is available in
+                              // the band
+                              band_system_complex.add(
+                                i,
+                                j + this_cpu_set.size(),
+                                -dirichlet_matrix(i, j) *
+                                  robin_matrix_diagonal_imag(j));
+                              band_system_complex.add(
+                                i + this_cpu_set.size(),
+                                j,
+                                dirichlet_matrix(i, j) *
+                                  robin_matrix_diagonal_imag(j));
+                            }
+                        }
+
                       if (i == j)
                         {
                           band_system_complex.add(i, j, alpha(i));
                           band_system_complex.add(i + this_cpu_set.size(),
                                                   j + this_cpu_set.size(),
                                                   alpha(i));
-
-                          if (robin_nodes(i) == 1)
-                            {
-                              band_system_complex.add(i,
-                                                      j,
-                                                      dirichlet_matrix(i, j) *
-                                                        robin_matrix_diagonal(
-                                                          i));
-                              band_system_complex.add(
-                                i,
-                                j,
-                                dirichlet_matrix(i, j) *
-                                  robin_matrix_diagonal_imag(i));
-                            }
                         }
                     }
                   else
@@ -2108,6 +2129,9 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
         fma.FMA_preconditioner(alpha, constraints);
       solver.solve(cc, sol, system_rhs, fma_preconditioner);
     }
+
+  // TODO: info on solve process
+
 
   for (auto i : this_cpu_set)
     {
@@ -2391,7 +2415,7 @@ BEMProblem<dim>::compute_constraints(
                           {
                             // this is the dirichlet-dirichlet case on sharp
                             // edges: both normal gradients can be computed from
-                            // surface gradients of phi and assingned as BC
+                            // surface gradients of phi and assigned as BC
                             double norm_i_norm_j = 0;
                             double surf_j_norm_i = 0;
                             double surf_i_norm_j = 0;
@@ -2579,20 +2603,24 @@ BEMProblem<dim>::assemble_preconditioner()
         {
           if (!constraints.is_constrained(i))
             {
-              if (dirichlet_nodes(i) == 0)
+              // if (dirichlet_nodes(i) == 0)
+              if (dirichlet_nodes(j) == 0)
                 {
                   // Nodo di Neumann - or Robin
                   band_system.add(i, j, neumann_matrix(i, j));
 
+                  // TODO: account for Robin node
+                  if (robin_nodes(j) == 1)
+                    {
+                      band_system.add(i,
+                                      j,
+                                      dirichlet_matrix(i, j) *
+                                        robin_matrix_diagonal(j));
+                    }
+
                   if (i == j)
                     {
                       band_system.add(i, j, alpha(i));
-                      // TODO: account for Robin node
-                      if (robin_nodes(i) == 1)
-                        {
-                          band_system.add(
-                            i, j, dirichlet_matrix(i, j) * robin_rhs(i));
-                        }
                     }
                 }
               else

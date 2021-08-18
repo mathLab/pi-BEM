@@ -1594,17 +1594,11 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
           matrVectProdD.reinit(this_cpu_set, mpi_communicator);
         }
 
-
       fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
                                        matrVectProdD);
-      // dst += matrVectProdD;
-      // dst *= -1;
-      // dst += matrVectProdN;
-      // serv_phi.scale(alpha);
-      // dst += serv_phi;
 
       dst.add(-1, matrVectProdD, 1, matrVectProdN);
       serv_phi.scale(alpha);
@@ -1671,6 +1665,7 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
       // and
       // serv_dphi_dn_imag += -robin_matrix_diagonal_imag*serv_phi_robin -
       // robin_matrix_diagonal * serv_phi_robin_imag
+
       tmp = serv_phi_robin;
       tmp.scale(robin_matrix_diagonal);
       serv_dphi_dn -= tmp;
@@ -1681,9 +1676,9 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
       // these can be destructive
       serv_phi_robin.scale(robin_matrix_diagonal_imag);
       serv_phi_robin_imag.scale(robin_matrix_diagonal);
-      serv_dphi_dn_imag -= serv_phi_robin;
-      serv_dphi_dn_imag -= serv_phi_robin_imag;
+      serv_dphi_dn_imag.add(-1, serv_phi_robin, -1, serv_phi_robin_imag);
 
+      // now, products between the plain matrices and the spiked vectors
       dirichlet_matrix.vmult(dst, serv_dphi_dn);
       dirichlet_matrix.vmult(dst_imag, serv_dphi_dn_imag);
       dst *= -1;
@@ -1698,9 +1693,12 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
   else
     {
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
+
       serv_phi += serv_phi_robin;
       serv_phi_imag += serv_phi_robin_imag;
 
+      // the dphi_dn vectors will be spiked with the contribution from robin
+      // nodes
       tmp = serv_phi_robin;
       tmp.scale(robin_matrix_diagonal);
       serv_dphi_dn -= tmp;
@@ -1711,8 +1709,7 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
       // these can be destructive
       serv_phi_robin.scale(robin_matrix_diagonal_imag);
       serv_phi_robin_imag.scale(robin_matrix_diagonal);
-      serv_dphi_dn_imag -= serv_phi_robin;
-      serv_dphi_dn_imag -= serv_phi_robin_imag;
+      serv_dphi_dn_imag.add(-1, serv_phi_robin, -1, serv_phi_robin_imag);
 
       static TrilinosWrappers::MPI::Vector matrVectProdN(this_cpu_set,
                                                          mpi_communicator);
@@ -1730,6 +1727,7 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
           matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
         }
 
+      // now, products between the plain matrices and the spiked vectors
       fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
@@ -1742,13 +1740,9 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
                                        matrVectProdN_imag,
                                        matrVectProdD_imag);
 
-      dst += matrVectProdD;
-      dst_imag += matrVectProdD_imag;
-      dst *= -1;
-      dst_imag *= -1;
+      dst.add(-1, matrVectProdD, 1, matrVectProdN);
+      dst_imag.add(-1, matrVectProdD_imag, 1, matrVectProdN_imag);
 
-      dst += matrVectProdN;
-      dst_imag += matrVectProdN_imag;
       serv_phi.scale(alpha);
       serv_phi_imag.scale(alpha);
       dst += serv_phi;

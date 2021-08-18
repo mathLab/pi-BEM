@@ -3179,98 +3179,353 @@ BEMFMA<dim>::FMA_preconditioner_omp(
 
   return preconditioner;
 }
+#endif
 
 template <int dim>
-void
-BEMFMA<dim>::compute_geometry_cache()
+TrilinosWrappers::PreconditionILU &
+BEMFMA<dim>::FMA_preconditioner_complex(
+  const TrilinosWrappers::MPI::Vector &alpha,
+  AffineConstraints<double> &          c)
 {
-  pcout << "Generating geometry cache..." << std::endl;
+#ifdef _OPENMP
+  return FMA_preconditioner_complex_omp(alpha, c);
+#else
+  return FMA_preconditioner_complex_tbb(alpha, c);
+#endif
+}
 
-  FESystem<dim - 1, dim>   gradient_fe(fma_dh->get_fe(), dim);
-  DoFHandler<dim - 1, dim> gradient_dh(fma_dh->get_triangulation());
+template <int dim>
+TrilinosWrappers::PreconditionILU &
+BEMFMA<dim>::FMA_preconditioner_complex_tbb(
+  const TrilinosWrappers::MPI::Vector &alpha,
+  AffineConstraints<double> &          c) // TO BE CHANGED!!!
+{
+  pcout << "Computing FMA preconditioner complex (TBB)" << std::endl;
+  Teuchos::TimeMonitor LocalTimer(*PrecondTime);
 
-  std::vector<Point<dim>> support_points(fma_dh->n_dofs());
+  auto     offset = this_cpu_set.size();
+  IndexSet this_cpu_set_complex;
+  this_cpu_set_complex.add_indices(this_cpu_set);
+  this_cpu_set_complex.add_indices(this_cpu_set, offset);
+  this_cpu_set_complex.compress();
 
-  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*fma_mapping,
-                                                     *fma_dh,
-                                                     support_points);
+  // the final preconditioner (with constraints) has a slightly different
+  // sparsity pattern with respect to the non constrained one. we must here
+  // initialize such sparsity pattern
+  final_prec_sparsity_pattern.reinit(this_cpu_set_complex,
+                                     mpi_communicator,
+                                     (types::global_dof_index)125 *
+                                       fma_dh->get_fe().dofs_per_cell);
 
-  std::vector<types::global_dof_index> dofs(fma_dh->get_fe().dofs_per_cell);
-  std::vector<types::global_dof_index> gradient_dofs(
-    fma_dh->get_fe().dofs_per_cell);
-  // mappa che associa ad ogni dof le celle cui esso appartiene
-  dof_to_elems.clear();
+  // As before we will use the captures to simplify the calls of the worker
+  // copier mechanism. For this reason we build an empty scratch structure.
+  struct PrecScratch
+  {};
 
-  // mappa che associa ad ogni gradient dof le celle cui esso appartiene
-  gradient_dof_to_elems.clear();
+  // We need to fill a vector that memorise the entries of the row associated
+  // with the index we are treating.
+  struct PrecCopy
+  {
+    PrecCopy()
+      : row(numbers::invalid_unsigned_int)
+      , sparsity_row(0){};
 
-  // vettore che associa ad ogni gradient dof la sua componente
-  gradient_dof_components.clear();
-  gradient_dof_components.resize(gradient_dh.n_dofs());
-
-  // mappa che associa ad ogni cella un set contenente le celle circostanti
-  // elem_to_surr_elems.clear();
-
-  // for the gradient dofs finding coupled
-  // dofs is a little bit difficult, as the
-  // gradient is a vectorial function: usually
-  // in such case the dofs are numbered
-  // so that for each support point dim
-  // consecutive dofs represent each component
-  // of the vector field: in this case
-  // (and only in this case) the following
-  // piece of code works
-
-  // the only coupling is the index check
-  cell_it gradient_cell = gradient_dh.begin_active(),
-          gradient_endc = gradient_dh.end();
-  cell_it cell          = fma_dh->begin_active();
-  for (; gradient_cell != gradient_endc; ++cell, ++gradient_cell)
+    PrecCopy(const PrecCopy &in_copy)
     {
-      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
+      row          = in_copy.row;
+      sparsity_row = in_copy.sparsity_row;
+    };
 
-      cell->get_dof_indices(dofs);
-      for (unsigned int j = 0; j < fma_dh->get_fe().dofs_per_cell; ++j)
+    types::global_dof_index              row;
+    std::vector<types::global_dof_index> sparsity_row;
+  };
+
+  auto f_worker_prec = [this, &c, &offset](IndexSet::ElementIterator iter,
+                                           PrecScratch &,
+                                           PrecCopy &copy_data) {
+    unsigned int i = *iter;
+    copy_data.sparsity_row.clear();
+
+    copy_data.row = i;
+    if (c.is_constrained(i % offset))
+      {
+        // constrained nodes entries are taken from the bem problem
+        // constraint matrix
+        copy_data.sparsity_row.push_back(i);
+        const std::vector<std::pair<types::global_dof_index, double>> *entries =
+          c.get_constraint_entries(i % offset);
+        for (types::global_dof_index j = 0; j < entries->size(); ++j)
+          {
+            copy_data.sparsity_row.push_back((*entries)[j].first +
+                                             (i < offset ? 0 : offset));
+          }
+      }
+    else
+      {
+        // other nodes entries are taken from the unconstrained
+        // preconditioner matrix
+        for (unsigned int j = 0; j < fma_dh->n_dofs(); ++j)
+          {
+            if (this->init_prec_sparsity_pattern.exists(i % offset, j))
+              {
+                copy_data.sparsity_row.push_back(j + (i < offset ? 0 : offset));
+              }
+          }
+      }
+  };
+
+  // We only need a for cycle to add the indices to the sparsity pattern.
+  auto f_copier_prec = [this](const PrecCopy &copy_data) {
+    this->final_prec_sparsity_pattern.add_entries(
+      copy_data.row,
+      copy_data.sparsity_row.begin(),
+      copy_data.sparsity_row.end(),
+      false);
+  };
+
+  PrecCopy    foo_copy;
+  PrecScratch foo_scratch;
+
+  // The following Workstream replaces a for cycle on all dofs to check all
+  // the constraints. WorkStream::run(0, fma_dh->n_dofs(), f_worker_prec,
+  // f_copier_prec, foo_scratch, foo_copy);
+  WorkStream::run(this_cpu_set_complex.begin(),
+                  this_cpu_set_complex.end(),
+                  f_worker_prec,
+                  f_copier_prec,
+                  foo_scratch,
+                  foo_copy);
+
+  final_prec_sparsity_pattern.compress();
+  pcout << "Sparsity pattern nonzeros: "
+        << final_prec_sparsity_pattern.n_nonzero_elements() << std::endl;
+  final_preconditioner.reinit(final_prec_sparsity_pattern);
+
+  // now we assemble the final preconditioner matrix: the loop works
+  // exactly like the previous one
+
+  // We need a worker function that fills the final sparisty pattern once its
+  // sparsity pattern has been set up. In this case no race condition occurs
+  // in the worker so we can let it copy in the global memory.
+  auto f_sparsity_filler_tbb =
+    [this, &c, &offset, &this_cpu_set_complex](unsigned int pos_begin,
+                                               unsigned int pos_end) {
+      for (unsigned int iter = pos_begin; iter != pos_end; ++iter)
         {
-          dof_to_elems[dofs[j]].push_back(cell);
+          unsigned int i = this_cpu_set_complex.nth_index_in_set(iter);
+          if (c.is_constrained(i % offset))
+            {
+              final_preconditioner.set(i, i, 1);
+              // constrainednodes entries are taken from the bem problem
+              // constraint matrix
+              for (const auto &entry : *c.get_constraint_entries(i % offset))
+                {
+                  final_preconditioner.set(
+                    i, entry.first + (i < offset ? 0 : offset), entry.second);
+                }
+            }
+          else
+            {
+              // other nodes entries are taken from the unconstrained
+              // preconditioner matrix
+              for (unsigned int j = 0; j < fma_dh->n_dofs(); ++j)
+                {
+                  // QUI CHECK SU NEUMANN - DIRICHLET PER METTERE A POSTO,
+                  // tanto lui già conosce le matrici.
+                  if (init_prec_sparsity_pattern.exists(i % offset, j))
+                    {
+                      final_preconditioner.set(i,
+                                               j + (i < offset ? 0 : offset),
+                                               init_preconditioner(i % offset,
+                                                                   j));
+                    }
+                }
+            }
         }
+    };
 
-      gradient_cell->get_dof_indices(gradient_dofs);
-      for (unsigned int j = 0; j < gradient_fe.dofs_per_cell; ++j)
+  parallel::apply_to_subranges(0,
+                               this_cpu_set_complex.n_elements(),
+                               f_sparsity_filler_tbb,
+                               tbb_granularity);
+
+  // The compress operation makes all the vectors on different processors
+  // compliant.
+  final_preconditioner.compress(VectorOperation::insert);
+
+  // In order to add alpha we can again use the parallel_for strategy.
+  auto f_alpha_adder_tbb =
+    [this, &c, &alpha, &offset, &this_cpu_set_complex](unsigned int pos_begin,
+                                                       unsigned int pos_end) {
+      for (unsigned int iter = pos_begin; iter != pos_end; ++iter)
         {
-          gradient_dof_to_elems[gradient_dofs[j]].push_back(gradient_cell);
-          gradient_dof_components[gradient_dofs[j]] =
-            gradient_fe.system_to_component_index(j).first;
+          unsigned int i = this_cpu_set_complex.nth_index_in_set(iter);
+          if ((*(dirichlet_nodes))(i % offset) == 0 &&
+              !(c.is_constrained(i % offset)))
+            {
+              final_preconditioner.add(i, i, alpha(i % offset));
+            }
+          else // this is just to avoid a deadlock. we need a better strategy
+            {
+              final_preconditioner.add(i, i, 0);
+            }
+        }
+    };
+
+  parallel::apply_to_subranges(0,
+                               this_cpu_set_complex.n_elements(),
+                               f_alpha_adder_tbb,
+                               tbb_granularity);
+
+  final_preconditioner.compress(VectorOperation::add);
+  final_preconditioner.compress(VectorOperation::insert);
+
+  // Finally we can initialize the ILU final preconditioner.
+  preconditioner.initialize(final_preconditioner);
+  pcout << "...done computing FMA preconditioner complex" << std::endl;
+
+  return preconditioner;
+}
+
+#ifdef _OPENMP
+template <int dim>
+TrilinosWrappers::PreconditionILU &
+BEMFMA<dim>::FMA_preconditioner_omp(
+  const TrilinosWrappers::MPI::Vector &alpha,
+  AffineConstraints<double> &          c) // TO BE CHANGED!!!
+{
+  pcout << "Computing FMA preconditioner complex (OpenMP)" << std::endl;
+  Teuchos::TimeMonitor LocalTimer(*PrecondTime);
+
+  auto     offset = this_cpu_set.size();
+  IndexSet this_cpu_set_complex;
+  this_cpu_set_complex.add_indices(this_cpu_set);
+  this_cpu_set_complex.add_indices(this_cpu_set, offset);
+  this_cpu_set_complex.compress();
+
+  auto max_threads = omp_get_max_threads();
+
+  auto dofs_per_cell = fma_dh->get_fe().dofs_per_cell;
+  // the final preconditioner (with constraints) has a slightly different
+  // sparsity pattern with respect to the non constrained one. we must here
+  // initialize such sparsity pattern
+  final_prec_sparsity_pattern.reinit(this_cpu_set_complex,
+                                     mpi_communicator,
+                                     (types::global_dof_index)125 *
+                                       dofs_per_cell);
+
+#  pragma omp parallel for schedule(dynamic)
+  for (unsigned int i = 0; i < this->this_cpu_set_complex.n_elements(); ++i)
+    {
+      unsigned int idx = this->this_cpu_set_complex.nth_index_in_set(i);
+      if (c.is_constrained(idx % offset))
+        {
+          this->final_prec_sparsity_pattern.add(idx, idx);
+          // constrained nodes entries are taken from the bem problem
+          // constraint matrix
+          for (const auto &pair : *c.get_constraint_entries(idx % offset))
+            {
+#  pragma omp critical
+              {
+                this->final_prec_sparsity_pattern.add(
+                  idx, pair.first + (idx < offset ? 0 : offset));
+              }
+            }
+        }
+      else
+        {
+          // other nodes entries are taken from the unconstrained
+          // preconditioner matrix
+          for (unsigned int j = 0; j < this->fma_dh->n_dofs(); ++j)
+            {
+              if (this->init_prec_sparsity_pattern.exists(idx % offset, j))
+                {
+#  pragma omp critical
+                  {
+                    this->final_prec_sparsity_pattern.add(
+                      idx, j + (idx < offset ? 0 : offset));
+                  }
+                }
+            }
         }
     }
 
-  // TODO: deprecated
-  // qui viene creata la mappa dei elmenti che circondano ciascun elemento
-  // for (cell = fma_dh->begin_active(); cell != endc; ++cell)
-  //   {
-  //     cell->get_dof_indices(dofs);
-  //     for (unsigned int j = 0; j < fma_dh->get_fe().dofs_per_cell; ++j)
-  //       {
-  //         // std::set<types::global_dof_index>
-  //         const auto &duplicates = (*double_nodes_set)[dofs[j]];
-  //         for (auto pos = duplicates.begin(); pos != duplicates.end();
-  //         pos++)
-  //           {
-  //             /*
-  //             std::vector<cell_it> dof_cell_list = dof_to_elems[*pos];
-  //             for (unsigned int k = 0; k < dof_cell_list.size(); ++k)
-  //               {
-  //                 elem_to_surr_elems[cell].insert(dof_cell_list[k]);
-  //               }
-  //             */
-  //             const auto &dof_cell_list = dof_to_elems[*pos];
-  //             elem_to_surr_elems[cell].insert(dof_cell_list.begin(),
-  //                                             dof_cell_list.end());
-  //           }
-  //       }
-  //   }
+  final_prec_sparsity_pattern.compress();
+  pcout << "Sparsity pattern nonzeros: "
+        << final_prec_sparsity_pattern.n_nonzero_elements() << std::endl;
+  final_preconditioner.reinit(final_prec_sparsity_pattern);
 
-  pcout << "...done" << std::endl;
+  // now we assemble the final preconditioner matrix: the loop works
+  // exactly like the previous one
+
+  // We need a worker function that fills the final sparisty pattern once its
+  // sparsity pattern has been set up. In this case no race condition occurs
+  // in the worker so we can let it copy in the global memory.
+
+#  pragma omp parallel for schedule(dynamic)
+  for (unsigned int i = 0; i < this->this_cpu_set_complex.n_elements(); ++i)
+    {
+      unsigned int idx = this->this_cpu_set_complex.nth_index_in_set(i);
+      if (c.is_constrained(idx % offset))
+        {
+          this->final_preconditioner.set(idx, idx, 1);
+          // constrainednodes entries are taken from the bem problem
+          // constraint matrix
+          for (const auto &pair : *c.get_constraint_entries(idx % offset))
+            {
+              this->final_preconditioner.set(idx,
+                                             pair.first + (idx < offset ?: 0
+                                                           : offset),
+                                             pair.second);
+            }
+        }
+      else
+        {
+          // other nodes entries are taken from the unconstrained
+          // preconditioner matrix
+          for (unsigned int j = 0; j < this->fma_dh->n_dofs(); ++j)
+            {
+              if (this->init_prec_sparsity_pattern.exists(idx % offset, j))
+                {
+                  this->final_preconditioner.set(
+                    idx,
+                    j + (idx < offset ?: 0
+                         : offset),
+                    this->init_preconditioner(idx % offset, j));
+                }
+            }
+        }
+    }
+
+  // The compress operation makes all the vectors on different processors
+  // compliant.
+  final_preconditioner.compress(VectorOperation::insert);
+
+#  pragma omp parallel for schedule(dynamic)
+  for (unsigned int i = 0; i < this->this_cpu_set_complex.n_elements(); ++i)
+    {
+      unsigned int idx = this->this_cpu_set_complex.nth_index_in_set(i);
+      if ((*(this->dirichlet_nodes))(idx % offset) == 0 &&
+          !(c.is_constrained(idx % offset)))
+        {
+          this->final_preconditioner.add(idx, idx, alpha(idx % offset));
+        }
+      else // this is just to avoid a deadlock. we need a better strategy
+        {
+          this->final_preconditioner.add(idx, idx, 0);
+        }
+    }
+
+  final_preconditioner.compress(VectorOperation::add);
+  final_preconditioner.compress(VectorOperation::insert);
+
+  // Finally we can initialize the ILU final preconditioner.
+  preconditioner.initialize(final_preconditioner);
+  pcout << "...done computing FMA preconditioner" << std::endl;
+
+  omp_set_num_threads(max_threads);
+
+  return preconditioner;
 }
 #endif
 
@@ -4391,6 +4646,99 @@ BEMFMA<dim>::generate_octree_blocking()
 
   pcout << "Done computing proximity lists for blocks" << std::endl;
 } // end method for octree blocking generation
+
+template <int dim>
+void
+BEMFMA<dim>::compute_geometry_cache()
+{
+  pcout << "Generating geometry cache..." << std::endl;
+
+  FESystem<dim - 1, dim>   gradient_fe(fma_dh->get_fe(), dim);
+  DoFHandler<dim - 1, dim> gradient_dh(fma_dh->get_triangulation());
+
+  std::vector<Point<dim>> support_points(fma_dh->n_dofs());
+
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*fma_mapping,
+                                                     *fma_dh,
+                                                     support_points);
+
+  std::vector<types::global_dof_index> dofs(fma_dh->get_fe().dofs_per_cell);
+  std::vector<types::global_dof_index> gradient_dofs(
+    fma_dh->get_fe().dofs_per_cell);
+  // mappa che associa ad ogni dof le celle cui esso appartiene
+  dof_to_elems.clear();
+
+  // mappa che associa ad ogni gradient dof le celle cui esso appartiene
+  gradient_dof_to_elems.clear();
+
+  // vettore che associa ad ogni gradient dof la sua componente
+  gradient_dof_components.clear();
+  gradient_dof_components.resize(gradient_dh.n_dofs());
+
+  // mappa che associa ad ogni cella un set contenente le celle circostanti
+  // elem_to_surr_elems.clear();
+
+  // for the gradient dofs finding coupled
+  // dofs is a little bit difficult, as the
+  // gradient is a vectorial function: usually
+  // in such case the dofs are numbered
+  // so that for each support point dim
+  // consecutive dofs represent each component
+  // of the vector field: in this case
+  // (and only in this case) the following
+  // piece of code works
+
+  // the only coupling is the index check
+  cell_it gradient_cell = gradient_dh.begin_active(),
+          gradient_endc = gradient_dh.end();
+  cell_it cell          = fma_dh->begin_active();
+  for (; gradient_cell != gradient_endc; ++cell, ++gradient_cell)
+    {
+      Assert(cell->index() == gradient_cell->index(), ExcInternalError());
+
+      cell->get_dof_indices(dofs);
+      for (unsigned int j = 0; j < fma_dh->get_fe().dofs_per_cell; ++j)
+        {
+          dof_to_elems[dofs[j]].push_back(cell);
+        }
+
+      gradient_cell->get_dof_indices(gradient_dofs);
+      for (unsigned int j = 0; j < gradient_fe.dofs_per_cell; ++j)
+        {
+          gradient_dof_to_elems[gradient_dofs[j]].push_back(gradient_cell);
+          gradient_dof_components[gradient_dofs[j]] =
+            gradient_fe.system_to_component_index(j).first;
+        }
+    }
+
+  // TODO: deprecated
+  // qui viene creata la mappa dei elmenti che circondano ciascun elemento
+  // for (cell = fma_dh->begin_active(); cell != endc; ++cell)
+  //   {
+  //     cell->get_dof_indices(dofs);
+  //     for (unsigned int j = 0; j < fma_dh->get_fe().dofs_per_cell; ++j)
+  //       {
+  //         // std::set<types::global_dof_index>
+  //         const auto &duplicates = (*double_nodes_set)[dofs[j]];
+  //         for (auto pos = duplicates.begin(); pos != duplicates.end();
+  //         pos++)
+  //           {
+  //             /*
+  //             std::vector<cell_it> dof_cell_list = dof_to_elems[*pos];
+  //             for (unsigned int k = 0; k < dof_cell_list.size(); ++k)
+  //               {
+  //                 elem_to_surr_elems[cell].insert(dof_cell_list[k]);
+  //               }
+  //             */
+  //             const auto &dof_cell_list = dof_to_elems[*pos];
+  //             elem_to_surr_elems[cell].insert(dof_cell_list.begin(),
+  //                                             dof_cell_list.end());
+  //           }
+  //       }
+  //   }
+
+  pcout << "...done" << std::endl;
+}
 
 template class BEMFMA<2>;
 template class BEMFMA<3>;

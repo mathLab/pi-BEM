@@ -1,3 +1,5 @@
+#include <deal.II/lac/arpack_solver.h>
+
 #include <deal.II/numerics/error_estimator.h>
 
 #include <iomanip>
@@ -8,6 +10,7 @@
 #include "../include/constrained_matrix_complex.h"
 #include "../include/laplace_kernel.h"
 #include "../include/singular_kernel_integral.h"
+#include "../include/preconditioner_complex_schur.h"
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::RCP;
@@ -1555,12 +1558,6 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
   serv_dphi_dn   = src;
   serv_phi_robin = serv_phi;
 
-  TrilinosWrappers::MPI::Vector matrVectProdN;
-  TrilinosWrappers::MPI::Vector matrVectProdD;
-
-  matrVectProdN.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdD.reinit(this_cpu_set, mpi_communicator);
-
   dst = 0;
 
   serv_phi.scale(neumann_nodes);
@@ -1583,19 +1580,33 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
     {
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
 
-      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
-
       serv_phi += serv_phi_robin;
       serv_phi_robin.scale(robin_matrix_diagonal);
       serv_dphi_dn -= serv_phi_robin;
 
+      static TrilinosWrappers::MPI::Vector matrVectProdN(this_cpu_set,
+                                                         mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdD(this_cpu_set,
+                                                         mpi_communicator);
+      if (matrVectProdN.size() != src.size())
+        {
+          matrVectProdN.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdD.reinit(this_cpu_set, mpi_communicator);
+        }
+
+
+      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
                                        matrVectProdD);
-      dst += matrVectProdD;
-      dst *= -1;
-      dst += matrVectProdN;
+      // dst += matrVectProdD;
+      // dst *= -1;
+      // dst += matrVectProdN;
+      // serv_phi.scale(alpha);
+      // dst += serv_phi;
+
+      dst.add(-1, matrVectProdD, 1, matrVectProdN);
       serv_phi.scale(alpha);
       dst += serv_phi;
     }
@@ -1633,26 +1644,19 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
   serv_phi_robin      = serv_phi;
   serv_phi_robin_imag = serv_phi_imag;
 
-  TrilinosWrappers::MPI::Vector matrVectProdN;
-  TrilinosWrappers::MPI::Vector matrVectProdN_imag;
-  TrilinosWrappers::MPI::Vector matrVectProdD;
-  TrilinosWrappers::MPI::Vector matrVectProdD_imag;
-  TrilinosWrappers::MPI::Vector tmp1, tmp2;
-
-  matrVectProdN.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdN_imag.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdD.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
-  tmp1.reinit(this_cpu_set, mpi_communicator);
-  tmp2.reinit(this_cpu_set, mpi_communicator);
+  static TrilinosWrappers::MPI::Vector tmp(this_cpu_set, mpi_communicator);
+  if (tmp.size() != src.size())
+    {
+      tmp.reinit(this_cpu_set, mpi_communicator);
+    }
 
   dst      = 0;
   dst_imag = 0;
 
   serv_phi.scale(neumann_nodes);
   serv_phi_imag.scale(neumann_nodes);
-  serv_dphi_dn_imag.scale(dirichlet_nodes);
   serv_dphi_dn.scale(dirichlet_nodes);
+  serv_dphi_dn_imag.scale(dirichlet_nodes);
   serv_phi_robin.scale(robin_nodes);
   serv_phi_robin_imag.scale(robin_nodes);
 
@@ -1660,18 +1664,19 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
     {
       serv_phi += serv_phi_robin;
       serv_phi_imag += serv_phi_robin_imag;
+
       // robin_matrix_diagonal is complex
-      // serv_dphi_dn += -robin_matrix_diagonal*serv_phi +
-      // robin_matrix_diagonal_imag * serv_phi_imag
+      // serv_dphi_dn += -robin_matrix_diagonal*serv_phi_robin +
+      // robin_matrix_diagonal_imag * serv_phi_robin_imag
       // and
-      // serv_dphi_dn_imag += -robin_matrix_diagonal_imag*serv_phi -
-      // robin_matrix_diagonal * serv_phi_imag
-      tmp1 = serv_phi_robin;
-      tmp1.scale(robin_matrix_diagonal);
-      tmp2 = serv_phi_robin_imag;
-      tmp2.scale(robin_matrix_diagonal_imag);
-      serv_dphi_dn -= tmp1;
-      serv_dphi_dn += tmp2;
+      // serv_dphi_dn_imag += -robin_matrix_diagonal_imag*serv_phi_robin -
+      // robin_matrix_diagonal * serv_phi_robin_imag
+      tmp = serv_phi_robin;
+      tmp.scale(robin_matrix_diagonal);
+      serv_dphi_dn -= tmp;
+      tmp = serv_phi_robin_imag;
+      tmp.scale(robin_matrix_diagonal_imag);
+      serv_dphi_dn += tmp;
 
       // these can be destructive
       serv_phi_robin.scale(robin_matrix_diagonal_imag);
@@ -1693,21 +1698,61 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
   else
     {
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
-      // TODO: this is much more involved, expansions are to be redone for each
-      // product?
-      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       serv_phi += serv_phi_robin;
-      serv_phi_robin.scale(robin_matrix_diagonal);
-      serv_dphi_dn -= serv_phi_robin;
+      serv_phi_imag += serv_phi_robin_imag;
+
+      tmp = serv_phi_robin;
+      tmp.scale(robin_matrix_diagonal);
+      serv_dphi_dn -= tmp;
+      tmp = serv_phi_robin_imag;
+      tmp.scale(robin_matrix_diagonal_imag);
+      serv_dphi_dn += tmp;
+
+      // these can be destructive
+      serv_phi_robin.scale(robin_matrix_diagonal_imag);
+      serv_phi_robin_imag.scale(robin_matrix_diagonal);
+      serv_dphi_dn_imag -= serv_phi_robin;
+      serv_dphi_dn_imag -= serv_phi_robin_imag;
+
+      static TrilinosWrappers::MPI::Vector matrVectProdN(this_cpu_set,
+                                                         mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdN_imag(this_cpu_set,
+                                                              mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdD(this_cpu_set,
+                                                         mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdD_imag(this_cpu_set,
+                                                              mpi_communicator);
+      if (matrVectProdN.size() != src.size())
+        {
+          matrVectProdN.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdN_imag.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdD.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
+        }
+
+      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
                                        matrVectProdD);
+
+      fma.generate_multipole_expansions(serv_phi_imag, serv_dphi_dn_imag);
+      fma.multipole_matr_vect_products(serv_phi_imag,
+                                       serv_dphi_dn_imag,
+                                       matrVectProdN_imag,
+                                       matrVectProdD_imag);
+
       dst += matrVectProdD;
+      dst_imag += matrVectProdD_imag;
       dst *= -1;
+      dst_imag *= -1;
+
       dst += matrVectProdN;
+      dst_imag += matrVectProdN_imag;
       serv_phi.scale(alpha);
+      serv_phi_imag.scale(alpha);
       dst += serv_phi;
+      dst_imag += serv_phi_imag;
     }
 
   if (!can_determine_phi)
@@ -1733,12 +1778,6 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
   serv_phi     = src;
   serv_dphi_dn = src;
 
-  static TrilinosWrappers::MPI::Vector matrVectProdN;
-  static TrilinosWrappers::MPI::Vector matrVectProdD;
-
-  matrVectProdN.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdD.reinit(this_cpu_set, mpi_communicator);
-
   // Robin nodes are accounted for by robin_rhs
   serv_phi.scale(dirichlet_nodes);
   serv_dphi_dn.scale(neumann_nodes);
@@ -1761,6 +1800,17 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
 
       fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       serv_dphi_dn += serv_phi_robin;
+
+      static TrilinosWrappers::MPI::Vector matrVectProdN(this_cpu_set,
+                                                         mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdD(this_cpu_set,
+                                                         mpi_communicator);
+      if (matrVectProdN.size() != src.size())
+        {
+          matrVectProdN.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdD.reinit(this_cpu_set, mpi_communicator);
+        }
+
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
@@ -1786,20 +1836,12 @@ BEMProblem<dim>::compute_rhs(
   //-(alpha + N) * serv_phi + D * serv_dphi_dn
   // becomes
   //-(alpha + N) * serv_phi + D * (serv_dphi_dn + robin_rhs)
-  serv_phi          = src;
-  serv_phi_imag     = src_imag;
-  serv_dphi_dn      = src;
-  serv_dphi_dn_imag = src_imag;
-
-  static TrilinosWrappers::MPI::Vector matrVectProdN;
-  static TrilinosWrappers::MPI::Vector matrVectProdN_imag;
-  static TrilinosWrappers::MPI::Vector matrVectProdD;
-  static TrilinosWrappers::MPI::Vector matrVectProdD_imag;
-
-  matrVectProdN.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdN_imag.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdD.reinit(this_cpu_set, mpi_communicator);
-  matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
+  serv_phi            = src;
+  serv_phi_imag       = src_imag;
+  serv_dphi_dn        = src;
+  serv_dphi_dn_imag   = src_imag;
+  serv_phi_robin      = robin_rhs;
+  serv_phi_robin_imag = robin_rhs_imag;
 
   // Robin nodes are accounted for by robin_rhs
   serv_phi.scale(dirichlet_nodes);
@@ -1807,8 +1849,6 @@ BEMProblem<dim>::compute_rhs(
   serv_dphi_dn.scale(neumann_nodes);
   serv_dphi_dn_imag.scale(neumann_nodes);
   // cut the robin_rhs to only the true robin nodes
-  serv_phi_robin      = robin_rhs;
-  serv_phi_robin_imag = robin_rhs_imag;
   serv_phi_robin.scale(robin_nodes);
   serv_phi_robin_imag.scale(robin_nodes);
 
@@ -1816,14 +1856,19 @@ BEMProblem<dim>::compute_rhs(
     {
       neumann_matrix.vmult(dst, serv_phi);
       neumann_matrix.vmult(dst_imag, serv_phi_imag);
+
       serv_phi.scale(alpha);
       serv_phi_imag.scale(alpha);
+
       dst += serv_phi;
       dst_imag += serv_phi_imag;
+
       dst *= -1;
       dst_imag *= -1;
+
       serv_dphi_dn += serv_phi_robin;
       serv_dphi_dn_imag += serv_phi_robin_imag;
+
       dirichlet_matrix.vmult_add(dst, serv_dphi_dn);
       dirichlet_matrix.vmult_add(dst_imag, serv_dphi_dn_imag);
     }
@@ -1831,25 +1876,50 @@ BEMProblem<dim>::compute_rhs(
     {
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
 
-      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       serv_dphi_dn += serv_phi_robin;
       serv_dphi_dn_imag += serv_phi_robin_imag;
+
+      static TrilinosWrappers::MPI::Vector matrVectProdN(this_cpu_set,
+                                                         mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdN_imag(this_cpu_set,
+                                                              mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdD(this_cpu_set,
+                                                         mpi_communicator);
+      static TrilinosWrappers::MPI::Vector matrVectProdD_imag(this_cpu_set,
+                                                              mpi_communicator);
+      if (matrVectProdN.size() != src.size())
+        {
+          matrVectProdN.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdN_imag.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdD.reinit(this_cpu_set, mpi_communicator);
+          matrVectProdD_imag.reinit(this_cpu_set, mpi_communicator);
+        }
+
+      fma.generate_multipole_expansions(serv_phi, serv_dphi_dn);
       fma.multipole_matr_vect_products(serv_phi,
                                        serv_dphi_dn,
                                        matrVectProdN,
                                        matrVectProdD);
+
+      fma.generate_multipole_expansions(serv_phi_imag, serv_dphi_dn_imag);
       fma.multipole_matr_vect_products(serv_phi_imag,
                                        serv_dphi_dn_imag,
                                        matrVectProdN_imag,
                                        matrVectProdD_imag);
+
       serv_phi.scale(alpha);
       serv_phi_imag.scale(alpha);
-      dst += matrVectProdN;
-      dst_imag += matrVectProdN_imag;
-      dst += serv_phi;
-      dst_imag += serv_phi_imag;
-      dst *= -1;
-      dst_imag *= -1;
+
+      // dst += matrVectProdN;
+      // dst_imag += matrVectProdN_imag;
+      // dst += serv_phi;
+      // dst_imag += serv_phi_imag;
+      // dst *= -1;
+      // dst_imag *= -1;
+      // dst += matrVectProdD;
+      // dst_imag += matrVectProdD_imag;
+      dst.add(-1, matrVectProdN, -1, serv_phi);
+      dst_imag.add(-1, matrVectProdN_imag, -1, serv_phi_imag);
       dst += matrVectProdD;
       dst_imag += matrVectProdD_imag;
     }
@@ -1906,6 +1976,9 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
         fma.FMA_preconditioner(alpha, constraints);
       solver.solve(cc, sol, system_rhs, fma_preconditioner);
     }
+
+  pcout << "Solve terminated at step " << solver_control.last_step()
+        << std::endl;
 
   for (auto i : this_cpu_set)
     {
@@ -1971,9 +2044,10 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
   complex_cpu_set.add_indices(this_cpu_set);
   complex_cpu_set.add_indices(this_cpu_set, this_cpu_set.size());
   complex_cpu_set.compress();
+
+  // TODO: use BlockVectors
   TrilinosWrappers::MPI::Vector sol_complex;
   TrilinosWrappers::MPI::Vector system_rhs_complex;
-
   sol_complex.reinit(complex_cpu_set, mpi_communicator);
   system_rhs_complex.reinit(complex_cpu_set, mpi_communicator);
 
@@ -1988,6 +2062,66 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 
   cc.distribute_rhs(system_rhs_complex);
   system_rhs_complex.compress(VectorOperation::insert);
+
+  if (false)
+    {
+      // TODO: get system matrix metrics
+      auto block_a = get_system_matrix();
+      auto block_d{block_a};
+      block_a.gauss_jordan();
+
+      auto tmp{block_a};
+      block_a.mmult(tmp, block_d);
+
+      FullMatrix<double> identity(IdentityMatrix(dh.n_dofs()));
+      tmp.add(-1, identity);
+
+      pcout << "|A^-1 D|_infty " << tmp.linfty_norm() << std::endl;
+
+      auto system_matrix = get_system_matrix_complex();
+      auto system_matrix_inverse(system_matrix);
+      system_matrix_inverse.gauss_jordan();
+
+      auto tmp2(system_matrix);
+      system_matrix.mmult(tmp2, system_matrix_inverse);
+
+      FullMatrix<double> identity2(IdentityMatrix(2 * dh.n_dofs()));
+      tmp2.add(-1, identity2);
+
+      pcout << "(system matrix) |S^-1 S|_infty " << tmp2.linfty_norm()
+            << std::endl;
+
+      SolverControl ap_solver_control(1000, 1e-9);
+      ArpackSolver  ap_solver_1(
+        ap_solver_control,
+        ArpackSolver::AdditionalData(
+          1000, ArpackSolver::WhichEigenvalues::largest_magnitude));
+
+      std::vector<std::complex<double>> eigenvalues(1);
+      std::vector<Vector<double>>       eigenvectors(1);
+      pcout << "allocated vectors for eigenvalues etc" << std::endl;
+      ap_solver_1.solve(system_matrix,
+                        identity2,
+                        system_matrix_inverse,
+                        eigenvalues,
+                        eigenvectors);
+
+      pcout << "eigenvalues: [" << eigenvalues.front() << ", ..., ";
+
+      ArpackSolver ap_solver_2(
+        ap_solver_control,
+        ArpackSolver::AdditionalData(
+          1000, ArpackSolver::WhichEigenvalues::smallest_magnitude));
+      ap_solver_2.solve(system_matrix,
+                        identity2,
+                        system_matrix_inverse,
+                        eigenvalues,
+                        eigenvectors);
+
+      pcout << eigenvalues.front() << "]" << std::endl;
+
+      // SchurComplement schur;
+    }
 
   if (solution_method == "Direct")
     {
@@ -2123,15 +2257,16 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
   else
     {
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
-      AssertThrow(false, ExcMessage("Unimplemented"));
 
       TrilinosWrappers::PreconditionILU &fma_preconditioner =
-        fma.FMA_preconditioner(alpha, constraints);
-      solver.solve(cc, sol, system_rhs, fma_preconditioner);
+        fma.FMA_preconditioner_complex(alpha, constraints);
+
+      sol_complex.sadd(1., 0., system_rhs_complex);
+      solver.solve(cc, sol_complex, system_rhs_complex, fma_preconditioner);
     }
 
-  // TODO: info on solve process
-
+  pcout << "Solve terminated at step " << solver_control.last_step()
+        << std::endl;
 
   for (auto i : this_cpu_set)
     {
@@ -2307,50 +2442,6 @@ BEMProblem<dim>::compute_constraints(
       // and precisely when the current node is the first of the set
       if (i == firstOfDoubles)
         {
-          // std::string type = "dirichlet";
-          // if (localized_neumann_nodes(i))
-          //   {
-          //     type = "neumann";
-          //   }
-          // if (localized_robin_nodes(i))
-          //   {
-          //     type = "robin";
-          //   }
-          // pcout << "processing constraints from " << i << " of type " << type
-          //       << " coincident with other " << (doubles.size() - 1)
-          //       << std::endl;
-
-          // if (!localized_robin_nodes(i) && localized_robin_flags(i))
-          //   {
-          //     if (!c.is_constrained(i))
-          //       {
-          //         c.add_line(i);
-          //         if (localized_dirichlet_nodes(i))
-          //           {
-          //             c.set_inhomogeneity(
-          //               i,
-          //               localized_robin_rhs(i) -
-          //                 loc_tmp_rhs(i) *
-          //                 localized_robin_matrix_diagonal(i));
-          //           }
-          //         else
-          //           {
-          //             c.set_inhomogeneity(i,
-          //                                 (localized_robin_rhs(i) -
-          //                                  loc_tmp_rhs(i)) /
-          //                                   localized_robin_matrix_diagonal(i));
-          //           }
-          //         pcout
-          //           << "node " << i << " of type " << type
-          //           << " is on the boundary with a robin condition -> set
-          //           inhomogeneity "
-          //           << c.get_inhomogeneity(i)
-          //           << " imposed value from own condition is " <<
-          //           loc_tmp_rhs(i)
-          //           << std::endl;
-          //       }
-          //   }
-
           // the vector entry corresponding to the first node of the set does
           // i is the source of the constraints, thus we erase it from the set
           doubles.erase(i);
@@ -2474,24 +2565,6 @@ BEMProblem<dim>::compute_constraints(
                       {
                         c.add_line(j);
                         c.set_inhomogeneity(j, loc_tmp_rhs(i));
-                        // pcout << "setting inhomogeneity on robin node " << j
-                        //       << " = " << c.get_inhomogeneity(j) <<
-                        //       std::endl;
-
-                        // if (!c.is_constrained(i))
-                        //   {
-                        //     // if j is robin, it could also set
-                        //     inhomogenerity on i c.add_line(i);
-                        //     c.set_inhomogeneity(
-                        //       i,
-                        //       (localized_robin_rhs(j) - loc_tmp_rhs(i)) /
-                        //         localized_robin_matrix_diagonal(j));
-                        //     // pcout << "setting inhomogeneity on dirichlet
-                        //     node
-                        //     // "
-                        //     //       << i << " = " << c.get_inhomogeneity(i)
-                        //     //       << std::endl;
-                        //   }
                       }
                   }
                 }
@@ -2508,25 +2581,6 @@ BEMProblem<dim>::compute_constraints(
                 {
                   c.add_line(j);
                   c.add_entry(j, i, 1);
-
-                  // // if there's a robin, we can set the inhomogeneity
-                  // if (localized_neumann_nodes(i) !=
-                  // localized_neumann_nodes(j))
-                  //   {
-                  //     pcout << "setting inhomogeneity on robin node " << j
-                  //           << " = " << c.get_inhomogeneity(j) << std::endl;
-
-                  //     // j is a robin node, can set the rhs from the neumann
-                  //     // should in some way consider the normals
-                  //     c.add_line(i);
-                  //     c.set_inhomogeneity(i,
-                  //                         localized_robin_rhs(j) -
-                  //                           localized_robin_matrix_diagonal(j)
-                  //                           *
-                  //                             loc_tmp_rhs(i));
-                  //     pcout << "setting inhomogeneity on neumann node " << i
-                  //           << " = " << c.get_inhomogeneity(i) << std::endl;
-                  //   }
                 }
             }
         }

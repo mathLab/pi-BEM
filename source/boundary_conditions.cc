@@ -212,6 +212,8 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
   get_phi().reinit(this_cpu_set, mpi_communicator);
   get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
   tmp_rhs.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_rhs.reinit(this_cpu_set, mpi_communicator);
 
   pcout << "Computing normal vector" << std::endl;
   if (reset_matrix)
@@ -269,14 +271,18 @@ BoundaryConditions<dim>::solve_complex_problem(bool reset_matrix)
   this_cpu_set.compress();
 
   // real parts - current component
-  // get_phi().reinit(this_cpu_set, mpi_communicator);
-  // get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
+  get_phi().reinit(this_cpu_set, mpi_communicator);
+  get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
   tmp_rhs.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_rhs.reinit(this_cpu_set, mpi_communicator);
   // imaginary parts - next component
-  // get_phi(current_component + 1).reinit(this_cpu_set, mpi_communicator);
-  // get_dphi_dn(current_component + 1).reinit(this_cpu_set, mpi_communicator);
+  get_phi(current_component + 1).reinit(this_cpu_set, mpi_communicator);
+  get_dphi_dn(current_component + 1).reinit(this_cpu_set, mpi_communicator);
   TrilinosWrappers::MPI::Vector tmp_rhs_imag;
   tmp_rhs_imag.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_matrix_diagonal_imag.reinit(this_cpu_set, mpi_communicator);
+  bem.robin_rhs_imag.reinit(this_cpu_set, mpi_communicator);
 
   if (reset_matrix)
     {
@@ -348,8 +354,11 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
 {
   Teuchos::TimeMonitor LocalTimer(*PrepareTime);
 
-  get_phi().reinit(this_cpu_set, mpi_communicator);
-  get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
+  // get_phi().reinit(this_cpu_set, mpi_communicator);
+  // get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
+  rhs           = 0;
+  get_phi()     = 0;
+  get_dphi_dn() = 0;
 
   const types::global_dof_index n_dofs = bem.dh.n_dofs();
   std::vector<Point<dim>>       support_points(n_dofs);
@@ -471,8 +480,8 @@ BoundaryConditions<dim>::prepare_robin_datastructs(
   const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-  robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
-  robin_rhs.reinit(this_cpu_set, mpi_communicator);
+  // robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  // robin_rhs.reinit(this_cpu_set, mpi_communicator);
 
   Vector<double>                    coeffs(3);
   std::set<types::global_dof_index> processed;
@@ -525,10 +534,10 @@ BoundaryConditions<dim>::prepare_robin_datastructs(
   const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-  robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
-  robin_rhs.reinit(this_cpu_set, mpi_communicator);
-  robin_matrix_diagonal_imag.reinit(this_cpu_set, mpi_communicator);
-  robin_rhs_imag.reinit(this_cpu_set, mpi_communicator);
+  // robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
+  // robin_rhs.reinit(this_cpu_set, mpi_communicator);
+  // robin_matrix_diagonal_imag.reinit(this_cpu_set, mpi_communicator);
+  // robin_rhs_imag.reinit(this_cpu_set, mpi_communicator);
 
   Vector<double>                    coeffs(3);
   Vector<double>                    coeffs_imag(3);
@@ -607,7 +616,9 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
         }
     }
   Vector<double> localized_gradient_solution(
-    bem.get_vector_gradients_solution()); // vector_gradients_solution
+    bem.get_vector_gradients_solution());
+  Vector<double> localized_surface_gradient_solution(
+    bem.get_vector_surface_gradients_solution());
   Vector<double> localised_normals(bem.vector_normals_solution);
 
   Vector<double> localized_dirichlet_flags(bem.dirichlet_flags);
@@ -716,9 +727,10 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
                     {
                       if (!covered[dof])
                         {
+                          covered[dof] = true;
+
                           phi_diff_node[dof] +=
                             std::abs(phi_refval_node[dof] - localized_phi[dof]);
-                          covered[dof] = true;
                         }
                     }
                 }
@@ -726,7 +738,7 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
         }
 
       // process neumann nodes, store |dphi_dn - imposed_dphi_dn|
-      // also, do |grad_phi - imposed_grad_phi|
+      // also, do |grad_phi - imposed_grad_phi|?
       for (unsigned int slot = 0; slot < MAX_CONDITION_SLOTS; ++slot)
         {
           get_wind(current_component, slot)
@@ -746,10 +758,33 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
                     {
                       if (!covered[dof])
                         {
-                          double tmp = 0;
+                          covered[dof] = true;
+
+                          // compute dphi_dn from the vector_gradient_solution?
+                          Tensor<1, dim> tmp_surface_gradphi, tmp_norm_gradphi,
+                            tmp_gradphi, tmp_boundary_gradphi, tmp_norm;
+                          double tmp_dphi_dn = 0;
                           for (unsigned int d = 0; d < dim; ++d)
                             {
+                              tmp_boundary_gradphi[d] =
+                                gradphi_refval_node[dof][d];
+
                               auto vec_dof = d * bem.dh.n_dofs() + dof;
+
+                              tmp_norm[d] = localised_normals
+                                [bem.vec_original_to_sub_wise[vec_dof]];
+
+                              tmp_surface_gradphi[d] =
+                                localized_surface_gradient_solution
+                                  [bem.vec_original_to_sub_wise[vec_dof]];
+                              tmp_norm_gradphi[d] =
+                                localized_dphi_dn[dof] *
+                                localised_normals
+                                  [bem.vec_original_to_sub_wise[vec_dof]];
+                              tmp_gradphi[d] =
+                                tmp_surface_gradphi[d] + tmp_norm_gradphi[d];
+
+                              // uses gradient_dh
                               gradphi_diff_node
                                 [bem.vec_original_to_sub_wise[vec_dof]] +=
                                 std::abs(
@@ -758,12 +793,38 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
                                   localized_gradient_solution
                                     [bem.vec_original_to_sub_wise[vec_dof]]);
 
-                              tmp += localised_normals
-                                       [bem.vec_original_to_sub_wise[vec_dof]] *
-                                     gradphi_refval_node[dof][d];
+                              tmp_dphi_dn +=
+                                localised_normals
+                                  [bem.vec_original_to_sub_wise[vec_dof]] *
+                                gradphi_refval_node
+                                  [bem.original_to_sub_wise[dof]][d];
                             }
-                          dphi_dn_diff_node[dof] +=
-                            std::abs(tmp - localized_dphi_dn[dof]);
+
+                          // if ((tmp_boundary_gradphi - tmp_gradphi).norm() >
+                          //     1e-3)
+                          //   {
+                          //     pcout << "dof " << dof << std::endl;
+                          //     pcout << "\tcoords " << support_points[dof]
+                          //           << std::endl;
+                          //     pcout << "\tnormal " << tmp_norm << std::endl;
+                          //     pcout << "\tdphi_dn (boundary) " << tmp_dphi_dn
+                          //           << std::endl;
+                          //     pcout << "\tdphi_dn (solution) "
+                          //           << localized_dphi_dn[dof] << std::endl;
+                          //     pcout << "\tgradphi (boundary) "
+                          //           << gradphi_refval_node[dof] << std::endl;
+                          //     pcout << "\tgradphi (solution) " << tmp_gradphi
+                          //           << std::endl;
+                          //     pcout << "\tgradphi_norm " << tmp_norm_gradphi
+                          //           << std::endl;
+                          //     pcout << "\tgradphi_surface "
+                          //           << tmp_surface_gradphi << std::endl;
+                          //   }
+
+                          dphi_dn_diff_node[bem.original_to_sub_wise[dof]] +=
+                            std::abs(
+                              tmp_dphi_dn -
+                              localized_dphi_dn[bem.original_to_sub_wise[dof]]);
                         }
                     }
                 }

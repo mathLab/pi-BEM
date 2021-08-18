@@ -395,6 +395,161 @@ public:
     return vector_surface_gradients_solutions[component];
   }
 
+  FullMatrix<double>
+  get_system_matrix() const
+  {
+    Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
+    Vector<double> localized_neumann_nodes(neumann_nodes);
+    Vector<double> localized_robin_nodes(robin_nodes);
+    Vector<double> localized_alpha(alpha);
+    Vector<double> localized_robin_matrix_diagonal(robin_matrix_diagonal);
+
+    SparsityPattern spattern(dh.n_dofs(), dh.n_dofs(), dh.n_dofs());
+    for (unsigned int i = 0; i < dh.n_dofs(); ++i)
+      {
+        for (unsigned int j = 0; j < dh.n_dofs(); ++j)
+          {
+            spattern.add(i, j);
+          }
+      }
+    spattern.compress();
+
+    SparseMatrix<double> localized_dirichlet_matrix(spattern);
+    localized_dirichlet_matrix.copy_from(dirichlet_matrix);
+    SparseMatrix<double> localized_neumann_matrix(spattern);
+    localized_neumann_matrix.copy_from(neumann_matrix);
+
+    FullMatrix<double> ret(dh.n_dofs(), dh.n_dofs());
+
+    for (unsigned int i = 0; i < dh.n_dofs(); ++i)
+      {
+        for (unsigned int j = 0; j < dh.n_dofs(); ++j)
+          {
+            if (localized_dirichlet_nodes(j))
+              {
+                ret.set(i, j, localized_neumann_matrix(i, j));
+                if (i == j)
+                  {
+                    ret.add(i, j, localized_alpha(i));
+                  }
+              }
+            else if (localized_neumann_nodes(j))
+              {
+                ret.set(i, j, -localized_dirichlet_matrix(i, j));
+              }
+            else
+              {
+                ret.set(i, j, localized_neumann_matrix(i, j));
+                ret.add(i,
+                        j,
+                        localized_dirichlet_matrix(i, j) *
+                          localized_robin_matrix_diagonal(j));
+                if (i == j)
+                  {
+                    ret.add(i, j, localized_alpha(i));
+                  }
+              }
+          }
+      }
+
+    return ret;
+  }
+
+  FullMatrix<double>
+  get_system_matrix_complex() const
+  {
+    Vector<double> localized_dirichlet_nodes(dirichlet_nodes);
+    Vector<double> localized_neumann_nodes(neumann_nodes);
+    Vector<double> localized_robin_nodes(robin_nodes);
+    Vector<double> localized_alpha(alpha);
+    Vector<double> localized_robin_matrix_diagonal(robin_matrix_diagonal);
+    Vector<double> localized_robin_matrix_diagonal_imag(
+      robin_matrix_diagonal_imag);
+
+    SparsityPattern spattern(dh.n_dofs(), dh.n_dofs(), dh.n_dofs());
+    for (unsigned int i = 0; i < dh.n_dofs(); ++i)
+      {
+        for (unsigned int j = 0; j < dh.n_dofs(); ++j)
+          {
+            spattern.add(i, j);
+          }
+      }
+    spattern.compress();
+
+    SparseMatrix<double> localized_dirichlet_matrix(spattern);
+    localized_dirichlet_matrix.copy_from(dirichlet_matrix);
+    SparseMatrix<double> localized_neumann_matrix(spattern);
+    localized_neumann_matrix.copy_from(neumann_matrix);
+
+    FullMatrix<double> ret(2 * dh.n_dofs(), 2 * dh.n_dofs());
+
+    for (unsigned int i = 0; i < dh.n_dofs(); ++i)
+      {
+        for (unsigned int j = 0; j < dh.n_dofs(); ++j)
+          {
+            if (localized_dirichlet_nodes(j))
+              {
+                ret.set(i, j, localized_neumann_matrix(i, j));
+                ret.set(i + dh.n_dofs(),
+                        j + dh.n_dofs(),
+                        localized_neumann_matrix(i, j));
+                if (i == j)
+                  {
+                    ret.add(i, j, localized_alpha(i));
+                    ret.add(i + dh.n_dofs(),
+                            j + dh.n_dofs(),
+                            localized_alpha(i));
+                  }
+              }
+            else if (localized_neumann_nodes(j))
+              {
+                ret.set(i, j, -localized_dirichlet_matrix(i, j));
+                ret.set(i + dh.n_dofs(),
+                        j + dh.n_dofs(),
+                        -localized_dirichlet_matrix(i, j));
+              }
+            else
+              {
+                ret.set(i, j, localized_neumann_matrix(i, j));
+                ret.set(i + dh.n_dofs(),
+                        j + dh.n_dofs(),
+                        localized_neumann_matrix(i, j));
+
+                // in the diagonal blocks, it's just the real part of the robin
+                // datastructs
+                ret.add(i,
+                        j,
+                        localized_dirichlet_matrix(i, j) *
+                          localized_robin_matrix_diagonal(j));
+                ret.add(i + dh.n_dofs(),
+                        j + dh.n_dofs(),
+                        localized_dirichlet_matrix(i, j) *
+                          localized_robin_matrix_diagonal(j));
+                // but the in the other quadrants, it's the imaginary part with
+                // flipping of the sign
+                ret.add(i,
+                        j + dh.n_dofs(),
+                        -localized_dirichlet_matrix(i, j) *
+                          localized_robin_matrix_diagonal_imag(j));
+                ret.add(i + dh.n_dofs(),
+                        j,
+                        localized_dirichlet_matrix(i, j) *
+                          localized_robin_matrix_diagonal_imag(j));
+
+                if (i == j)
+                  {
+                    ret.add(i, j, localized_alpha(i));
+                    ret.add(i + dh.n_dofs(),
+                            j + dh.n_dofs(),
+                            localized_alpha(i));
+                  }
+              }
+          }
+      }
+
+    return ret;
+  }
+
   unsigned int              n_components;
   unsigned int              current_component;
   ConditionalOStream        pcout;

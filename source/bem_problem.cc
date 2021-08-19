@@ -253,8 +253,10 @@ BEMProblem<dim>::reinit()
                                       vector_dofs_domain_association);
 
   this_cpu_set.clear();
+  this_cpu_set_complex.clear();
   vector_this_cpu_set.clear();
   this_cpu_set.set_size(dh.n_dofs());
+  this_cpu_set_complex.set_size(2 * dh.n_dofs());
   vector_this_cpu_set.set_size(gradient_dh.n_dofs());
 
   // We compute this two vector in order to use an eventual
@@ -279,8 +281,11 @@ BEMProblem<dim>::reinit()
                                        dummy]);
           }
       }
+  this_cpu_set_complex.add_indices(this_cpu_set);
+  this_cpu_set_complex.add_indices(this_cpu_set, this_cpu_set.size());
 
   this_cpu_set.compress();
+  this_cpu_set_complex.compress();
   vector_this_cpu_set.compress();
 
   // At this point we just need to create a ghosted IndexSet for the scalar
@@ -331,6 +336,12 @@ BEMProblem<dim>::reinit()
                                          (types::global_dof_index)
                                            preconditioner_band);
   is_preconditioner_initialized = false;
+
+  preconditioner_complex_sparsity_pattern.reinit(this_cpu_set_complex,
+                                                 mpi_communicator,
+                                                 (types::global_dof_index)
+                                                   preconditioner_band);
+  is_preconditioner_complex_initialized = false;
 
   dirichlet_nodes.reinit(this_cpu_set, mpi_communicator);
   neumann_nodes.reinit(this_cpu_set, mpi_communicator);
@@ -1959,6 +1970,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
   if (solution_method == "Direct")
     {
       assemble_preconditioner();
+
       sol.sadd(1., 0., system_rhs);
       solver.solve(cc, sol, system_rhs, preconditioner);
     }
@@ -2033,17 +2045,11 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
   compute_constraints(constr_cpu_set, constraints_imag, tmp_rhs_imag);
   set_current_phi_component(current_component - 1);
 
-  // assemble the complex datastructs
-  IndexSet complex_cpu_set(2 * this_cpu_set.size());
-  complex_cpu_set.add_indices(this_cpu_set);
-  complex_cpu_set.add_indices(this_cpu_set, this_cpu_set.size());
-  complex_cpu_set.compress();
-
   // TODO: use BlockVectors
   TrilinosWrappers::MPI::Vector sol_complex;
   TrilinosWrappers::MPI::Vector system_rhs_complex;
-  sol_complex.reinit(complex_cpu_set, mpi_communicator);
-  system_rhs_complex.reinit(complex_cpu_set, mpi_communicator);
+  sol_complex.reinit(this_cpu_set_complex, mpi_communicator);
+  system_rhs_complex.reinit(this_cpu_set_complex, mpi_communicator);
 
   for (auto i : this_cpu_set)
     {
@@ -2119,131 +2125,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 
   if (solution_method == "Direct")
     {
-      // TODO: find a way to assemble a double size preconditioner
-      TrilinosWrappers::SparseMatrix    band_system_complex;
-      TrilinosWrappers::PreconditionILU preconditioner_complex;
-      TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern_complex;
-      preconditioner_sparsity_pattern_complex.reinit(complex_cpu_set,
-                                                     mpi_communicator,
-                                                     (types::global_dof_index)
-                                                       preconditioner_band);
-
-      for (auto i : this_cpu_set)
-        {
-          auto from = (i >= preconditioner_band / 2) ?
-                        (i - preconditioner_band / 2) :
-                        (types::global_dof_index)0;
-          auto to =
-            std::min((types::global_dof_index)(i + preconditioner_band / 2),
-                     this_cpu_set.size());
-
-          for (auto j = from; j < to; ++j)
-            {
-              preconditioner_sparsity_pattern_complex.add(i, j);
-              preconditioner_sparsity_pattern_complex.add(
-                i + this_cpu_set.size(), j + this_cpu_set.size());
-            }
-        }
-      preconditioner_sparsity_pattern_complex.compress();
-      band_system_complex.reinit(preconditioner_sparsity_pattern_complex);
-
-      for (auto i : this_cpu_set)
-        {
-          if (constraints.is_constrained(i))
-            {
-              band_system_complex.add(i, i, 1);
-              band_system_complex.add(i + this_cpu_set.size(),
-                                      i + this_cpu_set.size(),
-                                      1);
-            }
-          else
-            {
-              auto from = (i >= preconditioner_band / 2) ?
-                            (i - preconditioner_band / 2) :
-                            (types::global_dof_index)0;
-              auto to =
-                std::min((types::global_dof_index)i + preconditioner_band / 2,
-                         this_cpu_set.size());
-
-              for (auto j = from; j < to; ++j)
-                {
-                  if (dirichlet_nodes(j) == 0)
-                    {
-                      // neumann and robin nodes are implicitly merged, here
-                      band_system_complex.add(i, j, neumann_matrix(i, j));
-                      band_system_complex.add(i + this_cpu_set.size(),
-                                              j + this_cpu_set.size(),
-                                              neumann_matrix(i, j));
-                      // with Robin nodes, there are paired values (real-imag
-                      // pairs) - this is only engaged in very small problems
-                      // if ((robin_nodes(i) == 1) &&
-                      //     (i + this_cpu_set.size() == j))
-                      //   {
-                      //     band_system_complex.add(i,
-                      //                             j,
-                      //                             -dirichlet_matrix(i, i) *
-                      //                               robin_matrix_diagonal_imag(
-                      //                                 i));
-                      //     band_system_complex.add(j,
-                      //                             i,
-                      //                             dirichlet_matrix(i, i) *
-                      //                               robin_matrix_diagonal(i));
-                      //   }
-
-                      if (robin_nodes(j) == 1)
-                        {
-                          // scale the row from D, using the robin matrix
-                          // diagonal
-                          // for now, ignore the pairing parts
-                          band_system_complex.add(i,
-                                                  j,
-                                                  dirichlet_matrix(i, j) *
-                                                    robin_matrix_diagonal(j));
-                          band_system_complex.add(i + this_cpu_set.size(),
-                                                  j + this_cpu_set.size(),
-                                                  dirichlet_matrix(i, j) *
-                                                    robin_matrix_diagonal(j));
-
-                          // check for pairing elements
-                          if ((robin_nodes(i) == 1) &&
-                              j + this_cpu_set.size() <
-                                i + preconditioner_band / 2)
-                            {
-                              // the pairing element of the current real
-                              // variable and its imag version is available in
-                              // the band
-                              band_system_complex.add(
-                                i,
-                                j + this_cpu_set.size(),
-                                -dirichlet_matrix(i, j) *
-                                  robin_matrix_diagonal_imag(j));
-                              band_system_complex.add(
-                                i + this_cpu_set.size(),
-                                j,
-                                dirichlet_matrix(i, j) *
-                                  robin_matrix_diagonal_imag(j));
-                            }
-                        }
-
-                      if (i == j)
-                        {
-                          band_system_complex.add(i, j, alpha(i));
-                          band_system_complex.add(i + this_cpu_set.size(),
-                                                  j + this_cpu_set.size(),
-                                                  alpha(i));
-                        }
-                    }
-                  else
-                    {
-                      band_system_complex.add(i, j, -dirichlet_matrix(i, j));
-                      band_system_complex.add(i + this_cpu_set.size(),
-                                              j + this_cpu_set.size(),
-                                              -dirichlet_matrix(i, j));
-                    }
-                }
-            }
-        }
-      preconditioner_complex.initialize(band_system_complex);
+      assemble_preconditioner_complex();
 
       sol_complex.sadd(1., 0., system_rhs_complex);
       solver.solve(cc, sol_complex, system_rhs_complex, preconditioner_complex);
@@ -2681,6 +2563,120 @@ BEMProblem<dim>::assemble_preconditioner()
     }
 
   preconditioner.initialize(band_system);
+}
+
+template <int dim>
+void
+BEMProblem<dim>::assemble_preconditioner_complex()
+{
+  if (!is_preconditioner_complex_initialized)
+    {
+      for (auto i : this_cpu_set)
+        {
+          auto from = (i >= preconditioner_band / 2) ?
+                        (i - preconditioner_band / 2) :
+                        (types::global_dof_index)0;
+          auto to =
+            std::min((types::global_dof_index)(i + preconditioner_band / 2),
+                     this_cpu_set.size());
+
+          for (auto j = from; j < to; ++j)
+            {
+              preconditioner_complex_sparsity_pattern.add(i, j);
+              preconditioner_complex_sparsity_pattern.add(
+                i + this_cpu_set.size(), j + this_cpu_set.size());
+            }
+        }
+      preconditioner_complex_sparsity_pattern.compress();
+      band_system_complex.reinit(preconditioner_complex_sparsity_pattern);
+      is_preconditioner_complex_initialized = true;
+    }
+  else
+    {
+      band_system_complex = 0;
+    }
+
+  for (auto i : this_cpu_set)
+    {
+      if (constraints.is_constrained(i))
+        {
+          band_system_complex.add(i, i, 1);
+          band_system_complex.add(i + this_cpu_set.size(),
+                                  i + this_cpu_set.size(),
+                                  1);
+        }
+      else
+        {
+          auto from = (i >= preconditioner_band / 2) ?
+                        (i - preconditioner_band / 2) :
+                        (types::global_dof_index)0;
+          auto to =
+            std::min((types::global_dof_index)i + preconditioner_band / 2,
+                     this_cpu_set.size());
+
+          for (auto j = from; j < to; ++j)
+            {
+              if (dirichlet_nodes(j) == 0)
+                {
+                  // neumann and robin nodes are implicitly merged, here
+                  band_system_complex.add(i, j, neumann_matrix(i, j));
+                  band_system_complex.add(i + this_cpu_set.size(),
+                                          j + this_cpu_set.size(),
+                                          neumann_matrix(i, j));
+
+                  if (robin_nodes(j) == 1)
+                    {
+                      // scale the row from D, using the robin matrix
+                      // diagonal
+                      // for now, ignore the pairing parts
+                      band_system_complex.add(i,
+                                              j,
+                                              dirichlet_matrix(i, j) *
+                                                robin_matrix_diagonal(j));
+                      band_system_complex.add(i + this_cpu_set.size(),
+                                              j + this_cpu_set.size(),
+                                              dirichlet_matrix(i, j) *
+                                                robin_matrix_diagonal(j));
+
+                      // check for pairing elements
+                      if ((robin_nodes(i) == 1) &&
+                          j + this_cpu_set.size() < i + preconditioner_band / 2)
+                        {
+                          // the pairing element of the current real
+                          // variable and its imag version is available in
+                          // the band
+                          band_system_complex.add(i,
+                                                  j + this_cpu_set.size(),
+                                                  -dirichlet_matrix(i, j) *
+                                                    robin_matrix_diagonal_imag(
+                                                      j));
+                          band_system_complex.add(i + this_cpu_set.size(),
+                                                  j,
+                                                  dirichlet_matrix(i, j) *
+                                                    robin_matrix_diagonal_imag(
+                                                      j));
+                        }
+                    }
+
+                  if (i == j)
+                    {
+                      band_system_complex.add(i, j, alpha(i));
+                      band_system_complex.add(i + this_cpu_set.size(),
+                                              j + this_cpu_set.size(),
+                                              alpha(i));
+                    }
+                }
+              else
+                {
+                  band_system_complex.add(i, j, -dirichlet_matrix(i, j));
+                  band_system_complex.add(i + this_cpu_set.size(),
+                                          j + this_cpu_set.size(),
+                                          -dirichlet_matrix(i, j));
+                }
+            }
+        }
+    }
+  preconditioner_complex.initialize(band_system_complex);
 }
 
 template <int dim>

@@ -573,42 +573,24 @@ public:
   ConditionalOStream        pcout;
   ComputationalDomain<dim> &comp_dom;
 
-<<<<<<< HEAD
   std::string                                  scalar_fe_type, vector_fe_type;
   unsigned int                                 scalar_fe_order, vector_fe_order;
-=======
-  ParsedFiniteElement<dim - 1, dim>            parsed_fe;
-  ParsedFiniteElement<dim - 1, dim>            parsed_gradient_fe;
->>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
+
   std::unique_ptr<FiniteElement<dim - 1, dim>> fe;
   std::unique_ptr<FiniteElement<dim - 1, dim>> gradient_fe;
   DoFHandler<dim - 1, dim>                     dh;
   DoFHandler<dim - 1, dim>                     gradient_dh;
 
-<<<<<<< HEAD
-  // FE_Q<dim-1,dim>                   fe;
-  // FESystem<dim-1,dim>      gradient_fe;
 
   double refinement_threshold, coarsening_threshold;
-=======
-  ParsedGridRefinement pgr;
->>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
 
   /// An Eulerian Mapping is created to deal
   /// with the free surface and boat mesh
   /// deformation
-<<<<<<< HEAD
-
   Vector<double>                         map_vector;
   std::shared_ptr<Mapping<dim - 1, dim>> mapping;
   unsigned int                           mapping_degree;
   Vector<double>                         map_points;
-=======
-  Vector<double>                    map_vector;
-  shared_ptr<Mapping<dim - 1, dim>> mapping;
-  unsigned int                      mapping_degree;
-  Vector<double>                    map_points;
->>>>>>> f8a7940 (removed some dead commented code, added curly braces where missing)
 
   /// these are the std::vectors of std::sets
   /// containing informations on multiple
@@ -638,14 +620,10 @@ public:
     robin_matrix_diagonal_imag;
   TrilinosWrappers::MPI::Vector robin_rhs, robin_rhs_imag;
 
-  TrilinosWrappers::MPI::Vector system_rhs, system_rhs_imag;
+  TrilinosWrappers::MPI::Vector system_rhs; //, system_rhs_imag;
 
-<<<<<<< HEAD
-  /// solution and alpha vectors
-  TrilinosWrappers::MPI::Vector sol;
-=======
+
   TrilinosWrappers::MPI::Vector sol, sol_imag;
->>>>>>> 8f9fc38 (almost working complex problem resolution; bad discontinuity of gradient at one of the corners of the coarse sphere)
   TrilinosWrappers::MPI::Vector alpha;
   /// an alternatively computed alpha vector (obtained with geometric
   /// computations)
@@ -656,11 +634,12 @@ public:
   /// a set of distributed vectors which contain all the entries of the
   /// b_i vector appearing in the hypersingular BIE
   std::vector<TrilinosWrappers::MPI::Vector> b_i;
+  TrilinosWrappers::MPI::Vector      sol;
+  TrilinosWrappers::MPI::BlockVector sol_blocked, system_rhs_blocked;
 
   mutable TrilinosWrappers::MPI::Vector serv_phi, serv_phi_imag;
   mutable TrilinosWrappers::MPI::Vector serv_dphi_dn, serv_dphi_dn_imag;
   mutable TrilinosWrappers::MPI::Vector serv_phi_robin, serv_phi_robin_imag;
-  TrilinosWrappers::MPI::Vector         serv_tmp_rhs, serv_tmp_rhs_imag;
 
   AffineConstraints<double> constraints, constraints_imag;
 
@@ -704,7 +683,7 @@ public:
 
   /// The IndexSet for the problem without considering any ghost element for the
   /// scalar FE
-  IndexSet this_cpu_set, this_cpu_set_complex;
+  IndexSet this_cpu_set; //, this_cpu_set_complex;
   /// The IndexSet for the problem considering every ghost element for the
   /// scalar FE
   IndexSet ghosted_set;

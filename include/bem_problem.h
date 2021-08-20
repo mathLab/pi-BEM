@@ -260,6 +260,21 @@ public:
   void
   assemble_preconditioner_complex();
 
+  TrilinosWrappers::PreconditionBase &
+  get_preconditioner(bool complex)
+  {
+    if (preconditioner_type == "ILU")
+      {
+        return complex ? preconditioner_complex : preconditioner;
+      }
+    else if (preconditioner_type == "AMG")
+      {
+        return complex ? preconditioner_complex_amg : preconditioner_amg;
+      }
+
+    AssertThrow(false, ExcMessage("Invalid preconditioner type"));
+  }
+
   /// This is the function that guides the execution of the BEM problem.
   /// Depending on the resolution stategy we go whether for the direct or fma
   /// strategy.
@@ -656,6 +671,8 @@ public:
 
   // TODO AMG preconditioner
   TrilinosWrappers::PreconditionILU preconditioner, preconditioner_complex;
+  TrilinosWrappers::PreconditionAMG preconditioner_amg,
+    preconditioner_complex_amg;
   TrilinosWrappers::SparsityPattern preconditioner_sparsity_pattern,
     preconditioner_complex_sparsity_pattern;
 

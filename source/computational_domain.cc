@@ -618,36 +618,18 @@ ComputationalDomain<dim>::create_initial_mesh()
   tria.set_manifold(0, manifold);
 }
 
-// @sect4{ComputationalDomain::refine_and_resize}
-
-// This function globally refines the
-// mesh, distributes degrees of
-// freedom, and resizes matrices and
-// vectors.
 template <>
-void
-ComputationalDomain<2>::refine_and_resize(const unsigned int refinement_level)
+double
+ComputationalDomain<2>::load_cad_objects()
 {
-  pcout << "Refining and resizing mesh as required" << std::endl;
-  tria.refine_global(refinement_level);
-  pcout << "We have a tria of " << tria.n_active_cells() << " cells."
-        << std::endl;
-
-  GridTools::partition_triangulation(n_mpi_processes, tria);
-  std::string   filename0 = ("meshResult.inp");
-  std::ofstream logfile0(filename0.c_str());
-  GridOut       grid_out0;
-  grid_out0.write_ucd(tria, logfile0);
-
-  pcout << "...done refining and resizing mesh" << std::endl;
+  AssertThrow(false,
+              ExcMessage("load_cad_objects is not implemented for dim != 3"));
 }
 
-template <int dim>
-void
-ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
+template <>
+double
+ComputationalDomain<3>::load_cad_objects()
 {
-  pcout << "Refining and resizing mesh as required" << std::endl;
-
   double max_tol = 0;
   if (use_cad_surface_and_curves)
     {
@@ -738,6 +720,23 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
         }
     }
 
+  return max_tol;
+}
+
+template <>
+void
+ComputationalDomain<2>::refine_and_resize_by_aspect_ratio()
+{
+  AssertThrow(
+    false,
+    ExcMessage(
+      "refine_and_resize_by_aspect_ratio is not implemented for dim != 3"));
+}
+
+template <>
+void
+ComputationalDomain<3>::refine_and_resize_by_aspect_ratio()
+{
   unsigned int refinedCellCounter = 1;
   unsigned int cycles_counter     = 0;
   // we repeat the aspect ratio refinement cycle until no cell has been
@@ -788,7 +787,22 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
       make_edges_conformal();
       cycles_counter++;
     }
+}
 
+template <>
+void
+ComputationalDomain<2>::refine_and_resize_by_cad_projections(double max_tol)
+{
+  AssertThrow(
+    false,
+    ExcMessage(
+      "refine_and_resize_by_cad_projections is not implemented for dim != 3"));
+}
+
+template <>
+void
+ComputationalDomain<3>::refine_and_resize_by_cad_projections(double max_tol)
+{
   // the following refinement cycle is based upon the original CAD
   // geometry curvature. For this reason it can be activated not only
   // when the user requires it with the surface_curvature_refinement
@@ -800,8 +814,8 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
   if (use_cad_surface_and_curves && surface_curvature_refinement)
     {
       const double tolerance = cad_to_projectors_tolerance_ratio * max_tol;
-      refinedCellCounter     = 1;
-      cycles_counter         = 0;
+      unsigned int refinedCellCounter = 1;
+      unsigned int cycles_counter     = 0;
       // the refinement procedure is recursively repeated until no more cells
       // are flagged for refinement, or until the user specified maximum number
       // of curvature refinement cycles is reached
@@ -949,15 +963,55 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
           cycles_counter++;
         }
     }
+}
 
-  tria.refine_global(refinement_level);
+template <int dim>
+void
+ComputationalDomain<dim>::refine_and_resize_wrapup()
+{
   pcout << "We have a tria of " << tria.n_active_cells() << " cells."
         << std::endl;
+
   GridTools::partition_triangulation(n_mpi_processes, tria);
   std::string   filename0 = ("meshResult.inp");
   std::ofstream logfile0(filename0.c_str());
   GridOut       grid_out0;
   grid_out0.write_ucd(tria, logfile0);
+}
+
+// @sect4{ComputationalDomain::refine_and_resize}
+
+// This function globally refines the
+// mesh, distributes degrees of
+// freedom, and resizes matrices and
+// vectors.
+template <>
+void
+ComputationalDomain<2>::refine_and_resize(const unsigned int refinement_level)
+{
+  pcout << "Refining and resizing mesh as required" << std::endl;
+  tria.refine_global(refinement_level);
+
+  refine_and_resize_wrapup();
+
+  pcout << "...done refining and resizing mesh" << std::endl;
+}
+
+template <int dim>
+void
+ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
+{
+  pcout << "Refining and resizing mesh as required" << std::endl;
+
+  double max_tol = load_cad_objects();
+
+  refine_and_resize_by_aspect_ratio();
+
+  refine_and_resize_by_cad_projections(max_tol);
+
+  tria.refine_global(refinement_level);
+
+  refine_and_resize_wrapup();
 
   pcout << "...done refining and resizing mesh" << std::endl;
 }

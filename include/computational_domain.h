@@ -134,10 +134,21 @@ public:
   void
   read_domain();
 
+  double
+  load_cad_objects();
+
+  void
+  refine_and_resize_by_aspect_ratio();
+
+  void
+  refine_and_resize_by_cad_projections(double max_tol);
+
+  void
+  refine_and_resize_wrapup();
+
   /// method to refine the imported mesh
   /// according to the level requested in
   /// the parameters file
-
   void
   refine_and_resize(const unsigned int refinement_level);
 

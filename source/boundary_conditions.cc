@@ -617,7 +617,6 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
       Vector<double> gradphi_diff_cell(comp_dom.tria.n_active_cells());
       Vector<double> gradphi_diff_node(bem.gradient_dh.n_dofs());
 
-      // Vector<double> robinc_diff_cell(comp_dom.tria.n_active_cells());
       Vector<double> robin_diff_cell(comp_dom.tria.n_active_cells());
       Vector<double> robin_diff_node(bem.dh.n_dofs());
       Vector<double> coeffs(3);

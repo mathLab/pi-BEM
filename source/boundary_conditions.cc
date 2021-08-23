@@ -289,23 +289,20 @@ BoundaryConditions<dim>::solve_complex_problem(bool reset_matrix)
       pcout << "Computing normal vector" << std::endl;
       bem.compute_normals();
     }
-  // pcout << "Preparing BEM vectors - real" << std::endl;
+
   // TODO: these calls waste the retrieval of the support points
   // real parts - current component
   prepare_bem_vectors(tmp_rhs);
   // imaginary parts - next component
   set_current_phi_component(current_component + 1);
-  // pcout << "Preparing BEM vectors - imaginary" << std::endl;
   prepare_bem_vectors(tmp_rhs_imag);
   set_current_phi_component(current_component - 1);
 
-  // pcout << "Preparing Robin data structures" << std::endl;
   prepare_robin_datastructs(bem.robin_matrix_diagonal,
                             bem.robin_matrix_diagonal_imag,
                             bem.robin_rhs,
                             bem.robin_rhs_imag);
 
-  pcout << "Solve complex problem" << std::endl;
   bem.solve(get_phi(),
             get_phi(current_component + 1),
             get_dphi_dn(),
@@ -406,7 +403,6 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
               bool dirichlet = bem.dirichlet_nodes(local_dof_indices[j]) == 1;
               if (dirichlet)
                 {
-                  // pcout << "Dirichlet node" << std::endl;
                   rhs(local_dof_indices[j]) =
                     get_potential(current_component, slot)
                       .value(support_points[local_dof_indices[j]]);
@@ -422,7 +418,6 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
                         .vector_value(support_points[local_dof_indices[j]],
                                       imposed_pot_grad);
 
-                      // pcout << "Neumann node" << std::endl;
                       double tmp_dphi_dn = 0;
                       double normy       = 0;
 
@@ -450,9 +445,6 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
                     }
                   else
                     {
-                      // pcout << "Robin node" << std::endl;
-                      // TODO: is there a good initial value for the Robin
-                      // nodes?
                       rhs(local_dof_indices[j])           = 0;
                       get_phi()(local_dof_indices[j])     = 0;
                       get_dphi_dn()(local_dof_indices[j]) = 0;
@@ -480,9 +472,6 @@ BoundaryConditions<dim>::prepare_robin_datastructs(
   const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-  // robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
-  // robin_rhs.reinit(this_cpu_set, mpi_communicator);
-
   Vector<double>                    coeffs(3);
   std::set<types::global_dof_index> processed;
   for (const auto &cell : bem.dh.active_cell_iterators())
@@ -506,8 +495,6 @@ BoundaryConditions<dim>::prepare_robin_datastructs(
                     coeffs(0) / coeffs(1);
                   robin_rhs(local_dof_indices[j]) = coeffs(2) / coeffs(1);
 
-                  // pcout << "set robin datastructs @ dof "
-                  //       << local_dof_indices[j] << std::endl;
                   processed.insert(local_dof_indices[j]);
                 }
             }
@@ -533,11 +520,6 @@ BoundaryConditions<dim>::prepare_robin_datastructs(
 
   const unsigned int                   dofs_per_cell = bem.fe->dofs_per_cell;
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-
-  // robin_matrix_diagonal.reinit(this_cpu_set, mpi_communicator);
-  // robin_rhs.reinit(this_cpu_set, mpi_communicator);
-  // robin_matrix_diagonal_imag.reinit(this_cpu_set, mpi_communicator);
-  // robin_rhs_imag.reinit(this_cpu_set, mpi_communicator);
 
   Vector<double>                    coeffs(3);
   Vector<double>                    coeffs_imag(3);
@@ -575,9 +557,6 @@ BoundaryConditions<dim>::prepare_robin_datastructs(
                   robin_rhs(local_dof_indices[j])      = std::real(rhs);
                   robin_rhs_imag(local_dof_indices[j]) = std::imag(rhs);
 
-                  // pcout << "set robin datastructs @ dof "
-                  //       << local_dof_indices[j] << " diag: " << diag
-                  //       << " rhs: " << rhs << std::endl;
                   processed.insert(local_dof_indices[j]);
                 }
             }

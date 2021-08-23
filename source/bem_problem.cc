@@ -2019,25 +2019,16 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
                               const TrilinosWrappers::MPI::Vector &tmp_rhs_imag)
 {
   Teuchos::TimeMonitor LocalTimer(*LacSolveTime);
-  // SolverGMRES<TrilinosWrappers::MPI::Vector> solver(
-  //   solver_control,
-  //   SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(1000));
-  // auto solver_control_block = solver_control;
-  // SolverGMRES<TrilinosWrappers::MPI::BlockVector> solver_block(
-  //   solver_control_block,
-  //   SolverGMRES<TrilinosWrappers::MPI::BlockVector>::AdditionalData(1000));
+
   SolverGMRES<TrilinosWrappers::MPI::BlockVector> solver(
     solver_control,
     SolverGMRES<TrilinosWrappers::MPI::BlockVector>::AdditionalData(1000));
 
-  // system_rhs = 0;
-  // system_rhs_imag = 0;
   system_rhs_blocked = 0;
   sol_blocked        = 0;
   alpha              = 0;
 
   compute_alpha();
-  // compute_rhs(system_rhs, system_rhs_imag, tmp_rhs, tmp_rhs_imag);
   compute_rhs(system_rhs_blocked.block(0),
               system_rhs_blocked.block(1),
               tmp_rhs,
@@ -2048,46 +2039,6 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
   compute_constraints(constr_cpu_set, constraints_imag, tmp_rhs_imag);
   set_current_phi_component(current_component - 1);
 
-  // TODO: use BlockVectors
-  // std::vector<IndexSet> parallel_partitioning{this_cpu_set, this_cpu_set};
-
-  // TrilinosWrappers::MPI::Vector sol_complex;
-  // TrilinosWrappers::MPI::Vector system_rhs_complex;
-  // sol_complex.reinit(this_cpu_set_complex, mpi_communicator);
-  // system_rhs_complex.reinit(this_cpu_set_complex, mpi_communicator);
-
-  // TrilinosWrappers::MPI::BlockVector sol_complex_block;
-  // TrilinosWrappers::MPI::BlockVector system_rhs_complex_block;
-  // sol_complex_block.reinit(parallel_partitioning, mpi_communicator);
-  // system_rhs_complex_block.reinit(parallel_partitioning, mpi_communicator);
-
-  // for (auto i : this_cpu_set)
-  //   {
-  //     system_rhs_complex(i)                       = system_rhs(i);
-  //     system_rhs_complex(i + this_cpu_set.size()) = system_rhs_imag(i);
-  //   }
-
-  // system_rhs_complex_block.block(0) = system_rhs;
-  // system_rhs_complex_block.block(1) = system_rhs_imag;
-
-  // ConstrainedComplexOperator<TrilinosWrappers::MPI::Vector, BEMProblem<dim>>
-  // cc(
-  //   *this, constraints, constraints_imag, constr_cpu_set, mpi_communicator);
-
-  // cc.distribute_rhs(system_rhs_complex);
-  // system_rhs_complex.compress(VectorOperation::insert);
-
-  // pcout << "create big vector solver" << std::endl;
-  // BlockConstrainedComplexOperator<TrilinosWrappers::MPI::BlockVector,
-  //                                 BEMProblem<dim>>
-  //   cc_block(
-  //     *this, constraints, constraints_imag, constr_cpu_set,
-  //     mpi_communicator);
-
-  // cc_block.distribute_rhs(system_rhs_complex_block);
-  // system_rhs_complex_block.compress(VectorOperation::insert);
-
-
   BlockConstrainedComplexOperator<TrilinosWrappers::MPI::BlockVector,
                                   BEMProblem<dim>>
     cc(*this, constraints, constraints_imag, constr_cpu_set, mpi_communicator);
@@ -2095,89 +2046,11 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
   cc.distribute_rhs(system_rhs_blocked);
   system_rhs_blocked.compress(VectorOperation::insert);
 
-  /*
-  if (false)
-    {
-      // TODO: get system matrix metrics
-      auto block_a = get_system_matrix();
-      auto block_d{block_a};
-      block_a.gauss_jordan();
-
-      auto tmp{block_a};
-      block_a.mmult(tmp, block_d);
-
-      FullMatrix<double> identity(IdentityMatrix(dh.n_dofs()));
-      tmp.add(-1, identity);
-
-      pcout << "|A^-1 D|_infty " << tmp.linfty_norm() << std::endl;
-
-      auto system_matrix = get_system_matrix_complex();
-      auto system_matrix_inverse(system_matrix);
-      system_matrix_inverse.gauss_jordan();
-
-      auto tmp2(system_matrix);
-      system_matrix.mmult(tmp2, system_matrix_inverse);
-
-      FullMatrix<double> identity2(IdentityMatrix(2 * dh.n_dofs()));
-      tmp2.add(-1, identity2);
-
-      pcout << "(system matrix) |S^-1 S|_infty " << tmp2.linfty_norm()
-            << std::endl;
-
-      SolverControl ap_solver_control(1000, 1e-9);
-      ArpackSolver  ap_solver_1(
-        ap_solver_control,
-        ArpackSolver::AdditionalData(
-          1000, ArpackSolver::WhichEigenvalues::largest_magnitude));
-
-      std::vector<std::complex<double>> eigenvalues(1);
-      std::vector<Vector<double>>       eigenvectors(1);
-      pcout << "allocated vectors for eigenvalues etc" << std::endl;
-      ap_solver_1.solve(system_matrix,
-                        identity2,
-                        system_matrix_inverse,
-                        eigenvalues,
-                        eigenvectors);
-
-      pcout << "eigenvalues: [" << eigenvalues.front() << ", ..., ";
-
-      ArpackSolver ap_solver_2(
-        ap_solver_control,
-        ArpackSolver::AdditionalData(
-          1000, ArpackSolver::WhichEigenvalues::smallest_magnitude));
-      ap_solver_2.solve(system_matrix,
-                        identity2,
-                        system_matrix_inverse,
-                        eigenvalues,
-                        eigenvectors);
-
-      pcout << eigenvalues.front() << "]" << std::endl;
-
-      // SchurComplement schur;
-    }
-  */
-
-  pcout << "start solver" << std::endl;
   if (solution_method == "Direct")
     {
-      // assemble_preconditioner_complex();
-
-      // sol_complex.sadd(1., 0., system_rhs_complex);
-      // solver.solve(cc,
-      //              sol_complex,
-      //              system_rhs_complex,
-      //              get_preconditioner(true));
-
-      // blockvectors
       assemble_preconditioner();
       auto precond = BlockPreconditioner<TrilinosWrappers::PreconditionBase>(
         get_preconditioner(false));
-
-      // sol_complex_block.sadd(1., 0., system_rhs_complex_block);
-      // solver_block.solve(cc_block,
-      //                    sol_complex_block,
-      //                    system_rhs_complex_block,
-      //                    precond);
 
       sol_blocked.sadd(1., 0., system_rhs_blocked);
       solver.solve(cc, sol_blocked, system_rhs_blocked, precond);
@@ -2186,101 +2059,34 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
     {
       AssertThrow(dim == 3, ExcMessage("FMA only works in 3D"));
 
-      // TrilinosWrappers::PreconditionILU &fma_preconditioner =
-      //   fma.FMA_preconditioner_complex(alpha, constraints);
-      TrilinosWrappers::PreconditionILU &fma_preconditioner =
-        fma.FMA_preconditioner(alpha, constraints);
-      auto precond = BlockPreconditioner<TrilinosWrappers::PreconditionBase>(
+      auto &fma_preconditioner = fma.FMA_preconditioner(alpha, constraints);
+      auto  precond = BlockPreconditioner<TrilinosWrappers::PreconditionBase>(
         fma_preconditioner);
-
-      // sol_complex.sadd(1., 0., system_rhs_complex);
-      // solver.solve(cc, sol_complex, system_rhs_complex, fma_preconditioner);
 
       sol_blocked.sadd(1., 0., system_rhs_blocked);
       solver.solve(cc, sol_blocked, system_rhs_blocked, precond);
     }
 
-  // pcout << "Solve terminated at step " << solver_control.last_step()
-  //       << std::endl;
-  // pcout << "Block solve terminated at step " <<
-  // solver_control_block.last_step()
-  //       << std::endl;
-
-  // TrilinosWrappers::MPI::Vector diff;
-  // TrilinosWrappers::MPI::Vector diff_imag;
-  // diff.reinit(this_cpu_set);
-  // diff_imag.reinit(this_cpu_set);
-
-  // sol_complex.extract_subvector_to(this_cpu_set.begin(),
-  //                                  this_cpu_set.end(),
-  //                                  diff.begin());
-  // IndexSet idx_imag;
-  // idx_imag.add_indices(this_cpu_set, this_cpu_set.size());
-  // idx_imag.compress();
-  // sol_complex.extract_subvector_to(idx_imag.begin(),
-  //                                  idx_imag.end(),
-  //                                  diff_imag.begin());
-
-  // diff -= sol_complex_block.block(0);
-  // diff_imag -= sol_complex_block.block(1);
-
-  // Vector<double> loc_diff(diff);
-  // Vector<double> loc_diff_imag(diff_imag);
-
-  // pcout << "L2 of diff " << loc_diff.l2_norm() << std::endl;
-  // pcout << "L2 of diff_imag " << loc_diff_imag.l2_norm() << std::endl;
-  // pcout << "linfty of diff " << loc_diff.linfty_norm() << std::endl;
-  // pcout << "linfty of diff_imag " << loc_diff_imag.linfty_norm() <<
-  // std::endl;
+  pcout << "Solve terminated at step " << solver_control.last_step()
+        << std::endl;
 
   for (auto i : this_cpu_set)
     {
       if (neumann_nodes(i) == 1)
         {
-          // phi(i)      = sol_complex(i);
-          // phi_imag(i) = sol_complex(i + this_cpu_set.size());
           phi(i)      = sol_blocked.block(0)(i);
           phi_imag(i) = sol_blocked.block(1)(i);
-
-          // double delta = std::abs(phi(i) - sol_blocked.block(0)(i));
-          // if (delta > 1e-6)
-          //   {
-          //     pcout << "Real part of dof " << i << " has diff " << delta
-          //           << std::endl;
-          //   }
-          // delta = std::abs(phi_imag(i) - sol_blocked.block(1)(i));
-          // if (delta > 1e-6)
-          //   {
-          //     pcout << "Imag part of dof " << i << " has diff " << delta
-          //           << std::endl;
-          //   }
         }
       else if (dirichlet_nodes(i) == 1)
         {
-          // dphi_dn(i)      = sol_complex(i);
-          // dphi_dn_imag(i) = sol_complex(i + this_cpu_set.size());
           dphi_dn(i)      = sol_blocked.block(0)(i);
           dphi_dn_imag(i) = sol_blocked.block(1)(i);
-
-          // double delta = std::abs(dphi_dn(i) - sol_blocked.block(0)(i));
-          // if (delta > 1e-6)
-          //   {
-          //     pcout << "Real part of dof " << i << " has diff " << delta
-          //           << std::endl;
-          //   }
-          // delta = std::abs(dphi_dn_imag(i) - sol_blocked.block(1)(i));
-          // if (delta > 1e-6)
-          //   {
-          //     pcout << "Imag part of dof " << i << " has diff " << delta
-          //           << std::endl;
-          //   }
         }
       else
         {
           AssertThrow(robin_nodes(i) == 1,
                       ExcMessage("Inconsistent boundary condition map"));
-          // phi(i)      = sol_complex(i);
-          // phi_imag(i) = sol_complex(i + this_cpu_set.size());
+
           phi(i)      = sol_blocked.block(0)(i);
           phi_imag(i) = sol_blocked.block(1)(i);
 
@@ -2290,6 +2096,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
           std::complex<double> c2_c1(robin_rhs(i), robin_rhs_imag(i));
           std::complex<double> ph(phi(i), phi_imag(i));
           std::complex<double> dph_dn(c2_c1 - c0_c1 * ph);
+
           dphi_dn(i)      = std::real(dph_dn);
           dphi_dn_imag(i) = std::imag(dph_dn);
         }

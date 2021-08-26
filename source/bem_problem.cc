@@ -826,8 +826,8 @@ BEMProblem<dim>::assemble_system()
   // global row $i$. The following
   // object will hold this
   // information:
-  Vector<double> local_neumann_matrix_row_i(fe->dofs_per_cell);
-  Vector<double> local_dirichlet_matrix_row_i(fe->dofs_per_cell);
+  std::vector<double> local_neumann_matrix_row_i(fe->dofs_per_cell);
+  std::vector<double> local_dirichlet_matrix_row_i(fe->dofs_per_cell);
 
   // Now that we have checked that
   // the number of vertices is equal
@@ -858,7 +858,6 @@ BEMProblem<dim>::assemble_system()
       fe_v.reinit(cell);
       cell->get_dof_indices(local_dof_indices);
 
-      // std::vector<Point> and std::vector<Tensor>
       const auto &q_points = fe_v.get_quadrature_points();
       const auto &normals  = fe_v.get_normal_vectors();
 
@@ -881,8 +880,12 @@ BEMProblem<dim>::assemble_system()
       for (auto i : this_cpu_set)
         { // these must now be the locally owned dofs.
           // the rest should stay the same
-          local_neumann_matrix_row_i   = 0;
-          local_dirichlet_matrix_row_i = 0;
+          std::fill(local_neumann_matrix_row_i.begin(),
+                    local_neumann_matrix_row_i.end(),
+                    0);
+          std::fill(local_dirichlet_matrix_row_i.begin(),
+                    local_dirichlet_matrix_row_i.end(),
+                    0);
 
           bool         is_singular    = false;
           unsigned int singular_index = numbers::invalid_unsigned_int;
@@ -918,8 +921,8 @@ BEMProblem<dim>::assemble_system()
                     {
                       const auto tmp = fe_v.shape_value(j, q) * fe_v.JxW(q);
 
-                      local_neumann_matrix_row_i(j) += ((D * normals[q]) * tmp);
-                      local_dirichlet_matrix_row_i(j) += (s * tmp);
+                      local_neumann_matrix_row_i[j] += ((D * normals[q]) * tmp);
+                      local_dirichlet_matrix_row_i[j] += (s * tmp);
                     }
                 }
             }
@@ -1171,9 +1174,9 @@ BEMProblem<dim>::assemble_system()
                       const auto tmp =
                         fe_v_singular.shape_value(j, q) * fe_v_singular.JxW(q);
 
-                      local_neumann_matrix_row_i(j) +=
+                      local_neumann_matrix_row_i[j] +=
                         ((D * singular_normals[q]) * tmp);
-                      local_dirichlet_matrix_row_i(j) += (s * tmp);
+                      local_dirichlet_matrix_row_i[j] += (s * tmp);
                     }
                 }
             }
@@ -1182,15 +1185,10 @@ BEMProblem<dim>::assemble_system()
           // the contributions of the
           // current cell to the
           // global matrix.
-          for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
-            {
-              neumann_matrix.add(i,
-                                 local_dof_indices[j],
-                                 local_neumann_matrix_row_i(j));
-              dirichlet_matrix.add(i,
-                                   local_dof_indices[j],
-                                   local_dirichlet_matrix_row_i(j));
-            }
+          neumann_matrix.add(i, local_dof_indices, local_neumann_matrix_row_i);
+          dirichlet_matrix.add(i,
+                               local_dof_indices,
+                               local_dirichlet_matrix_row_i);
         }
     }
 

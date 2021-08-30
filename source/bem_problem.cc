@@ -787,6 +787,333 @@ BEMProblem<dim>::assemble_system()
   Teuchos::TimeMonitor LocalTimer(*AssembleTime);
   pcout << "(Directly) Assembling system matrices" << std::endl;
 
+  FEValues<dim - 1, dim> fe_v(*mapping,
+                              *fe,
+                              *quadrature,
+                              update_values | update_normal_vectors |
+                                update_quadrature_points | update_JxW_values);
+
+  const unsigned int                   n_q_points = fe_v.n_quadrature_points;
+  std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
+  pcout << "DoFs per cell: " << fe->dofs_per_cell << " " << std::endl;
+
+  // prepare entire rows
+  auto                len = fe->dofs_per_cell; // dh.n_dofs();
+  std::vector<double> local_neumann_matrix_row_i(len);
+  std::vector<double> local_dirichlet_matrix_row_i(len);
+
+  std::vector<Point<dim>> support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*mapping,
+                                                     dh,
+                                                     support_points);
+
+  std::vector<types::global_dof_index> dofs(dh.n_dofs());
+  for (types::global_dof_index i = 0; i < dh.n_dofs(); ++i)
+    {
+      dofs[i] = i;
+    }
+
+  neumann_matrix   = 0;
+  dirichlet_matrix = 0;
+
+  Point<dim> D;
+  double     s;
+
+  for (auto i : this_cpu_set)
+    {
+      // build the rows; this will jump around the dofs, will it be much slower?
+      for (const auto &cell : dh.active_cell_iterators())
+        {
+          // reset the rows
+          std::fill(local_neumann_matrix_row_i.begin(),
+                    local_neumann_matrix_row_i.end(),
+                    0);
+          std::fill(local_dirichlet_matrix_row_i.begin(),
+                    local_dirichlet_matrix_row_i.end(),
+                    0);
+
+          fe_v.reinit(cell);
+          cell->get_dof_indices(local_dof_indices);
+
+          const auto &q_points = fe_v.get_quadrature_points();
+          const auto &normals  = fe_v.get_normal_vectors();
+
+          bool         is_singular    = false;
+          unsigned int singular_index = numbers::invalid_unsigned_int;
+
+          // is any dof of the current cell, a duplicate of i?
+          for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+            {
+              if (double_nodes_set[i].count(local_dof_indices[j]) > 0)
+                {
+                  singular_index = j;
+                  is_singular    = true;
+                  break;
+                }
+            }
+
+          if (!is_singular)
+            {
+              for (unsigned int q = 0; q < n_q_points; ++q)
+                {
+                  // const Tensor<1, dim> R = q_points[q] - support_points[i];
+                  LaplaceKernel::kernels(q_points[q] - support_points[i], D, s);
+
+                  for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                    {
+                      const auto tmp = fe_v.shape_value(j, q) * fe_v.JxW(q);
+
+                      local_neumann_matrix_row_i[j] += ((D * normals[q]) * tmp);
+                      local_dirichlet_matrix_row_i[j] += (s * tmp);
+                    }
+                }
+            }
+          else
+            {
+              Assert(singular_index != numbers::invalid_unsigned_int,
+                     ExcInternalError());
+
+              // pointer trick
+              const Quadrature<dim - 1> *singular_quadrature =
+                &(get_singular_quadrature(singular_index));
+              Assert(singular_quadrature, ExcInternalError());
+
+              FEValues<dim - 1, dim> fe_v_singular(*mapping,
+                                                   *fe,
+                                                   *singular_quadrature,
+                                                   update_jacobians |
+                                                     update_values |
+                                                     update_normal_vectors |
+                                                     update_quadrature_points);
+              fe_v_singular.reinit(cell);
+
+              // std::vector<Point> and std::vector<Tensor>
+              const auto &singular_normals = fe_v_singular.get_normal_vectors();
+              const auto &singular_q_points =
+                fe_v_singular.get_quadrature_points();
+
+              for (unsigned int q = 0; q < singular_quadrature->size(); ++q)
+                {
+                  // const Tensor<1, dim> R = singular_q_points[q] -
+                  // support_points[i];
+                  LaplaceKernel::kernels(
+                    singular_q_points[q] - support_points[i], D, s);
+
+                  for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                    {
+                      const auto tmp =
+                        fe_v_singular.shape_value(j, q) * fe_v_singular.JxW(q);
+
+                      local_neumann_matrix_row_i[j] +=
+                        ((D * singular_normals[q]) * tmp);
+                      local_dirichlet_matrix_row_i[j] += (s * tmp);
+                    }
+                }
+            }
+
+          neumann_matrix.add(i, local_dof_indices, local_neumann_matrix_row_i);
+          dirichlet_matrix.add(i,
+                               local_dof_indices,
+                               local_dirichlet_matrix_row_i);
+        }
+    }
+
+  pcout << "done assembling system matrices" << std::endl;
+}
+
+template <int dim>
+void
+BEMProblem<dim>::assemble_system_tbb()
+{
+  Teuchos::TimeMonitor LocalTimer(*AssembleTime);
+  pcout << "(Directly) Assembling system matrices" << std::endl;
+
+  std::vector<Point<dim>> support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*mapping,
+                                                     dh,
+                                                     support_points);
+
+  struct AssembleScratch
+  {
+    FEValues<dim - 1, dim>               fe_v;
+    std::vector<types::global_dof_index> cell_dofs;
+
+    AssembleScratch(const FiniteElement<dim - 1, dim> &fe,
+                    const Quadrature<dim - 1> &        quadrature,
+                    const Mapping<dim - 1, dim> &      mapping,
+                    const UpdateFlags                  update_flags)
+      : fe_v(mapping, fe, quadrature, update_flags)
+      , cell_dofs(fe.dofs_per_cell)
+    {}
+
+    // poor man's copy ctor
+    AssembleScratch(const AssembleScratch &scratch)
+      : fe_v(scratch.fe_v.get_mapping(),
+             scratch.fe_v.get_fe(),
+             scratch.fe_v.get_quadrature(),
+             scratch.fe_v.get_update_flags())
+      , cell_dofs(scratch.fe_v.get_fe().dofs_per_cell)
+    {}
+  };
+
+  struct AssembleLocalResult
+  {
+    types::global_dof_index row;
+    std::vector<double>     neumann_row_entries;
+    std::vector<double>     dirichlet_row_entries;
+  };
+
+  // lambda for preparing each row
+  auto assemble_worker = [this,
+                          &support_points](IndexSet::ElementIterator row_iter,
+                                           AssembleScratch &         scratch,
+                                           AssembleLocalResult &     local) {
+    local.row = *row_iter;
+    std::fill(local.neumann_row_entries.begin(),
+              local.neumann_row_entries.end(),
+              0);
+    std::fill(local.dirichlet_row_entries.begin(),
+              local.dirichlet_row_entries.end(),
+              0);
+
+    Point<dim> D;
+    double     s;
+
+    for (const auto &cell : this->dh.active_cell_iterators())
+      {
+        scratch.fe_v.reinit(cell);
+        cell->get_dof_indices(scratch.cell_dofs);
+
+        const auto &q_points = scratch.fe_v.get_quadrature_points();
+        const auto &normals  = scratch.fe_v.get_normal_vectors();
+
+        bool         is_singular    = false;
+        unsigned int singular_index = numbers::invalid_unsigned_int;
+
+        // is any dof of the current cell, a duplicate of i?
+        for (unsigned int j = 0; j < this->fe->dofs_per_cell; ++j)
+          {
+            if (this->double_nodes_set[local.row].count(scratch.cell_dofs[j]) >
+                0)
+              {
+                singular_index = j;
+                is_singular    = true;
+                break;
+              }
+          }
+
+        if (!is_singular)
+          {
+            for (unsigned int q = 0; q < scratch.fe_v.n_quadrature_points; ++q)
+              {
+                LaplaceKernel::kernels(q_points[q] - support_points[local.row],
+                                       D,
+                                       s);
+
+                for (unsigned int j = 0; j < this->fe->dofs_per_cell; ++j)
+                  {
+                    const auto tmp =
+                      scratch.fe_v.shape_value(j, q) * scratch.fe_v.JxW(q);
+
+                    local.neumann_row_entries[scratch.cell_dofs[j]] +=
+                      ((D * normals[q]) * tmp);
+                    local.dirichlet_row_entries[scratch.cell_dofs[j]] +=
+                      (s * tmp);
+                  }
+              }
+          }
+        else
+          {
+            Assert(singular_index != numbers::invalid_unsigned_int,
+                   ExcInternalError());
+
+            // pointer trick
+            const Quadrature<dim - 1> *singular_quadrature =
+              &(this->get_singular_quadrature(singular_index));
+            Assert(singular_quadrature, ExcInternalError());
+
+            FEValues<dim - 1, dim> fe_v_singular(*this->mapping,
+                                                 *this->fe,
+                                                 *singular_quadrature,
+                                                 update_jacobians |
+                                                   update_values |
+                                                   update_normal_vectors |
+                                                   update_quadrature_points);
+            fe_v_singular.reinit(cell);
+
+            const auto &singular_normals = fe_v_singular.get_normal_vectors();
+            const auto &singular_q_points =
+              fe_v_singular.get_quadrature_points();
+
+            for (unsigned int q = 0; q < singular_quadrature->size(); ++q)
+              {
+                LaplaceKernel::kernels(
+                  singular_q_points[q] - support_points[local.row], D, s);
+
+                for (unsigned int j = 0; j < this->fe->dofs_per_cell; ++j)
+                  {
+                    const auto tmp =
+                      fe_v_singular.shape_value(j, q) * fe_v_singular.JxW(q);
+
+                    local.neumann_row_entries[scratch.cell_dofs[j]] +=
+                      ((D * singular_normals[q]) * tmp);
+                    local.dirichlet_row_entries[scratch.cell_dofs[j]] +=
+                      (s * tmp);
+                  }
+              }
+          }
+      }
+  };
+
+  // lambda for applying each row
+  auto assemble_merger = [this](const AssembleLocalResult &local) {
+    for (types::global_dof_index j = 0; j < this->dh.n_dofs(); ++j)
+      {
+        this->neumann_matrix.set(local.row, j, local.neumann_row_entries[j]);
+      }
+    for (types::global_dof_index j = 0; j < this->dh.n_dofs(); ++j)
+      {
+        this->dirichlet_matrix.set(local.row,
+                                   j,
+                                   local.dirichlet_row_entries[j]);
+      }
+  };
+
+  // declare support structs
+  AssembleScratch scratch(*fe,
+                          *quadrature,
+                          *mapping,
+                          update_values | update_normal_vectors |
+                            update_quadrature_points | update_JxW_values);
+
+  AssembleLocalResult local_result;
+  local_result.neumann_row_entries.resize(dh.n_dofs());
+  local_result.dirichlet_row_entries.resize(dh.n_dofs());
+
+  // important: cache the singular quadratures in serial
+  this->get_singular_quadrature(0);
+
+  pcout << "DoFs per cell: " << fe->dofs_per_cell << " " << std::endl;
+
+  WorkStream::run(this_cpu_set.begin(),
+                  this_cpu_set.end(),
+                  assemble_worker,
+                  assemble_merger,
+                  scratch,
+                  local_result,
+                  MultithreadInfo::n_threads(),
+                  1);
+
+  pcout << "done assembling system matrices" << std::endl;
+}
+
+template <int dim>
+void
+BEMProblem<dim>::assemble_system_old()
+{
+  Teuchos::TimeMonitor LocalTimer(*AssembleTime);
+  pcout << "(Directly) Assembling system matrices" << std::endl;
+
   neumann_matrix   = 0;
   dirichlet_matrix = 0;
 
@@ -878,7 +1205,8 @@ BEMProblem<dim>::assemble_system()
       // the case, and we store which
       // one is the singular index:
       for (auto i : this_cpu_set)
-        { // these must now be the locally owned dofs.
+        {
+          // these must now be the locally owned dofs.
           // the rest should stay the same
           std::fill(local_neumann_matrix_row_i.begin(),
                     local_neumann_matrix_row_i.end(),
@@ -2126,7 +2454,7 @@ BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
     {
       if (solution_method == "Direct")
         {
-          assemble_system();
+          assemble_system_tbb();
         }
       else
         {
@@ -2155,7 +2483,7 @@ BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
     {
       if (solution_method == "Direct")
         {
-          assemble_system();
+          assemble_system_tbb();
         }
       else
         {
@@ -2207,15 +2535,15 @@ BEMProblem<dim>::compute_constraints(
 
   std::vector<types::subdomain_id> dofs_domain_association(dh.n_dofs());
   DoFTools::get_subdomain_association(dh, dofs_domain_association);
-  // here we prepare the constraint matrix so as to account for the presence of
-  // double and triple dofs
+  // here we prepare the constraint matrix so as to account for the presence
+  // of double and triple dofs
 
   // we start looping on the dofs
   for (types::global_dof_index i = 0; i < tmp_rhs.size(); i++)
     {
-      // in the next line we compute the "first" among the set of double nodes:
-      // this node is the first dirichlet node in the set, and if no dirichlet
-      // node is there, we get the first neumann node
+      // in the next line we compute the "first" among the set of double
+      // nodes: this node is the first dirichlet node in the set, and if no
+      // dirichlet node is there, we get the first neumann node
       auto doubles        = double_nodes_set[i];
       auto firstOfDoubles = *doubles.begin();
       for (auto j : doubles)
@@ -2242,8 +2570,8 @@ BEMProblem<dim>::compute_constraints(
             }
         }
 
-      // for each set of double nodes, we will perform the correction only once,
-      // and precisely when the current node is the first of the set
+      // for each set of double nodes, we will perform the correction only
+      // once, and precisely when the current node is the first of the set
       if (i == firstOfDoubles)
         {
           // the vector entry corresponding to the first node of the set does
@@ -2256,9 +2584,9 @@ BEMProblem<dim>::compute_constraints(
           // redistributing the updated rhs?
 
           // if the current (first) node is a dirichlet node, for all its
-          // neumann doubles we will impose that the potential is equal to that
-          // of the first node: this means that in the matrix vector product we
-          // will put the potential value of the double node
+          // neumann doubles we will impose that the potential is equal to
+          // that of the first node: this means that in the matrix vector
+          // product we will put the potential value of the double node
           if (localized_dirichlet_nodes(i) == 1)
             {
               for (auto j : doubles)
@@ -2273,11 +2601,11 @@ BEMProblem<dim>::compute_constraints(
                         double normal_distance = 0;
 
                         // types::global_dof_index owner_el_1 =
-                        // DoFTools::count_dofs_with_subdomain_association (dh,
-                        // dofs_domain_association[i]); types::global_dof_index
-                        // owner_el_2 =
-                        // DoFTools::count_dofs_with_subdomain_association (dh,
-                        // dofs_domain_association[*it]);
+                        // DoFTools::count_dofs_with_subdomain_association
+                        // (dh, dofs_domain_association[i]);
+                        // types::global_dof_index owner_el_2 =
+                        // DoFTools::count_dofs_with_subdomain_association
+                        // (dh, dofs_domain_association[*it]);
 
                         for (unsigned int idim = 0; idim < dim; ++idim)
                           {
@@ -2309,8 +2637,9 @@ BEMProblem<dim>::compute_constraints(
                         else if (continuos_gradient)
                           {
                             // this is the dirichlet-dirichlet case on sharp
-                            // edges: both normal gradients can be computed from
-                            // surface gradients of phi and assigned as BC
+                            // edges: both normal gradients can be computed
+                            // from surface gradients of phi and assigned as
+                            // BC
                             double norm_i_norm_j = 0;
                             double surf_j_norm_i = 0;
                             double surf_i_norm_j = 0;
@@ -2322,8 +2651,8 @@ BEMProblem<dim>::compute_constraints(
                             // DoFTools::count_dofs_with_subdomain_association
                             // (dh, dofs_domain_association[*it]);
 
-                            // We no longer have a std::vector of Point<dim> so
-                            // we need to perform the scalar product
+                            // We no longer have a std::vector of Point<dim>
+                            // so we need to perform the scalar product
                             for (unsigned int idim = 0; idim < dim; ++idim)
                               {
                                 types::global_dof_index dummy_1 =
@@ -2374,11 +2703,11 @@ BEMProblem<dim>::compute_constraints(
                 }
             }
 
-          // if the current (first) node is a neumann node, for all its doubles
-          // we will impose that the potential is equal to that of the first
-          // node: this means that in the matrix vector product we will put the
-          // difference between the potential at the fist node in the doubles
-          // set, and the current double node
+          // if the current (first) node is a neumann node, for all its
+          // doubles we will impose that the potential is equal to that of the
+          // first node: this means that in the matrix vector product we will
+          // put the difference between the potential at the fist node in the
+          // doubles set, and the current double node
           if (localized_dirichlet_nodes(i) == 0)
             {
               for (auto j : doubles)

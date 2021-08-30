@@ -253,10 +253,8 @@ BEMProblem<dim>::reinit()
                                       vector_dofs_domain_association);
 
   this_cpu_set.clear();
-  // this_cpu_set_complex.clear();
   vector_this_cpu_set.clear();
   this_cpu_set.set_size(dh.n_dofs());
-  // this_cpu_set_complex.set_size(2 * dh.n_dofs());
   vector_this_cpu_set.set_size(gradient_dh.n_dofs());
 
   // We compute this two vector in order to use an eventual
@@ -281,16 +279,12 @@ BEMProblem<dim>::reinit()
                                        dummy]);
           }
       }
-  // this_cpu_set_complex.add_indices(this_cpu_set);
-  // this_cpu_set_complex.add_indices(this_cpu_set, this_cpu_set.size());
 
   this_cpu_set.compress();
-  // this_cpu_set_complex.compress();
   vector_this_cpu_set.compress();
 
   // At this point we just need to create a ghosted IndexSet for the scalar
   // DoFHandler. This can be through the builtin dealii function.
-  // this_cpu_set.print(std::cout);
   MPI_Barrier(mpi_communicator);
   ghosted_set.clear();
   ghosted_set.set_size(dh.n_dofs());
@@ -317,6 +311,7 @@ BEMProblem<dim>::reinit()
     {
       full_sparsity_pattern.reinit(this_cpu_set, mpi_communicator);
 
+      // TODO: candidate for parallelization - one row per thread
       for (auto i : this_cpu_set)
         {
           for (types::global_dof_index j = 0; j < dh.n_dofs(); ++j)
@@ -358,12 +353,15 @@ BEMProblem<dim>::reinit()
   compute_dirichlet_and_neumann_dofs_vectors();
   compute_double_nodes_set();
 
-  fma.init_fma(dh,
-               double_nodes_set,
-               dirichlet_nodes,
-               *mapping,
-               quadrature_order,
-               singular_quadrature_order);
+  if (solution_method == "FMA")
+    {
+      fma.init_fma(dh,
+                   double_nodes_set,
+                   dirichlet_nodes,
+                   *mapping,
+                   quadrature_order,
+                   singular_quadrature_order);
+    }
 
   /* TODO: unused
   // We need a TrilinosWrappers::MPI::Vector to reinit the SparsityPattern for
@@ -1063,10 +1061,8 @@ BEMProblem<dim>::assemble_system_tbb()
               }
           }
       }
-  };
 
-  // lambda for applying each row
-  auto assemble_merger = [this](const AssembleLocalResult &local) {
+    // no merger function is needed; each row is on a different thread
     for (types::global_dof_index j = 0; j < this->dh.n_dofs(); ++j)
       {
         this->neumann_matrix.set(local.row, j, local.neumann_row_entries[j]);
@@ -1098,7 +1094,8 @@ BEMProblem<dim>::assemble_system_tbb()
   WorkStream::run(this_cpu_set.begin(),
                   this_cpu_set.end(),
                   assemble_worker,
-                  assemble_merger,
+                  // assemble_merger,
+                  std::function<void(const AssembleLocalResult &)>(),
                   scratch,
                   local_result,
                   MultithreadInfo::n_threads(),

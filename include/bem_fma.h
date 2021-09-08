@@ -127,7 +127,7 @@ public:
   void
   direct_integrals_tbb();
 
-#ifdef _OPENMP
+#ifdef PBEM_OPENMP
   void
   direct_integrals_omp();
 #endif
@@ -187,7 +187,7 @@ public:
     TrilinosWrappers::MPI::Vector &      matrVectProdN,
     TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
 
-#ifdef _OPENMP
+#ifdef PBEM_OPENMP
   void
   multipole_matr_vect_products_omp(
     const TrilinosWrappers::MPI::Vector &phi_values,
@@ -231,7 +231,7 @@ public:
   FMA_preconditioner_tbb(const TrilinosWrappers::MPI::Vector &alpha,
                          AffineConstraints<double> &          c);
 
-#ifdef _OPENMP
+#ifdef PBEM_OPENMP
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_omp(const TrilinosWrappers::MPI::Vector &alpha,
                          AffineConstraints<double> &          c);
@@ -245,7 +245,7 @@ public:
   FMA_preconditioner_complex_tbb(const TrilinosWrappers::MPI::Vector &alpha,
                                  AffineConstraints<double> &          c);
 
-#ifdef _OPENMP
+#ifdef PBEM_OPENMP
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex_omp(const TrilinosWrappers::MPI::Vector &alpha,
                                  AffineConstraints<double> &          c);

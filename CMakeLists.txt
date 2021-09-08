@@ -68,6 +68,7 @@ OPTION(BEM_ENABLE_TESTING
 IF($ENV{PBEM_OPENMP})
     message("compiling with OpenMP threading")
     FIND_PACKAGE(OpenMP REQUIRED)
+    add_definitions("-DPBEM_OPENMP")
 ELSE()
     message("compiling with TBB threading")
 ENDIF()

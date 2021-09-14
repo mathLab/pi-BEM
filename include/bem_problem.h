@@ -220,7 +220,7 @@ public:
   assemble_system_tbb();
 
   void
-  assemble_system_old();
+  assemble_system_singlethread();
 
   /// The next three methods are
   /// needed by the GMRES solver:

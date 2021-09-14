@@ -791,7 +791,7 @@ ComputationalDomain<3>::refine_and_resize_by_aspect_ratio()
 
 template <>
 void
-ComputationalDomain<2>::refine_and_resize_by_cad_projections(double max_tol)
+ComputationalDomain<2>::refine_and_resize_by_cad_projections(double)
 {
   AssertThrow(
     false,

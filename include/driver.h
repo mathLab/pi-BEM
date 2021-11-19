@@ -17,6 +17,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/parameter_acceptor.h>
 #include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
@@ -67,7 +68,6 @@
 
 // And here are a few C++ standard header
 // files that we will need:
-#include <deal2lkit/parameter_acceptor.h>
 
 #include <cmath>
 #include <fstream>
@@ -89,7 +89,7 @@ using namespace dealii;
  * interfaces with all the other classes in order to have a complete simulation.
  */
 template <int dim>
-class Driver : public deal2lkit::ParameterAcceptor
+class Driver : public ParameterAcceptor
 {
 public:
   Driver();

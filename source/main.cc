@@ -20,7 +20,7 @@ main(int argc, char *argv[])
         "used_parameters_bem_" + std::to_string(DEAL_II_DIMENSION) + ".prm";
 
       Driver<DEAL_II_DIMENSION> driver;
-      deal2lkit::ParameterAcceptor::initialize(pname, pname2);
+      dealii::ParameterAcceptor::initialize(pname, pname2);
 
       driver.run();
     }

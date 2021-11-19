@@ -20,29 +20,13 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/parameter_acceptor.h>
 #include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
 #include <deal.II/base/smartpointer.h>
-#include <deal.II/base/std_cxx11/tuple.h>
-#include <deal.II/base/utilities.h>
-
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_in.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/tria.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
-
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/precondition.h>
-#include <deal.II/lac/solver_control.h>
-#include <deal.II/lac/solver_gmres.h>
-#include <deal.II/lac/sparse_direct.h>
-#include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/vector.h>
-// #include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/base/types.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_handler.h>
@@ -55,7 +39,21 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/mapping_q_eulerian.h>
 
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/manifold_lib.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
+
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_control.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/sparse_direct.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/vector.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -67,11 +65,10 @@
 // specifying <code>-DDEAL_II_WITH_OPENCASCADE=ON</code> and
 // <code>-DOPENCASCADE_DIR=/path/to/your/opencascade/installation</code>
 // when calling <code>cmake</code> during deal.II configuration.
-#include <deal.II/opencascade/boundary_lib.h>
+#include <deal.II/opencascade/manifold_lib.h>
 #include <deal.II/opencascade/utilities.h>
 
 #include <TopoDS_Shape.hxx>
-#include <deal2lkit/parameter_acceptor.h>
 #include <mpi.h>
 
 #include <cmath>
@@ -86,7 +83,6 @@
 #include "../include/multipole_expansion.h"
 
 using namespace dealii;
-using namespace deal2lkit;
 
 /**
  * - ComputationalDomain. This class handles, and provides to the other classes,
@@ -96,7 +92,7 @@ using namespace deal2lkit;
  *  - it reads the domain from an external file.
  */
 template <int dim>
-class ComputationalDomain : public deal2lkit::ParameterAcceptor
+class ComputationalDomain : public ParameterAcceptor
 {
 public:
   /// constructor: since this is the

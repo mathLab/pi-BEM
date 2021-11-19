@@ -38,7 +38,7 @@ ENDIF()
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
-FIND_PACKAGE(deal.II 8.3 REQUIRED
+FIND_PACKAGE(deal.II 10.0 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
 )
 
@@ -62,10 +62,6 @@ set(CMAKE_MACOSX_RPATH 1)
 endif()
 
 
-FIND_PACKAGE(deal2lkit 1.0 REQUIRED
-  HINTS ${D2K_DIR} $ENV{D2K_DIR} $ENV{DEAL2LKIT_DIR}
-  )
-D2K_INITIALIZE_CACHED_VARIABLES()
 
 # We one library and one target for each type of deal.II library
 # we found. If you compiled deal.II with both Release and Debug
@@ -80,8 +76,7 @@ FOREACH(_build_type ${_d2_build_types})
     SET(_p "${${_build_type}_postfix}")
     # Only build this type, if deal.II was compiled with it.
     IF(CMAKE_BUILD_TYPE MATCHES "${_build_type}" AND
-       DEAL_II_BUILD_TYPE MATCHES "${_build_type}"  AND
-       D2K_BUILD_TYPE MATCHES "${_build_type}")
+       DEAL_II_BUILD_TYPE MATCHES "${_build_type}")
 	MESSAGE("-- Found ${_build_type} version of deal.II.")
 	MESSAGE("-- Found ${_build_type} version of deal2lkit.")
 
@@ -98,24 +93,16 @@ FOREACH(_build_type ${_d2_build_types})
 		ADD_EXECUTABLE(${_exe} ${_main})
 		target_compile_definitions(${_exe} PUBLIC DEAL_II_DIMENSION=${_dim})
 		TARGET_LINK_LIBRARIES(${_exe} ${_lib})
-		D2K_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
+		DEAL_II_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
     	ENDFOREACH()
 
-	# Compile an executable only if required by the user
-	#IF(NOT "${_main}" STREQUAL "")
-	#    SET(_exe "${TARGET}${${_build_type}_postfix}")
-	#    MESSAGE("-- Configuring executable ${_exe}")
-	#    ADD_EXECUTABLE(${_exe} ${_main})
-	#    TARGET_LINK_LIBRARIES(${_exe} ${_lib})
-	#    D2K_SETUP_TARGET(${_exe} ${_BUILD_TYPE})
-	#ENDIF()
 
-	D2K_SETUP_TARGET(${_lib} ${_BUILD_TYPE})
+
+	DEAL_II_SETUP_TARGET(${_lib} ${_BUILD_TYPE})
   SET(TEST_LIBRARIES_${_BUILD_TYPE} ${_lib})
   ENDIF()
 ENDFOREACH()
 
-INCLUDE_DIRECTORIES(${D2K_DIR}/include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests AND BEM_ENABLE_TESTING)

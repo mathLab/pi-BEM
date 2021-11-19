@@ -3,9 +3,10 @@
 
 #include "../include/bem_fma.h"
 
+#include <functional>
+
 #include "../include/laplace_kernel.h"
 #include "Teuchos_TimeMonitor.hpp"
-
 using Teuchos::RCP;
 using Teuchos::Time;
 using Teuchos::TimeMonitor;
@@ -90,11 +91,15 @@ BEMFMA<dim>::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  add_parameter(prm,
-                &tbb_granularity,
-                "Granularity for TBB simple for cycles",
-                "10",
-                Patterns::Integer());
+  prm.enter_subsection("FMA Params");
+  {
+    prm.declare_entry("Granularity for TBB simple for cycles",
+                      "10",
+                      Patterns::Integer());
+  }
+  prm.leave_subsection();
+
+                
 }
 
 template <int dim>
@@ -112,6 +117,12 @@ BEMFMA<dim>::parse_parameters(ParameterHandler &prm)
   prm.enter_subsection("FMA Params");
   {
     trunc_order = prm.get_integer("FMA Truncation Order");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("FMA Params");
+  {
+    tbb_granularity = prm.get_integer("Granularity for TBB simple for cycles");
   }
   prm.leave_subsection();
 }
@@ -1089,12 +1100,12 @@ BEMFMA<dim>::direct_integrals()
   // a bind to let WorkStream see a function requiring only 3 arguments
   WorkStream::run(childlessList.begin(),
                   childlessList.end(),
-                  std_cxx11::bind(f_worker_direct_childless_non_int_list,
-                                  std_cxx11::_1,
-                                  std_cxx11::_2,
-                                  std_cxx11::_3,
-                                  support_points,
-                                  sing_quadratures),
+                  std::bind(f_worker_direct_childless_non_int_list,
+                            std::placeholders::_1,
+                            std::placeholders::_2,
+                            std::placeholders::_3,
+                            support_points,
+                            sing_quadratures),
                   f_copier_direct,
                   direct_childless_scratch_data,
                   direct_childless_copy_data);
@@ -1272,12 +1283,12 @@ BEMFMA<dim>::direct_integrals()
       DirectCopyData    direct_bigger_copy_data;
       WorkStream::run(dofs_filled_blocks[level].begin(),
                       dofs_filled_blocks[level].end(),
-                      std_cxx11::bind(f_worker_direct_bigger_blocks,
-                                      std_cxx11::_1,
-                                      std_cxx11::_2,
-                                      std_cxx11::_3,
-                                      support_points,
-                                      startBlockLevel),
+                      std::bind(f_worker_direct_bigger_blocks,
+                                std::placeholders::_1,
+                                std::placeholders::_2,
+                                std::placeholders::_3,
+                                support_points,
+                                startBlockLevel),
                       f_copier_direct,
                       direct_bigger_scratch_data,
                       direct_bigger_copy_data);
@@ -2499,11 +2510,11 @@ BEMFMA<dim>::generate_multipole_expansions(
       if (endLevel[level] >= startLevel[level])
         WorkStream::run(blocks.begin() + startLevel[level],
                         blocks.begin() + endLevel[level] + 1,
-                        std_cxx11::bind(f_worker_ascend,
-                                        std_cxx11::_1,
-                                        std_cxx11::_2,
-                                        std_cxx11::_3,
-                                        startLevel[level]),
+                        std::bind(f_worker_ascend,
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3,
+                                  startLevel[level]),
                         f_copier_ascend,
                         sample_scratch,
                         sample_copy);
@@ -2946,11 +2957,11 @@ BEMFMA<dim>::multipole_matr_vect_products(
       if (endBlockLevel >= startBlockLevel)
         WorkStream::run(dofs_filled_blocks[level].begin(),
                         dofs_filled_blocks[level].end(),
-                        std_cxx11::bind(f_worker_Descend,
-                                        std_cxx11::_1,
-                                        std_cxx11::_2,
-                                        std_cxx11::_3,
-                                        startBlockLevel),
+                        std::bind(f_worker_Descend,
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3,
+                                  startBlockLevel),
                         f_copier_Descend,
                         sample_scratch,
                         sample_copy);
@@ -4447,7 +4458,7 @@ BEMFMA<dim>::generate_octree_blocking()
           // here we compute the number of quad points in the block
           int blockNumQuadPoints = 0;
           std::map<cell_it, std::vector<types::global_dof_index>>
-                                                                            blockQuadPointsList = blocks[jj]->GetBlockQuadPointsList();
+            blockQuadPointsList = blocks[jj]->GetBlockQuadPointsList();
           typename std::map<cell_it,
                             std::vector<types::global_dof_index>>::iterator it;
           for (it = blockQuadPointsList.begin();

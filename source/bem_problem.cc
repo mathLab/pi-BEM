@@ -6,6 +6,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <memory>
 
 #include "../include/laplace_kernel.h"
 #include "Teuchos_TimeMonitor.hpp"
@@ -29,7 +30,16 @@ struct EntryRaiiObject
   }
   const char *f_;
 };
-
+namespace
+{
+  template <typename VEC>
+  void
+  vector_shift(VEC &in_vec, double a_scalar)
+  {
+    for (auto i : in_vec.locally_owned_elements())
+      in_vec[i] += a_scalar;
+  }
+} // namespace
 RCP<Time> ConstraintsTime =
   Teuchos::TimeMonitor::getNewTimer("Compute Constraints Time");
 RCP<Time> AssembleTime = Teuchos::TimeMonitor::getNewTimer("Assemble Time");
@@ -75,8 +85,6 @@ BEMProblem<3>::BEMProblem(ComputationalDomain<3> &comp_dom,
                           MPI_Comm comm)
   : pcout(std::cout)
   , comp_dom(comp_dom)
-  , parsed_fe("Scalar FE", "FE_Q(1)")
-  , parsed_gradient_fe("Vector FE", "FESystem[FE_Q(1)^3]", "u,u,u", 3)
   , dh(comp_dom.tria)
   , gradient_dh(comp_dom.tria)
   , mpi_communicator(comm)
@@ -92,8 +100,6 @@ BEMProblem<2>::BEMProblem(ComputationalDomain<2> &comp_dom,
                           MPI_Comm comm)
   : pcout(std::cout)
   , comp_dom(comp_dom)
-  , parsed_fe("Scalar FE", "FE_Q(1)")
-  , parsed_gradient_fe("Vector FE", "FESystem[FE_Q(1)^2]", "u,u", 2)
   , dh(comp_dom.tria)
   , gradient_dh(comp_dom.tria)
   , mpi_communicator(comm)
@@ -105,6 +111,42 @@ BEMProblem<2>::BEMProblem(ComputationalDomain<2> &comp_dom,
 }
 
 
+namespace
+{
+  template <int dim, int spacedim, bool system = false>
+  std::unique_ptr<FiniteElement<dim, spacedim>>
+  createFiniteElementPointer(const std::string &type, const unsigned int order)
+  {
+    if (type == "FEQ")
+      {
+        if (system)
+          {
+            return std::unique_ptr<FiniteElement<dim, spacedim>>(
+              new FESystem<dim, spacedim>(FE_Q<dim, spacedim>(order),
+                                          spacedim));
+          }
+        else
+          {
+            return std::unique_ptr<FiniteElement<dim, spacedim>>(
+              new FE_Q<dim, spacedim>(order));
+          }
+      }
+    else
+      {
+        if (system)
+          {
+            return std::unique_ptr<FiniteElement<dim, spacedim>>(
+              new FESystem<dim, spacedim>(FE_DGQ<dim, spacedim>(order),
+                                          spacedim));
+          }
+        else
+          {
+            return std::unique_ptr<FiniteElement<dim, spacedim>>(
+              new FE_DGQ<dim, spacedim>(order));
+          }
+      }
+  }
+} // namespace
 template <int dim>
 void
 BEMProblem<dim>::reinit()
@@ -112,8 +154,10 @@ BEMProblem<dim>::reinit()
   // ENTRY
   Teuchos::TimeMonitor LocalTimer(*ReinitTime);
 
-  fe          = parsed_fe();
-  gradient_fe = parsed_gradient_fe();
+  fe          = createFiniteElementPointer<dim - 1, dim, false>(scalar_fe_type,
+                                                       scalar_fe_order);
+  gradient_fe = createFiniteElementPointer<dim - 1, dim, true>(vector_fe_type,
+                                                               vector_fe_order);
   // fe = new FE_DGQArbitraryNodes<dim-1, dim>(QGauss<1> (2));
   // gradient_fe = new
   // FESystem<dim-1,dim>(FE_DGQArbitraryNodes<dim-1,dim>(QGauss<1> (2)),dim);
@@ -438,6 +482,31 @@ BEMProblem<dim>::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Continuos gradient across edges",
                     "true",
                     Patterns::Bool());
+  prm.enter_subsection("Scalar Finite Element");
+  {
+    prm.declare_entry("Finite Element type",
+                      "FEQ",
+                      Patterns::Selection("FEQ|FEDGQ"));
+    prm.declare_entry("Finite element order", "1", Patterns::Integer());
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Vector Finite Element");
+  {
+    prm.declare_entry("Finite Element type",
+                      "FEQ",
+                      Patterns::Selection("FEQ|FEDGQ"));
+    prm.declare_entry("Finite element order", "1", Patterns::Integer());
+  }
+  prm.leave_subsection();
+
+
+  prm.enter_subsection("Grid Refinement");
+  {
+    prm.declare_entry("Coarsening threshold", "0.03", Patterns::Double());
+    prm.declare_entry("Refinement threshold", "0.3", Patterns::Double());
+  }
+  prm.leave_subsection();
 }
 
 template <int dim>
@@ -455,7 +524,7 @@ BEMProblem<dim>::parse_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Quadrature rules");
   {
-    quadrature = std_cxx1x::shared_ptr<Quadrature<dim - 1>>(
+    quadrature = std::shared_ptr<Quadrature<dim - 1>>(
       new QuadratureSelector<dim - 1>(prm.get("Quadrature type"),
                                       prm.get_integer("Quadrature order")));
     quadrature_order          = prm.get_integer("Quadrature order");
@@ -466,6 +535,28 @@ BEMProblem<dim>::parse_parameters(ParameterHandler &prm)
   mapping_type       = prm.get("Mapping Type");
   mapping_degree     = prm.get_integer("Mapping Q Degree");
   continuos_gradient = prm.get_bool("Continuos gradient across edges");
+
+
+  prm.enter_subsection("Scalar Finite Element");
+  {
+    scalar_fe_type  = prm.get("Finite Element type");
+    scalar_fe_order = prm.get_integer("Finite element order");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Vector Finite Element");
+  {
+    vector_fe_type  = prm.get("Finite Element type");
+    vector_fe_order = prm.get_integer("Finite element order");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Grid Refinement");
+  {
+    coarsening_threshold = prm.get_double("Coarsening threshold");
+    refinement_threshold = prm.get_double("Refinement threshold");
+  }
+  prm.leave_subsection();
 }
 
 
@@ -2277,11 +2368,10 @@ BEMProblem<dim>::adaptive_refinement(
   KellyErrorEstimator<dim - 1, dim>::estimate(
     *mapping, dh, QGauss<dim - 2>(3), {}, helper, estimated_error_per_cell);
 
-  pgr.mark_cells(estimated_error_per_cell, comp_dom.tria);
-  //  GridRefinement::refine_and_coarsen_fixed_number (comp_dom.tria,
-  //                                                  estimated_error_per_cell,
-  //                                                  refinement_threshold,
-  //                                                  coarsening_threshold);
+  GridRefinement::refine_and_coarsen_fixed_number(comp_dom.tria,
+                                                  estimated_error_per_cell,
+                                                  refinement_threshold,
+                                                  coarsening_threshold);
   comp_dom.tria.prepare_coarsening_and_refinement();
   comp_dom.tria.execute_coarsening_and_refinement();
 }

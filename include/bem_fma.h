@@ -24,7 +24,7 @@
 #ifndef bem_fma_h
 #define bem_fma_h
 
-#include <deal.II/base/std_cxx11/bind.h>
+#include <deal.II/base/parameter_acceptor.h>
 #include <deal.II/base/types.h>
 #include <deal.II/base/work_stream.h>
 
@@ -33,14 +33,13 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
-#include <deal2lkit/parameter_acceptor.h>
-#include <deal2lkit/utilities.h>
 #include <mpi.h>
 
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 
@@ -57,7 +56,6 @@ namespace Operator
 }
 
 using namespace dealii;
-using namespace deal2lkit;
 
 /**
 * A class for the handling of the Fast Multiple Method coupled with the Bundary
@@ -70,7 +68,7 @@ range interactions
 
 */
 template <int dim> //, Type V>
-class BEMFMA : public deal2lkit::ParameterAcceptor
+class BEMFMA : public ParameterAcceptor
 {
 public:
   /// Function to be used in the tests, it can access everything inside bemfma
@@ -449,8 +447,8 @@ protected:
 
 
   /// TODO parsed quadrature?
-  shared_ptr<Quadrature<dim - 1>>    quadrature;
-  SmartPointer<const Vector<double>> dirichlet_nodes;
+  std::shared_ptr<Quadrature<dim - 1>> quadrature;
+  SmartPointer<const Vector<double>>   dirichlet_nodes;
   /// This should be erased by the usage of the constraint matrix.
   const std::vector<std::set<types::global_dof_index>> *double_nodes_set;
 

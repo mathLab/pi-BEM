@@ -23,6 +23,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/parameter_acceptor.h>
 #include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
@@ -59,6 +60,7 @@
 #include <deal.II/dofs/dof_renumbering.h>
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
@@ -69,6 +71,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/tria_accessor.h>
@@ -82,10 +85,7 @@
 
 // And here are a few C++ standard header
 // files that we will need:
-#include <deal2lkit/parameter_acceptor.h>
-#include <deal2lkit/parsed_finite_element.h>
-#include <deal2lkit/parsed_grid_refinement.h>
-#include <deal2lkit/utilities.h>
+
 #include <mpi.h>
 
 #include <cmath>
@@ -104,7 +104,6 @@
 #include "../include/octree_block.h"
 
 using namespace dealii;
-using namespace deal2lkit;
 
 // using namespace TrilinosWrappers;
 // using namespace TrilinosWrappers::MPI;
@@ -118,7 +117,7 @@ using namespace deal2lkit;
  *   - it eventually interacts with the FMM accelerator.
  */
 template <int dim>
-class BEMProblem : public deal2lkit::ParameterAcceptor
+class BEMProblem : public ParameterAcceptor
 {
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
@@ -286,9 +285,8 @@ public:
   ConditionalOStream        pcout;
   ComputationalDomain<dim> &comp_dom;
 
-
-  ParsedFiniteElement<dim - 1, dim>            parsed_fe;
-  ParsedFiniteElement<dim - 1, dim>            parsed_gradient_fe;
+  std::string                                  scalar_fe_type, vector_fe_type;
+  unsigned int                                 scalar_fe_order, vector_fe_order;
   std::unique_ptr<FiniteElement<dim - 1, dim>> fe;
   std::unique_ptr<FiniteElement<dim - 1, dim>> gradient_fe;
   DoFHandler<dim - 1, dim>                     dh;
@@ -297,16 +295,16 @@ public:
   // FE_Q<dim-1,dim>                   fe;
   // FESystem<dim-1,dim>      gradient_fe;
 
-  ParsedGridRefinement pgr;
+  double refinement_threshold, coarsening_threshold;
 
   /// An Eulerian Mapping is created to deal
   /// with the free surface and boat mesh
   /// deformation
 
-  Vector<double>                    map_vector;
-  shared_ptr<Mapping<dim - 1, dim>> mapping;
-  unsigned int                      mapping_degree;
-  Vector<double>                    map_points;
+  Vector<double>                         map_vector;
+  std::shared_ptr<Mapping<dim - 1, dim>> mapping;
+  unsigned int                           mapping_degree;
+  Vector<double>                         map_points;
 
 
   /// these are the std::vectors of std::sets

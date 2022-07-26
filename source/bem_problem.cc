@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "../include/laplace_kernel.h"
+#include "../include/singular_kernel_integral.h"
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::RCP;
@@ -404,6 +405,13 @@ BEMProblem<dim>::reinit()
                                   true,
                                   this_mpi_process);
   vector_sparsity_pattern.compress();
+  
+  
+  hyp_alpha.reinit(this_cpu_set, mpi_communicator);
+  C_ii.resize(dim*dim);
+  for (unsigned int i=0; i<dim*dim; ++i)
+    C_ii[i].reinit(this_cpu_set, mpi_communicator);
+  
 }
 
 
@@ -1234,7 +1242,200 @@ BEMProblem<dim>::assemble_system()
   // }
 }
 
+template <int dim>
+void BEMProblem<dim>::compute_hypersingular_free_coeffs()
+{
+pcout << "computing free cefficients for hypersingular BIE" << std::endl;
 
+
+
+
+Assert(fe->has_support_points(),
+       ExcMessage("The FE selected has no support points. This is not supported."));
+const std::vector<Point<dim-1> > &ref_dofs_location = fe->get_unit_support_points();
+// we use these points as quadrature points for a quadrature rule
+std::vector<double> weights(ref_dofs_location.size(),1.0);
+
+
+// here's the quadrature rule obtained with the points and weights generated
+Quadrature<dim-1> dofs_quadrature(ref_dofs_location, weights);
+
+// and here's the FEValues class resulting by it
+FEValues<dim-1,dim> dofs_fe_values(*mapping,
+                                   *fe,
+                                   dofs_quadrature,
+                                   update_values | update_gradients | update_quadrature_points |
+                                   update_JxW_values | update_normal_vectors | update_jacobians |
+                                   update_jacobian_grads);
+
+
+
+
+cell_it
+    cell = dh.begin_active(),
+    endc = dh.end();
+std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
+
+double error = 0.0;
+for (types::global_dof_index i = 0; i < dh.n_dofs(); ++i) //these must now be the locally owned dofs. the rest should stay the same
+    {
+    std::vector<Tensor<1, dim> > normals;
+    if (this_cpu_set.is_element(i))
+       {
+       for (cell = dh.begin_active(); cell != endc; ++cell)
+           {
+           cell->get_dof_indices(local_dof_indices);
+           for (unsigned int i_loc=0; i_loc<fe->dofs_per_cell; ++i_loc)
+               {
+               std::set<unsigned int> doubles = double_nodes_set[local_dof_indices[i_loc]];
+               for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
+                   if (*it == i)
+                      {
+                      dofs_fe_values.reinit(cell);
+                      Tensor<1, dim> normal = dofs_fe_values.normal_vector(i_loc);
+                      normals.push_back(normal);
+                      }
+               }
+           }
+       //cout<<i<<"  --> "<<normals.size()<<endl;
+       //for (unsigned int k=0; k<normals.size(); ++k)
+       //    cout<<normals[k]<<endl;
+       std::vector<Tensor<1, dim> > unique_normals;
+       std::vector<Tensor<1, dim> > unique_projected_normals;
+       
+       std::vector<Tensor<1, dim> > unique_tangents;
+       for (unsigned int k=0; k<normals.size(); ++k)
+           {
+           bool found = false;
+           for (unsigned int j=0; j<unique_normals.size(); ++j)
+               if ((normals[k]-unique_normals[j]).norm()<1e-5)
+                  found = true;
+           if (!found)
+              unique_normals.push_back(normals[k]);
+           }
+       //cout<<i<<"  -->Unique normals: "<<unique_normals.size()<<endl;
+       Tensor<1, dim> average_normal;
+       for (unsigned int k=0; k<unique_normals.size(); ++k)
+           average_normal+=unique_normals[k]*(1.0/unique_normals.size());
+       average_normal/=average_normal.norm();
+       //for (unsigned int k=0; k<unique_normals.size(); ++k)
+       //    cout<<unique_normals[k]<<endl;
+       Tensor<2, dim>  projection_matrix = -1.0*outer_product(average_normal,average_normal);
+       for (unsigned int d=0; d<dim; ++d)
+           projection_matrix[d][d]+= 1.0;
+       for (unsigned int k=0; k<unique_normals.size(); ++k)
+           unique_projected_normals.push_back(projection_matrix*unique_normals[k]/(projection_matrix*unique_normals[k]).norm());
+       
+       //for (unsigned int k=0; k<unique_normals.size(); ++k)
+       //    cout<<"n: "<<unique_normals[k]<<"  proj: "<<unique_projected_normals[k]<<endl;
+       std::vector<Tensor<1, dim> > unique_normals_copy(unique_normals);
+       //std::vector<Tensor<1, dim> > unique_ordered_normals(unique_normals);
+       std::vector<Tensor<1, dim> > unique_ordered_normals;
+       //cout<<i<<"  -->Average normal: "<<average_normal<<endl;
+       //cout<<i<<"  -->Proejction matrix: "<<projection_matrix<<endl;
+       unsigned int N = unique_normals.size();
+       unique_ordered_normals.push_back(unique_normals[0]);
+       unique_normals.erase(unique_normals.begin()+0);
+       Tensor<1, dim> previous_proj_normal = unique_projected_normals[0];
+       unique_projected_normals.erase(unique_projected_normals.begin()+0);
+       unsigned int count = 0;
+       while (unique_ordered_normals.size() < N)
+           {
+           count++;
+           //cout<<count<<" ---> "<<unique_projected_normals.size()<<endl;
+           double min_sorter = 100.0;
+           unsigned int index=0;
+           //cout<<"&&& "<<unique_projected_normals.size()<<endl;
+           for (unsigned int p=0; p<unique_projected_normals.size(); ++p)
+               {
+               if (dim == 3)
+                 {
+                 double quadrant_indicator = average_normal*cross_product_3d(previous_proj_normal,unique_projected_normals[p]);
+                 double sorter = acos(previous_proj_normal*unique_projected_normals[p]);
+                 if (quadrant_indicator > 0 && sorter < min_sorter)
+                    {
+                    min_sorter = sorter;
+                    index = p;
+                    }
+                 //cout<<p<<"  "<<sorter<<endl;
+                 }
+               else if (dim == 2)
+                 double sorter = average_normal*cross_product_2d(unique_ordered_normals[0]);
+
+               }
+           //cout<<"Selected: "<<index<<"  "<<endl;
+           unique_ordered_normals.push_back(unique_normals[index]);
+           unique_normals.erase(unique_normals.begin()+index);
+           previous_proj_normal = unique_projected_normals[index];
+           unique_projected_normals.erase(unique_projected_normals.begin()+index);
+           }
+       //for (unsigned int k=0; k<unique_ordered_normals.size(); ++k)
+       //    cout<<unique_ordered_normals[k]<<"   *** vs *** "<< unique_normals_copy[k]<<endl;
+
+       unique_tangents.resize(unique_ordered_normals.size()+1);
+       if (dim == 3)
+           unique_tangents[0] = cross_product_3d(unique_ordered_normals[0],unique_ordered_normals[unique_ordered_normals.size()-1]);
+       if (dim == 2)
+           unique_tangents[0] = cross_product_2d(unique_ordered_normals[0]);
+       for (unsigned int k=1; k<unique_ordered_normals.size(); ++k)
+           if (dim == 3)
+             unique_tangents[k] = cross_product_3d(unique_ordered_normals[k],unique_ordered_normals[k-1]);
+           else if (dim == 2)
+             unique_tangents[k] = cross_product_2d(unique_ordered_normals[k]);
+           
+       unique_tangents[unique_ordered_normals.size()] = unique_tangents[0];
+       //cout<<i<<"  -->Unique tangents: "<<unique_tangents.size()<<endl;
+       for (unsigned int k=0; k<unique_tangents.size(); ++k)
+           {
+           unique_tangents[k]/=unique_tangents[k].norm();
+           //cout<<unique_tangents[k]<<endl;
+           }
+       double geom_alpha = 0.5;
+
+       geom_alpha = 2*numbers::PI;
+       if (unique_ordered_normals.size() > 1)
+           {
+           for (unsigned int k=1; k<unique_ordered_normals.size(); ++k)
+               geom_alpha -= acos(unique_ordered_normals[k]*unique_ordered_normals[k-1]);
+           geom_alpha -= acos(unique_ordered_normals[unique_ordered_normals.size()-1]*unique_ordered_normals[0]);
+           }
+       geom_alpha/=4*numbers::PI;
+       hyp_alpha(i)= geom_alpha;
+       pcout<<i<<"->      geom_alpha: "<<geom_alpha<<"  "<<geom_alpha-alpha(i)<<endl;
+       if (fabs(geom_alpha-alpha(i)) > 1e-3)
+          pcout<<"HELP!"<<endl;
+       error+=sqrt(pow(geom_alpha-alpha(i),2));
+       
+       Tensor<2, dim>  C_matrix;
+       for (unsigned int d=0; d<dim; ++d)
+           C_matrix[d][d]+= geom_alpha;
+       if (unique_ordered_normals.size() > 1)
+           {
+           for (unsigned int k=0; k<unique_ordered_normals.size(); ++k)
+               if (dim == 3)
+                  {
+                  C_matrix -= 1./4./numbers::PI*outer_product(cross_product_3d(unique_tangents[k+1]-unique_tangents[k],
+                                                                                unique_ordered_normals[k]),
+                                                            unique_ordered_normals[k]);
+                  }
+               else if (dim == 2)
+                  C_matrix -= 1/2/numbers::PI*outer_product(unique_tangents[k],unique_ordered_normals[k]);
+           }
+       //pcout<<"C_matrix: "<<C_matrix<<endl;
+       for (unsigned int di=0; di<dim; ++di)
+           for (unsigned int dj=0; dj<dim; ++dj)
+               {
+               C_ii[di*dim+dj][i] = C_matrix[di][dj];
+               //pcout<<C_ii[di*dim+dj][i]<<std::endl;
+               }
+               
+
+       }
+    }
+cout<<"Alpha abs error: "<<error<<endl;
+cout<<"Alpha rel error: "<<error/alpha.l2_norm()<<endl;
+pcout << "done computing free cefficients for hypersingular BIE" << std::endl;
+}
 
 template <int dim>
 void
@@ -1396,6 +1597,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 
 
   compute_alpha();
+  compute_hypersingular_free_coeffs();
 
   // for (unsigned int i = 0; i < alpha.size(); i++)
   //    if (this_cpu_set.is_element(i))
@@ -2250,6 +2452,276 @@ BEMProblem<dim>::compute_surface_gradients(
   vector_constraints.distribute(vector_surface_gradients_solution);
 }
 
+template <int dim>
+void
+BEMProblem<dim>::compute_gradients_hypersingular(
+  const TrilinosWrappers::MPI::Vector &glob_phi,
+  const TrilinosWrappers::MPI::Vector &glob_dphi_dn)
+{
+
+  Teuchos::TimeMonitor LocalTimer(*AssembleTime);
+  pcout << "Computing gradients with hypersingular integrals" << std::endl;
+
+  TrilinosWrappers::MPI::Vector vector_hyp_gradients_solution(vector_this_cpu_set, mpi_communicator);
+
+  Vector<double> phi_local(glob_phi);
+  Vector<double> dphi_dn_local(glob_dphi_dn);
+
+  Tensor<1,dim> node_gradient;
+
+  // Next, we initialize an FEValues
+  // object with the quadrature
+  // formula for the integration of
+  // the kernel in non singular
+  // cells. This quadrature is
+  // selected with the parameter
+  // file, and needs to be quite
+  // precise, since the functions we
+  // are integrating are not
+  // polynomial functions.
+  FEValues<dim - 1, dim> fe_v(*mapping,
+                              *fe,
+                              *quadrature,
+                              update_values | update_normal_vectors |
+                                update_quadrature_points | update_JxW_values);
+
+  const unsigned int n_q_points = fe_v.n_quadrature_points;
+
+  std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
+  pcout << fe->dofs_per_cell << " " << std::endl;
+
+  // Now that we have checked that
+  // the number of vertices is equal
+  // to the number of degrees of
+  // freedom, we construct a vector
+  // of support points which will be
+  // used in the local integrations:
+  std::vector<Point<dim>> support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*mapping,
+                                                     dh,
+                                                     support_points);
+
+
+  // After doing so, we can start the
+  // integration loop over all cells,
+  // where we first initialize the
+  // FEValues object and get the
+  // values of $\mathbf{\tilde v}$ at
+  // the quadrature points (this
+  // vector field should be constant,
+  // but it doesn't hurt to be more
+  // general):
+
+
+  cell_it cell = dh.begin_active(), endc = dh.end();
+
+  Tensor<1,dim> D;
+  Tensor<1, dim> R;
+  Tensor<2,dim> H;
+  double     s;
+  
+  Tensor<1,dim> integral;
+  Tensor<1,dim> integral_2;
+  Tensor<1,dim> integral_3;
+  integral[0]=0.0; integral[1]=0.0; integral[2]=0.0;
+  integral_2[0]=0.0; integral_2[1]=0.0; integral_2[2]=0.0;
+  for (cell = dh.begin_active(); cell != endc; ++cell)
+    {
+      fe_v.reinit(cell);
+      cell->get_dof_indices(local_dof_indices);
+
+      const std::vector<Point<dim>> &q_points    = fe_v.get_quadrature_points();
+      const std::vector<Tensor<1, dim>> &normals = fe_v.get_normal_vectors();
+
+      // We then form the integral over
+      // the current cell for all
+      // degrees of freedom (note that
+      // this includes degrees of
+      // freedom not located on the
+      // current cell, a deviation from
+      // the usual finite element
+      // integrals). The integral that
+      // we need to perform is singular
+      // if one of the local degrees of
+      // freedom is the same as the
+      // support point $i$. A the
+      // beginning of the loop we
+      // therefore check wether this is
+      // the case, and we store which
+      // one is the singular index:
+      for (types::global_dof_index i = 0; i < dh.n_dofs();
+           ++i) // these must now be the locally owned dofs. the rest should
+                // stay the same
+        { 
+          Tensor<1,dim> integral;
+          if (this_cpu_set.is_element(i))
+            {
+
+              bool         is_singular    = false;
+              unsigned int singular_index = numbers::invalid_unsigned_int;
+
+              for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                // if(local_dof_indices[j] == i)
+                if (double_nodes_set[i].count(local_dof_indices[j]) > 0)
+                  {
+                    singular_index = j;
+                    is_singular    = true;
+                    break;
+                  }
+
+              // We then perform the
+              // integral. If the index $i$
+              // is not one of the local
+              // degrees of freedom, we
+              // simply have to add the
+              // single layer terms to the
+              // right hand side, and the
+              // double layer terms to the
+              // matrix:
+              if (is_singular == false)
+                {
+                  for (unsigned int q = 0; q < n_q_points; ++q)
+                    {
+                      const Tensor<1, dim> R = q_points[q] - support_points[i];
+                      LaplaceKernel::kernels(R, H, D, s);
+                      for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                          {
+                          integral += -phi_local(local_dof_indices[j]) * (H * normals[q]) *
+                                                fe_v.shape_value(j, q) *
+                                                fe_v.JxW(q) +
+                                                dphi_dn_local(local_dof_indices[j]) * D *
+                                                fe_v.shape_value(j, q) *
+                                                fe_v.JxW(q);
+                          Tensor<1,dim> a=-phi_local(local_dof_indices[j]) * 
+                                                (H * normals[q]) *
+                                                fe_v.shape_value(j, q) *
+                                                fe_v.JxW(q) +
+                                                dphi_dn_local(local_dof_indices[j]) * D *
+                                                fe_v.shape_value(j, q) *
+                                                fe_v.JxW(q);
+
+//                          if (true)//(abs(normals[q][2]+1.0)>1e-4)
+//                             {
+//                             pcout<<cell<<"    R: "<<R<<"  n: "<<normals[q]<<"   int: "<<a<<std::endl;
+//                             pcout<<cell<<"  phi: "<<phi_local(local_dof_indices[j])<<"   HN: "<<H * normals[q]<<std::endl;
+//                             pcout<<cell<<"  dphi_dn: "<<dphi_dn_local(local_dof_indices[j])<<"   D: "<<D<<std::endl;
+//                             integral_2+=a;
+//                             pcout<<"Qmark: "<<integral_2<<std::endl;
+//                             }
+//                          pcout<<"Integral: "<<integral<<std::endl;
+                          }
+                    }
+                }
+              else
+                {
+                  // Now we treat the more
+                  // delicate case. If we
+                  // are here, this means
+                  // that the cell that
+                  // runs on the $j$ index
+                  // contains
+                  // support_point[i]. In
+                  // this case both the
+                  // single and the double
+                  // layer potential are
+                  // singular, and they
+                  // require special
+                  // treatment.
+                  //
+                  Assert((*fe).has_support_points(),
+                         ExcMessage("The FE selected has no support points. This is not supported."));
+                  Point<dim-1> P = (*fe).unit_support_point(singular_index);
+                  //pcout<<"P: "<<P<<std::endl;
+                  SingularKernelIntegral<dim> sing_kernel_integrator(cell, *fe, *mapping, P);
+                  std::vector<Tensor<1,dim> > Vk_integrals = sing_kernel_integrator.evaluate_VkNj_integrals();
+                  std::vector<Tensor<1,dim> > Wk_integrals = sing_kernel_integrator.evaluate_WkNj_integrals();
+                  Tensor<1,dim> singular_cell_contribution_hyp;
+                  Tensor<1,dim> singular_cell_contribution_str;
+                  for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                      {
+                      const Tensor<1, dim> R = support_points[local_dof_indices[j]] - support_points[i];
+                      //pcout<<"* "<<cell<<"  "<<R<<"   "<<support_points[local_dof_indices[j]]<<std::endl;
+                  
+                      singular_cell_contribution_hyp+= -phi_local(local_dof_indices[j])*Vk_integrals[j];
+                      singular_cell_contribution_str+= dphi_dn_local(local_dof_indices[j])*Wk_integrals[j];
+                      //pcout<<"*** "<<cell<<"  "<<dphi_dn_local(local_dof_indices[j])<<"  "<<Wk_integrals[j]<<std::endl;
+                      //pcout<<"j "<<j<<"  "<<cell<<"  "<<phi_local(local_dof_indices[j])<<"  "<<Vk_integrals[j]<<std::endl;
+                      }
+                  //pcout<<cell<<"   "<<singular_cell_contribution_str<<"  "<<singular_cell_contribution_hyp<<std::endl;
+                  //integral_3+=singular_cell_contribution_str+singular_cell_contribution_hyp;
+                  //pcout<<"Qmark Hyp: "<<integral_3<<std::endl;
+                  integral+= singular_cell_contribution_str+singular_cell_contribution_hyp;
+                }
+
+            vector_hyp_gradients_solution(i)+=integral[0];
+            vector_hyp_gradients_solution(i+dh.n_dofs())+=integral[1];
+            vector_hyp_gradients_solution(i+2*dh.n_dofs())+=integral[2];
+            }
+        }
+    }
+
+  // The second part of the integral
+  // operator is the term
+  // $\alpha(\mathbf{x}_i)
+  // \phi_j(\mathbf{x}_i)$. Since we
+  // use a collocation scheme,
+  // $\phi_j(\mathbf{x}_i)=\delta_{ij}$
+  // and the corresponding matrix is
+  // a diagonal one with entries
+  // equal to $\alpha(\mathbf{x}_i)$.
+
+  // One quick way to compute this
+  // diagonal matrix of the solid
+  // angles, is to use the Neumann
+  // matrix itself. It is enough to
+  // multiply the matrix with a
+  // vector of elements all equal to
+  // -1, to get the diagonal matrix
+  // of the alpha angles, or solid
+  // angles (see the formula in the
+  // introduction for this). The
+  // result is then added back onto
+  // the system matrix object to
+  // yield the final form of the
+  // matrix:
+  for (types::global_dof_index i = 0; i < dh.n_dofs();
+           ++i) // these must now be the locally owned dofs. the rest should
+                // stay the same
+      {
+      if (this_cpu_set.is_element(i))
+         {
+          pcout<<i<<"->    Support point: "<<support_points[i]<<std::endl;
+          Tensor<1,dim> hyp_gradient;
+          Tensor<1,dim> rhs;
+          rhs[0] = vector_hyp_gradients_solution(i);
+          rhs[1] = vector_hyp_gradients_solution(i+2*dh.n_dofs());
+          rhs[2] = vector_hyp_gradients_solution(i+dh.n_dofs());
+          FullMatrix<double> C(dim,dim);
+          FullMatrix<double> Cinv(dim,dim);
+          for (unsigned int di=0; di<dim; ++di)
+              for (unsigned int dj=0; dj<dim; ++dj)
+                  C(di,dj) = C_ii[di*dim+dj](i);
+          Tensor<2,dim> CC;
+          pcout<<"C: "<<std::endl;
+          C.print(std::cout,5,5);
+          Cinv.invert(C);
+          Cinv.copy_to(CC);
+          pcout<<"Cinv: "<<std::endl;
+          Cinv.print(std::cout,5,5);
+          hyp_gradient = CC*rhs;
+          vector_hyp_gradients_solution(i) = hyp_gradient[0];
+          vector_hyp_gradients_solution(i+dh.n_dofs()) = hyp_gradient[1];
+          vector_hyp_gradients_solution(i+2*dh.n_dofs()) = hyp_gradient[2];
+          pcout<<"Hyp. Rhs:"<<rhs<<std::endl;
+          pcout<<"Hyp. Gradient:"<<hyp_gradient<<std::endl;
+         }
+      }
+
+vector_gradients_solution = vector_hyp_gradients_solution;
+pcout << "done computing gradients with hypersingular integrals" << std::endl;
+
+
+}
 
 template <int dim>
 void

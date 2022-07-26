@@ -169,6 +169,8 @@ public:
   virtual void
   parse_parameters(ParameterHandler &prm);
 
+  /// This function computes the free coefficients appearing  in the hypersingular BIE.
+  void compute_hypersingular_free_coeffs();
 
   /// This function computes the fraction of solid angles seen by our domain. We
   /// use the Double Layer Operator (through the Neumann matrix) to determine
@@ -245,6 +247,14 @@ public:
   void
   compute_gradients(const TrilinosWrappers::MPI::Vector &phi,
                     const TrilinosWrappers::MPI::Vector &dphi_dn);
+
+
+  /// We compute the potential gradients also in an alternative way.
+  /// Here we make use of the hypersingular integrals computed with the
+  /// SingularKernelIntegral class
+  void
+  compute_gradients_hypersingular(const TrilinosWrappers::MPI::Vector &phi,
+                                  const TrilinosWrappers::MPI::Vector &dphi_dn);
 
   /// We have parallelised the computation of the L2 projection of the normal
   /// vector. We need a solution vector that has also ghost cells. for this
@@ -338,6 +348,8 @@ public:
 
   TrilinosWrappers::MPI::Vector sol;
   TrilinosWrappers::MPI::Vector alpha;
+  TrilinosWrappers::MPI::Vector hyp_alpha;
+  std::vector<TrilinosWrappers::MPI::Vector> C_ii;
 
   mutable TrilinosWrappers::MPI::Vector serv_phi;
   mutable TrilinosWrappers::MPI::Vector serv_dphi_dn;
@@ -425,6 +437,9 @@ public:
   bool have_dirichlet_bc;
 
   BEMFMA<dim> fma;
+  
+  
+  
 };
 
 #endif

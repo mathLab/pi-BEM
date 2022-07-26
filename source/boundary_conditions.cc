@@ -350,6 +350,7 @@ BoundaryConditions<dim>::compute_errors()
 
   // We still need to communicate our results to compute the errors.
   bem.compute_gradients(phi, dphi_dn);
+  bem.compute_gradients_hypersingular(phi, dphi_dn);
   Vector<double> localized_gradient_solution(
     bem.vector_gradients_solution); // vector_gradients_solution
   Vector<double> localized_phi(phi);

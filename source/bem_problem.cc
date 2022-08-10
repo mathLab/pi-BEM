@@ -1287,8 +1287,8 @@ for (types::global_dof_index i = 0; i < dh.n_dofs(); ++i) //these must now be th
            cell->get_dof_indices(local_dof_indices);
            for (unsigned int i_loc=0; i_loc<fe->dofs_per_cell; ++i_loc)
                {
-               std::set<unsigned int> doubles = double_nodes_set[local_dof_indices[i_loc]];
-               for (std::set<unsigned int>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
+               std::set<types::global_dof_index> doubles = double_nodes_set[local_dof_indices[i_loc]];
+               for (std::set<types::global_dof_index>::iterator it = doubles.begin() ; it != doubles.end(); it++ )
                    if (*it == i)
                       {
                       dofs_fe_values.reinit(cell);
@@ -1417,6 +1417,9 @@ for (types::global_dof_index i = 0; i < dh.n_dofs(); ++i) //these must now be th
                   C_matrix -= 1./4./numbers::PI*outer_product(cross_product_3d(unique_tangents[k+1]-unique_tangents[k],
                                                                                 unique_ordered_normals[k]),
                                                             unique_ordered_normals[k]);
+                  //cout<<"unique_tangents[k+1]: "<<unique_tangents[k+1]<<endl;
+                  //cout<<"unique_tangents[k]: "<<unique_tangents[k]<<endl;
+                  //cout<<"unique_ordered_normals[k]"<<unique_ordered_normals[k]<<endl;                                        
                   }
                else if (dim == 2)
                   C_matrix -= 1/2/numbers::PI*outer_product(unique_tangents[k],unique_ordered_normals[k]);
@@ -2690,30 +2693,30 @@ BEMProblem<dim>::compute_gradients_hypersingular(
       {
       if (this_cpu_set.is_element(i))
          {
-          pcout<<i<<"->    Support point: "<<support_points[i]<<std::endl;
+          //pcout<<i<<"->    Support point: "<<support_points[i]<<std::endl;
           Tensor<1,dim> hyp_gradient;
           Tensor<1,dim> rhs;
           rhs[0] = vector_hyp_gradients_solution(i);
-          rhs[1] = vector_hyp_gradients_solution(i+2*dh.n_dofs());
-          rhs[2] = vector_hyp_gradients_solution(i+dh.n_dofs());
+          rhs[1] = vector_hyp_gradients_solution(i+dh.n_dofs());
+          rhs[2] = vector_hyp_gradients_solution(i+2*dh.n_dofs());
           FullMatrix<double> C(dim,dim);
           FullMatrix<double> Cinv(dim,dim);
           for (unsigned int di=0; di<dim; ++di)
               for (unsigned int dj=0; dj<dim; ++dj)
                   C(di,dj) = C_ii[di*dim+dj](i);
           Tensor<2,dim> CC;
-          pcout<<"C: "<<std::endl;
+          //pcout<<"C: "<<std::endl;
           C.print(std::cout,5,5);
           Cinv.invert(C);
           Cinv.copy_to(CC);
-          pcout<<"Cinv: "<<std::endl;
+          //pcout<<"Cinv: "<<std::endl;
           Cinv.print(std::cout,5,5);
           hyp_gradient = CC*rhs;
           vector_hyp_gradients_solution(i) = hyp_gradient[0];
           vector_hyp_gradients_solution(i+dh.n_dofs()) = hyp_gradient[1];
           vector_hyp_gradients_solution(i+2*dh.n_dofs()) = hyp_gradient[2];
-          pcout<<"Hyp. Rhs:"<<rhs<<std::endl;
-          pcout<<"Hyp. Gradient:"<<hyp_gradient<<std::endl;
+          //pcout<<"Hyp. Rhs:"<<rhs<<std::endl;
+          //pcout<<"Hyp. Gradient:"<<hyp_gradient<<std::endl;
          }
       }
 

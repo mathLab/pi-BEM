@@ -1825,5 +1825,334 @@ double SingularKernelIntegral<3>::evaluate_integral()
 };
 
 
+template <>
+Tensor<1, 2>
+SingularKernelIntegral<2>::evaluate_free_term_b()
+{
+  ExcNotImplemented();
+  Tensor<1, 2> dummy;
+  return dummy;
+}
+
+template <>
+Tensor<1, 3>
+SingularKernelIntegral<3>::evaluate_free_term_b()
+{
+  // We must obtain the shape function derivatives at the singularity point eta
+  // in the parametric plane. In the deal.II framework the (to my knowledge)
+  // best way is to create a reference Triangulation<dim,spacedim> and
+  // FE<dim,spacedim> and use it to get the shape function values and
+  // derivatives building reference cell
+  Triangulation<2, 3> ref_triangulation;
+
+  std::vector<Point<3>>    ref_vertices;
+  std::vector<CellData<2>> ref_cells;
+  SubCellData              ref_subcelldata;
+
+  ref_vertices.resize(4);
+  ref_vertices[0](0) = 0.0;
+  ref_vertices[0](1) = 0.0;
+  ref_vertices[0](2) = 0.0;
+  ref_vertices[1](0) = 1.0;
+  ref_vertices[1](1) = 0.0;
+  ref_vertices[1](2) = 0.0;
+  ref_vertices[2](0) = 0.0;
+  ref_vertices[2](1) = 1.0;
+  ref_vertices[2](2) = 0.0;
+  ref_vertices[3](0) = 1.0;
+  ref_vertices[3](1) = 1.0;
+  ref_vertices[3](2) = 0.0;
+
+  ref_cells.resize(1);
+
+  ref_cells[0].vertices[0] = 0;
+  ref_cells[0].vertices[1] = 1;
+  ref_cells[0].vertices[2] = 2;
+  ref_cells[0].vertices[3] = 3;
+  ref_cells[0].material_id = 1;
+
+  GridTools::delete_unused_vertices(ref_vertices, ref_cells, ref_subcelldata);
+  GridTools::consistently_order_cells(ref_cells);
+
+  // here's the triangulation set up
+  ref_triangulation.create_triangulation(ref_vertices,
+                                         ref_cells,
+                                         ref_subcelldata);
+
+  // we will need a codimension one finite element and
+  // the corresponding dof handler
+  DoFHandler<2, 3> ref_dof_handler(ref_triangulation);
+  ref_dof_handler.distribute_dofs(fe);
+
+
+  // we now need to compute all the mapping first and second order derivatives
+  // in correspondence with the singularity
+  // we have to pass through a FEValues object, but to build one we will
+  // need std::vectors with location of quadrature points and quadrature nodes
+
+  // we have a single quadrature point (eta) located at P
+  std::vector<Point<2>> eta_q_points(1);
+  eta_q_points[0] = eta;
+  // and a single quadrature weight set to one
+  std::vector<double> eta_q_weights(1);
+  eta_q_weights[0] = 1;
+
+  // here's the quadrature rule obtained with the point and weight generated
+  Quadrature<2> eta_quadrature(eta_q_points, eta_q_weights);
+  // and here are the reference and spacedim FEValues class resulting by it
+  // (both FEValues are initialized with the correct cell)
+
+  FEValues<2, 3> ref_eta_fe_values(fe,
+                                   eta_quadrature,
+                                   update_values | update_gradients |
+                                     update_quadrature_points |
+                                     update_JxW_values | update_normal_vectors |
+                                     update_jacobians | update_jacobian_grads);
+  // we initialize rference FEValues object on the reference cell
+  ref_eta_fe_values.reinit(ref_dof_handler.begin_active());
+
+  FEValues<2, 3> eta_fe_values(mapping,
+                               fe,
+                               eta_quadrature,
+                               update_values | update_gradients |
+                                 update_quadrature_points | update_JxW_values |
+                                 update_normal_vectors | update_jacobians |
+                                 update_jacobian_grads);
+  // we initialize FEValues object on the current cell
+  eta_fe_values.reinit(cell);
+
+
+  // we also get the acobian and jacobian gradient at such a location
+  auto eta_jacobian      = eta_fe_values.jacobian(0);
+  auto eta_jacobian_grad = eta_fe_values.jacobian_grad(0);
+  // we now have all the first and second order mapping derivaives
+  // the product of the jacobian by the normal vector Jxn is the surface normal
+  // vector let us obtain it in terms of the mapping derivatives The outward
+  // normal vector is g^(e)(eta^(e)) in [2]
+  Tensor<1, 3> eta_g;
+  eta_g[0] = eta_jacobian[1][0] * eta_jacobian[2][1] -
+             eta_jacobian[1][1] * eta_jacobian[2][0];
+  eta_g[1] = eta_jacobian[2][0] * eta_jacobian[0][1] -
+             eta_jacobian[2][1] * eta_jacobian[0][0];
+  eta_g[2] = eta_jacobian[0][0] * eta_jacobian[1][1] -
+             eta_jacobian[0][1] * eta_jacobian[1][0];
+
+  // Normal unit vector:
+  double       eta_g_norm = eta_g.norm();
+  Tensor<1, 3> eta_n      = eta_g / eta_g_norm;
+
+//  std::cout << "eta   " << eta[0] << ", " << eta[1] << ", " << eta[2]
+//            << std::endl;
+//  std::cout << "eta_n " << eta_n[0] << ", " << eta_n[1] << ", " << eta_n[2]
+//            << std::endl;
+
+  // we also want the derivative of the previous vector with respect to the
+  // first parametric plane coordinate u
+  Tensor<1, 3> d_eta_Jxn_du;
+  d_eta_Jxn_du[0] = eta_jacobian_grad[1][0][0] * eta_jacobian[2][1] +
+                    eta_jacobian[1][0] * eta_jacobian_grad[2][1][0] -
+                    eta_jacobian_grad[1][1][0] * eta_jacobian[2][0] -
+                    eta_jacobian[1][1] * eta_jacobian_grad[2][0][0];
+  d_eta_Jxn_du[1] = eta_jacobian_grad[0][1][0] * eta_jacobian[2][0] +
+                    eta_jacobian[0][1] * eta_jacobian_grad[2][0][0] -
+                    eta_jacobian_grad[0][0][0] * eta_jacobian[2][1] -
+                    eta_jacobian[0][0] * eta_jacobian_grad[2][1][0];
+  d_eta_Jxn_du[2] = eta_jacobian_grad[0][0][0] * eta_jacobian[1][1] +
+                    eta_jacobian[0][0] * eta_jacobian_grad[1][1][0] -
+                    eta_jacobian_grad[0][1][0] * eta_jacobian[1][0] -
+                    eta_jacobian[0][1] * eta_jacobian_grad[1][0][0];
+  // we also want the derivative of the previous vector with respect to the
+  // second parametric plane coordinate v
+  Tensor<1, 3> d_eta_Jxn_dv;
+  d_eta_Jxn_dv[0] = eta_jacobian_grad[1][0][1] * eta_jacobian[2][1] +
+                    eta_jacobian[1][0] * eta_jacobian_grad[2][1][1] -
+                    eta_jacobian_grad[1][1][1] * eta_jacobian[2][0] -
+                    eta_jacobian[1][1] * eta_jacobian_grad[2][0][1];
+  d_eta_Jxn_dv[1] = eta_jacobian_grad[0][1][1] * eta_jacobian[2][0] +
+                    eta_jacobian[0][1] * eta_jacobian_grad[2][0][1] -
+                    eta_jacobian_grad[0][0][1] * eta_jacobian[2][1] -
+                    eta_jacobian[0][0] * eta_jacobian_grad[2][1][1];
+  d_eta_Jxn_dv[2] = eta_jacobian_grad[0][0][1] * eta_jacobian[1][1] +
+                    eta_jacobian[0][0] * eta_jacobian_grad[1][1][1] -
+                    eta_jacobian_grad[0][1][1] * eta_jacobian[1][0] -
+                    eta_jacobian[0][1] * eta_jacobian_grad[1][0][1];
+
+  Tensor<1, 3> b;
+  b[0] = 0.0;
+  b[1] = 0.0;
+  b[2] = 0.0;
+
+  // we now loop over the cell faces to carry out the integrals
+  for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
+    {
+      // (to the best of my knowledge)
+      // deal.ii does not offer an easy way to get the values of the
+      // face vertices in the cell parametric plane
+      // thus, we generate them here with a switch, given
+      // the deal.ii numbering of faces and vertices
+      // in generating them, we already center them in the
+      // singularity point, subtracting P
+      Point<2> csi_0;
+      Point<2> csi_1;
+      double   coeff = 0.0;
+      switch (f)
+        {
+          case 0:
+            csi_0(0) = 0 - eta(0);
+            csi_1(0) = 0 - eta(0);
+            csi_0(1) = 1 - eta(1);
+            csi_1(1) = 0 - eta(1);
+            coeff    = csi_0(0);
+            break;
+          case 1:
+            csi_0(0) = 1 - eta(0);
+            csi_1(0) = 1 - eta(0);
+            csi_0(1) = 0 - eta(1);
+            csi_1(1) = 1 - eta(1);
+            coeff    = csi_0(0);
+            break;
+          case 2:
+            csi_0(0) = 0 - eta(0);
+            csi_1(0) = 1 - eta(0);
+            csi_0(1) = 0 - eta(1);
+            csi_1(1) = 0 - eta(1);
+            coeff    = csi_1(1);
+            break;
+          case 3:
+            csi_0(0) = 1 - eta(0);
+            csi_1(0) = 0 - eta(0);
+            csi_0(1) = 1 - eta(1);
+            csi_1(1) = 1 - eta(1);
+            coeff    = csi_1(1);
+            break;
+          default:
+            csi_0(0) = 0 - eta(0);
+            csi_1(0) = 0 - eta(0);
+            csi_0(1) = 0 - eta(1);
+            csi_1(1) = 0 - eta(1);
+            break;
+        }
+
+      // if the singularity is located on the face, do not consider this face in
+      // the integration
+      if (!(((csi_0(0) == 0) && (csi_0(1) == 0)) ||
+            ((csi_1(0) == 0) && (csi_1(1) == 0))))
+        {
+          // once the coordinates in the parametric plane of the
+          // face vertices are known, we can compute the polar coordinate
+          // theta angle, taking care of having always growing angles
+          // on each face f
+          double theta_0 = atan2((csi_0)[1], (csi_0)[0]);
+          if (theta_0 < 0)
+            theta_0 += 2 * dealii::numbers::PI;
+          double theta_1 = atan2((csi_1)[1], (csi_1)[0]);
+          if (theta_1 < 0)
+            theta_1 += 2 * dealii::numbers::PI;
+          // std::cout<<"PRE:   "<<f<<" ->    theta_0:
+          // "<<theta_0*180/dealii::numbers::PI<<"   theta_1:
+          // "<<theta_1*180/dealii::numbers::PI<<std::endl;
+          if (theta_1 < theta_0)
+            theta_0 -= 2 * dealii::numbers::PI;
+          // std::cout<<f<<" ->    theta_0:
+          // "<<theta_0*180/dealii::numbers::PI<<"   theta_1:
+          // "<<theta_1*180/dealii::numbers::PI<<std::endl;
+
+
+          // we now create a 1D triangulation for the integration
+          // in the theta direction of the polar coordinates
+          Triangulation<1> theta_triangulation;
+
+          std::vector<Point<1>>    theta_vertices;
+          std::vector<CellData<1>> theta_cells;
+          SubCellData              theta_subcelldata;
+
+          // we only have one cell that goes from the minimum to maximum
+          // theta on the face f
+          theta_vertices.resize(2);
+          theta_vertices[0](0) = theta_0;
+          theta_vertices[1](0) = theta_1;
+
+          theta_cells.resize(1);
+
+          theta_cells[0].vertices[0] = 0;
+          theta_cells[0].vertices[1] = 1;
+
+          GridTools::delete_unused_vertices(theta_vertices,
+                                            theta_cells,
+                                            theta_subcelldata);
+          GridTools::consistently_order_cells(theta_cells);
+          // here the triangulation is initialized and ready
+          theta_triangulation.create_triangulation(theta_vertices,
+                                                   theta_cells,
+                                                   theta_subcelldata);
+
+          // we of course also create a dof handler finite element and mapping
+          DoFHandler<1> theta_dof_handler(theta_triangulation);
+          const FE_Q<1> theta_finite_element(fe.degree);
+          theta_dof_handler.distribute_dofs(theta_finite_element);
+          MappingQ<1> theta_mapping(theta_finite_element.degree);
+
+          // we create a 1D quadature with the user selected number of
+          // quadrature nodes
+          QGauss<1> theta_quadrature(theta_quadrature_order);
+
+          // we are now ready to create a FEValues objects that will allow us
+          // to obtain all we need for the integration over theta on the face f
+          FEValues<1> theta_fe_v(theta_mapping,
+                                 theta_finite_element,
+                                 theta_quadrature,
+                                 update_values | update_quadrature_points |
+                                   update_JxW_values);
+
+          // we initialize theta_fe_v with the only face available
+          auto theta_cell =
+            theta_dof_handler.begin_active(); // this is the only cell
+          theta_fe_v.reinit(theta_cell);
+
+          // we get the quadrature points for theta (remember that they go from
+          // theta_min to theta_max in the cell)
+          const std::vector<Point<1>> &theta_q_points =
+            theta_fe_v.get_quadrature_points();
+
+          // we now create a set of vectors that will contain useful theta
+          // dependent coefficients for each value of theta on the face f
+          std::vector<Tensor<1, 3>> r_rho(theta_q_points.size());
+          std::vector<Tensor<1, 3>> r_rhorho(theta_q_points.size());
+          std::vector<double>       r_rho_norm(theta_q_points.size());
+          for (unsigned int q = 0; q < theta_q_points.size(); ++q)
+            {
+              double theta = theta_q_points[q](0);
+              for (unsigned int i = 0; i < 3; ++i)
+                {
+                  // Taylor expansion of xi-yi in polar coordinates around eta
+                  // is
+                  //    xi-yi = rho*Ai(theta) + rho^2*Bi(theta) + O(rho^3),
+                  // see equation (67) in [1] and equation (22) in [2]
+                  r_rho[q][i] = eta_jacobian[i][0] * cos(theta) +
+                                eta_jacobian[i][1] * sin(theta);
+                  r_rhorho[q][i] =
+                    eta_jacobian_grad[i][0][0] * pow(cos(theta), 2) +
+                    2 * eta_jacobian_grad[i][0][1] * cos(theta) * sin(theta) +
+                    eta_jacobian_grad[i][1][1] * pow(sin(theta), 2);
+                }
+              r_rho_norm[q] = r_rho[q].norm();
+            }
+
+
+          for (unsigned int q = 0; q < theta_q_points.size(); ++q)
+            {
+              double tmp = eta_n[0] * r_rhorho[q][0] +
+                           eta_n[1] * r_rhorho[q][1] +
+                           eta_n[2] * r_rhorho[q][2];
+              b += tmp * r_rho[q] * eta_g_norm / std::pow(r_rho_norm[q], 5.0) *
+                   theta_fe_v.JxW(q);
+            } // theta quadrature points loop
+        }
+    }
+
+  return b;
+}
+
+
 template class SingularKernelIntegral<2>;
 template class SingularKernelIntegral<3>;

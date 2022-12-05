@@ -15,6 +15,7 @@
 using Teuchos::RCP;
 using Teuchos::Time;
 using Teuchos::TimeMonitor;
+using namespace std;
 
 #define ENTRY EntryRaiiObject obj##LINE(__FUNCTION__);
 

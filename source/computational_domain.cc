@@ -5,6 +5,7 @@
 #include <deal.II/grid/grid_reordering.h>
 #include <deal.II/grid/grid_tools.h>
 
+using namespace std;
 
 // @sect4{ComputationalDomain::ComputationalDomain and
 // ComputationalDomain::read_parameters}

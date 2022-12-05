@@ -24,6 +24,8 @@
 #include <deal.II/fe/fe_interface_values.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/mapping_manifold.h>
+#include <deal.II/fe/mapping_q.h>
+
 // We need the following two includes for loops over cells and/or faces:
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>

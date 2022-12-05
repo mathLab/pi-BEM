@@ -1,10 +1,7 @@
 #include <cached_nurbs_patch_manifold.h>
-#include <Handle_Adaptor3d_HCurve.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepAdaptor_CompCurve.hxx>
-#include <BRepAdaptor_HCurve.hxx>
-#include <BRepAdaptor_HCompCurve.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 #include <ShapeAnalysis_Curve.hxx>
 #include <BRep_Tool.hxx>

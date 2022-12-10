@@ -78,7 +78,6 @@ FOREACH(_build_type ${_d2_build_types})
     IF(CMAKE_BUILD_TYPE MATCHES "${_build_type}" AND
        DEAL_II_BUILD_TYPE MATCHES "${_build_type}")
 	MESSAGE("-- Found ${_build_type} version of deal.II.")
-	MESSAGE("-- Found ${_build_type} version of deal2lkit.")
 
 	SET(_lib "${TARGET}-lib${_p}")
 	MESSAGE("-- Configuring library ${_lib}")

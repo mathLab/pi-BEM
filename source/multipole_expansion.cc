@@ -171,8 +171,8 @@ MultipoleExpansion::Add(
   const double tolerance = 1e-7;
   if (!other.is_zero)
     {
-      this->is_zero             = false;
-      FullMatrix<double> &A_n_m = this->GetA_n_m();
+      this->is_zero     = false;
+      const auto &A_n_m = this->GetA_n_m();
       if (other.center.distance_square(this->center) > (tolerance * tolerance))
         {
           dealii::Point<3> blockRelPos;
@@ -188,7 +188,6 @@ MultipoleExpansion::Add(
               cache.emplace_back(std::exp(std::complex<double>(0., i * beta)));
             }
 
-          // const double imUnitPow[4] = {1, 0, -1, 0};
           double P_nn_mm;
           for (int n = 0; n < int(this->p) + 1; n++)
             {

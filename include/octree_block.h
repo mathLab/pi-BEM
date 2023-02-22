@@ -68,7 +68,6 @@ class OctreeBlock
 {
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
-  // std::set<types::global_dof_index>
   using small_set = boost::container::flat_set<types::global_dof_index>;
 
 private:
@@ -78,7 +77,6 @@ private:
   types::global_dof_index childrenId[8];
 
   /// relevant entities at each level
-  // std::set<types::global_dof_index>
   std::vector<small_set> nearNeigh;
   std::vector<small_set> intList;
   std::vector<small_set> nonIntList;

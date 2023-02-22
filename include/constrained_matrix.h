@@ -13,22 +13,20 @@
 // Authors: Nicola Giuliani, Andrea Mola, Luca Heltai
 
 #ifndef __deal2__constrained_matrix_h
-#  define __deal2__constrained_matrix_h
+#define __deal2__constrained_matrix_h
 
+#include <deal.II/base/config.h>
 
+#include <deal.II/base/memory_consumption.h>
+#include <deal.II/base/smartpointer.h>
+#include <deal.II/base/thread_management.h>
+#include <deal.II/base/types.h>
 
-#  include <deal.II/base/config.h>
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/vector_memory.h>
 
-#  include <deal.II/base/memory_consumption.h>
-#  include <deal.II/base/smartpointer.h>
-#  include <deal.II/base/thread_management.h>
-#  include <deal.II/base/types.h>
-
-#  include <deal.II/lac/affine_constraints.h>
-#  include <deal.II/lac/vector_memory.h>
-
-#  include <algorithm>
-#  include <vector>
+#include <algorithm>
+#include <vector>
 
 DEAL_II_NAMESPACE_OPEN
 
@@ -41,7 +39,6 @@ class ConstrainedMatrixBlock;
 /*! @addtogroup Matrix2
  *@{
  */
-
 
 /**
  *
@@ -64,8 +61,6 @@ public:
     , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
   {}
 
-
-
   void
   vmult(VEC &dst, const VEC &src) const;
 
@@ -84,33 +79,21 @@ private:
 /*@}*/
 /*---------------------- Inline functions -----------------------------------*/
 
-
 //--------------------------------Iterators--------------------------------------//
-
 
 template <class VEC, class MATRIX>
 void
 ConstrainedOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
 {
-  // Vector<double> loc_src(src);
   VEC loc_src(constr_cpu_set);
   loc_src.reinit(src, false, true);
-  // loc_src = src;
-
-  // std::cout<<"in vector "<<std::endl;
-  // for (unsigned int i = 0; i < src.size(); i++)
-  //     if (src.locally_owned_elements().is_element(i))
-  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<loc_src(i)<<std::endl;
 
   matrix.vmult(dst, src);
-  // dst.compress(VectorOperation::insert);
-  // IndexSet dummy(dst.locally_owned_elements());
 
   for (unsigned int i = 0; i < src.size(); ++i)
     if ((constraints.is_constrained(i)) &&
         (src.locally_owned_elements().is_element(i)))
       {
-        // dst(i) -= dst(i);
         dst(i) += src(i) - dst(i);
         const std::vector<std::pair<types::global_dof_index, double>> *entries =
           constraints.get_constraint_entries(i);
@@ -121,17 +104,6 @@ ConstrainedOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
       dst(i) += 0.;
 
   dst.compress(VectorOperation::add);
-  // constraints.condense(dst);
-  // std::cout<<"out vector "<<std::endl;
-  // for (unsigned int i = 0; i < dst.size(); i++)
-  //     if (dst.locally_owned_elements().is_element(i))
-  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<dst(i)<<std::endl;
-
-  // std::cout<<"check vector "<<std::endl;
-  // for (unsigned int i = 0; i < dst.size(); i++)
-  //     if (dst.locally_owned_elements().is_element(i) &&
-  //     !(dummy.is_element(i)))
-  //        std::cout<<i<<" ("<<this_mpi_process<<")  "<<dst(i)<<std::endl;
 }
 
 template <class VEC, class MATRIX>
@@ -146,8 +118,6 @@ ConstrainedOperator<VEC, MATRIX>::distribute_rhs(VEC &rhs) const
       rhs(i) = rhs(i);
 }
 
-
 DEAL_II_NAMESPACE_CLOSE
 
 #endif
-/*----------------------------   filtered_matrix.h ---------------------------*/

@@ -654,7 +654,6 @@ public:
   std::string   solution_method;
   SolverControl solver_control;
 
-  // TODO AMG preconditioner
   TrilinosWrappers::PreconditionILU preconditioner, preconditioner_complex;
   TrilinosWrappers::PreconditionAMG preconditioner_amg,
     preconditioner_complex_amg;

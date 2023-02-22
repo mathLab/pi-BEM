@@ -113,6 +113,12 @@ public:
     return this->p;
   }
 
+  inline const std::vector<std::complex<double>> &
+  GetCoeffs() const
+  {
+    return this->_L_n_m;
+  }
+
   inline std::complex<double> &
   GetCoeff(unsigned int n, unsigned int m) const
   {
@@ -141,20 +147,6 @@ public:
           {
             double f1 = 1.;
             double f2 = 1.;
-            /*
-            //TODO: validate
-            //slightly optimized implementation: less multiplications
-            for (unsigned int ii = n - m; ii > 0; ii--)
-              {
-                f1 *= ii;
-              }
-
-            for (unsigned int ii = n + m; ii > n - m; ii--)
-              {
-                f2 *= (ii);
-              }
-            A_n_m(n, m) = (n % 2 ? -1. : 1.) / (std::sqrt(f2) * f1);
-            */
 
             for (int ii = n - m; ii > 0; ii--)
               {
@@ -237,4 +229,4 @@ public:
     return realCoeff;
   }
 };
-#endif /*LOCALEXPANSION_H_*/
+#endif

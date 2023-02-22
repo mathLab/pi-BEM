@@ -2,12 +2,12 @@
 
 #include "../include/computational_domain.h"
 
+on all combinations of boundary conditions)
 #include <deal.II/grid/grid_tools.h>
 
 using namespace std;
 
 #include "../include/boundary_conditions.h"
-#include "../include/computational_domain.h"
 
 // @sect4{ComputationalDomain::ComputationalDomain and
 // ComputationalDomain::read_parameters}
@@ -783,8 +783,8 @@ ComputationalDomain<3>::refine_and_resize_by_aspect_ratio()
       // refinements. If the make_edges_conformal() function
       // is suspect in creating some error, the lines can also be
       // moved after the make_edges_conformal() function is called
-
       make_edges_conformal();
+
       cycles_counter++;
     }
 }

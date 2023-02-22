@@ -203,29 +203,19 @@ public:
 
   void
   compute_double_vertex_cache();
-  // const unsigned int fe_degree;
-  // const unsigned int mapping_degree;
 
   Triangulation<dim - 1, dim> tria;
-
-  /// here we are just renaming the cell
-  /// iterator
-
-
 
   // values to be imported from the
   // parameters file:
 
   /// number of refining cycles
-
   unsigned int n_cycles;
 
   /// number of global refinement to executed before a local refinement cycle;
-
   unsigned int pre_global_refinements;
 
   /// maximum cell aspect ratio
-
   double max_element_aspect_ratio;
 
   // flag to assess if the software will look for cad surfaces (form files
@@ -233,18 +223,15 @@ public:
   // to refine the grid. the program will import as many curves and surfaces as
   // there are available in the present folder, and progressively associate them
   // to the manifold IDS available in the mesh file.
-  //
   bool use_cad_surface_and_curves;
 
   // flag to require surface refinement based on CAD surface curvature. Can only
   // be activated if previous flag is true
-  //
   bool surface_curvature_refinement;
 
   // used if curvature adaptive refinement is true. the cells are refined until
   // their size is 1/cells_per_circle of the circumference the radius of which
   // is the local max curvature radius
-  //
   double cells_per_circle;
 
   // maximum number of curvature based refinement cycles
@@ -273,7 +260,6 @@ public:
   MPI_Comm mpi_communicator;
 
   unsigned int n_mpi_processes;
-
   unsigned int this_mpi_process;
 
   // to deal with conformity on edges with double nodes
@@ -291,7 +277,6 @@ public:
   double spheroid_x_axis, spheroid_y_axis, spheroid_z_axis;
 
   ConditionalOStream pcout;
-
 
   /// vectors containing the CAD surfaces and curves to be
   /// (optionally) used for refinement of the triangulation

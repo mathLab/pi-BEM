@@ -4,6 +4,7 @@
 // have been discussed in previous tutorials
 // already:
 
+<<<<<<< HEAD
 
 
 
@@ -11,11 +12,12 @@
 
 #include <deal.II/grid/filtered_iterator.h>
 
+=======
+>>>>>>> 40903bd (indented code, minor fixes for passing tests, added samples folder with showcases on cube2sphere with cad refinement and real, complex formulations on all combinations of boundary conditions)
 #include "../include/boundary_conditions.h"
 
 #include <deal.II/grid/filtered_iterator.h>
 
-#include "../include/boundary_conditions.h"
 #include "../include/vector_tools_integrate_difference.h"
 
 template <int dim, class DH = DoFHandler<dim, dim + 1>>
@@ -228,7 +230,6 @@ BoundaryConditions<dim>::solve_problem(bool reset_matrix)
   if (!bem.can_determine_phi)
     {
       pcout << "Computing phi shift" << std::endl;
-      // TODO: it seems a bit wasteful to retrieve all n_dofs support pts
       std::vector<Point<dim>> support_points(n_dofs);
       DoFTools::map_dofs_to_support_points<dim - 1, dim>(*bem.mapping,
                                                          bem.dh,
@@ -351,8 +352,6 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
 {
   Teuchos::TimeMonitor LocalTimer(*PrepareTime);
 
-  // get_phi().reinit(this_cpu_set, mpi_communicator);
-  // get_dphi_dn().reinit(this_cpu_set, mpi_communicator);
   rhs           = 0;
   get_phi()     = 0;
   get_dphi_dn() = 0;
@@ -383,10 +382,6 @@ BoundaryConditions<dim>::prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs)
   // pcout << "dphi_dn elements: " << get_phi().size() << std::endl;
   // pcout << "support_points elements: " << support_points.size() << std::endl;
   // pcout << "vec_support_points elements: " << vec_support_points.size()
-  //       << std::endl;
-
-  // Vector<double> localized_dirichlet_nodes(bem.dirichlet_nodes);
-  // Vector<double> localized_neumann_nodes(bem.neumann_nodes);
 
   Vector<double> coeffs(3);
   for (const auto &cell : bem.dh.active_cell_iterators())

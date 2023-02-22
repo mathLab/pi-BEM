@@ -2,7 +2,6 @@
 
 #include <math.h>
 
-
 AssLegFunction::AssLegFunction()
 {
   leg_pointers.resize(21);

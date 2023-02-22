@@ -278,12 +278,6 @@ BlockConstrainedComplexOperator<VEC, MATRIX>::distribute_rhs(VEC &rhs) const
           rhs.block(0)(i) = constraints.get_inhomogeneity(i);
           rhs.block(1)(i) = constraints_imag.get_inhomogeneity(i);
         }
-      // else
-      //   {
-      //     // noop
-      //     rhs.block(0)(i) = rhs.block(0)(i);
-      //     rhs.block(1)(i) = rhs.block(1)(i);
-      //   }
     }
 
   rhs.compress(VectorOperation::insert);

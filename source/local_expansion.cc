@@ -83,7 +83,6 @@ LocalExpansion::Add(
           cache.emplace_back(1);
           for (unsigned int i = 1; i < 2 * p + 1; ++i)
             {
-              // TODO: test std::exp
               cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
             }
 
@@ -252,7 +251,6 @@ LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
       cache.emplace_back(1);
       for (unsigned int i = 1; i < p + 1; ++i)
         {
-          // TODO: test std::exp
           cache.emplace_back(std::cos(i * beta), std::sin(i * beta));
         }
 

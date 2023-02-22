@@ -20,7 +20,19 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
 #include <deal.II/base/smartpointer.h>
+#include <deal.II/base/types.h>
 #include <deal.II/base/utilities.h>
+
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_q1_eulerian.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
@@ -35,20 +47,6 @@
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/vector.h>
-// #include<deal.II/grid/tria_boundary_lib.h>
-
-#include <deal.II/base/types.h>
-
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/mapping_q1.h>
-#include <deal.II/fe/mapping_q1_eulerian.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -187,26 +185,6 @@ public:
 
   // wrap extraction of current component; public interface retrieves const&
   // objects
-  // The argument-less methods retrieve the current component
-  // const Functions::ParsedFunction<dim> &
-  // get_wind(unsigned int slot) const
-  // {
-  //   return *winds[current_component * MAX_CONDITION_SLOTS + slot];
-  // }
-
-  // const Functions::ParsedFunction<dim> &
-  // get_potential(unsigned int slot) const
-  // {
-  //   return *potentials[current_component * MAX_CONDITION_SLOTS + slot];
-  // }
-
-  // const Functions::ParsedFunction<dim> &
-  // get_robin_coeffs(unsigned int slot) const
-  // {
-  //   return *robin_coeffs[current_component * MAX_CONDITION_SLOTS + slot];
-  // }
-
-  // otherwise, explicitly request the desired component
   const Functions::ParsedFunction<dim> &
   get_wind(unsigned int component, unsigned int slot) const
   {
@@ -258,55 +236,6 @@ public:
     return dphi_dns[component];
   }
 
-  /// elemetal norm of the combined phi components
-  // TrilinosWrappers::MPI::Vector
-  // get_phi_components_norm()
-  // {
-  //   TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
-  //                                            get_phi(0),
-  //                                            mpi_communicator);
-  //   accumulate.scale(get_phi(0));
-  //   for (unsigned int comp = 1; comp < n_components; ++comp)
-  //     {
-  //       TrilinosWrappers::MPI::Vector tmp = get_phi(comp);
-  //       tmp.scale(get_phi(comp));
-  //       accumulate.add(tmp);
-  //     }
-  //   for (auto i : this_cpu_set)
-  //     {
-  //       accumulate[i] = std::sqrt(accumulate[i]);
-  //     }
-
-  //   // accumulate.compress(VectorOperation::add);
-  //   accumulate.compress(VectorOperation::insert);
-
-  //   return accumulate;
-  // }
-
-  // TrilinosWrappers::MPI::Vector
-  // get_dphi_dn_components_norm()
-  // {
-  //   TrilinosWrappers::MPI::Vector accumulate(this_cpu_set,
-  //                                            get_dphi_dn(0),
-  //                                            mpi_communicator);
-  //   accumulate.scale(get_dphi_dn(0));
-  //   for (unsigned int comp = 1; comp < n_components; ++comp)
-  //     {
-  //       TrilinosWrappers::MPI::Vector tmp = get_dphi_dn(comp);
-  //       tmp.scale(get_dphi_dn(comp));
-  //       accumulate.add(tmp);
-  //     }
-  //   for (auto i : this_cpu_set)
-  //     {
-  //       accumulate[i] = std::sqrt(accumulate[i]);
-  //     }
-
-  //   // accumulate.compress(VectorOperation::add);
-  //   accumulate.compress(VectorOperation::insert);
-
-  //   return accumulate;
-  // }
-
   /// get all components as blocks
   TrilinosWrappers::MPI::BlockVector
   get_phi_components(const std::vector<unsigned int> &component_idxs)
@@ -333,7 +262,6 @@ public:
       }
 
     ret.compress(VectorOperation::add);
-    // ret.compress(VectorOperation::insert);
 
     return ret;
   }

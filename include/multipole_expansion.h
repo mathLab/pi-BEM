@@ -98,26 +98,36 @@ public:
     this->center = new_center;
   }
 
-  inline FullMatrix<double> &
+  inline const FullMatrix<double> &
   GetA_n_m() const
   {
     return this->A_n_m;
   }
 
-  inline std::complex<double> &
+  inline const std::vector<std::complex<double>> &
+  GetCoeffs() const
+  {
+    return this->_M_n_m;
+  }
+
+  inline const std::complex<double> &
   GetCoeff(unsigned int n, unsigned int m) const
   {
     return this->_M_n_m[(n) * (n + 1) / 2 + m];
   }
 
   inline void
-  SetCoeff(unsigned int n, unsigned int m, std::complex<double> &value) const
+  SetCoeff(unsigned int                n,
+           unsigned int                m,
+           const std::complex<double> &value) const
   {
     this->_M_n_m[(n) * (n + 1) / 2 + m] = value;
   }
 
   inline void
-  AddToCoeff(unsigned int n, unsigned int m, std::complex<double> &value) const
+  AddToCoeff(unsigned int                n,
+             unsigned int                m,
+             const std::complex<double> &value) const
   {
     this->_M_n_m[(n) * (n + 1) / 2 + m] += value;
   }
@@ -146,20 +156,6 @@ public:
           {
             double f1 = 1.;
             double f2 = 1.;
-            /*
-            //TODO: validate
-            //slightly optimized implementation: less multiplications
-            for (unsigned int ii = n - m; ii > 0; ii--)
-              {
-                f1 *= ii;
-              }
-
-            for (unsigned int ii = n + m; ii > n - m; ii--)
-              {
-                f2 *= (ii);
-              }
-            A_n_m(n, m) = (n % 2 ? -1. : 1.) / (sqrt(f2) * f1);
-            */
 
             for (int ii = n - m; ii > 0; ii--)
               {
@@ -178,4 +174,4 @@ public:
     return A_n_m;
   }
 };
-#endif /*MULTIPOLE_EXPANSION_H_*/
+#endif

@@ -4721,32 +4721,6 @@ BEMFMA<dim>::compute_geometry_cache()
         }
     }
 
-  // TODO: deprecated
-  // qui viene creata la mappa dei elmenti che circondano ciascun elemento
-  // for (cell = fma_dh->begin_active(); cell != endc; ++cell)
-  //   {
-  //     cell->get_dof_indices(dofs);
-  //     for (unsigned int j = 0; j < fma_dh->get_fe().dofs_per_cell; ++j)
-  //       {
-  //         // std::set<types::global_dof_index>
-  //         const auto &duplicates = (*double_nodes_set)[dofs[j]];
-  //         for (auto pos = duplicates.begin(); pos != duplicates.end();
-  //         pos++)
-  //           {
-  //             /*
-  //             std::vector<cell_it> dof_cell_list = dof_to_elems[*pos];
-  //             for (unsigned int k = 0; k < dof_cell_list.size(); ++k)
-  //               {
-  //                 elem_to_surr_elems[cell].insert(dof_cell_list[k]);
-  //               }
-  //             */
-  //             const auto &dof_cell_list = dof_to_elems[*pos];
-  //             elem_to_surr_elems[cell].insert(dof_cell_list.begin(),
-  //                                             dof_cell_list.end());
-  //           }
-  //       }
-  //   }
-
   pcout << "...done" << std::endl;
 }
 

@@ -53,4 +53,4 @@ private:
   double      *_coeff;
 };
 
-#endif /* LOCALEXPANSIONCOEFF_HPP */
+#endif

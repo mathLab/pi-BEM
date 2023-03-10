@@ -1601,7 +1601,7 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 
 
   compute_alpha();
-  compute_hypersingular_free_coeffs();
+  //compute_hypersingular_free_coeffs();
 
   // for (unsigned int i = 0; i < alpha.size(); i++)
   //    if (this_cpu_set.is_element(i))

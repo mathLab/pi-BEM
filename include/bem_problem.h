@@ -346,10 +346,17 @@ public:
 
   TrilinosWrappers::MPI::Vector system_rhs;
 
+  /// solution and alpha vectors
   TrilinosWrappers::MPI::Vector sol;
   TrilinosWrappers::MPI::Vector alpha;
+  /// an alternatively computed alpha vector (obtained with geometric computations)
   TrilinosWrappers::MPI::Vector hyp_alpha;
-  std::vector<TrilinosWrappers::MPI::Vector> C_ii;
+  /// a set of distributed vectors which contain all the entries of the
+  /// C_ij tensor appearing in the hypersingular BIE 
+  std::vector<TrilinosWrappers::MPI::Vector> C_ij;
+  /// a set of distributed vectors which contain all the entries of the
+  /// b_i vector appearing in the hypersingular BIE 
+  std::vector<TrilinosWrappers::MPI::Vector> b_i;
 
   mutable TrilinosWrappers::MPI::Vector serv_phi;
   mutable TrilinosWrappers::MPI::Vector serv_dphi_dn;

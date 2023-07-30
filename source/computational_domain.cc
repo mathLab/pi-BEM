@@ -521,7 +521,7 @@ ComputationalDomain<dim>::create_initial_mesh()
 
   GridTools::delete_unused_vertices(vertices, cells, subcelldata);
   GridTools::consistently_order_cells(cells);
-  tria.create_triangulation_compatibility(vertices, cells, subcelldata);
+  tria.create_triangulation(vertices, cells, subcelldata);
 
   static const Point<dim>                      center = Point<dim>();
   static const SphericalManifold<dim - 1, dim> manifold(center);

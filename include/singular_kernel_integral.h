@@ -62,7 +62,7 @@ SingularKernelIntegral(typename DoFHandler<dim-1, dim>::active_cell_iterator in_
                        Mapping<dim-1, dim> &in_mapping,
                        Point<dim-1> &in_eta);
 
-Tensor<1,dim> evaluate_Vk_integrals();
+
 
 Tensor<1,dim> evaluate_free_term_b();
 
@@ -72,8 +72,6 @@ std::vector<Tensor<1,dim> > evaluate_VkNj_integrals();
 
 std::vector<Tensor<1,dim> > evaluate_WkNj_integrals();
 
-
-double evaluate_integral();
 
 private:
 const typename DoFHandler<dim-1, dim>::active_cell_iterator &cell;

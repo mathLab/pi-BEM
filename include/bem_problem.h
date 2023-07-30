@@ -126,8 +126,8 @@ public:
              const MPI_Comm            comm = MPI_COMM_WORLD);
 
   void
-  solve(TrilinosWrappers::MPI::Vector &      phi,
-        TrilinosWrappers::MPI::Vector &      dphi_dn,
+  solve(TrilinosWrappers::MPI::Vector       &phi,
+        TrilinosWrappers::MPI::Vector       &dphi_dn,
         const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
   /// This function takes care of the proper initialization of all the elements
@@ -151,8 +151,8 @@ public:
   /// have kept this function serial. We stress that it needs to be called only
   /// once.
   void
-  compute_constraints(IndexSet &                           c_cpu_set,
-                      AffineConstraints<double> &          constraints,
+  compute_constraints(IndexSet                            &c_cpu_set,
+                      AffineConstraints<double>           &constraints,
                       const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
   //  private:
@@ -169,8 +169,10 @@ public:
   virtual void
   parse_parameters(ParameterHandler &prm);
 
-  /// This function computes the free coefficients appearing  in the hypersingular BIE.
-  void compute_hypersingular_free_coeffs();
+  /// This function computes the free coefficients appearing  in the
+  /// hypersingular BIE.
+  void
+  compute_hypersingular_free_coeffs();
 
   /// This function computes the fraction of solid angles seen by our domain. We
   /// use the Double Layer Operator (through the Neumann matrix) to determine
@@ -196,7 +198,7 @@ public:
   /// vector src. The result is stored
   /// in the vector dst.
   void
-  vmult(TrilinosWrappers::MPI::Vector &      dst,
+  vmult(TrilinosWrappers::MPI::Vector       &dst,
         const TrilinosWrappers::MPI::Vector &src) const;
 
   /// The second method computes the
@@ -204,7 +206,7 @@ public:
   /// system.
 
   void
-  compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
+  compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
               const TrilinosWrappers::MPI::Vector &src) const;
 
   /// The third method computes the
@@ -221,8 +223,8 @@ public:
   /// Depending on the resolution stategy we go whether for the direct or fma
   /// strategy.
   void
-  solve_system(TrilinosWrappers::MPI::Vector &      phi,
-               TrilinosWrappers::MPI::Vector &      dphi_dn,
+  solve_system(TrilinosWrappers::MPI::Vector       &phi,
+               TrilinosWrappers::MPI::Vector       &dphi_dn,
                const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
 
@@ -349,13 +351,14 @@ public:
   /// solution and alpha vectors
   TrilinosWrappers::MPI::Vector sol;
   TrilinosWrappers::MPI::Vector alpha;
-  /// an alternatively computed alpha vector (obtained with geometric computations)
+  /// an alternatively computed alpha vector (obtained with geometric
+  /// computations)
   TrilinosWrappers::MPI::Vector hyp_alpha;
   /// a set of distributed vectors which contain all the entries of the
-  /// C_ij tensor appearing in the hypersingular BIE 
+  /// C_ij tensor appearing in the hypersingular BIE
   std::vector<TrilinosWrappers::MPI::Vector> C_ij;
   /// a set of distributed vectors which contain all the entries of the
-  /// b_i vector appearing in the hypersingular BIE 
+  /// b_i vector appearing in the hypersingular BIE
   std::vector<TrilinosWrappers::MPI::Vector> b_i;
 
   mutable TrilinosWrappers::MPI::Vector serv_phi;
@@ -444,9 +447,6 @@ public:
   bool have_dirichlet_bc;
 
   BEMFMA<dim> fma;
-  
-  
-  
 };
 
 #endif

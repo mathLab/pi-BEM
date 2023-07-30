@@ -350,7 +350,7 @@ BoundaryConditions<dim>::compute_errors()
 
   // We still need to communicate our results to compute the errors.
   bem.compute_gradients(phi, dphi_dn);
-  //bem.compute_gradients_hypersingular(phi, dphi_dn);
+  // bem.compute_gradients_hypersingular(phi, dphi_dn);
   Vector<double> localized_gradient_solution(
     bem.vector_gradients_solution); // vector_gradients_solution
   Vector<double> localized_phi(phi);
@@ -469,14 +469,14 @@ BoundaryConditions<dim>::compute_errors()
 
       // dphi_dn_node_error.print(std::cout);
       Vector<double> difference_per_cell_2(comp_dom.tria.n_active_cells());
-      VectorTools::integrate_difference(*bem.mapping,
-                                        bem.dh,
-                                        dphi_dn_node_error,
-                                        dealii::Functions::ZeroFunction<dim, double>(1),
-                                        difference_per_cell_2,
-                                        QGauss<(dim - 1)>(
-                                          2 * (2 * bem.fe->degree + 1)),
-                                        VectorTools::L2_norm);
+      VectorTools::integrate_difference(
+        *bem.mapping,
+        bem.dh,
+        dphi_dn_node_error,
+        dealii::Functions::ZeroFunction<dim, double>(1),
+        difference_per_cell_2,
+        QGauss<(dim - 1)>(2 * (2 * bem.fe->degree + 1)),
+        VectorTools::L2_norm);
       const double dphi_dn_L2_error = difference_per_cell_2.l2_norm();
 
       const double grad_phi_max_error =

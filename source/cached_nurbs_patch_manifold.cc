@@ -1,29 +1,31 @@
-#include <cached_nurbs_patch_manifold.h>
-#include <GCPnts_AbscissaPoint.hxx>
-#include <BRepAdaptor_Curve.hxx>
+#include <boost/container/small_vector.hpp>
+
 #include <BRepAdaptor_CompCurve.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
+#include <BRepTools.hxx>
+#include <BRep_Tool.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 #include <ShapeAnalysis_Curve.hxx>
-#include <BRep_Tool.hxx>
-#include <BRepTools.hxx>
 #include <ShapeAnalysis_Surface.hxx>
-#include <TopoDS.hxx>
-#include <BRepExtrema_DistShapeShape.hxx>
-
 #include <Standard_Version.hxx>
-#include <boost/container/small_vector.hpp>
+#include <TopoDS.hxx>
+#include <cached_nurbs_patch_manifold.h>
 DEAL_II_NAMESPACE_OPEN
 
-template<int spacedim>
-std::string point_to_string(const Point<spacedim> &point)
+template <int spacedim>
+std::string
+point_to_string(const Point<spacedim> &point)
 {
-  std::string result = std::to_string(point[0])+std::to_string(point[1])+std::to_string(point[2]);
+  std::string result = std::to_string(point[0]) + std::to_string(point[1]) +
+                       std::to_string(point[2]);
   return result;
 }
 
 using namespace OpenCASCADE;
 //  Point<3>
-//  CachedNURBSPatchManifold::get_new_point(const ArrayView<const Point<3>> &surrounding_points,
+//  CachedNURBSPatchManifold::get_new_point(const ArrayView<const Point<3>>
+//  &surrounding_points,
 //                  const ArrayView<const double>          &weights) const
 //  {
 //   // std::cout<<"USING"<<std::endl;
@@ -39,11 +41,13 @@ using namespace OpenCASCADE;
 //     else
 //     {
 //       chart_points[i] = pull_back(surrounding_points[i]);
-//       projections_cache.insert({point_to_string(surrounding_points[i]), chart_points[i]});
+//       projections_cache.insert({point_to_string(surrounding_points[i]),
+//       chart_points[i]});
 //     }
 //    }
 //     const Point<2> p_chart = sub_manifold.get_new_point
-//                    (make_array_view(chart_points.begin(), chart_points.end()),
+//                    (make_array_view(chart_points.begin(),
+//                    chart_points.end()),
 //                                     weights);
 
 //     return push_forward(p_chart);
@@ -53,7 +57,8 @@ using namespace OpenCASCADE;
 
 
 // void
-//  CachedNURBSPatchManifold::get_new_points(const ArrayView<const Point<3>> &surrounding_points,
+//  CachedNURBSPatchManifold::get_new_points(const ArrayView<const Point<3>>
+//  &surrounding_points,
 //                  const Table<2,double>                  &weights,
 //                   ArrayView<Point<3>>              new_points) const
 //  {
@@ -70,13 +75,15 @@ using namespace OpenCASCADE;
 //     else
 //     {
 //       chart_points[i] = pull_back(surrounding_points[i]);
-//       projections_cache.insert({point_to_string(surrounding_points[i]), chart_points[i]});
+//       projections_cache.insert({point_to_string(surrounding_points[i]),
+//       chart_points[i]});
 //     }
 //    }
 
-//     boost::container::small_vector<Point<2>, 200> new_points_on_chart(weights.size(0));
-//     sub_manifold.get_new_points
-//                    (make_array_view(chart_points.begin(), chart_points.end()),
+//     boost::container::small_vector<Point<2>, 200>
+//     new_points_on_chart(weights.size(0)); sub_manifold.get_new_points
+//                    (make_array_view(chart_points.begin(),
+//                    chart_points.end()),
 //                                     weights,
 //                                      make_array_view(new_points_on_chart.begin(),
 //                                     new_points_on_chart.end()));
@@ -109,9 +116,10 @@ using namespace OpenCASCADE;
 
 
 //     const DerivativeForm<1,2,3> F_prime = push_forward_gradient((p_x1));
-//      Assert (std::pow(std::abs(F_prime.determinant()), 1./2) >= 1e-12 * F_prime.norm(),
-//             ExcMessage("The derivative of a chart function must not be singular."));
-
+//      Assert (std::pow(std::abs(F_prime.determinant()), 1./2) >= 1e-12 *
+//      F_prime.norm(),
+//             ExcMessage("The derivative of a chart function must not be
+//             singular."));
 
 
 
@@ -123,11 +131,13 @@ using namespace OpenCASCADE;
 
 //     return result;
 //   }
-template<int dim, int spacedim>
+template <int dim, int spacedim>
 Point<dim>
-CachedNURBSPatchManifold<dim, spacedim>::pull_back(const Point<spacedim> &space_point) const
+CachedNURBSPatchManifold<dim, spacedim>::pull_back(
+  const Point<spacedim> &space_point) const
 {
-  auto it_1= projections_cache.find(std::hash<std::string>()(point_to_string(space_point)));
+  auto it_1 = projections_cache.find(
+    std::hash<std::string>()(point_to_string(space_point)));
   Point<dim> result;
   if (it_1 != projections_cache.end())
     {
@@ -143,7 +153,8 @@ CachedNURBSPatchManifold<dim, spacedim>::pull_back(const Point<spacedim> &space_
 
       result[0] = proj_params.X();
       result[1] = proj_params.Y();
-      projections_cache.insert({std::hash<std::string>()(point_to_string(space_point)), result});
+      projections_cache.insert(
+        {std::hash<std::string>()(point_to_string(space_point)), result});
       new_pull_backs += 1;
     }
 
@@ -151,6 +162,6 @@ CachedNURBSPatchManifold<dim, spacedim>::pull_back(const Point<spacedim> &space_
 }
 
 
-template class CachedNURBSPatchManifold<2,3>;
+template class CachedNURBSPatchManifold<2, 3>;
 
 DEAL_II_NAMESPACE_CLOSE

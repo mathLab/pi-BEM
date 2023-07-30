@@ -50,9 +50,9 @@ template <class VEC, class MATRIX>
 class ConstrainedOperator
 {
 public:
-  ConstrainedOperator(const MATRIX &                   m,
+  ConstrainedOperator(const MATRIX                    &m,
                       const AffineConstraints<double> &c,
-                      const IndexSet &                 c_cpu_set,
+                      const IndexSet                  &c_cpu_set,
                       MPI_Comm                         comm = MPI_COMM_WORLD)
     : cm(c)
     , matrix(m)
@@ -82,7 +82,7 @@ public:
 
 private:
   const AffineConstraints<double> &cm;
-  const MATRIX &                   matrix;
+  const MATRIX                    &matrix;
   const IndexSet                   constr_cpu_set;
   AffineConstraints<double>        cmt;
   MPI_Comm                         mpi_communicator;
@@ -112,7 +112,7 @@ private:
 
 template <class VEC, class MATRIX>
 void
-ConstrainedOperator<VEC, MATRIX>::constraint_vmult(VEC &      dst,
+ConstrainedOperator<VEC, MATRIX>::constraint_vmult(VEC       &dst,
                                                    const VEC &src) const
 {
   VEC loc_src(src.locally_owned_elements(), constr_cpu_set, mpi_communicator);
@@ -141,7 +141,7 @@ ConstrainedOperator<VEC, MATRIX>::constraint_vmult(VEC &      dst,
 
 template <class VEC, class MATRIX>
 void
-ConstrainedOperator<VEC, MATRIX>::constraint_tvmult(VEC &      dst,
+ConstrainedOperator<VEC, MATRIX>::constraint_tvmult(VEC       &dst,
                                                     const VEC &src) const
 {
   VEC loc_dst(constr_cpu_set);

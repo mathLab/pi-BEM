@@ -1534,8 +1534,14 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
                                                                      P);
               Tensor<1, dim>              b =
                 singular_kernel_integrator.evaluate_free_term_b();
-              for (unsigned int d = 0; d < dim; ++d)
-                b_i[d][global_id] += b[d];
+              std::set<types::global_dof_index> doubles =
+                double_nodes_set[global_id];
+              for (std::set<types::global_dof_index>::iterator it =
+                     doubles.begin();
+                   it != doubles.end();
+                   it++)
+                for (unsigned int d = 0; d < dim; ++d)
+                  b_i[d][*it] += b[d];
             }
         }
     }

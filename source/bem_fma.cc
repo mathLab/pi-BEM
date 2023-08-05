@@ -47,10 +47,10 @@ BEMFMA<dim>::~BEMFMA()
 template <int dim>
 void
 BEMFMA<dim>::init_fma(
-  const DoFHandler<dim - 1, dim>                       &input_dh,
+  const DoFHandler<dim - 1, dim> &                      input_dh,
   const std::vector<std::set<types::global_dof_index>> &db_in,
-  const TrilinosWrappers::MPI::Vector                  &input_sn,
-  const Mapping<dim - 1, dim>                          &input_mapping,
+  const TrilinosWrappers::MPI::Vector &                 input_sn,
+  const Mapping<dim - 1, dim> &                         input_mapping,
   unsigned int                                          quad_order,
   unsigned int                                          sing_quad_order)
 {
@@ -735,7 +735,7 @@ BEMFMA<dim>::direct_integrals()
   auto f_worker_direct_childless_non_int_list =
     [this](typename std::vector<types::global_dof_index>::iterator block_it,
            DirectScratchData &,
-           DirectCopyData                &copy_data,
+           DirectCopyData &               copy_data,
            const std::vector<Point<dim>> &support_points,
            std::vector<QTelles<dim - 1>> &sing_quadratures) {
       // pcout<<"processing block "<<kk <<"  of
@@ -1114,7 +1114,7 @@ BEMFMA<dim>::direct_integrals()
   auto f_worker_direct_bigger_blocks =
     [this](typename std::vector<types::global_dof_index>::iterator block_it,
            DirectScratchData &,
-           DirectCopyData                &copy_data,
+           DirectCopyData &               copy_data,
            const std::vector<Point<dim>> &support_points,
            types::global_dof_index        startBlockLevel) {
       copy_data.vec_local_dof_indices.resize(0);
@@ -1124,7 +1124,7 @@ BEMFMA<dim>::direct_integrals()
       copy_data.vec_start_helper.resize(0);
 
       types::global_dof_index blockId = *block_it;
-      OctreeBlock<dim>       *block1  = this->blocks[blockId];
+      OctreeBlock<dim> *      block1  = this->blocks[blockId];
       const std::vector<types::global_dof_index> &nodesBlk1Ids =
         block1->GetBlockNodeList();
       types::global_dof_index helper_index = 0;
@@ -1824,7 +1824,7 @@ BEMFMA<dim>::multipole_integrals()
       MultipoleData &copy_data) //, const unsigned int dofs_per_cell)
   {
     types::global_dof_index blockId = *blocky;
-    OctreeBlock<dim>       *block   = this->blocks[blockId];
+    OctreeBlock<dim> *      block   = this->blocks[blockId];
     double                  delta   = block->GetDelta();
     Point<dim>              deltaHalf;
     for (unsigned int i = 0; i < dim; i++)
@@ -2231,7 +2231,7 @@ BEMFMA<dim>::generate_multipole_expansions(
         // for each block we get the center and the quad points
 
         types::global_dof_index blockId = childlessList[kk];
-        OctreeBlock<dim>       *block   = blocks[blockId];
+        OctreeBlock<dim> *      block   = blocks[blockId];
 
         double     delta = blocks[blockId]->GetDelta();
         Point<dim> deltaHalf;
@@ -2447,7 +2447,7 @@ BEMFMA<dim>::generate_multipole_expansions(
   auto f_worker_ascend =
     [this](typename std::vector<OctreeBlock<dim> *>::iterator block_it,
            AscendScratchData &,
-           AscendCopyData         &copy_data,
+           AscendCopyData &        copy_data,
            types::global_dof_index start) {
       types::global_dof_index kk =
         std::distance(this->blocks.begin(), block_it);
@@ -2571,8 +2571,8 @@ void
 BEMFMA<dim>::multipole_matr_vect_products(
   const TrilinosWrappers::MPI::Vector &phi_values,
   const TrilinosWrappers::MPI::Vector &dphi_dn_values,
-  TrilinosWrappers::MPI::Vector       &matrVectProdN,
-  TrilinosWrappers::MPI::Vector       &matrVectProdD) const
+  TrilinosWrappers::MPI::Vector &      matrVectProdN,
+  TrilinosWrappers::MPI::Vector &      matrVectProdD) const
 {
   pcout << "Computing multipole matrix-vector products... " << std::endl;
   Teuchos::TimeMonitor LocalTimer(*MatrVec);
@@ -2734,7 +2734,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
                             std::vector<types::global_dof_index>::const_iterator
                               block_it_id,
                             DescendScratchData &,
-                            DescendCopyData              &copy_data,
+                            DescendCopyData &             copy_data,
                             const types::global_dof_index start) {
     // types::global_dof_index kk = std::distance(this->blocks.begin(),
     // block_it);
@@ -2743,7 +2743,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
     copy_data.start            = start;
     copy_data.blockId          = *block_it_id;
     types::global_dof_index kk = *block_it_id;
-    OctreeBlock<dim>       *block_it;
+    OctreeBlock<dim> *      block_it;
     block_it = this->blocks[*block_it_id];
     // copy_data.local_level_indices[kk] = start + kk;
     //*****************definire chi e' on_process qui
@@ -3169,7 +3169,7 @@ BEMFMA<dim>::multipole_matr_vect_products(
       for (types::global_dof_index kk = r.begin(); kk < r.end(); ++kk)
         {
           types::global_dof_index              block1Id = childlessList[kk];
-          OctreeBlock<dim>                    *block1   = blocks[block1Id];
+          OctreeBlock<dim> *                   block1   = blocks[block1Id];
           std::vector<types::global_dof_index> nodesBlk1Ids =
             block1->GetBlockNodeList();
 
@@ -3291,7 +3291,7 @@ template <int dim>
 TrilinosWrappers::PreconditionILU &
 BEMFMA<dim>::FMA_preconditioner(
   const TrilinosWrappers::MPI::Vector &alpha,
-  AffineConstraints<double>           &c) // TO BE CHANGED!!!
+  AffineConstraints<double> &          c) // TO BE CHANGED!!!
 {
   Teuchos::TimeMonitor LocalTimer(*PrecondTime);
   // the final preconditioner (with constraints) has a slightly different
@@ -4476,7 +4476,7 @@ BEMFMA<dim>::generate_octree_blocking()
               numChildless += 1;
               childlessList.push_back(jj);
               quadPointsInChildless += blockNumQuadPoints;
-              nodesInChildless += (types::global_dof_index) blockNumNodes;
+              nodesInChildless += (types::global_dof_index)blockNumNodes;
 
 
               // if a block is childless, we must assign now the nodes and quad
@@ -4635,7 +4635,7 @@ BEMFMA<dim>::generate_octree_blocking()
                      // neigh: let's check
                 {
                   types::global_dof_index block2Id = *pos;
-                  OctreeBlock<dim>       *block2   = blocks[block2Id];
+                  OctreeBlock<dim> *      block2   = blocks[block2Id];
                   double                  delta2   = block2->GetDelta();
                   Point<dim>              PMin2    = block2->GetPMin();
                   Point<dim>              Center2;

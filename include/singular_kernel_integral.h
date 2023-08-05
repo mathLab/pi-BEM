@@ -84,8 +84,8 @@ private:
   const Mapping<dim - 1, dim> &                                  mapping;
   const Point<dim - 1> &                                         eta;
   // to be read from input file
-  double rho_quadrature_order   = 4;
-  double theta_quadrature_order = 20;
+  unsigned int rho_quadrature_order   = 4;
+  unsigned int theta_quadrature_order = 20;
 };
 
 #endif

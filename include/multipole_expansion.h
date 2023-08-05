@@ -51,7 +51,7 @@ public:
 
   MultipoleExpansion(const unsigned int      order,
                      const dealii::Point<3> &center,
-                     const AssLegFunction   *assLegFunction);
+                     const AssLegFunction *  assLegFunction);
 
   MultipoleExpansion(const MultipoleExpansion &other);
 
@@ -68,7 +68,7 @@ public:
 
   void
   AddNormDer(const double                strength,
-             const dealii::Point<3>     &point,
+             const dealii::Point<3> &    point,
              const dealii::Tensor<1, 3> &normal);
 
   double

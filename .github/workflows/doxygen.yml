@@ -1,0 +1,28 @@
+name: Doxygen
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get deal.tag
+      run: |
+        wget https://www.dealii.org/developer/doxygen/deal.tag
+        
+    - name: Build Doxygen documentation
+      uses: mattnotmitt/doxygen-action@v1.1.0
+      with:
+        doxyfile-path: "./docs/Doxyfile"
+        working-directory: "."
+    
+    - name: Publish Doxygen documentation
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./doc/html/
+        

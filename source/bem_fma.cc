@@ -4467,7 +4467,7 @@ BEMFMA<dim>::generate_octree_blocking()
           // + quadPoints "<<blockNumQuadPoints<<std::endl;
 
           quadPointsCheck += blockNumQuadPoints;
-          nodesCheck += blockNumNodes;
+          nodesCheck += (types::global_dof_index)blockNumNodes;
           // here we decide if a block is to be placed in the parent
           // or childless list
           // if (blockNumNodes + blockNumQuadPoints - numDoubleNodes < 2)
@@ -4476,7 +4476,7 @@ BEMFMA<dim>::generate_octree_blocking()
               numChildless += 1;
               childlessList.push_back(jj);
               quadPointsInChildless += blockNumQuadPoints;
-              nodesInChildless += blockNumNodes;
+              nodesInChildless += (types::global_dof_index) blockNumNodes;
 
 
               // if a block is childless, we must assign now the nodes and quad

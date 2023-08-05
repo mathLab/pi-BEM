@@ -3,10 +3,10 @@
 
 template <>
 SingularKernelIntegral<3>::SingularKernelIntegral(
-  DoFHandler<2, 3>::active_cell_iterator in_cell,
-  FiniteElement<2, 3>                   &in_fe,
-  Mapping<2, 3>                         &in_mapping,
-  Point<2>                              &in_eta)
+  const DoFHandler<2, 3>::active_cell_iterator &in_cell,
+  const FiniteElement<2, 3> &                   in_fe,
+  const Mapping<2, 3> &                         in_mapping,
+  const Point<2> &                              in_eta)
   : cell(in_cell)
   , fe(in_fe)
   , mapping(in_mapping)
@@ -15,10 +15,10 @@ SingularKernelIntegral<3>::SingularKernelIntegral(
 
 template <>
 SingularKernelIntegral<2>::SingularKernelIntegral(
-  DoFHandler<1, 2>::active_cell_iterator in_cell,
-  FiniteElement<1, 2>                   &in_fe,
-  Mapping<1, 2>                         &in_mapping,
-  Point<1>                              &in_eta)
+  const DoFHandler<1, 2>::active_cell_iterator &in_cell,
+  const FiniteElement<1, 2> &                   in_fe,
+  const Mapping<1, 2> &                         in_mapping,
+  const Point<1> &                              in_eta)
   : cell(in_cell)
   , fe(in_fe)
   , mapping(in_mapping)

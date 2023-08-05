@@ -3,10 +3,10 @@
 
 template <>
 SingularKernelIntegral<3>::SingularKernelIntegral(
-  DoFHandler<2, 3>::active_cell_iterator in_cell,
-  FiniteElement<2, 3>                   &in_fe,
-  Mapping<2, 3>                         &in_mapping,
-  Point<2>                              &in_eta)
+  const DoFHandler<2, 3>::active_cell_iterator &in_cell,
+  const FiniteElement<2, 3> &                   in_fe,
+  const Mapping<2, 3> &                         in_mapping,
+  const Point<2> &                              in_eta)
   : cell(in_cell)
   , fe(in_fe)
   , mapping(in_mapping)
@@ -15,10 +15,10 @@ SingularKernelIntegral<3>::SingularKernelIntegral(
 
 template <>
 SingularKernelIntegral<2>::SingularKernelIntegral(
-  DoFHandler<1, 2>::active_cell_iterator in_cell,
-  FiniteElement<1, 2>                   &in_fe,
-  Mapping<1, 2>                         &in_mapping,
-  Point<1>                              &in_eta)
+  const DoFHandler<1, 2>::active_cell_iterator &in_cell,
+  const FiniteElement<1, 2> &                   in_fe,
+  const Mapping<1, 2> &                         in_mapping,
+  const Point<1> &                              in_eta)
   : cell(in_cell)
   , fe(in_fe)
   , mapping(in_mapping)
@@ -310,7 +310,7 @@ SingularKernelIntegral<3>::evaluate_VkNj_integrals()
 
           // we of course also create a dof handler finite element and mapping
           DoFHandler<1> theta_dof_handler(theta_triangulation);
-          const FE_Q<1> theta_finite_element(fmax(fe.degree, 1));
+          const FE_Q<1> theta_finite_element(std::max(fe.degree, 1u));
           theta_dof_handler.distribute_dofs(theta_finite_element);
           MappingQ<1> theta_mapping(theta_finite_element.degree);
 
@@ -362,7 +362,7 @@ SingularKernelIntegral<3>::evaluate_VkNj_integrals()
                                                  rho_subcelldata);
           // we of course also create a dof handler finite element and mapping
           DoFHandler<1> rho_dof_handler(rho_triangulation);
-          const FE_Q<1> rho_finite_element(fmax(fe.degree, 1));
+          const FE_Q<1> rho_finite_element(std::max(fe.degree, 1u));
           rho_dof_handler.distribute_dofs(rho_finite_element);
           MappingQ<1> rho_mapping(rho_finite_element.degree);
           // we create a 1D quadature with the user selected number of
@@ -909,7 +909,7 @@ SingularKernelIntegral<3>::evaluate_WkNj_integrals()
 
           // we of course also create a dof handler finite element and mapping
           DoFHandler<1> theta_dof_handler(theta_triangulation);
-          const FE_Q<1> theta_finite_element(fmax(fe.degree, 1));
+          const FE_Q<1> theta_finite_element(std::max(fe.degree, 1u));
           theta_dof_handler.distribute_dofs(theta_finite_element);
           MappingQ<1> theta_mapping(theta_finite_element.degree);
 
@@ -961,7 +961,7 @@ SingularKernelIntegral<3>::evaluate_WkNj_integrals()
                                                  rho_subcelldata);
           // we of course also create a dof handler finite element and mapping
           DoFHandler<1> rho_dof_handler(rho_triangulation);
-          const FE_Q<1> rho_finite_element(fmax(fe.degree, 1));
+          const FE_Q<1> rho_finite_element(std::max(fe.degree, 1u));
           rho_dof_handler.distribute_dofs(rho_finite_element);
           MappingQ<1> rho_mapping(rho_finite_element.degree);
           // we create a 1D quadature with the user selected number of
@@ -1387,6 +1387,7 @@ SingularKernelIntegral<3>::evaluate_free_term_b()
       Point<2> csi_0;
       Point<2> csi_1;
       double   coeff = 0.0;
+      (void)coeff;
       switch (f)
         {
           case 0:
@@ -1480,7 +1481,7 @@ SingularKernelIntegral<3>::evaluate_free_term_b()
 
           // we of course also create a dof handler finite element and mapping
           DoFHandler<1> theta_dof_handler(theta_triangulation);
-          const FE_Q<1> theta_finite_element(fmax(fe.degree, 1));
+          const FE_Q<1> theta_finite_element(std::max(fe.degree, 1u));
           theta_dof_handler.distribute_dofs(theta_finite_element);
           MappingQ<1> theta_mapping(theta_finite_element.degree);
 

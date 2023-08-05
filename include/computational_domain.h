@@ -115,13 +115,13 @@ public:
   /// to be read from the parameters file
 
   virtual void
-  declare_parameters(ParameterHandler &prm);
+  declare_parameters(ParameterHandler &prm) override;
 
   /// method to parse the needed parameters
   /// from the parameters file
 
   virtual void
-  parse_parameters(ParameterHandler &prm);
+  parse_parameters(ParameterHandler &prm) override;
 
   /// method to create initial mesh
 

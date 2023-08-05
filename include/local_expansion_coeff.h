@@ -31,7 +31,7 @@ public:
       const unsigned int &m,
       const unsigned int &nn,
       const unsigned int &mm,
-      const double       &value);
+      const double &      value);
   unsigned int
   getNumberOfElements();
   unsigned int
@@ -49,7 +49,7 @@ public:
 
 private:
   unsigned int _p;
-  double      *_coeff;
+  double *     _coeff;
 };
 
 #endif /* LOCALEXPANSIONCOEFF_HPP */

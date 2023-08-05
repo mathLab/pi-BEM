@@ -77,7 +77,7 @@ class BoundaryConditions : public ParameterAcceptor
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
-                     BEMProblem<dim>          &bem,
+                     BEMProblem<dim> &         bem,
                      const MPI_Comm            comm = MPI_COMM_WORLD)
     : wind(dim)
     , comp_dom(comp_dom)
@@ -94,10 +94,10 @@ public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
   virtual void
-  declare_parameters(ParameterHandler &prm);
+  declare_parameters(ParameterHandler &prm) override;
 
   virtual void
-  parse_parameters(ParameterHandler &prm);
+  parse_parameters(ParameterHandler &prm) override;
 
   void
   prepare_bem_vectors();

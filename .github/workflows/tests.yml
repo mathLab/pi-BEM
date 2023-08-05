@@ -1,0 +1,48 @@
+name: GitHub CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  debug:
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: dealii/dealii:v9.5.0-jammy
+      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test debug
+      run: |
+         rm -rf build_linux_debug
+         mkdir build_linux_debug
+         cd build_linux_debug
+         cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
+         ninja
+         ctest -N
+         ctest --output-on-failure
+
+  release:
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: dealii/dealii:v9.5.0-jammy
+      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test release
+      run: |
+          rm -rf build_linux_release
+          mkdir build_linux_release
+          cd build_linux_release
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
+          ninja
+          ctest -N
+          ctest --output-on-failure

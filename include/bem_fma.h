@@ -98,10 +98,10 @@ public:
   /// Mapping in the BEMFMA class. It also sets up some useful vector for,
   /// mixed boundary conditions and double nodes handling.
   void
-  init_fma(const DoFHandler<dim - 1, dim>                       &input_dh,
+  init_fma(const DoFHandler<dim - 1, dim> &                      input_dh,
            const std::vector<std::set<types::global_dof_index>> &db_in,
-           const TrilinosWrappers::MPI::Vector                  &input_sn,
-           const Mapping<dim - 1, dim>                          &input_mapping =
+           const TrilinosWrappers::MPI::Vector &                 input_sn,
+           const Mapping<dim - 1, dim> &                         input_mapping =
              StaticMappingQ1<dim - 1, dim>::mapping,
            unsigned int quad_order      = 4,
            unsigned int sing_quad_order = 5);
@@ -109,11 +109,11 @@ public:
   /// Parameters declaration: we take the number of octree level and
   /// the level of approximation of the Kernels
   virtual void
-  declare_parameters(ParameterHandler &prm);
+  declare_parameters(ParameterHandler &prm) override;
 
   /// Parameter parsing from input file
   virtual void
-  parse_parameters(ParameterHandler &prm);
+  parse_parameters(ParameterHandler &prm) override;
 
   /// Method computing the parts of the
   /// BEM system matrices in which the
@@ -173,8 +173,8 @@ public:
   multipole_matr_vect_products(
     const TrilinosWrappers::MPI::Vector &phi_values,
     const TrilinosWrappers::MPI::Vector &dphi_dn_values,
-    TrilinosWrappers::MPI::Vector       &matrVectProdN,
-    TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
+    TrilinosWrappers::MPI::Vector &      matrVectProdN,
+    TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
 
 
   // void compute_m2l_flags();
@@ -209,7 +209,7 @@ public:
   /// architectures.
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha,
-                     AffineConstraints<double>           &c);
+                     AffineConstraints<double> &          c);
 
 protected:
   /// Three pointers to the problem parameters to be set equal to

@@ -59,10 +59,10 @@ class SingularKernelIntegral
 {
 public:
   SingularKernelIntegral(
-    typename DoFHandler<dim - 1, dim>::active_cell_iterator in_cell,
-    FiniteElement<dim - 1, dim>                            &in_fe,
-    Mapping<dim - 1, dim>                                  &in_mapping,
-    Point<dim - 1>                                         &in_eta);
+    const typename DoFHandler<dim - 1, dim>::active_cell_iterator &in_cell,
+    const FiniteElement<dim - 1, dim> &                            in_fe,
+    const Mapping<dim - 1, dim> &                                  in_mapping,
+    const Point<dim - 1> &                                         in_eta);
 
 
 
@@ -80,12 +80,12 @@ public:
 
 private:
   const typename DoFHandler<dim - 1, dim>::active_cell_iterator &cell;
-  FiniteElement<dim - 1, dim>                                   &fe;
-  Mapping<dim - 1, dim>                                         &mapping;
-  Point<dim - 1>                                                &eta;
+  const FiniteElement<dim - 1, dim> &                            fe;
+  const Mapping<dim - 1, dim> &                                  mapping;
+  const Point<dim - 1> &                                         eta;
   // to be read from input file
-  double rho_quadrature_order   = 4;
-  double theta_quadrature_order = 20;
+  unsigned int rho_quadrature_order   = 4;
+  unsigned int theta_quadrature_order = 20;
 };
 
 #endif

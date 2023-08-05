@@ -36,7 +36,7 @@ IF(NOT "${_main}" STREQUAL "")
 ENDIF()
 
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.13.4)
 
 FIND_PACKAGE(deal.II 9.5 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
@@ -61,6 +61,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set(CMAKE_MACOSX_RPATH 1)
 endif()
 
+OPTION(BEM_ENABLE_TESTING 
+"Enable deal.II style tests in this application." ON)
 
 
 # We one library and one target for each type of deal.II library
@@ -111,13 +113,12 @@ endif()
 
 
 # Doxygen
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+if(EXISTS ${CMAKE_SOURCE_DIR}/docs/Doxyfile)
     find_package(Doxygen)
     if(DOXYGEN_FOUND)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doc
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/docs/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Generating API documentation with Doxygen" VERBATIM
     )
     endif(DOXYGEN_FOUND)
@@ -130,5 +131,3 @@ ADD_CUSTOM_TARGET(indent
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND ./scripts/indent
 )
-
-

@@ -65,7 +65,8 @@ namespace LaplaceKernel
           Hyper[1][0] = -2 * R[0] * R[1];
           Hyper       = Hyper / (-2 * numbers::PI * R.square() * R.square());
           return Hyper;
-          case 3: {
+        case 3:
+          {
             for (unsigned int i = 0; i < dim; ++i)
               for (unsigned int j = 0; j < dim; ++j)
                 if (i == j)
@@ -111,9 +112,9 @@ namespace LaplaceKernel
   template <int dim> // mio//
   void
   kernels(const Tensor<1, dim> &R,
-          Tensor<2, dim>       &H,
-          Tensor<1, dim>       &D,
-          double               &d)
+          Tensor<2, dim> &      H,
+          Tensor<1, dim> &      D,
+          double &              d)
   {
     double r  = R.norm();
     double r2 = r * r;

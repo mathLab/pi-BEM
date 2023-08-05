@@ -1355,10 +1355,10 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
           unique_normals.erase(unique_normals.begin() + 0);
           Tensor<1, dim> previous_proj_normal = unique_projected_normals[0];
           unique_projected_normals.erase(unique_projected_normals.begin() + 0);
-          unsigned int count = 0;
+          // unsigned int count = 0;
           while (unique_ordered_normals.size() < N)
             {
-              count++;
+              // count++;
               // cout<<count<<" ---> "<<unique_projected_normals.size()<<endl;
               double       min_sorter = 100.0;
               double       sorter;
@@ -1588,7 +1588,7 @@ BEMProblem<dim>::compute_alpha()
 
 template <int dim>
 void
-BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
+BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
                        const TrilinosWrappers::MPI::Vector &src) const
 {
   serv_phi = src;
@@ -1648,7 +1648,7 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
 
 template <int dim>
 void
-BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
+BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
                              const TrilinosWrappers::MPI::Vector &src) const
 {
   serv_phi     = src;
@@ -1698,8 +1698,8 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
 // the linear system.
 template <int dim>
 void
-BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
-                              TrilinosWrappers::MPI::Vector       &dphi_dn,
+BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
+                              TrilinosWrappers::MPI::Vector &      dphi_dn,
                               const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
   Teuchos::TimeMonitor                       LocalTimer(*LacSolveTime);
@@ -1834,8 +1834,8 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
 // either in a direct or multipole method
 template <int dim>
 void
-BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector       &phi,
-                       TrilinosWrappers::MPI::Vector       &dphi_dn,
+BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
+                       TrilinosWrappers::MPI::Vector &      dphi_dn,
                        const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
   if (solution_method == "Direct")
@@ -1861,8 +1861,8 @@ BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector       &phi,
 template <int dim>
 void
 BEMProblem<dim>::compute_constraints(
-  IndexSet                            &c_cpu_set,
-  AffineConstraints<double>           &c,
+  IndexSet &                           c_cpu_set,
+  AffineConstraints<double> &          c,
   const TrilinosWrappers::MPI::Vector &tmp_rhs)
 
 {
@@ -2585,7 +2585,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
   Vector<double> phi_local(glob_phi);
   Vector<double> dphi_dn_local(glob_dphi_dn);
 
-  Tensor<1, dim> node_gradient;
+  // Tensor<1, dim> node_gradient;
 
   // Next, we initialize an FEValues
   // object with the quadrature
@@ -2634,13 +2634,13 @@ BEMProblem<dim>::compute_gradients_hypersingular(
   cell_it cell = dh.begin_active(), endc = dh.end();
 
   Tensor<1, dim> D;
-  Tensor<1, dim> R;
+  // Tensor<1, dim> R;
   Tensor<2, dim> H;
   double         s;
 
   Tensor<1, dim> integral;
   Tensor<1, dim> integral_2;
-  Tensor<1, dim> integral_3;
+  // Tensor<1, dim> integral_3;
   integral[0]   = 0.0;
   integral[1]   = 0.0;
   integral[2]   = 0.0;

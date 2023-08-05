@@ -20,7 +20,7 @@ public:
       };
 
   virtual Point<dim>
-  pull_back(const Point<spacedim> &space_point) const;
+  pull_back(const Point<spacedim> &space_point) const override;
 
   // virtual Point<3> get_new_point(const ArrayView<const Point<3>>
   // &surrounding_points,

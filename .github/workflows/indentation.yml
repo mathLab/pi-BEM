@@ -1,0 +1,22 @@
+name: Indent
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container:
+      image: dealii/dealii:v9.5.0-jammy
+      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check indentation
+      run: |
+        git config --global --add safe.directory /__w/pi-BEM/pi-BEM
+        ./scripts/check_indentation.sh 

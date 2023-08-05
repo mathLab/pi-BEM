@@ -28,7 +28,7 @@ LocalExpansion::LocalExpansion()
 
 LocalExpansion::LocalExpansion(const unsigned int      order,
                                const dealii::Point<3> &center,
-                               const AssLegFunction *  assLegFunction)
+                               const AssLegFunction   *assLegFunction)
 
 {
   this->p              = order;
@@ -110,8 +110,7 @@ LocalExpansion::Add(
 
 {
   if (other.is_zero)
-    {
-    }
+    {}
   else
     {
       unsigned int p = this->p;
@@ -136,8 +135,7 @@ LocalExpansion::Add(
                       for (int mm = -1 * nn; mm < nn + 1; mm++)
                         {
                           if (abs(mm - m) > nn - n)
-                            {
-                            }
+                            {}
                           else
                             {
                               std::complex<double> a = std::complex<double>(
@@ -185,8 +183,7 @@ LocalExpansion::Add(
   // static unsigned int call_count=0;
 
   if (multipole.is_zero)
-    {
-    }
+    {}
   else
     {
       // cout<<call_count<<"
@@ -253,8 +250,7 @@ LocalExpansion::Evaluate(const dealii::Point<3> &evalPoint)
 {
   std::complex<double> fieldValue = std::complex<double>(0., 0.);
   if (this->is_zero)
-    {
-    }
+    {}
   else
     {
       unsigned int     p           = this->p;

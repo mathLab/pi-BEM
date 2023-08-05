@@ -15,6 +15,7 @@
 #ifndef boundary_conditions_h
 #define boundary_conditions_h
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/parameter_acceptor.h>
 #include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
@@ -53,11 +54,6 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-// And here are a few C++ standard header
-// files that we will need:
-#include <deal2lkit/parsed_data_out.h>
-#include <deal2lkit/utilities.h>
-
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -66,7 +62,7 @@
 
 #include "../include/bem_problem.h"
 #include "../include/computational_domain.h"
-
+using namespace dealii;
 /**
  * - BoundaryCondition. The class handles the boundary conditions. In particular
  *   - it reads the boundary conditions for the potential and its normal
@@ -77,11 +73,11 @@
  *   - it performs the error analysis on both unknowns.
  */
 template <int dim>
-class BoundaryConditions : public deal2lkit::ParameterAcceptor
+class BoundaryConditions : public ParameterAcceptor
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
-                     BEMProblem<dim> &         bem,
+                     BEMProblem<dim>          &bem,
                      const MPI_Comm            comm = MPI_COMM_WORLD)
     : wind(dim)
     , comp_dom(comp_dom)
@@ -90,8 +86,6 @@ public:
     , n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator))
     , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
     , pcout(std::cout, (this_mpi_process == 0))
-    , data_out_scalar("Scalar data out", "vtu")
-    , data_out_vector("Vector data out", "vtu")
   {
     dofs_number = 0, output_frequency = 1;
   }
@@ -158,9 +152,6 @@ protected:
   IndexSet this_cpu_set;
 
   ConditionalOStream pcout;
-
-  ParsedDataOut<dim - 1, dim> data_out_scalar;
-  ParsedDataOut<dim - 1, dim> data_out_vector;
 };
 
 #endif

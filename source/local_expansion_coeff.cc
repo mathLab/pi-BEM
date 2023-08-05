@@ -58,7 +58,7 @@ LocalExpansionCoeff::set(const unsigned int &n,
                          const unsigned int &m,
                          const unsigned int &nn,
                          const unsigned int &mm,
-                         const double &      value)
+                         const double       &value)
 {
   _coeff[(mm + nn) + getNNOffset(nn) + getMOffset(m) + getNOffset(n)] = value;
 }

@@ -7,43 +7,9 @@
 
 #include "../include/boundary_conditions.h"
 
+#include <deal.II/dofs/dof_handler.h>
+
 #include <deal.II/grid/filtered_iterator.h>
-
-
-template <int dim, class DH = DoFHandler<dim, dim + 1>>
-class FilteredDataOut : public DataOut<dim, DH>
-{
-public:
-  FilteredDataOut(const unsigned int subdomain_id)
-    : subdomain_id(subdomain_id)
-  {}
-  virtual typename DataOut<dim, DH>::cell_iterator
-  first_cell()
-  {
-    typename DataOut<dim, DH>::active_cell_iterator cell =
-      this->dofs->begin_active();
-    while ((cell != this->dofs->end()) &&
-           (cell->subdomain_id() != subdomain_id))
-      ++cell;
-    return cell;
-  }
-  virtual typename DataOut<dim, DH>::cell_iterator
-  next_cell(const typename DataOut<dim, DH>::cell_iterator &old_cell)
-  {
-    if (old_cell != this->dofs->end())
-      {
-        const IteratorFilters::SubdomainEqualTo predicate(subdomain_id);
-        return ++(
-          FilteredIterator<typename DataOut<dim, DH>::active_cell_iterator>(
-            predicate, old_cell));
-      }
-    else
-      return old_cell;
-  }
-
-private:
-  const unsigned int subdomain_id;
-};
 
 #include "Teuchos_TimeMonitor.hpp"
 
@@ -54,7 +20,16 @@ using Teuchos::TimeMonitor;
 RCP<Time> PrepareTime = Teuchos::TimeMonitor::getNewTimer("PrepareBEMVectors");
 RCP<Time> ErrorsTime  = Teuchos::TimeMonitor::getNewTimer("Errors");
 RCP<Time> OutputTimer = Teuchos::TimeMonitor::getNewTimer("Output");
-
+namespace
+{
+  template <typename VEC>
+  void
+  vector_shift(VEC &in_vec, double a_scalar)
+  {
+    for (auto i : in_vec.locally_owned_elements())
+      in_vec[i] += a_scalar;
+  }
+} // namespace
 template <int dim>
 void
 BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
@@ -375,6 +350,7 @@ BoundaryConditions<dim>::compute_errors()
 
   // We still need to communicate our results to compute the errors.
   bem.compute_gradients(phi, dphi_dn);
+  // bem.compute_gradients_hypersingular(phi, dphi_dn);
   Vector<double> localized_gradient_solution(
     bem.vector_gradients_solution); // vector_gradients_solution
   Vector<double> localized_phi(phi);
@@ -493,14 +469,14 @@ BoundaryConditions<dim>::compute_errors()
 
       // dphi_dn_node_error.print(std::cout);
       Vector<double> difference_per_cell_2(comp_dom.tria.n_active_cells());
-      VectorTools::integrate_difference(*bem.mapping,
-                                        bem.dh,
-                                        dphi_dn_node_error,
-                                        ZeroFunction<dim, double>(1),
-                                        difference_per_cell_2,
-                                        QGauss<(dim - 1)>(
-                                          2 * (2 * bem.fe->degree + 1)),
-                                        VectorTools::L2_norm);
+      VectorTools::integrate_difference(
+        *bem.mapping,
+        bem.dh,
+        dphi_dn_node_error,
+        dealii::Functions::ZeroFunction<dim, double>(1),
+        difference_per_cell_2,
+        QGauss<(dim - 1)>(2 * (2 * bem.fe->degree + 1)),
+        VectorTools::L2_norm);
       const double dphi_dn_L2_error = difference_per_cell_2.l2_norm();
 
       const double grad_phi_max_error =
@@ -530,38 +506,35 @@ BoundaryConditions<dim>::compute_errors()
       std::vector<DataComponentInterpretation::DataComponentInterpretation>
         data_component_interpretation(
           dim, DataComponentInterpretation::component_is_part_of_vector);
-      DataOut<dim - 1, DoFHandler<dim - 1, dim>> dataout_vector;
+      DataOut<dim - 1, dim> dataout_vector;
       dataout_vector.attach_dof_handler(bem.gradient_dh);
       dataout_vector.add_data_vector(
         vector_gradients_node_error,
         std::vector<std::string>(dim, "phi_gradient_error"),
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data,
+        DataOut<dim - 1, dim>::type_dof_data,
         data_component_interpretation);
 
-      dataout_vector.build_patches(
-        *bem.mapping,
-        bem.mapping_degree,
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::curved_inner_cells);
+      dataout_vector.build_patches(*bem.mapping,
+                                   bem.mapping_degree,
+                                   DataOut<dim - 1, dim>::curved_inner_cells);
 
       std::ofstream file_vector(filename_vector.c_str());
 
       dataout_vector.write_vtu(file_vector);
 
-      std::string filename_scalar = "scalar_error.vtu";
-      DataOut<dim - 1, DoFHandler<dim - 1, dim>> dataout_scalar;
+      std::string           filename_scalar = "scalar_error.vtu";
+      DataOut<dim - 1, dim> dataout_scalar;
       dataout_scalar.attach_dof_handler(bem.dh);
-      dataout_scalar.add_data_vector(
-        phi_node_error,
-        std::vector<std::string>(1, "phi_error"),
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
-      dataout_scalar.add_data_vector(
-        dphi_dn_node_error,
-        std::vector<std::string>(1, "dphi_dn_error"),
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
-      dataout_scalar.build_patches(
-        *bem.mapping,
-        bem.mapping_degree,
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::curved_inner_cells);
+      dataout_scalar.add_data_vector(phi_node_error,
+                                     std::vector<std::string>(1, "phi_error"),
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.add_data_vector(dphi_dn_node_error,
+                                     std::vector<std::string>(1,
+                                                              "dphi_dn_error"),
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.build_patches(*bem.mapping,
+                                   bem.mapping_degree,
+                                   DataOut<dim - 1, dim>::curved_inner_cells);
 
       std::ofstream file_scalar(filename_scalar.c_str());
       dataout_scalar.write_vtu(file_scalar);
@@ -573,26 +546,6 @@ void
 BoundaryConditions<dim>::output_results(const std::string filename)
 {
   Teuchos::TimeMonitor LocalTimer(*OutputTimer);
-  // At the time being the output is not running in parallel with saks
-  // const Vector<double> localized_phi (phi);
-  // const Vector<double> localized_dphi_dn (dphi_dn);
-  // const Vector<double> localized_alpha (bem.alpha);
-  // const Vector<double> localized_gradients (bem.vector_gradients_solution);
-  // const Vector<double> localized_normals (bem.vector_normals_solution);
-  //
-  // if(this_mpi_process == 0)
-  // {
-  //   data_out_scalar.prepare_data_output(bem.dh);
-  //   data_out_scalar.add_data_vector (localized_phi, "phi");
-  //   data_out_scalar.add_data_vector (localized_dphi_dn, "dphidn");
-  //   data_out_scalar.add_data_vector (localized_alpha, "alpha");
-  //   data_out_scalar.write_data_and_clear("", bem.mapping);
-  //
-  //   data_out_vector.prepare_data_output(bem.gradient_dh);
-  //   data_out_vector.add_data_vector (localized_gradients, "gradient");
-  //   data_out_vector.add_data_vector (localized_normals, "normal");
-  //   data_out_vector.write_data_and_clear("", bem.mapping);
-  // }
 
   // Even for the output we need to serialize the code and then perform the
   // output only on the first processor.
@@ -615,57 +568,52 @@ BoundaryConditions<dim>::output_results(const std::string filename)
         data_component_interpretation(
           dim, DataComponentInterpretation::component_is_part_of_vector);
 
-      DataOut<dim - 1, DoFHandler<dim - 1, dim>> dataout_scalar;
-      DataOut<dim - 1, DoFHandler<dim - 1, dim>> dataout_vector;
+      DataOut<dim - 1, dim> dataout_scalar;
+      DataOut<dim - 1, dim> dataout_vector;
 
       dataout_scalar.attach_dof_handler(bem.dh);
       dataout_vector.attach_dof_handler(bem.gradient_dh);
 
 
 
-      dataout_scalar.add_data_vector(
-        localized_phi,
-        "phi",
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
-      dataout_scalar.add_data_vector(
-        localized_dphi_dn,
-        "dphi_dn",
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
-      dataout_scalar.add_data_vector(
-        localized_alpha,
-        "alpha",
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data);
+      dataout_scalar.add_data_vector(localized_phi,
+                                     "phi",
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.add_data_vector(localized_dphi_dn,
+                                     "dphi_dn",
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.add_data_vector(localized_alpha,
+                                     "alpha",
+                                     DataOut<dim - 1, dim>::type_dof_data);
 
-      dataout_vector.add_data_vector(
-        localized_gradients,
-        std::vector<std::string>(dim, "phi_gradient"),
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data,
-        data_component_interpretation);
+      dataout_vector.add_data_vector(localized_gradients,
+                                     std::vector<std::string>(dim,
+                                                              "phi_gradient"),
+                                     DataOut<dim - 1, dim>::type_dof_data,
+                                     data_component_interpretation);
       dataout_vector.add_data_vector(
         localized_surf_gradients,
         std::vector<std::string>(dim, "phi_surf_gradient"),
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data,
+        DataOut<dim - 1, dim>::type_dof_data,
         data_component_interpretation);
       dataout_vector.add_data_vector(
         localized_normals,
         std::vector<std::string>(dim, "normals_at_nodes"),
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_dof_data,
+        DataOut<dim - 1, dim>::type_dof_data,
         data_component_interpretation);
 
 
-      dataout_scalar.build_patches(
-        *bem.mapping,
-        bem.mapping_degree,
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::curved_inner_cells);
+      dataout_scalar.build_patches(*bem.mapping,
+                                   bem.mapping_degree,
+                                   DataOut<dim - 1, dim>::curved_inner_cells);
 
       std::ofstream file_scalar(filename_scalar.c_str());
 
       dataout_scalar.write_vtu(file_scalar);
 
-      dataout_vector.build_patches(
-        *bem.mapping,
-        bem.mapping_degree,
-        DataOut<dim - 1, DoFHandler<dim - 1, dim>>::curved_inner_cells);
+      dataout_vector.build_patches(*bem.mapping,
+                                   bem.mapping_degree,
+                                   DataOut<dim - 1, dim>::curved_inner_cells);
 
       std::ofstream file_vector(filename_vector.c_str());
 

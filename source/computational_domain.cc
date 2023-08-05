@@ -5,7 +5,7 @@
 #include <deal.II/grid/grid_reordering.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <deal2lkit/utilities.h>
+using namespace std;
 
 // @sect4{ComputationalDomain::ComputationalDomain and
 // ComputationalDomain::read_parameters}
@@ -520,8 +520,8 @@ ComputationalDomain<dim>::create_initial_mesh()
 
 
   GridTools::delete_unused_vertices(vertices, cells, subcelldata);
-  GridReordering<dim - 1, dim>::reorder_cells(cells);
-  tria.create_triangulation_compatibility(vertices, cells, subcelldata);
+  GridTools::consistently_order_cells(cells);
+  tria.create_triangulation(vertices, cells, subcelldata);
 
   static const Point<dim>                      center = Point<dim>();
   static const SphericalManifold<dim - 1, dim> manifold(center);
@@ -810,10 +810,10 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
                     neededShape, projection, tolerance);
                   // among the differential point, we select the maximum
                   // absolute curvature
-                  double max_abs_curv = fmax(fabs(std_cxx11::get<2>(tup)),
-                                             fabs(std_cxx11::get<3>(tup)));
+                  double max_abs_curv =
+                    fmax(fabs(std::get<2>(tup)), fabs(std::get<3>(tup)));
                   // this commented line is just for debug purposes
-                  // cout<<"Point: "<<std_cxx11::get<0>(tup)<<"  Kmin:
+                  // cout<<"Point: "<<std::get<0>(tup)<<"  Kmin:
                   // "<<std_cxx11::get<2>(tup)<<"  Kmax:
                   // "<<std_cxx11::get<3>(tup)<<endl; the minimum curvature
                   // radius is computed from the maximum absolute curvatur
@@ -950,15 +950,14 @@ ComputationalDomain<dim>::update_triangulation()
 
   DoFHandler<dim - 1, dim> dof_handler(tria);
   dof_handler.distribute_dofs(fe_dummy);
-  DataOut<dim - 1, DoFHandler<dim - 1, dim>> data_out;
+  DataOut<dim - 1, dim> data_out;
   data_out.attach_dof_handler(dof_handler);
   std::vector<unsigned int> partition_int(tria.n_active_cells());
   GridTools::get_subdomain_association(tria, partition_int);
   const Vector<double> partitioning(partition_int.begin(), partition_int.end());
-  data_out.add_data_vector(
-    partitioning,
-    "partitioning",
-    DataOut<dim - 1, DoFHandler<dim - 1, dim>>::type_cell_data);
+  data_out.add_data_vector(partitioning,
+                           "partitioning",
+                           DataOut<dim - 1, dim>::type_cell_data);
   data_out.build_patches();
   data_out.write_vtu(output);
 

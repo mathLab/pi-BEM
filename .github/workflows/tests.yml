@@ -11,22 +11,40 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    container:
+      image: dealii/dealii:v9.5.0-jammy
+      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+
     steps:
     - uses: actions/checkout@v2
     - name: Test debug
       run: |
-         ./scripts/dr.sh "rm -rf build_linux_debug"
-         ./scripts/dr.sh "mkdir build_linux_debug; cd build_linux_debug; cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug; ninja"
-         ./scripts/dr.sh "cd build_linux_debug; ctest -N; ctest --output-on-failure"
+         rm -rf build_linux_debug
+         mkdir build_linux_debug
+         cd build_linux_debug
+         cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
+         ninja
+         cd build_linux_debug
+         ctest -N
+         ctest --output-on-failure
 
   release:
 
     runs-on: ubuntu-latest
 
+    container:
+      image: dealii/dealii:v9.5.0-jammy
+      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+
     steps:
     - uses: actions/checkout@v2
     - name: Test release
       run: |
-          ./scripts/dr.sh "rm -rf build_linux_release"
-          ./scripts/dr.sh "mkdir build_linux_release; cd build_linux_release; cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release; ninja"
-          ./scripts/dr.sh "cd build_linux_release; ctest -N; ctest --output-on-failure"
+          rm -rf build_linux_release
+          mkdir build_linux_release
+          cd build_linux_release
+          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
+          ninja
+          cd build_linux_release
+          ctest -N
+          ctest --output-on-failure

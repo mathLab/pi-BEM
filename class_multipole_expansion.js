@@ -1,0 +1,27 @@
+var class_multipole_expansion =
+[
+    [ "MultipoleExpansion", "class_multipole_expansion.html#aa84a5f0730d81e6d8f9667d89b5f7cc5", null ],
+    [ "MultipoleExpansion", "class_multipole_expansion.html#a746a0fcc3d36a688a8444ecee17574d8", null ],
+    [ "MultipoleExpansion", "class_multipole_expansion.html#a3bced3229bb34641657b8be74720e52f", null ],
+    [ "~MultipoleExpansion", "class_multipole_expansion.html#ad5fa185d96938a86c11a9536dea39a44", null ],
+    [ "A_n_m_Matrix", "class_multipole_expansion.html#acd5cd7d1e4f2b2de4c5481ca3846ca9e", null ],
+    [ "Add", "class_multipole_expansion.html#ab957b267e7527c6f4d34247f2956e86e", null ],
+    [ "Add", "class_multipole_expansion.html#a0f8395e2addfd55e6fd3bffe622ca8a6", null ],
+    [ "Add", "class_multipole_expansion.html#a81ecd61617561c839be0f152d2746aac", null ],
+    [ "AddNormDer", "class_multipole_expansion.html#ad8739a9cdda9ada88929659122147dbd", null ],
+    [ "AddToCoeff", "class_multipole_expansion.html#a82328f8c2eed7e01043926c968175714", null ],
+    [ "Evaluate", "class_multipole_expansion.html#a40fbc30562b2eca7cc72986cee10bfac", null ],
+    [ "GetA_n_m", "class_multipole_expansion.html#a17f28f28c5b76d2bddbf0728d90a8d62", null ],
+    [ "GetCenter", "class_multipole_expansion.html#a00b73bb647563ddac3ecd541ed40e854", null ],
+    [ "GetCoeff", "class_multipole_expansion.html#af977b60a775e264c931f4c238e0a3716", null ],
+    [ "GetCoeffs", "class_multipole_expansion.html#a48a6f378ab9e70333746cbc44d95ddad", null ],
+    [ "operator=", "class_multipole_expansion.html#a93d45cb9dcd87a8b5a67408613f9b54d", null ],
+    [ "SetCenter", "class_multipole_expansion.html#aa8945a6e9f08cbf1de17c95e6c4f271e", null ],
+    [ "SetCoeff", "class_multipole_expansion.html#a6a9c7614693e0fe19c3b061832b501c6", null ],
+    [ "_M_n_m", "class_multipole_expansion.html#a3b3728324b3fc526d8c6e33589e1a4d9", null ],
+    [ "A_n_m", "class_multipole_expansion.html#aff4f3cdfa5d1f4879cc9e762d725217b", null ],
+    [ "assLegFunction", "class_multipole_expansion.html#a35eef2e0be27ae2b269a702ccb2c93c5", null ],
+    [ "center", "class_multipole_expansion.html#a12cc0a5b3d1a116a2caeaf4d9a0a460d", null ],
+    [ "is_zero", "class_multipole_expansion.html#a640f7f88c1ba9695263f1fbabfa7f3ca", null ],
+    [ "p", "class_multipole_expansion.html#a75201f1a445857ee7b7f3f1b2f591516", null ]
+];

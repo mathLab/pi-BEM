@@ -1,0 +1,27 @@
+var group__CUDAWrappers =
+[
+    [ "EvaluatorVariant", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gac8e56c1f8d3d4947aa030c9d14308a3b", null ],
+    [ "CUDAWrappers::add_and_dot", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga6cb0dd94d13594d1ba8b90a1b31f38d0", null ],
+    [ "CUDAWrappers::add_aV", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga25421484bb196f5e2344c1de555a0f25", null ],
+    [ "CUDAWrappers::add_aVbW", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga0cb7e1c8023ee8fdd5d7e6d2a9b50b43", null ],
+    [ "CUDAWrappers::add_permutated", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gae828a4dfff7a73db9dd0fcbdfa18db4b", null ],
+    [ "CUDAWrappers::atomicMax_wrapper", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gaf10c44da6010753cdcc3f68cae909d1b", null ],
+    [ "CUDAWrappers::atomicMax_wrapper", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga0a6ba40d780596a4ec4ac0eb8334eb5e", null ],
+    [ "CUDAWrappers::double_vector_reduction", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga555fa816fd77e0f82f7b64e2dfe48bde", null ],
+    [ "CUDAWrappers::equ", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga403e5247663659c55eb8e0663c62c1ca", null ],
+    [ "CUDAWrappers::equ", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga3cd8b561b058955d0c2b3115570ca1c5", null ],
+    [ "CUDAWrappers::gather", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga42dac6d724710223bacc84d844703053", null ],
+    [ "CUDAWrappers::masked_vector_bin_op", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga46f01546f308a53a2adfbbc202fa7118", null ],
+    [ "CUDAWrappers::reduction", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga63ba304711678353aa10eb65caed2967", null ],
+    [ "CUDAWrappers::sadd", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga4a4d7d4abd8f8e26a7ad956acac1bbe4", null ],
+    [ "CUDAWrappers::sadd", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gadd2ad651a84773cd69851f66dea04831", null ],
+    [ "CUDAWrappers::scale", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gadbf9a57e4e02d2ff66135a03c0792c30", null ],
+    [ "CUDAWrappers::set", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gabb7130e2cea54654455ca41ef304f939", null ],
+    [ "CUDAWrappers::set_permutated", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga0d15cc5b65c6dce1091920808802a0a8", null ],
+    [ "CUDAWrappers::vec_add", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga509717d30efa99a22a7730b16b17b3ab", null ],
+    [ "CUDAWrappers::vec_scale", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ga5577b94498ae3e01acf0b3a735a783d3", null ],
+    [ "CUDAWrappers::vector_bin_op", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#gabcd8a4c5aff92d663a64d528bf4d13e2", null ],
+    [ "evaluate_evenodd", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ggac8e56c1f8d3d4947aa030c9d14308a3bab70b25f96672253ddf82a276d3563956", null ],
+    [ "evaluate_general", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ggac8e56c1f8d3d4947aa030c9d14308a3ba2b2eb120218d2a324cb35695fdada172", null ],
+    [ "evaluate_symmetric", "http://www.dealii.org/developer/doxygen/deal.II/group__CUDAWrappers.html#ggac8e56c1f8d3d4947aa030c9d14308a3bacbf52154d9874707132a9c12cfa2383e", null ]
+];

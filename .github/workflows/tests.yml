@@ -24,7 +24,6 @@ jobs:
          cd build_linux_debug
          cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug
          ninja
-         cd build_linux_debug
          ctest -N
          ctest --output-on-failure
 
@@ -45,6 +44,5 @@ jobs:
           cd build_linux_release
           cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
           ninja
-          cd build_linux_release
           ctest -N
           ctest --output-on-failure

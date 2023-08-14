@@ -1541,7 +1541,7 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
                    it != doubles.end();
                    it++)
                 for (unsigned int d = 0; d < dim; ++d)
-                  b_i[d][*it] += b[d];
+                  b_i[d][*it] += b[d]/4.0/dealii::numbers::PI;
             }
         }
     }
@@ -2753,7 +2753,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                     sing_kernel_integrator.evaluate_WkNj_integrals();
                   Tensor<1, dim> singular_cell_contribution_hyp;
                   Tensor<1, dim> singular_cell_contribution_str;
-                  // Tensor<1,dim> b_singular_cell_contribution_hyp;
+                  Tensor<1,dim> b_singular_cell_contribution_hyp;
                   for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
                     {
                       // const Tensor<1, dim> R =
@@ -2767,7 +2767,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                         dphi_dn_local(local_dof_indices[j]) * Wk_integrals[j];
                       // this was an attempt to compute b_i in an alternative,
                       // numerical way, as alpha. Couldn't get it to work
-                      // b_singular_cell_contribution_hyp+= -Vk_integrals[j];
+                      b_singular_cell_contribution_hyp+= -Vk_integrals[j];
 
                       // pcout<<"*** "<<cell<<"
                       // "<<dphi_dn_local(local_dof_indices[j])<<"
@@ -2781,7 +2781,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                   // pcout<<"Qmark Hyp: "<<integral_3<<std::endl;
                   integral += singular_cell_contribution_str +
                               singular_cell_contribution_hyp;
-                  // b_integral+= b_singular_cell_contribution_hyp;
+                  b_integral+= b_singular_cell_contribution_hyp;
                 }
 
               unsigned int scalar_dh_index = sub_wise_to_original[i];
@@ -2797,9 +2797,9 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                 integral[1];
               vector_hyp_gradients_solution(vector_dh_index_z_component) +=
                 integral[2];
-              // vector_b_free_coeff(vector_dh_index_x_component)+=b_integral[0];
-              // vector_b_free_coeff(vector_dh_index_y_component)+=b_integral[1];
-              // vector_b_free_coeff(vector_dh_index_z_component)+=b_integral[2];
+              vector_b_free_coeff(vector_dh_index_x_component)+=b_integral[0];
+              vector_b_free_coeff(vector_dh_index_y_component)+=b_integral[1];
+              vector_b_free_coeff(vector_dh_index_z_component)+=b_integral[2];
             }
         }
     }
@@ -2865,7 +2865,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
           Tensor<1, dim> b;
           for (unsigned int d = 0; d < dim; ++d)
             b[d] = b_i[d][i];
-
+          //cout<<b<<endl;
           // we also need to reassemble free coefficient tensor C_ij
           FullMatrix<double> C(dim, dim);
           FullMatrix<double> Cinv(dim, dim);

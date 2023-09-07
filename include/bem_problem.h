@@ -358,9 +358,17 @@ public:
   /// C_ij tensor appearing in the hypersingular BIE
   std::vector<TrilinosWrappers::MPI::Vector> C_ij;
   /// a set of distributed vectors which contain all the entries of the
+  /// C_ij_int tensor appearing in the hypersingular BIE, here calculated in
+  /// alternative way, via an integral (like alpha is computed)
+  std::vector<TrilinosWrappers::MPI::Vector> C_ij_int;
+  /// a set of distributed vectors which contain all the entries of the
   /// b_i vector appearing in the hypersingular BIE
   std::vector<TrilinosWrappers::MPI::Vector> b_i;
-
+  /// a set of distributed vectors which contain all the entries of the
+  /// b_i vector appearing in the hypersingular BIE, here calculated in
+  /// alternative way, via an integral (like alpha is computed)
+  std::vector<TrilinosWrappers::MPI::Vector> b_i_int;
+  
   mutable TrilinosWrappers::MPI::Vector serv_phi;
   mutable TrilinosWrappers::MPI::Vector serv_dphi_dn;
   TrilinosWrappers::MPI::Vector         serv_tmp_rhs;

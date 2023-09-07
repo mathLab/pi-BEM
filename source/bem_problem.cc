@@ -415,6 +415,13 @@ BEMProblem<dim>::reinit()
   b_i.resize(dim);
   for (unsigned int i = 0; i < dim; ++i)
     b_i[i].reinit(this_cpu_set, mpi_communicator);
+    
+   C_ij_int.resize(dim * dim);
+  for (unsigned int i = 0; i < dim * dim; ++i)
+    C_ij_int[i].reinit(this_cpu_set, mpi_communicator);
+  b_i_int.resize(dim);
+  for (unsigned int i = 0; i < dim; ++i)
+    b_i_int[i].reinit(this_cpu_set, mpi_communicator);
 }
 
 
@@ -2579,8 +2586,8 @@ BEMProblem<dim>::compute_gradients_hypersingular(
 
   TrilinosWrappers::MPI::Vector vector_hyp_gradients_solution(
     vector_this_cpu_set, mpi_communicator);
-  TrilinosWrappers::MPI::Vector vector_b_free_coeff(vector_this_cpu_set,
-                                                    mpi_communicator);
+
+                                                                                                      
 
   Vector<double> phi_local(glob_phi);
   Vector<double> dphi_dn_local(glob_dphi_dn);
@@ -2639,14 +2646,12 @@ BEMProblem<dim>::compute_gradients_hypersingular(
   double         s;
 
   Tensor<1, dim> integral;
-  Tensor<1, dim> integral_2;
-  // Tensor<1, dim> integral_3;
-  integral[0]   = 0.0;
-  integral[1]   = 0.0;
-  integral[2]   = 0.0;
-  integral_2[0] = 0.0;
-  integral_2[1] = 0.0;
-  integral_2[2] = 0.0;
+  for (unsigned int di = 0; di < dim; ++di)
+      integral[di]   = 0.0;
+  
+  // local copy of full normal solution vector
+  Vector<double> local_vector_normals_solution(vector_normals_solution);
+
   for (cell = dh.begin_active(); cell != endc; ++cell)
     {
       fe_v.reinit(cell);
@@ -2677,6 +2682,8 @@ BEMProblem<dim>::compute_gradients_hypersingular(
         {
           Tensor<1, dim> integral;
           Tensor<1, dim> b_integral;
+          std::vector <Tensor<1, dim> > c_integral(dim);
+          
           if (this_cpu_set.is_element(i))
             {
               bool         is_singular    = false;
@@ -2714,8 +2721,18 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                                         fe_v.shape_value(j, q) * fe_v.JxW(q) +
                                       dphi_dn_local(local_dof_indices[j]) * D *
                                         fe_v.shape_value(j, q) * fe_v.JxW(q);
+                                        
                           b_integral += -1.0 * (H * normals[q]) *
                                         fe_v.shape_value(j, q) * fe_v.JxW(q);
+                          // each component of c_integral is a vector, representing the column
+                          // of the double tensor C_ij              
+                          for (unsigned int di = 0; di < dim; ++di)              
+                              c_integral[di] += -q_points[q][di] * (H * normals[q]) *
+                                                fe_v.shape_value(j, q) * fe_v.JxW(q) +
+                                                normals[q][di] * D *
+                                                fe_v.shape_value(j, q) * fe_v.JxW(q);
+
+                                        
                         }
                     }
                 }
@@ -2754,6 +2771,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                   Tensor<1, dim> singular_cell_contribution_hyp;
                   Tensor<1, dim> singular_cell_contribution_str;
                   Tensor<1,dim> b_singular_cell_contribution_hyp;
+                  std::vector< Tensor<1,dim> > c_singular_cell_contribution_hyp(dim);
                   for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
                     {
                       // const Tensor<1, dim> R =
@@ -2768,7 +2786,16 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                       // this was an attempt to compute b_i in an alternative,
                       // numerical way, as alpha. Couldn't get it to work
                       b_singular_cell_contribution_hyp+= -Vk_integrals[j];
-
+                      Point<dim> dof_position = support_points[local_dof_indices[j]];
+                      unsigned int scalar_dh_index = sub_wise_to_original[local_dof_indices[j]];
+                      Tensor<1,dim> dof_normal;
+                      for (unsigned int di = 0; di < dim; ++di) 
+                          dof_normal[di] =  local_vector_normals_solution(vec_original_to_sub_wise[scalar_dh_index + di * dh.n_dofs()]);
+                      
+                      for (unsigned int di = 0; di < dim; ++di) 
+                          c_singular_cell_contribution_hyp[di]+= - dof_position[di]* Vk_integrals[j]+dof_normal[di] * Wk_integrals[j];
+                      
+                      
                       // pcout<<"*** "<<cell<<"
                       // "<<dphi_dn_local(local_dof_indices[j])<<"
                       // "<<Wk_integrals[j]<<std::endl; pcout<<"j "<<j<<"
@@ -2782,44 +2809,98 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                   integral += singular_cell_contribution_str +
                               singular_cell_contribution_hyp;
                   b_integral+= b_singular_cell_contribution_hyp;
+                  for (unsigned int di = 0; di < dim; ++di)              
+                      c_integral[di] += c_singular_cell_contribution_hyp[di];
                 }
 
               unsigned int scalar_dh_index = sub_wise_to_original[i];
-              unsigned int vector_dh_index_x_component =
-                vec_original_to_sub_wise[scalar_dh_index + 0 * dh.n_dofs()];
-              unsigned int vector_dh_index_y_component =
-                vec_original_to_sub_wise[scalar_dh_index + 1 * dh.n_dofs()];
-              unsigned int vector_dh_index_z_component =
-                vec_original_to_sub_wise[scalar_dh_index + 2 * dh.n_dofs()];
-              vector_hyp_gradients_solution(vector_dh_index_x_component) +=
-                integral[0];
-              vector_hyp_gradients_solution(vector_dh_index_y_component) +=
-                integral[1];
-              vector_hyp_gradients_solution(vector_dh_index_z_component) +=
-                integral[2];
-              vector_b_free_coeff(vector_dh_index_x_component)+=b_integral[0];
-              vector_b_free_coeff(vector_dh_index_y_component)+=b_integral[1];
-              vector_b_free_coeff(vector_dh_index_z_component)+=b_integral[2];
+
+              for (unsigned int di = 0; di < dim; ++di)  
+                  vector_hyp_gradients_solution(vec_original_to_sub_wise[scalar_dh_index + di * dh.n_dofs()]) += integral[di];
+
+
+
+              for (unsigned int d=0; d<dim; ++d)
+                  b_i_int[d][i] += b_integral[d];
+                  
+              for (unsigned int di = 0; di < dim; ++di)
+                  for (unsigned int dj = 0; dj < dim; ++dj)
+              	  {
+                  C_ij_int[di * dim + dj][i] +=  c_integral[dj][di];
+                  // pcout<<C_ij_int[di*dim+dj][i]<<std::endl;
+                  }
+              
             }
         }
     }
   vector_hyp_gradients_solution.compress(VectorOperation::add);
-  vector_b_free_coeff.compress(VectorOperation::add);
+  
+  for (unsigned int di = 0; di < dim; ++di)
+	  b_i_int[di].compress(VectorOperation::add);
+  
+  for (unsigned int di = 0; di < dim; ++di)
+      for (unsigned int dj = 0; dj < dim; ++dj)
+	  C_ij_int[di * dim + dj].compress(VectorOperation::add);
 
+for (types::global_dof_index i = 0; i < dh.n_dofs();
+       ++i) // these must now be the locally owned dofs. the rest should stay
+            // the same
+    {
+    if (this_cpu_set.is_element(i))
+        {
+       for (unsigned int di = 0; di < dim; ++di)
+           for (unsigned int dj = 0; dj < dim; ++dj)
+               {
+               C_ij_int[di * dim + dj][i] -= support_points[i][dj]*b_i_int[di][i];
+               // pcout<<C_ij_int[di*dim+dj][i]<<std::endl;
+               }
+       }
+    }              
 
-  //  for (types::global_dof_index i = 0; i < dh.n_dofs();
-  //       ++i) // these must now be the locally owned dofs. the rest should
-  //            // stay the same
-  //    {
-  //      if (this_cpu_set.is_element(i))
-  //        { pcout<<i<<"->    Support point: "<<support_points[i]<<std::endl;
-  //          pcout << free_term_b_all[i][0] << " "
-  //                << free_term_b_all[i][1] << " "
-  //                << free_term_b_all[i][2] << std::endl;
-  //
-  //        }
-  //    }
+  for (unsigned int di = 0; di < dim; ++di)
+      for (unsigned int dj = 0; dj < dim; ++dj)
+	  C_ij_int[di * dim + dj].compress(VectorOperation::add);
 
+//  for (types::global_dof_index i = 0; i < dh.n_dofs();
+//       ++i)  //these must now be the locally owned dofs. the rest should stay
+//             the same
+//    {
+
+//      if (this_cpu_set.is_element(i))
+//        {
+//        
+//        
+//        cout<<i<<"->    Support point: "<<support_points[i]<<std::endl;
+//        cout<<"Geom Alpha: "<<hyp_alpha[i]<<"    Alpha: "<<alpha[i]<<endl;
+//        cout <<"C_hyp = ["<<  C_ij[0][i] << " " << C_ij[1][i] << " " << C_ij[2][i] <<"]"<< std::endl;
+//        cout <<"        ["<<  C_ij[3][i] << " " << C_ij[4][i] << " " << C_ij[5][i] <<"]"<< std::endl;
+//        cout <<"        ["<<  C_ij[6][i] << " " << C_ij[7][i] << " " << C_ij[8][i] <<"]"<< std::endl;
+//        cout <<"C_int = ["<<  C_ij_int[0][i] << " " << C_ij_int[1][i] << " " << C_ij_int[2][i] <<"]"<< std::endl;
+//        cout <<"        ["<<  C_ij_int[3][i] << " " << C_ij_int[4][i] << " " << C_ij_int[5][i] <<"]"<< std::endl;
+//        cout <<"        ["<<  C_ij_int[6][i] << " " << C_ij_int[7][i] << " " << C_ij_int[8][i] <<"]"<< std::endl;
+//        cout <<"b_hyp = ["<<  b_i[0][i] << " " << b_i[1][i] << " " << b_i[2][i] <<"]"<< std::endl;
+//        cout <<"b_int = ["<<  b_i_int[0][i] << " " << b_i_int[1][i] << " " << b_i_int[2][i] <<"]"<< std::endl;
+//        }
+//    }
+//    
+//    double C_error_sum = 0.0;
+//    for (unsigned int di = 0; di < dim; ++di)
+//      for (unsigned int dj = 0; dj < dim; ++dj)
+//          {
+//          TrilinosWrappers::MPI::Vector difference(C_ij[di+dim*dj]);
+//          difference-=C_ij_int[di+dim*dj];
+//          C_error_sum+=difference.l2_norm();
+//	  }
+
+//    double b_error_sum = 0.0;
+//    for (unsigned int di = 0; di < dim; ++di)
+//	{
+//	TrilinosWrappers::MPI::Vector difference(b_i[di]);
+//	difference-=b_i_int[di];
+//	b_error_sum+=difference.l2_norm();
+//	}
+//    pcout <<"C matrix error: = "<<  C_error_sum << "   b vector error: " << b_error_sum<< std::endl;
+     
 
 
   // we now have all the ingredients for the computation of the gradients
@@ -2835,14 +2916,9 @@ BEMProblem<dim>::compute_gradients_hypersingular(
     {
       if (this_cpu_set.is_element(i))
         {
-          // these will be useful
+          // this will be useful
           unsigned int scalar_dh_index = sub_wise_to_original[i];
-          unsigned int vector_dh_index_x_component =
-            vec_original_to_sub_wise[scalar_dh_index + 0 * dh.n_dofs()];
-          unsigned int vector_dh_index_y_component =
-            vec_original_to_sub_wise[scalar_dh_index + 1 * dh.n_dofs()];
-          unsigned int vector_dh_index_z_component =
-            vec_original_to_sub_wise[scalar_dh_index + 2 * dh.n_dofs()];
+
           // cout<<this_mpi_process<<"  Scalar index original
           // "<<scalar_dh_index<<"   Sub-wise correspondent "<<i<<"  Vector x
           // index original "<< scalar_dh_index+ 0+dh.n_dofs()<<"   Sub-wise
@@ -2864,14 +2940,14 @@ BEMProblem<dim>::compute_gradients_hypersingular(
           //  we must first reassemble the free coefficient vector b
           Tensor<1, dim> b;
           for (unsigned int d = 0; d < dim; ++d)
-            b[d] = b_i[d][i];
+            b[d] = b_i_int[d][i];
           //cout<<b<<endl;
           // we also need to reassemble free coefficient tensor C_ij
           FullMatrix<double> C(dim, dim);
           FullMatrix<double> Cinv(dim, dim);
           for (unsigned int di = 0; di < dim; ++di)
             for (unsigned int dj = 0; dj < dim; ++dj)
-              C(di, dj) = C_ij[di * dim + dj](i);
+              C(di, dj) = C_ij_int[di * dim + dj](i);
 
           // we will also need the inverse of C
           Tensor<2, dim> CC;
@@ -2884,9 +2960,9 @@ BEMProblem<dim>::compute_gradients_hypersingular(
 
           // now let's assemble the right hand side of the hypersingular BIE
           Tensor<1, dim> rhs;
-          rhs[0] = vector_hyp_gradients_solution(vector_dh_index_x_component);
-          rhs[1] = vector_hyp_gradients_solution(vector_dh_index_y_component);
-          rhs[2] = vector_hyp_gradients_solution(vector_dh_index_z_component);
+          for (unsigned int di=0; di < dim; ++di)
+              rhs[di] = vector_hyp_gradients_solution( vec_original_to_sub_wise[scalar_dh_index + di * dh.n_dofs()] );
+
 
           rhs += -b * phi_local[i];
           // pcout<<rhs<<std::endl;
@@ -2894,18 +2970,16 @@ BEMProblem<dim>::compute_gradients_hypersingular(
           // and finally multiply C^-1 by the rhs to obtain the gradient
           Tensor<1, dim> hyp_gradient;
           hyp_gradient = CC * rhs;
-          vector_hyp_gradients_solution(vector_dh_index_x_component) =
-            hyp_gradient[0];
-          vector_hyp_gradients_solution(vector_dh_index_y_component) =
-            hyp_gradient[1];
-          vector_hyp_gradients_solution(vector_dh_index_z_component) =
-            hyp_gradient[2];
+          for (unsigned int di=0; di < dim; ++di)
+              vector_hyp_gradients_solution( vec_original_to_sub_wise[scalar_dh_index + di * dh.n_dofs()] ) = hyp_gradient[di];
+              
           // pcout<<"Hyp. Rhs:"<<rhs<<std::endl;
           // pcout<<"Hyp. Gradient:"<<hyp_gradient<<std::endl;
         }
     }
 
   vector_hyp_gradients_solution.compress(VectorOperation::insert);
+  vector_constraints.distribute(vector_hyp_gradients_solution);
   vector_gradients_solution = vector_hyp_gradients_solution;
   pcout << "done computing gradients with hypersingular integrals" << std::endl;
 }

@@ -60,7 +60,10 @@ We have subdivided the code in main classes to handle the many different aspects
 To install from scratch all the needed library you can look to the automatic installation procedure provided by [CANDI](https://github.com/koecher/candi) developed Uwe Köcher.
 
 ## Install Procedure using spack
-Just follow the [instructions](https://github.com/dealii/dealii/wiki/deal.II-in-Spack) to install dealii@develop using spack.
+Just follow the [instructions](https://github.com/dealii/dealii/wiki/deal.II-in-Spack) to install dealii@develop using spack. A lot of packages will be downloaded so be sure to have enough space on your machine (approximately you need 30 GB of memory to complete the installation).
+
+In case spack fails in downloading packages, please look for the source code package on the Internet and modify accordingly the spack definition of package with spack edit [name of package].
+
 
 ## Install Procedure using Docker
 We provide the possibility of using Docker as a tool to provide a fully operational environment for our library. To use such tool you need to install Docker following the [instructions](https://docs.docker.com/engine/installation/) provided by its authors. Then you can execute the following command line instruction 

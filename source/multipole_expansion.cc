@@ -22,7 +22,7 @@ MultipoleExpansion::MultipoleExpansion()
 
 MultipoleExpansion::MultipoleExpansion(const unsigned int      order,
                                        const dealii::Point<3> &center,
-                                       const AssLegFunction *  assLegFunction)
+                                       const AssLegFunction   *assLegFunction)
 
 {
   this->p              = order;
@@ -121,7 +121,7 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
 
 void
 MultipoleExpansion::AddNormDer(const double                strength,
-                               const dealii::Point<3> &    point,
+                               const dealii::Point<3>     &point,
                                const dealii::Tensor<1, 3> &normal)
 
 {

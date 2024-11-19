@@ -58,7 +58,7 @@ main()
   // we define the center, order of truncation and associated laplace functions
   // needed to construct the MultipoleExpansion class object
   Point<3>           center(3.0, 3.0, 3.0);
-  AssLegFunction *   alf_ptr          = new AssLegFunction();
+  AssLegFunction    *alf_ptr          = new AssLegFunction();
   unsigned int       truncation_order = 6;
   MultipoleExpansion multipole(truncation_order, center, alf_ptr);
 

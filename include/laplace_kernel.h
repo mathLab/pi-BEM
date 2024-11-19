@@ -112,9 +112,9 @@ namespace LaplaceKernel
   template <int dim> // mio//
   void
   kernels(const Tensor<1, dim> &R,
-          Tensor<2, dim> &      H,
-          Tensor<1, dim> &      D,
-          double &              d)
+          Tensor<2, dim>       &H,
+          Tensor<1, dim>       &D,
+          double               &d)
   {
     double r  = R.norm();
     double r2 = r * r;

@@ -2,7 +2,6 @@
 
 #include "../include/computational_domain.h"
 
-#include <deal.II/grid/grid_reordering.h>
 #include <deal.II/grid/grid_tools.h>
 
 using namespace std;

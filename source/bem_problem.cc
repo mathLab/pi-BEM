@@ -1588,7 +1588,7 @@ BEMProblem<dim>::compute_alpha()
 
 template <int dim>
 void
-BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
+BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
                        const TrilinosWrappers::MPI::Vector &src) const
 {
   serv_phi = src;
@@ -1648,7 +1648,7 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
 
 template <int dim>
 void
-BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
+BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
                              const TrilinosWrappers::MPI::Vector &src) const
 {
   serv_phi     = src;
@@ -1698,8 +1698,8 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
 // the linear system.
 template <int dim>
 void
-BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
-                              TrilinosWrappers::MPI::Vector &      dphi_dn,
+BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
+                              TrilinosWrappers::MPI::Vector       &dphi_dn,
                               const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
   Teuchos::TimeMonitor                       LocalTimer(*LacSolveTime);
@@ -1834,8 +1834,8 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 // either in a direct or multipole method
 template <int dim>
 void
-BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
-                       TrilinosWrappers::MPI::Vector &      dphi_dn,
+BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector       &phi,
+                       TrilinosWrappers::MPI::Vector       &dphi_dn,
                        const TrilinosWrappers::MPI::Vector &tmp_rhs)
 {
   if (solution_method == "Direct")
@@ -1861,8 +1861,8 @@ BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
 template <int dim>
 void
 BEMProblem<dim>::compute_constraints(
-  IndexSet &                           c_cpu_set,
-  AffineConstraints<double> &          c,
+  IndexSet                            &c_cpu_set,
+  AffineConstraints<double>           &c,
   const TrilinosWrappers::MPI::Vector &tmp_rhs)
 
 {

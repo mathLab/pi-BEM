@@ -77,7 +77,7 @@ class BoundaryConditions : public ParameterAcceptor
 {
 public:
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
-                     BEMProblem<dim> &         bem,
+                     BEMProblem<dim>          &bem,
                      const MPI_Comm            comm = MPI_COMM_WORLD)
     : wind(dim)
     , comp_dom(comp_dom)

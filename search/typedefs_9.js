@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['jacobian_5ftype_0',['jacobian_type',['http://www.dealii.org/developer/doxygen/deal.II/classCUDAWrappers_1_1MatrixFree.html#ae9b5f42daa55f3108acb2f0b9207916b',1,'CUDAWrappers::MatrixFree']]]
+  ['jacobian_5ftype_0',['jacobian_type',['http://www.dealii.org/developer/doxygen/deal.II/classPortable_1_1MatrixFree.html#a3cbe0c4b835dbf7bcd4b9b22f44ced5f',1,'Portable::MatrixFree']]]
 ];

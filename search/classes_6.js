@@ -11,7 +11,7 @@ var searchData=
   ['geometryinfo_3c_200_20_3e_8',['GeometryInfo&lt; 0 &gt;',['http://www.dealii.org/developer/doxygen/deal.II/structGeometryInfo_3_010_01_4.html',1,'']]],
   ['geometryprimitive_9',['GeometryPrimitive',['http://www.dealii.org/developer/doxygen/deal.II/classGeometryPrimitive.html',1,'']]],
   ['ghostparticlepartitioner_10',['GhostParticlePartitioner',['http://www.dealii.org/developer/doxygen/deal.II/structParticles_1_1internal_1_1GhostParticlePartitioner.html',1,'Particles::internal']]],
-  ['ghostparticlepartitioner_3c_20dim_2c_20dim_20_3e_11',['GhostParticlePartitioner&lt; dim, dim &gt;',['http://www.dealii.org/developer/doxygen/deal.II/structParticles_1_1internal_1_1GhostParticlePartitioner.html',1,'']]],
+  ['ghostparticlepartitioner_3c_20dim_2c_20spacedim_20_3e_11',['GhostParticlePartitioner&lt; dim, spacedim &gt;',['http://www.dealii.org/developer/doxygen/deal.II/structParticles_1_1internal_1_1GhostParticlePartitioner.html',1,'Particles::internal']]],
   ['gmvflags_12',['GmvFlags',['http://www.dealii.org/developer/doxygen/deal.II/structDataOutBase_1_1GmvFlags.html',1,'DataOutBase']]],
   ['gnuplot_13',['Gnuplot',['http://www.dealii.org/developer/doxygen/deal.II/structGridOutFlags_1_1Gnuplot.html',1,'GridOutFlags']]],
   ['gnuplotflags_14',['GnuplotFlags',['http://www.dealii.org/developer/doxygen/deal.II/structDataOutBase_1_1GnuplotFlags.html',1,'DataOutBase']]],
@@ -22,6 +22,5 @@ var searchData=
   ['group_19',['Group',['http://www.dealii.org/developer/doxygen/deal.II/classHDF5_1_1Group.html',1,'HDF5']]],
   ['growingvectormemory_20',['GrowingVectorMemory',['http://www.dealii.org/developer/doxygen/deal.II/classGrowingVectorMemory.html',1,'']]],
   ['growingvectormemory_3c_20blockvector_3c_20number_20_3e_20_3e_21',['GrowingVectorMemory&lt; BlockVector&lt; number &gt; &gt;',['http://www.dealii.org/developer/doxygen/deal.II/classGrowingVectorMemory.html',1,'']]],
-  ['growingvectormemory_3c_20vector_3c_20double_20_3e_20_3e_22',['GrowingVectorMemory&lt; Vector&lt; double &gt; &gt;',['http://www.dealii.org/developer/doxygen/deal.II/classGrowingVectorMemory.html',1,'']]],
-  ['growingvectormemory_3c_20vectortype_20_3e_23',['GrowingVectorMemory&lt; VectorType &gt;',['http://www.dealii.org/developer/doxygen/deal.II/classGrowingVectorMemory.html',1,'']]]
+  ['growingvectormemory_3c_20vectortype_20_3e_22',['GrowingVectorMemory&lt; VectorType &gt;',['http://www.dealii.org/developer/doxygen/deal.II/classGrowingVectorMemory.html',1,'']]]
 ];

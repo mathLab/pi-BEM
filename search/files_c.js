@@ -41,7 +41,7 @@ var searchData=
   ['dof_5fhandler_5fpolicy_2ecc_38',['dof_handler_policy.cc',['http://www.dealii.org/developer/doxygen/deal.II/dof__handler__policy_8cc.html',1,'']]],
   ['dof_5fhandler_5fpolicy_2eh_39',['dof_handler_policy.h',['http://www.dealii.org/developer/doxygen/deal.II/dof__handler__policy_8h.html',1,'']]],
   ['dof_5finfo_2ecc_40',['dof_info.cc',['http://www.dealii.org/developer/doxygen/deal.II/dof__info_8cc.html',1,'']]],
-  ['dof_5finfo_2eh_41',['dof_info.h',['http://www.dealii.org/developer/doxygen/deal.II/meshworker_2dof__info_8h.html',1,'(Global Namespace)'],['http://www.dealii.org/developer/doxygen/deal.II/matrix__free_2dof__info_8h.html',1,'(Global Namespace)']]],
+  ['dof_5finfo_2eh_41',['dof_info.h',['http://www.dealii.org/developer/doxygen/deal.II/matrix__free_2dof__info_8h.html',1,'(Global Namespace)'],['http://www.dealii.org/developer/doxygen/deal.II/meshworker_2dof__info_8h.html',1,'(Global Namespace)']]],
   ['dof_5fiterator_5fselector_2eh_42',['dof_iterator_selector.h',['http://www.dealii.org/developer/doxygen/deal.II/dof__iterator__selector_8h.html',1,'']]],
   ['dof_5flevels_2eh_43',['dof_levels.h',['http://www.dealii.org/developer/doxygen/deal.II/dof__levels_8h.html',1,'']]],
   ['dof_5fobjects_2ecc_44',['dof_objects.cc',['http://www.dealii.org/developer/doxygen/deal.II/dof__objects_8cc.html',1,'']]],

@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['zlibcompressionlevel_0',['ZlibCompressionLevel',['http://www.dealii.org/developer/doxygen/deal.II/structDataOutBase_1_1VtkFlags.html#a2f2177c507c4aa03ca319f306a5a9e89',1,'GridOutFlags::Vtk::ZlibCompressionLevel'],['http://www.dealii.org/developer/doxygen/deal.II/structDataOutBase_1_1VtkFlags.html#a2f2177c507c4aa03ca319f306a5a9e89',1,'DataOutBase::VtkFlags::ZlibCompressionLevel'],['http://www.dealii.org/developer/doxygen/deal.II/structDataOutBase_1_1VtkFlags.html#a2f2177c507c4aa03ca319f306a5a9e89',1,'GridOutFlags::Vtu::ZlibCompressionLevel']]]
+  ['wall_5fclock_5ftype_0',['wall_clock_type',['http://www.dealii.org/developer/doxygen/deal.II/classTimer.html#ad8c192a0347b160e0367267d72f2abd3',1,'Timer']]],
+  ['weightingfunction_1',['WeightingFunction',['http://www.dealii.org/developer/doxygen/deal.II/classparallel_1_1CellWeights.html#a802050ef84a321ad53ace8758367be5b',1,'parallel::CellWeights']]]
 ];

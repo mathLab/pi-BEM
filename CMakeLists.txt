@@ -1,7 +1,6 @@
 ##
 # CMake script for large project, with one executable
-# and a library of objects, optionally
-# depending on deal2lkit.
+# and a library of objects
 #
 # The structure of the directory is assumed to be:
 # ./source: containing implementations and one file with "int main()"
@@ -38,7 +37,7 @@ ENDIF()
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.13.4)
 
-FIND_PACKAGE(deal.II 9.5 REQUIRED
+FIND_PACKAGE(deal.II 9.5.0 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
 )
 

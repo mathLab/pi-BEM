@@ -22,7 +22,7 @@ MultipoleExpansion::MultipoleExpansion()
 
 MultipoleExpansion::MultipoleExpansion(const unsigned int      order,
                                        const dealii::Point<3> &center,
-                                       const AssLegFunction *  assLegFunction)
+                                       const AssLegFunction   *assLegFunction)
 
 {
   this->p              = order;
@@ -76,7 +76,8 @@ MultipoleExpansion::Add(const MultipoleExpansion &multipole, const double sol)
 
 {
   if (multipole.is_zero || sol == 0)
-    {}
+    {
+    }
   else
     {
       this->is_zero = false;
@@ -94,7 +95,8 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
 
 {
   if (strength == 0)
-    {}
+    {
+    }
   else
     {
       this->is_zero = false;
@@ -121,12 +123,13 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
 
 void
 MultipoleExpansion::AddNormDer(const double                strength,
-                               const dealii::Point<3> &    point,
+                               const dealii::Point<3>     &point,
                                const dealii::Tensor<1, 3> &normal)
 
 {
   if (strength == 0)
-    {}
+    {
+    }
   else
     {
       this->is_zero = false;
@@ -213,7 +216,8 @@ MultipoleExpansion::Add(
                       for (int mm = -1 * nn; mm < nn + 1; mm++)
                         {
                           if (abs(m - mm) > n - nn)
-                            {}
+                            {
+                            }
                           else
                             {
                               std::complex<double> a = std::complex<double>(
@@ -263,7 +267,8 @@ MultipoleExpansion::Evaluate(const dealii::Point<3> &evalPoint)
 {
   std::complex<double> fieldValue(0., 0.);
   if (this->is_zero)
-    {}
+    {
+    }
   else
     {
       dealii::Point<3> blockRelPos = evalPoint + (-1.0 * this->center);

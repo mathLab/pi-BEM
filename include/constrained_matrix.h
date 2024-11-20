@@ -52,9 +52,9 @@ template <class VEC, class MATRIX>
 class ConstrainedOperator
 {
 public:
-  ConstrainedOperator(const MATRIX &                   m,
+  ConstrainedOperator(const MATRIX                    &m,
                       const AffineConstraints<double> &c,
-                      const IndexSet &                 c_cpu_set,
+                      const IndexSet                  &c_cpu_set,
                       MPI_Comm                         comm = MPI_COMM_WORLD)
     : constraints(c)
     , matrix(m)
@@ -74,7 +74,7 @@ public:
 
 private:
   const AffineConstraints<double> &constraints;
-  const MATRIX &                   matrix;
+  const MATRIX                    &matrix;
   const IndexSet                   constr_cpu_set;
   MPI_Comm                         mpi_communicator;
   unsigned int                     n_mpi_processes;

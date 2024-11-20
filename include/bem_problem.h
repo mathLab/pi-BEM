@@ -49,11 +49,11 @@
 #include <deal.II/lac/trilinos_vector.h>
 #include <deal.II/lac/vector.h>
 
-//#include <deal.II/lac/petsc_vector.h>
-//#include <deal.II/lac/petsc_parallel_vector.h>
-//#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-//#include <deal.II/lac/petsc_solver.h>
-//#include <deal.II/lac/petsc_precondition.h>
+// #include <deal.II/lac/petsc_vector.h>
+// #include <deal.II/lac/petsc_parallel_vector.h>
+// #include <deal.II/lac/petsc_parallel_sparse_matrix.h>
+// #include <deal.II/lac/petsc_solver.h>
+// #include <deal.II/lac/petsc_precondition.h>
 
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_handler.h>
@@ -126,8 +126,8 @@ public:
              const MPI_Comm            comm = MPI_COMM_WORLD);
 
   void
-  solve(TrilinosWrappers::MPI::Vector &      phi,
-        TrilinosWrappers::MPI::Vector &      dphi_dn,
+  solve(TrilinosWrappers::MPI::Vector       &phi,
+        TrilinosWrappers::MPI::Vector       &dphi_dn,
         const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
   /// This function takes care of the proper initialization of all the elements
@@ -151,8 +151,8 @@ public:
   /// have kept this function serial. We stress that it needs to be called only
   /// once.
   void
-  compute_constraints(IndexSet &                           c_cpu_set,
-                      AffineConstraints<double> &          constraints,
+  compute_constraints(IndexSet                            &c_cpu_set,
+                      AffineConstraints<double>           &constraints,
                       const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
   //  private:
@@ -198,7 +198,7 @@ public:
   /// vector src. The result is stored
   /// in the vector dst.
   void
-  vmult(TrilinosWrappers::MPI::Vector &      dst,
+  vmult(TrilinosWrappers::MPI::Vector       &dst,
         const TrilinosWrappers::MPI::Vector &src) const;
 
   /// The second method computes the
@@ -206,7 +206,7 @@ public:
   /// system.
 
   void
-  compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
+  compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
               const TrilinosWrappers::MPI::Vector &src) const;
 
   /// The third method computes the
@@ -223,8 +223,8 @@ public:
   /// Depending on the resolution stategy we go whether for the direct or fma
   /// strategy.
   void
-  solve_system(TrilinosWrappers::MPI::Vector &      phi,
-               TrilinosWrappers::MPI::Vector &      dphi_dn,
+  solve_system(TrilinosWrappers::MPI::Vector       &phi,
+               TrilinosWrappers::MPI::Vector       &dphi_dn,
                const TrilinosWrappers::MPI::Vector &tmp_rhs);
 
 

@@ -33,7 +33,6 @@
 #include <deal.II/grid/tria_iterator.h>
 // Here are some functions to generate standard grids:
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_reordering.h>
 #include <deal.II/grid/grid_tools.h>
 
 // Output of grids in various graphics formats:
@@ -60,9 +59,9 @@ class SingularKernelIntegral
 public:
   SingularKernelIntegral(
     const typename DoFHandler<dim - 1, dim>::active_cell_iterator &in_cell,
-    const FiniteElement<dim - 1, dim> &                            in_fe,
-    const Mapping<dim - 1, dim> &                                  in_mapping,
-    const Point<dim - 1> &                                         in_eta);
+    const FiniteElement<dim - 1, dim>                             &in_fe,
+    const Mapping<dim - 1, dim>                                   &in_mapping,
+    const Point<dim - 1>                                          &in_eta);
 
 
 
@@ -80,9 +79,9 @@ public:
 
 private:
   const typename DoFHandler<dim - 1, dim>::active_cell_iterator &cell;
-  const FiniteElement<dim - 1, dim> &                            fe;
-  const Mapping<dim - 1, dim> &                                  mapping;
-  const Point<dim - 1> &                                         eta;
+  const FiniteElement<dim - 1, dim>                             &fe;
+  const Mapping<dim - 1, dim>                                   &mapping;
+  const Point<dim - 1>                                          &eta;
   // to be read from input file
   unsigned int rho_quadrature_order   = 4;
   unsigned int theta_quadrature_order = 20;

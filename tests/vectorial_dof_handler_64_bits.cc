@@ -49,7 +49,7 @@ main(int argc, char *argv[])
   const unsigned int          dim = 3;
   Triangulation<dim - 1, dim> tria;
   std::ifstream               in;
-  in.open(SOURCE_DIR "/../utilities/coarse_sphere.inp");
+  in.open(SOURCE_DIR "/../grids/coarse_sphere.inp");
   GridIn<dim - 1, dim> gi;
   gi.attach_triangulation(tria);
   gi.read_ucd(in);

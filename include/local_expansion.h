@@ -44,7 +44,7 @@ public:
 
   LocalExpansion(const unsigned int      order,
                  const dealii::Point<3> &center,
-                 const AssLegFunction *  assLegFunction);
+                 const AssLegFunction   *assLegFunction);
 
   LocalExpansion(const LocalExpansion &other);
 

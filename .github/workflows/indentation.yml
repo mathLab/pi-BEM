@@ -11,7 +11,7 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
-      image: dealii/dealii:v9.5.0-jammy
+      image: dealii/dealii:v9.6.0-jammy
       options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
     steps:

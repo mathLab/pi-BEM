@@ -10,6 +10,7 @@
 
 #include "../include/laplace_kernel.h"
 #include "../include/singular_kernel_integral.h"
+#include "../include/quasi_singular_kernel_integral.h"
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::RCP;
@@ -2690,6 +2691,19 @@ BEMProblem<dim>::compute_gradients_hypersingular(
                     is_singular    = true;
                     break;
                   }
+              
+              double avg_distance = 0.0;
+              for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                  avg_distance+=support_points[i].distance(support_points[local_dof_indices[j]])/fe->dofs_per_cell;
+                  
+              double rms_distance = 0.0;
+              for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                  rms_distance+=pow(support_points[i].distance(support_points[local_dof_indices[j]])-avg_distance,2.0)/fe->dofs_per_cell;
+              rms_distance = sqrt(rms_distance);
+              
+              //std::cout<<"AVG: "<<avg_distance<<std::endl;
+              //std::cout<<"RMS: "<<rms_distance<<std::endl;
+              
 
               // We then perform the
               // integral. If the index $i$
@@ -2703,21 +2717,63 @@ BEMProblem<dim>::compute_gradients_hypersingular(
 
               if (is_singular == false)
                 {
-                  for (unsigned int q = 0; q < n_q_points; ++q)
+                if (false)//(rms_distance > 0.25*avg_distance)
+                   {
+                   QuasiSingularKernelIntegral<dim> quasi_sing_kernel_integrator(cell,
+                                                                                 *fe,
+                                                                                 *mapping,
+                                                                                 support_points[i]);
+                   QTelles<dim-1> telles_quad(singular_quadrature_order, quasi_sing_kernel_integrator.eta);
+                    
+                   FEValues<dim - 1, dim> quasi_sing_fe_v(*mapping,
+                                               *fe,
+                                               telles_quad,
+                                               update_values | update_normal_vectors |
+                                               update_quadrature_points | update_JxW_values);
+                   quasi_sing_fe_v.reinit(cell);
+                   const unsigned int telles_n_q_points = quasi_sing_fe_v.n_quadrature_points;
+                   const std::vector<Point<dim>> &telles_q_points    = quasi_sing_fe_v.get_quadrature_points();
+                   const std::vector<Tensor<1, dim>> &telles_normals = quasi_sing_fe_v.get_normal_vectors();
+                                               
+                   for (unsigned int q = 0; q < telles_n_q_points; ++q)
                     {
-                      const Tensor<1, dim> R = q_points[q] - support_points[i];
+                      //std::cout<<q<<"-th Telles q point "<<telles_q_points[q]<<std::endl;
+                      //std::cout<<q<<"-th Telles q weight x jac "<<quasi_sing_fe_v.JxW(q)<<std::endl;
+                      const Tensor<1, dim> R = telles_q_points[q] - support_points[i];
                       LaplaceKernel::kernels(R, H, D, s);
                       for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
                         {
                           integral += -phi_local(local_dof_indices[j]) *
-                                        (H * normals[q]) *
-                                        fe_v.shape_value(j, q) * fe_v.JxW(q) +
+                                        (H * telles_normals[q]) *
+                                        quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q) +
                                       dphi_dn_local(local_dof_indices[j]) * D *
-                                        fe_v.shape_value(j, q) * fe_v.JxW(q);
-                          b_integral += -1.0 * (H * normals[q]) *
-                                        fe_v.shape_value(j, q) * fe_v.JxW(q);
+                                        quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q);
+                          b_integral += -1.0 * (H * telles_normals[q]) *
+                                        quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q);
                         }
                     }
+                   }
+                   else
+                   {
+                          
+                  
+                
+                      for (unsigned int q = 0; q < n_q_points; ++q)
+                        {
+                          const Tensor<1, dim> R = q_points[q] - support_points[i];
+                          LaplaceKernel::kernels(R, H, D, s);
+                          for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+                            {
+                              integral += -phi_local(local_dof_indices[j]) *
+                                            (H * normals[q]) *
+                                            fe_v.shape_value(j, q) * fe_v.JxW(q) +
+                                          dphi_dn_local(local_dof_indices[j]) * D *
+                                            fe_v.shape_value(j, q) * fe_v.JxW(q);
+                              b_integral += -1.0 * (H * normals[q]) *
+                                            fe_v.shape_value(j, q) * fe_v.JxW(q);
+                            }
+                        }
+                   }
                 }
               else
                 {
@@ -2906,6 +2962,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
     }
 
   vector_hyp_gradients_solution.compress(VectorOperation::insert);
+  vector_constraints.distribute(vector_hyp_gradients_solution);
   vector_gradients_solution = vector_hyp_gradients_solution;
   pcout << "done computing gradients with hypersingular integrals" << std::endl;
 }
@@ -3035,6 +3092,433 @@ BEMProblem<dim>::adaptive_refinement(
   comp_dom.tria.execute_coarsening_and_refinement();
 }
 
+template <int dim> //mio//
+void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::ParsedFunction<dim> &exact_potential,
+                                                                    Functions::ParsedFunction<dim> &exact_potential_gradient)
+{
+  exact_potential.set_time(0);
+  exact_potential_gradient.set_time(0);
+  cell_it
+      cell = dh.begin_active(),
+      endc = dh.end();
+  
+
+  double s;
+  Point<dim> D;
+  Tensor<2, dim> H;
+
+  // std::vector<QTelles<dim - 1> > sing_quadratures;
+  // for (unsigned int i = 0; i < fe->dofs_per_cell; ++i)
+  //   sing_quadratures.push_back(QTelles<dim - 1>(singular_quadrature_order,
+  //                                               fe->get_unit_support_points()[i]));
+  QGauss<dim-1> gauss(16);
+  FEValues<dim - 1, dim> fe_v(*mapping, *fe, gauss,
+                              update_values |
+                                  update_normal_vectors |
+                                  update_quadrature_points |
+                                  update_JxW_values);
+
+  std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
+  std::vector<Point<dim>> support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*mapping, dh, support_points);
+  const unsigned int n_q_points = fe_v.n_quadrature_points;
+  
+    // local copy of full normal solution vector
+  Vector<double> local_vector_normals_solution(vector_normals_solution);
+
+  Vector<double> velocity;
+  velocity.reinit(gradient_dh.n_dofs());
+  velocity = 0.0;
+  std::vector<TrilinosWrappers::MPI::Vector> velocities;
+
+  switch (dim)
+  {
+  case 2:
+    ExcNotImplemented();
+    break;
+  case 3:
+    {
+    
+
+      
+      Point<dim> cell_point;
+      cell_point[0]=1;
+      
+      cell_it cell_found;
+      
+      // I want to find a cell that has the point P closest to the center of that cell
+      double min_dist = 1e10;
+      for (cell = dh.begin_active(); cell != endc; ++cell)
+	    {
+	    double dist = cell_point.distance(cell->center());
+	    if (dist<min_dist)
+	        {
+	        min_dist = dist;
+	    	cell_found=cell;
+	        }
+	    }
+      pcout<<"Minimum distance cell: "<<cell_found<<std::endl;
+      Point<dim-1> eta;
+      for (unsigned int d=0;d<dim-1;d++){
+      	eta[d]=0.5;
+      }
+      // eta[0]=0.0;
+      
+      std::vector<Point<dim-1>> singularity;
+      singularity.push_back(eta); 
+      Quadrature<dim-1> sing_quadrature(singularity);
+      FEValues<dim-1, dim> sol_fe_values(*mapping,
+                                   *fe,
+                                   sing_quadrature,
+                                   //update_values | update_gradients |
+                                   update_quadrature_points |
+                                   update_normal_vectors | update_jacobians |
+                                   update_jacobian_grads);
+      sol_fe_values.reinit(cell_found);
+      std::vector<Point<dim>> support_eta = sol_fe_values.get_quadrature_points();
+      
+      pcout << "Eta: " << eta << std::endl;
+      pcout << "Eta support point: " << support_eta[0] << std::endl;
+      
+      Point<dim> singularity_point;
+      for (unsigned int d=0;d<dim;d++){
+      	singularity_point[d]=support_eta[0][d];
+      }
+      	    
+      Tensor<1, dim> integral;
+      Tensor<1, dim> b_integral;
+      std::vector <Tensor<1, dim> > c_integral(dim);
+      
+      
+	  for (cell = dh.begin_active(); cell != endc; ++cell)
+	    { 
+	       
+	      fe_v.reinit(cell);
+	      cell->get_dof_indices(local_dof_indices);
+          	
+          	
+          	const std::vector<Point<dim>> &q_points    = fe_v.get_quadrature_points();
+	      	const std::vector<Tensor<1, dim>> &normals = fe_v.get_normal_vectors();
+
+		{
+		  
+
+		  
+		  
+		    {
+		      bool         is_singular    = false;
+		      unsigned int singular_index = numbers::invalid_unsigned_int;
+
+		      // We then perform the
+		      // integral. If the index $i$
+		      // is not one of the local
+		      // degrees of freedom, we
+		      // simply have to add the
+		      // single layer terms to the
+		      // right hand side, and the
+		      // double layer terms to the
+		      // matrix:
+              
+              QuasiSingularKernelIntegral<dim> quasi_sing_kernel_integrator(cell,
+		                                                                         *fe,
+		                                                                         *mapping,
+		                                                                         singularity_point);//dg_support_points[i]);
+
+
+		      if (/*is_singular == false &&*/ cell != cell_found)
+		        { if (quasi_sing_kernel_integrator.min_distance < 0.1)//*cell_found->diameter())
+		           {  
+		           QuasiSingularKernelIntegral<dim> quasi_sing_kernel_integrator(cell,
+		                                                                         *fe,
+		                                                                         *mapping,
+		                                                                         singularity_point);//dg_support_points[i]);
+		           std::cout << "   Using TellesQ..." << std::endl;
+		           
+		           QTelles<dim-1> telles_quad(singular_quadrature_order, quasi_sing_kernel_integrator.eta);
+		            
+		           FEValues<dim - 1, dim> quasi_sing_fe_v(*mapping,
+		                                       *fe,
+		                                       telles_quad,
+		                                       update_values | update_normal_vectors |
+		                                       update_quadrature_points | update_JxW_values);
+		           quasi_sing_fe_v.reinit(cell);
+		           const unsigned int telles_n_q_points = quasi_sing_fe_v.n_quadrature_points;
+		           const std::vector<Point<dim>> &telles_q_points    = quasi_sing_fe_v.get_quadrature_points();
+		           const std::vector<Tensor<1, dim>> &telles_normals = quasi_sing_fe_v.get_normal_vectors();
+		                                       
+		           for (unsigned int q = 0; q < telles_n_q_points; ++q)
+		            {
+		              //std::cout<<q<<"-th Telles q point "<<telles_q_points[q]<<std::endl;
+		              //std::cout<<q<<"-th Telles q weight x jac "<<quasi_sing_fe_v.JxW(q)<<std::endl;
+		              const Tensor<1, dim> R = telles_q_points[q] - singularity_point;
+		              LaplaceKernel::kernels(R, H, D, s);
+		              for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+		                {
+		                  double ex_pot = exact_potential.value(support_points[local_dof_indices[j]]);
+		                  
+		                  Vector<double> imposed_pot_grad(dim);
+                          exact_potential_gradient.vector_value(support_points[local_dof_indices[j]],
+                                            imposed_pot_grad);
+                          double ex_pot_norm_grad = 0;
+                          
+                          // double tol = 1e-1;
+                          for (unsigned int d = 0; d < dim; ++d)
+                              {
+                              types::global_dof_index dummy =
+                                sub_wise_to_original[local_dof_indices[j]];
+                              types::global_dof_index vec_index =
+                                vec_original_to_sub_wise
+                                  [gradient_dh.n_dofs() / dim * d +
+                                   dummy];
+                              Assert(
+                                vector_this_cpu_set.is_element(vec_index),
+                                ExcMessage(
+                                  "vector cpu set and cpu set are inconsistent"));
+                                
+                              ex_pot_norm_grad += imposed_pot_grad[d] *
+                                             vector_normals_solution[vec_index];
+                              }
+                        
+		                  integral += -ex_pot *
+		                                (H * telles_normals[q]) *
+		                                quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q) +
+		                              ex_pot_norm_grad * D *
+		                                quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q);
+		                  b_integral += -1.0 * (H * telles_normals[q]) *
+		                                quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q);
+		                  
+		                  for (unsigned int di = 0; di < dim; ++di)              
+				                  c_integral[di] += (telles_q_points[q][di] * (H * telles_normals[q]) *
+				                                    quasi_sing_fe_v.shape_value(j, q)  -
+				                                    telles_normals[q][di] * D *
+				                                    quasi_sing_fe_v.shape_value(j, q)) * quasi_sing_fe_v.JxW(q);              
+		                }
+		            }
+		           }
+                   else
+                   {
+		          for (unsigned int q = 0; q < n_q_points; ++q)
+		            { 
+		              
+		            
+		              const Tensor<1, dim> R = q_points[q] - singularity_point;
+		              // std::cout << " **** " << R << std::endl;
+		              if (R.norm() > 0.0)//cell->diameter()/2.0)
+		                 {
+		                  LaplaceKernel::kernels(R, H, D, s);
+		                  for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+		                    {
+		                      double ex_pot = exact_potential.value(support_points[local_dof_indices[j]]);
+		                  
+		                      Vector<double> imposed_pot_grad(dim);
+                              exact_potential_gradient.vector_value(support_points[local_dof_indices[j]],
+                                                imposed_pot_grad);
+                              Tensor<1,dim> ex_pot_grad;
+                              for (unsigned int d=0; d<dim; ++d)
+                                  ex_pot_grad[d] = imposed_pot_grad(d);
+		                    
+		                    double ex_pot_norm_grad = 0;
+                          
+                            // double tol = 1e-1;
+                            for (unsigned int d = 0; d < dim; ++d)
+                                {
+                                types::global_dof_index dummy =
+                                  sub_wise_to_original[local_dof_indices[j]];
+                                types::global_dof_index vec_index =
+                                  vec_original_to_sub_wise
+                                    [gradient_dh.n_dofs() / dim * d +
+                                     dummy];
+                                Assert(
+                                  vector_this_cpu_set.is_element(vec_index),
+                                  ExcMessage(
+                                    "vector cpu set and cpu set are inconsistent"));
+                                  
+                                ex_pot_norm_grad += imposed_pot_grad[d] *
+                                               vector_normals_solution[vec_index];
+                                }
+		                    
+		                      integral += - ex_pot *
+		                                    (H * normals[q]) *
+		                                    fe_v.shape_value(j, q) * fe_v.JxW(q) +
+		                                  ex_pot_norm_grad * D *
+		                                    fe_v.shape_value(j, q) * fe_v.JxW(q);
+				     
+				     // std::cout << " **** " << integral << std::endl;
+				     	
+		                     double wake_coeff = 1.0;
+
+		                      b_integral += - 1.0 * (H * normals[q]) * wake_coeff *
+		                                    fe_v.shape_value(j, q) * fe_v.JxW(q);
+		                      // each component of c_integral is a vector, representing the column
+		                      // of the double tensor C_ij              
+		                      for (unsigned int di = 0; di < dim; ++di)              
+		                          c_integral[di] += (q_points[q][di] * (H * normals[q]) *
+		                                            fe_v.shape_value(j, q)  -
+		                                            normals[q][di] * D *
+		                                            fe_v.shape_value(j, q))*wake_coeff * fe_v.JxW(q);
+		                                    
+		                    }
+		                }
+		            }
+		        }}
+		      else
+		        {
+		          // Now we treat the more
+		          // delicate case. If we
+		          // are here, this means
+		          // that the cell that
+		          // runs on the $j$ index
+		          // contains
+		          // support_point[i]. In
+		          // this case both the
+		          // single and the double
+		          // layer potential are
+		          // singular, and they
+		          // require special
+		          // treatment.
+		          //
+			  
+			  pcout << "    Using Guiggiani..." << std::endl;
+			  pcout << "    Cell: " << cell << std::endl;
+			  
+		          Assert(
+		            (*fe).has_support_points(),
+		            ExcMessage(
+		              "The FE selected has no support points. This is not supported."));
+		         
+		          SingularKernelIntegral<dim> sing_kernel_integrator(cell,
+		                                                             *fe,
+		                                                             *mapping,
+		                                                             eta);
+		          std::vector<Tensor<1, dim>> Vk_integrals =
+		            sing_kernel_integrator.evaluate_VkNj_integrals();
+		          std::vector<Tensor<1, dim>> Wk_integrals =
+		            sing_kernel_integrator.evaluate_WkNj_integrals();
+		          Tensor<1, dim> singular_cell_contribution_hyp;
+		          Tensor<1, dim> singular_cell_contribution_str;
+		          Tensor<1,dim> b_singular_cell_contribution_hyp;
+                          std::vector< Tensor<1,dim> > c_singular_cell_contribution_hyp(dim);
+		          for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
+		            {
+                          double ex_pot = exact_potential.value(support_points[local_dof_indices[j]]);
+		                  
+		                  Vector<double> imposed_pot_grad(dim);
+                          exact_potential_gradient.vector_value(support_points[local_dof_indices[j]],
+                                            imposed_pot_grad);
+                          double ex_pot_norm_grad = 0;
+                          
+                          // double tol = 1e-1;
+                          for (unsigned int d = 0; d < dim; ++d)
+                              {
+                              types::global_dof_index dummy =
+                                sub_wise_to_original[local_dof_indices[j]];
+                              types::global_dof_index vec_index =
+                                vec_original_to_sub_wise
+                                  [gradient_dh.n_dofs() / dim * d +
+                                   dummy];
+                              Assert(
+                                vector_this_cpu_set.is_element(vec_index),
+                                ExcMessage(
+                                  "vector cpu set and cpu set are inconsistent"));
+                                
+                              ex_pot_norm_grad += imposed_pot_grad[d] *
+                                             vector_normals_solution[vec_index];
+                              }
+                  
+		                  singular_cell_contribution_hyp +=
+		                    - ex_pot * Vk_integrals[j];
+		                  singular_cell_contribution_str +=
+		                    ex_pot_norm_grad * Wk_integrals[j];
+                      
+		              // this was an attempt to compute b_i in an alternative,
+		              // numerical way, as alpha. Couldn't get it to work
+			      double wake_coeff = 1.0;
+    
+		              b_singular_cell_contribution_hyp+= - Vk_integrals[j]*wake_coeff;
+		              Point<dim> dof_position = support_points[local_dof_indices[j]];
+		              unsigned int scalar_dh_index = sub_wise_to_original[local_dof_indices[j]];
+		              Tensor<1,dim> dof_normal;
+		              for (unsigned int di = 0; di < dim; ++di) 
+		                  dof_normal[di] =  local_vector_normals_solution(vec_original_to_sub_wise[scalar_dh_index + di * dh.n_dofs()]);
+		              
+		              for (unsigned int di = 0; di < dim; ++di) 
+		                  c_singular_cell_contribution_hyp[di]+=  (dof_position[di]* Vk_integrals[j]-dof_normal[di] * Wk_integrals[j])*wake_coeff;
+                      
+		              
+		            }
+		          // pcout<<cell<<"   "<<singular_cell_contribution_str<<"
+		          // "<<singular_cell_contribution_hyp<<std::endl;
+		          // integral_3+=singular_cell_contribution_str+singular_cell_contribution_hyp;
+		          // pcout<<"Qmark Hyp: "<<integral_3<<std::endl;
+		          integral += singular_cell_contribution_str +
+		                      singular_cell_contribution_hyp;
+		          b_integral+= b_singular_cell_contribution_hyp;
+                          for (unsigned int di = 0; di < dim; ++di)              
+                              c_integral[di] += c_singular_cell_contribution_hyp[di];
+		        }
+
+		     
+		      
+
+		    }
+		   
+		    
+		}
+	    }
+	    
+
+	           
+		   pcout << std::setprecision(15) << "Integral: " << integral << std::endl;
+		   pcout << "B Integral: " << b_integral << std::endl;
+		   for (unsigned int di = 0; di < dim; ++di)
+		   	pcout << "C Integral: " << c_integral[di] << std::endl;
+      
+      
+        FullMatrix<double> C(dim,dim);
+        FullMatrix<double> I(dim,dim);
+        Vector<double> rrhs(dim);
+        Vector<double> b(dim);
+        Vector<double> solution(dim);
+        Vector<double> ex_solution(dim);
+        for (unsigned int dj = 0; dj < dim; ++dj)
+            {
+            rrhs(dj) = integral[dj];
+            b(dj) = b_integral[dj];
+            ex_solution(dj) = 1.0;
+            I(dj,dj) = 1.0;
+            for (unsigned int di = 0; di < dim; ++di)
+                C(di,dj) = -c_integral[dj][di];
+	        }
+	
+	        
+	    
+	    
+	    FullMatrix<double> Cinv(dim,dim);
+	    Cinv.invert(C);
+	    Cinv.vmult(solution,rrhs);
+	    C.add(-0.5,I);
+	    double C_error = C.frobenius_norm();
+	    double b_error = b_integral.norm();
+	    
+	    
+	    double ex_pot = exact_potential.value(support_eta[0]);
+	    b*=ex_pot;
+	    solution.add(-1.0,b);
+	    
+	    solution.add(-1.0,ex_solution);
+	    double solution_error = (solution).l2_norm();
+	    
+	    
+	    
+	    pcout<<"Cell size | Solution error | C matrix error | b vector error "<<std::endl;
+	    pcout<<cell_found->diameter()<<" "<<solution_error<<" "<<C_error<<" "<<b_error<<std::endl;
+	    
+	    }
+	    
+	    
+    }  
+  
+}
 
 
 template class BEMProblem<2>;

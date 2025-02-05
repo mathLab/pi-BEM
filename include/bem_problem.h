@@ -292,7 +292,8 @@ public:
   void
   adaptive_refinement(const TrilinosWrappers::MPI::Vector &error_vector);
 
-
+  void compute_velocities_on_wake_cell_centered_test(Functions::ParsedFunction<dim> &exact_potential,
+                                                     Functions::ParsedFunction<dim> &exact_potential_gradient);
 
   ConditionalOStream        pcout;
   ComputationalDomain<dim> &comp_dom;

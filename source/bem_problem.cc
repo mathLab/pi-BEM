@@ -3092,9 +3092,17 @@ BEMProblem<dim>::adaptive_refinement(
   comp_dom.tria.execute_coarsening_and_refinement();
 }
 
-template <int dim> //mio//
-void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::ParsedFunction<dim> &exact_potential,
-                                                                    Functions::ParsedFunction<dim> &exact_potential_gradient)
+
+template <>
+void BEMProblem<2>::compute_velocities_on_wake_cell_centered_test(Functions::ParsedFunction<2> &exact_potential,
+                                                                    Functions::ParsedFunction<2> &exact_potential_gradient)
+                                                                    {
+                                                                    ExcNotImplemented();
+                                                                    }
+
+template <> //mio//
+void BEMProblem<3>::compute_velocities_on_wake_cell_centered_test(Functions::ParsedFunction<3> &exact_potential,
+                                                                    Functions::ParsedFunction<3> &exact_potential_gradient)
 {
   exact_potential.set_time(0);
   exact_potential_gradient.set_time(0);
@@ -3104,23 +3112,23 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
   
 
   double s;
-  Point<dim> D;
-  Tensor<2, dim> H;
+  Point<3> D;
+  Tensor<2, 3> H;
 
-  // std::vector<QTelles<dim - 1> > sing_quadratures;
+  // std::vector<QTelles<3 - 1> > sing_quadratures;
   // for (unsigned int i = 0; i < fe->dofs_per_cell; ++i)
-  //   sing_quadratures.push_back(QTelles<dim - 1>(singular_quadrature_order,
+  //   sing_quadratures.push_back(QTelles<3 - 1>(singular_quadrature_order,
   //                                               fe->get_unit_support_points()[i]));
-  QGauss<dim-1> gauss(16);
-  FEValues<dim - 1, dim> fe_v(*mapping, *fe, gauss,
+  QGauss<3-1> gauss(8);
+  FEValues<3 - 1, 3> fe_v(*mapping, *fe, gauss,
                               update_values |
                                   update_normal_vectors |
                                   update_quadrature_points |
                                   update_JxW_values);
 
   std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
-  std::vector<Point<dim>> support_points(dh.n_dofs());
-  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*mapping, dh, support_points);
+  std::vector<Point<3>> support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<3 - 1, 3>(*mapping, dh, support_points);
   const unsigned int n_q_points = fe_v.n_quadrature_points;
   
     // local copy of full normal solution vector
@@ -3131,18 +3139,15 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
   velocity = 0.0;
   std::vector<TrilinosWrappers::MPI::Vector> velocities;
 
-  switch (dim)
-  {
-  case 2:
-    ExcNotImplemented();
-    break;
-  case 3:
-    {
+
     
 
       
-      Point<dim> cell_point;
-      cell_point[0]=1;
+      Point<3> cell_point;
+      cell_point[0]=0.95;
+      cell_point[1]=2.4;
+      cell_point[2]=0.01;
+      
       
       cell_it cell_found;
       
@@ -3158,16 +3163,18 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 	        }
 	    }
       pcout<<"Minimum distance cell: "<<cell_found<<std::endl;
-      Point<dim-1> eta;
-      for (unsigned int d=0;d<dim-1;d++){
-      	eta[d]=0.5;
-      }
-      // eta[0]=0.0;
+      pcout<<"Center: "<<cell_found->center()<<"   Distance: "<<min_dist<<std::endl;
       
-      std::vector<Point<dim-1>> singularity;
+      Point<3-1> eta;
+      for (unsigned int d=0;d<3-1;d++){
+      	eta[d]=0.015;
+      }
+       eta[1]=0.015;
+      
+      std::vector<Point<3-1>> singularity;
       singularity.push_back(eta); 
-      Quadrature<dim-1> sing_quadrature(singularity);
-      FEValues<dim-1, dim> sol_fe_values(*mapping,
+      Quadrature<3-1> sing_quadrature(singularity);
+      FEValues<3-1, 3> sol_fe_values(*mapping,
                                    *fe,
                                    sing_quadrature,
                                    //update_values | update_gradients |
@@ -3175,19 +3182,19 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
                                    update_normal_vectors | update_jacobians |
                                    update_jacobian_grads);
       sol_fe_values.reinit(cell_found);
-      std::vector<Point<dim>> support_eta = sol_fe_values.get_quadrature_points();
+      std::vector<Point<3>> support_eta = sol_fe_values.get_quadrature_points();
       
       pcout << "Eta: " << eta << std::endl;
       pcout << "Eta support point: " << support_eta[0] << std::endl;
       
-      Point<dim> singularity_point;
-      for (unsigned int d=0;d<dim;d++){
+      Point<3> singularity_point;
+      for (unsigned int d=0;d<3;d++){
       	singularity_point[d]=support_eta[0][d];
       }
       	    
-      Tensor<1, dim> integral;
-      Tensor<1, dim> b_integral;
-      std::vector <Tensor<1, dim> > c_integral(dim);
+      Tensor<1, 3> integral;
+      Tensor<1, 3> b_integral;
+      std::vector <Tensor<1, 3> > c_integral(3);
       
       
 	  for (cell = dh.begin_active(); cell != endc; ++cell)
@@ -3197,8 +3204,8 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 	      cell->get_dof_indices(local_dof_indices);
           	
           	
-          	const std::vector<Point<dim>> &q_points    = fe_v.get_quadrature_points();
-	      	const std::vector<Tensor<1, dim>> &normals = fe_v.get_normal_vectors();
+          	const std::vector<Point<3>> &q_points    = fe_v.get_quadrature_points();
+	      	const std::vector<Tensor<1, 3>> &normals = fe_v.get_normal_vectors();
 
 		{
 		  
@@ -3219,56 +3226,76 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		      // double layer terms to the
 		      // matrix:
               
-              QuasiSingularKernelIntegral<dim> quasi_sing_kernel_integrator(cell,
+              QuasiSingularKernelIntegral<3> quasi_sing_kernel_integrator(cell,
 		                                                                         *fe,
 		                                                                         *mapping,
 		                                                                         singularity_point);//dg_support_points[i]);
 
 
 		      if (/*is_singular == false &&*/ cell != cell_found)
-		        { if (quasi_sing_kernel_integrator.min_distance < 0.1)//*cell_found->diameter())
+		        { std::cout<<"Cell: "<<cell<<"  Eta: "<<quasi_sing_kernel_integrator.eta<<std::endl;
+		          std::cout<<"Min Distance: "<<quasi_sing_kernel_integrator.min_distance<<"  Cell size:"<<cell_found->diameter()<<std::endl;
+		          
+		          if (quasi_sing_kernel_integrator.min_distance < 0.6*cell_found->diameter())
 		           {  
-		           QuasiSingularKernelIntegral<dim> quasi_sing_kernel_integrator(cell,
+		           QuasiSingularKernelIntegral<3> quasi_sing_kernel_integrator(cell,
 		                                                                         *fe,
 		                                                                         *mapping,
 		                                                                         singularity_point);//dg_support_points[i]);
-		           std::cout << "   Using TellesQ..." << std::endl;
+		           std::cout << "   Quasi Singular Case..." << std::endl;
+		           std::shared_ptr<Quadrature<3 - 1>> quasi_sing_quadrature;
+		           if (quasi_sing_kernel_integrator.eta[0] < 1 &&
+		               quasi_sing_kernel_integrator.eta[0] > 0 &&
+		               quasi_sing_kernel_integrator.eta[1] < 1 &&
+		               quasi_sing_kernel_integrator.eta[1] > 0)
+		              {pcout<<"Using Polar Coordinates Quadrature"<<std::endl;
+		              //quasi_sing_quadrature =  std::shared_ptr<Quadrature<3 - 1>>(new QTelles<3-1>(singular_quadrature_order, quasi_sing_kernel_integrator.eta));
+		              quasi_sing_quadrature = std::shared_ptr<Quadrature<3 - 1>>(
+                                              new QSplit<3-1>(QTrianglePolar(356),
+                                          quasi_sing_kernel_integrator.eta) );
+		              }
+		           else
+		              {pcout<<"Using Higher order Gauss Quadrature"<<std::endl;
+		              quasi_sing_quadrature = std::shared_ptr<Quadrature<3 - 1>>(
+                                              new QSplit<3-1>(QTrianglePolar(46),
+                                          quasi_sing_kernel_integrator.eta) );
+                                              //new QGauss<3-1>(56) );
+		              }
 		           
-		           QTelles<dim-1> telles_quad(singular_quadrature_order, quasi_sing_kernel_integrator.eta);
 		            
-		           FEValues<dim - 1, dim> quasi_sing_fe_v(*mapping,
+		           FEValues<3 - 1, 3> quasi_sing_fe_v(*mapping,
 		                                       *fe,
-		                                       telles_quad,
+		                                       *quasi_sing_quadrature,
 		                                       update_values | update_normal_vectors |
 		                                       update_quadrature_points | update_JxW_values);
 		           quasi_sing_fe_v.reinit(cell);
 		           const unsigned int telles_n_q_points = quasi_sing_fe_v.n_quadrature_points;
-		           const std::vector<Point<dim>> &telles_q_points    = quasi_sing_fe_v.get_quadrature_points();
-		           const std::vector<Tensor<1, dim>> &telles_normals = quasi_sing_fe_v.get_normal_vectors();
+		           const std::vector<Point<3>> &telles_q_points    = quasi_sing_fe_v.get_quadrature_points();
+		           const std::vector<Tensor<1, 3>> &telles_normals = quasi_sing_fe_v.get_normal_vectors();
 		                                       
 		           for (unsigned int q = 0; q < telles_n_q_points; ++q)
 		            {
 		              //std::cout<<q<<"-th Telles q point "<<telles_q_points[q]<<std::endl;
 		              //std::cout<<q<<"-th Telles q weight x jac "<<quasi_sing_fe_v.JxW(q)<<std::endl;
-		              const Tensor<1, dim> R = telles_q_points[q] - singularity_point;
+		              const Tensor<1, 3> R = telles_q_points[q] - singularity_point;
 		              LaplaceKernel::kernels(R, H, D, s);
 		              for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
 		                {
 		                  double ex_pot = exact_potential.value(support_points[local_dof_indices[j]]);
 		                  
-		                  Vector<double> imposed_pot_grad(dim);
+		                  Vector<double> imposed_pot_grad(3);
                           exact_potential_gradient.vector_value(support_points[local_dof_indices[j]],
                                             imposed_pot_grad);
                           double ex_pot_norm_grad = 0;
                           
                           // double tol = 1e-1;
-                          for (unsigned int d = 0; d < dim; ++d)
+                          for (unsigned int d = 0; d < 3; ++d)
                               {
                               types::global_dof_index dummy =
                                 sub_wise_to_original[local_dof_indices[j]];
                               types::global_dof_index vec_index =
                                 vec_original_to_sub_wise
-                                  [gradient_dh.n_dofs() / dim * d +
+                                  [gradient_dh.n_dofs() / 3 * d +
                                    dummy];
                               Assert(
                                 vector_this_cpu_set.is_element(vec_index),
@@ -3287,7 +3314,7 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		                  b_integral += -1.0 * (H * telles_normals[q]) *
 		                                quasi_sing_fe_v.shape_value(j, q) * quasi_sing_fe_v.JxW(q);
 		                  
-		                  for (unsigned int di = 0; di < dim; ++di)              
+		                  for (unsigned int di = 0; di < 3; ++di)              
 				                  c_integral[di] += (telles_q_points[q][di] * (H * telles_normals[q]) *
 				                                    quasi_sing_fe_v.shape_value(j, q)  -
 				                                    telles_normals[q][di] * D *
@@ -3301,7 +3328,7 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		            { 
 		              
 		            
-		              const Tensor<1, dim> R = q_points[q] - singularity_point;
+		              const Tensor<1, 3> R = q_points[q] - singularity_point;
 		              // std::cout << " **** " << R << std::endl;
 		              if (R.norm() > 0.0)//cell->diameter()/2.0)
 		                 {
@@ -3310,23 +3337,23 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		                    {
 		                      double ex_pot = exact_potential.value(support_points[local_dof_indices[j]]);
 		                  
-		                      Vector<double> imposed_pot_grad(dim);
+		                      Vector<double> imposed_pot_grad(3);
                               exact_potential_gradient.vector_value(support_points[local_dof_indices[j]],
                                                 imposed_pot_grad);
-                              Tensor<1,dim> ex_pot_grad;
-                              for (unsigned int d=0; d<dim; ++d)
+                              Tensor<1,3> ex_pot_grad;
+                              for (unsigned int d=0; d<3; ++d)
                                   ex_pot_grad[d] = imposed_pot_grad(d);
 		                    
 		                    double ex_pot_norm_grad = 0;
                           
                             // double tol = 1e-1;
-                            for (unsigned int d = 0; d < dim; ++d)
+                            for (unsigned int d = 0; d < 3; ++d)
                                 {
                                 types::global_dof_index dummy =
                                   sub_wise_to_original[local_dof_indices[j]];
                                 types::global_dof_index vec_index =
                                   vec_original_to_sub_wise
-                                    [gradient_dh.n_dofs() / dim * d +
+                                    [gradient_dh.n_dofs() / 3 * d +
                                      dummy];
                                 Assert(
                                   vector_this_cpu_set.is_element(vec_index),
@@ -3351,7 +3378,7 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		                                    fe_v.shape_value(j, q) * fe_v.JxW(q);
 		                      // each component of c_integral is a vector, representing the column
 		                      // of the double tensor C_ij              
-		                      for (unsigned int di = 0; di < dim; ++di)              
+		                      for (unsigned int di = 0; di < 3; ++di)              
 		                          c_integral[di] += (q_points[q][di] * (H * normals[q]) *
 		                                            fe_v.shape_value(j, q)  -
 		                                            normals[q][di] * D *
@@ -3377,7 +3404,7 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		          // require special
 		          // treatment.
 		          //
-			  
+			  std::cout << "   Singular Case..." << std::endl;
 			  pcout << "    Using Guiggiani..." << std::endl;
 			  pcout << "    Cell: " << cell << std::endl;
 			  
@@ -3386,35 +3413,35 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		            ExcMessage(
 		              "The FE selected has no support points. This is not supported."));
 		         
-		          SingularKernelIntegral<dim> sing_kernel_integrator(cell,
+		          SingularKernelIntegral<3> sing_kernel_integrator(cell,
 		                                                             *fe,
 		                                                             *mapping,
 		                                                             eta);
-		          std::vector<Tensor<1, dim>> Vk_integrals =
+		          std::vector<Tensor<1, 3>> Vk_integrals =
 		            sing_kernel_integrator.evaluate_VkNj_integrals();
-		          std::vector<Tensor<1, dim>> Wk_integrals =
+		          std::vector<Tensor<1, 3>> Wk_integrals =
 		            sing_kernel_integrator.evaluate_WkNj_integrals();
-		          Tensor<1, dim> singular_cell_contribution_hyp;
-		          Tensor<1, dim> singular_cell_contribution_str;
-		          Tensor<1,dim> b_singular_cell_contribution_hyp;
-                          std::vector< Tensor<1,dim> > c_singular_cell_contribution_hyp(dim);
+		          Tensor<1, 3> singular_cell_contribution_hyp;
+		          Tensor<1, 3> singular_cell_contribution_str;
+		          Tensor<1,3> b_singular_cell_contribution_hyp;
+                          std::vector< Tensor<1,3> > c_singular_cell_contribution_hyp(3);
 		          for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
 		            {
                           double ex_pot = exact_potential.value(support_points[local_dof_indices[j]]);
 		                  
-		                  Vector<double> imposed_pot_grad(dim);
+		                  Vector<double> imposed_pot_grad(3);
                           exact_potential_gradient.vector_value(support_points[local_dof_indices[j]],
                                             imposed_pot_grad);
                           double ex_pot_norm_grad = 0;
                           
                           // double tol = 1e-1;
-                          for (unsigned int d = 0; d < dim; ++d)
+                          for (unsigned int d = 0; d < 3; ++d)
                               {
                               types::global_dof_index dummy =
                                 sub_wise_to_original[local_dof_indices[j]];
                               types::global_dof_index vec_index =
                                 vec_original_to_sub_wise
-                                  [gradient_dh.n_dofs() / dim * d +
+                                  [gradient_dh.n_dofs() / 3 * d +
                                    dummy];
                               Assert(
                                 vector_this_cpu_set.is_element(vec_index),
@@ -3435,13 +3462,13 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 			      double wake_coeff = 1.0;
     
 		              b_singular_cell_contribution_hyp+= - Vk_integrals[j]*wake_coeff;
-		              Point<dim> dof_position = support_points[local_dof_indices[j]];
+		              Point<3> dof_position = support_points[local_dof_indices[j]];
 		              unsigned int scalar_dh_index = sub_wise_to_original[local_dof_indices[j]];
-		              Tensor<1,dim> dof_normal;
-		              for (unsigned int di = 0; di < dim; ++di) 
+		              Tensor<1,3> dof_normal;
+		              for (unsigned int di = 0; di < 3; ++di) 
 		                  dof_normal[di] =  local_vector_normals_solution(vec_original_to_sub_wise[scalar_dh_index + di * dh.n_dofs()]);
 		              
-		              for (unsigned int di = 0; di < dim; ++di) 
+		              for (unsigned int di = 0; di < 3; ++di) 
 		                  c_singular_cell_contribution_hyp[di]+=  (dof_position[di]* Vk_integrals[j]-dof_normal[di] * Wk_integrals[j])*wake_coeff;
                       
 		              
@@ -3453,7 +3480,7 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 		          integral += singular_cell_contribution_str +
 		                      singular_cell_contribution_hyp;
 		          b_integral+= b_singular_cell_contribution_hyp;
-                          for (unsigned int di = 0; di < dim; ++di)              
+                          for (unsigned int di = 0; di < 3; ++di)              
                               c_integral[di] += c_singular_cell_contribution_hyp[di];
 		        }
 
@@ -3470,30 +3497,30 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 	           
 		   pcout << std::setprecision(15) << "Integral: " << integral << std::endl;
 		   pcout << "B Integral: " << b_integral << std::endl;
-		   for (unsigned int di = 0; di < dim; ++di)
+		   for (unsigned int di = 0; di < 3; ++di)
 		   	pcout << "C Integral: " << c_integral[di] << std::endl;
       
       
-        FullMatrix<double> C(dim,dim);
-        FullMatrix<double> I(dim,dim);
-        Vector<double> rrhs(dim);
-        Vector<double> b(dim);
-        Vector<double> solution(dim);
-        Vector<double> ex_solution(dim);
-        for (unsigned int dj = 0; dj < dim; ++dj)
+        FullMatrix<double> C(3,3);
+        FullMatrix<double> I(3,3);
+        Vector<double> rrhs(3);
+        Vector<double> b(3);
+        Vector<double> solution(3);
+        Vector<double> ex_solution(3);
+        for (unsigned int dj = 0; dj < 3; ++dj)
             {
             rrhs(dj) = integral[dj];
             b(dj) = b_integral[dj];
             ex_solution(dj) = 1.0;
             I(dj,dj) = 1.0;
-            for (unsigned int di = 0; di < dim; ++di)
+            for (unsigned int di = 0; di < 3; ++di)
                 C(di,dj) = -c_integral[dj][di];
 	        }
 	
 	        
 	    
 	    
-	    FullMatrix<double> Cinv(dim,dim);
+	    FullMatrix<double> Cinv(3,3);
 	    Cinv.invert(C);
 	    Cinv.vmult(solution,rrhs);
 	    C.add(-0.5,I);
@@ -3513,10 +3540,7 @@ void BEMProblem<dim>::compute_velocities_on_wake_cell_centered_test(Functions::P
 	    pcout<<"Cell size | Solution error | C matrix error | b vector error "<<std::endl;
 	    pcout<<cell_found->diameter()<<" "<<solution_error<<" "<<C_error<<" "<<b_error<<std::endl;
 	    
-	    }
-	    
-	    
-    }  
+
   
 }
 

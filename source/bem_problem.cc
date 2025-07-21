@@ -417,6 +417,158 @@ BEMProblem<dim>::reinit()
     b_i[i].reinit(this_cpu_set, mpi_communicator);
 }
 
+template <int dim>
+double BEMProblem<dim>::compute_boundary_area_with_spherical_coordinates()
+{
+  double area = 0.0;
+
+  FEValues<dim - 1, dim> fe_v(*mapping,
+                              *fe,
+                              *quadrature,
+                              update_values | update_normal_vectors |
+                                update_quadrature_points | update_JxW_values);
+
+  const unsigned int n_q_points = fe_v.n_quadrature_points;
+
+  std::vector<types::global_dof_index> local_dof_indices(fe->dofs_per_cell);
+  
+  std::vector<Point<dim>> support_points(dh.n_dofs());
+  DoFTools::map_dofs_to_support_points<dim - 1, dim>(*mapping,
+                                                     dh,
+                                                     support_points);
+
+  // we start with a loop on all the active cells
+  cell_it cell = dh.begin_active(), endc = dh.end();
+
+  for (cell = dh.begin_active(); cell != endc; ++cell)
+    {
+      // this is just as usual, we reinitialize fe_v and local_dof_indices on this cell
+      fe_v.reinit(cell);
+      cell->get_dof_indices(local_dof_indices);
+
+      //const std::vector<Point<dim>> &q_points    = fe_v.get_quadrature_points();
+      //const std::vector<Tensor<1, dim>> &normals = fe_v.get_normal_vectors();
+      
+      // this is just to check that the first 4 dofs correspond to the vertices
+      for (unsigned int j=0; j<GeometryInfo<dim - 1>::vertices_per_cell; ++j)
+          {
+          std::cout<<cell<<"  Vert "<<j<<"  "<<cell->vertex(j)<<std::endl;
+          }
+      
+      //1) we obtain the spherical coordinates of all the cell dofs and the cell vertices
+      std::cout<<cell<<"  Supp Cart:  "<<std::endl;
+      std::vector<Point<dim> > spher_local_supp_points(fe->dofs_per_cell);
+      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+          {
+          Point<dim> spher;
+          Point<dim> cart = support_points[local_dof_indices[j]];
+          // here we also print the cartesian coordinates of the dofs support points
+          std::cout<<cart<<std::endl;
+          // here we make the conversion: I am not sure this is the best way to do it
+          double r = sqrt(cart*cart);
+          double theta = acos(cart(2)/r);
+          double sgn_y;
+          if (cart(1)>0)
+             sgn_y = 1.0;
+          else
+             sgn_y = -1.0;
+          double phi = sgn_y*acos(cart(0)/sqrt(cart(0)*cart(0)+cart(1)*cart(1)));
+          spher(0)=r; spher(1)=theta;
+          if (dim==3)
+             spher(2)=phi;
+          spher_local_supp_points[j] = spher;
+          }
+      // we now print the spherical coordinates computed
+      std::cout<<cell<<"  Supp Spher:  "<<std::endl;
+      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+          {
+          std::cout<<spher_local_supp_points[j]<<std::endl;
+          }
+      
+      //2) create a one cell triangulation with the one cell and cell vertices spherical coordinates
+      std::vector<Point<dim>>        spher_vertices;
+      std::vector<CellData<dim - 1>> spher_cells;
+      SubCellData                    spher_subcelldata;
+    
+      spher_vertices.resize(4);
+      spher_cells.resize(1);
+      for (unsigned int j=0; j<GeometryInfo<dim - 1>::vertices_per_cell; ++j)
+          spher_vertices[j] = spher_local_supp_points[j];
+      spher_cells[0].vertices[0]  = 0;
+      spher_cells[0].vertices[1]  = 1;
+      spher_cells[0].vertices[2]  = 2;
+      spher_cells[0].vertices[3]  = 3;
+      Triangulation<dim - 1, dim> spher_tria;
+      GridTools::delete_unused_vertices(spher_vertices, spher_cells, spher_subcelldata);
+      GridTools::consistently_order_cells(spher_cells);
+      spher_tria.create_triangulation(spher_vertices, spher_cells, spher_subcelldata);
+
+      
+      //3) create a dh and a gradient_dh on the new one cell tria    
+      DoFHandler<dim - 1, dim>  spher_dh(spher_tria);
+      DoFHandler<dim - 1, dim>  spher_gradient_dh(spher_tria);
+      spher_dh.distribute_dofs(*fe);
+      spher_gradient_dh.distribute_dofs(*gradient_fe);
+      DoFRenumbering::component_wise(spher_dh);
+      DoFRenumbering::component_wise(spher_gradient_dh);
+      
+      
+      //4) prepare the vector with the local --- polar --- coordinates
+      //   for the one cell mapping on the new tria/dh
+      Vector<double>  spher_map_vector(spher_gradient_dh.n_dofs());
+      std::shared_ptr<Mapping<dim - 1, dim>> spher_mapping;          
+      if (mapping_type == "FE")
+        spher_mapping = std::make_shared<MappingFEField<dim - 1, dim>>(spher_gradient_dh,
+                                                                 spher_map_vector);
+      else
+        spher_mapping = std::make_shared<MappingQ<dim - 1, dim>>(mapping_degree);
+        
+      for (unsigned int j=0; j<fe->dofs_per_cell; ++j)
+          {
+          spher_map_vector(j+0*fe->dofs_per_cell) = spher_local_supp_points[j](0);
+          spher_map_vector(j+1*fe->dofs_per_cell) = spher_local_supp_points[j](1);
+          spher_map_vector(j+2*fe->dofs_per_cell) = spher_local_supp_points[j](2);
+          } 
+
+      //5) create and FEValues on the new dh
+      FEValues<dim - 1, dim> spher_fe_v(*spher_mapping,
+                                        *fe,
+                                        *quadrature,
+                                        update_values | update_normal_vectors |
+                                        update_quadrature_points | update_JxW_values);
+      
+      
+      //6) loop on quadrature nodes to compute cell area both in standard way and with polar coordinates                                  
+      cell_it spher_cell = spher_dh.begin_active(); 
+      spher_fe_v.reinit(spher_cell);
+      const std::vector<Point<dim>> &spher_q_points    = spher_fe_v.get_quadrature_points();
+      double spher_cell_area = 0.0; 
+      for (unsigned int q = 0; q < n_q_points; ++q)
+            {
+            double r = spher_q_points[q](0);
+            double theta = spher_q_points[q](1);
+            spher_cell_area += r*r*sin(theta)*spher_fe_v.JxW(q);
+            }
+      std::cout<<"Spher area: "<<spher_cell_area<<std::endl;
+      
+      double cell_area = 0.0; 
+      for (unsigned int q = 0; q < n_q_points; ++q)
+            {
+            cell_area += fe_v.JxW(q);
+            }
+      std::cout<<"Area: "<<cell_area<<std::endl;
+        
+      
+      //1) obtain the spherical coordinates of all the cell dofs and the cell vertices
+      //2) create a local triangulation with the one cell and cell vertices spherical coordinates
+      //3) create a dh on the new local tria
+      //4) use the local dofs coordinate for the local mapping on the new tria/dh
+      //5) create and FEValues on the new dh
+      
+    }
+
+return area;
+}
 
 template <>
 const Quadrature<2> &

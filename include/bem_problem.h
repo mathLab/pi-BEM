@@ -291,6 +291,8 @@ public:
 
   void
   adaptive_refinement(const TrilinosWrappers::MPI::Vector &error_vector);
+  
+  double compute_boundary_area_with_spherical_coordinates();
 
 
 

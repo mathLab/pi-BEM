@@ -115,7 +115,7 @@ Driver<dim>::run()
             computational_domain.update_triangulation();
           }
       }
-
+    bem_problem.compute_boundary_area_with_spherical_coordinates();
     std::string filename = (boundary_conditions.output_file_name);
     boundary_conditions.compute_errors();
     boundary_conditions.output_results(filename);

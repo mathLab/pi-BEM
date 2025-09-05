@@ -6,7 +6,7 @@
 
 # pi-BEM: Parallel BEM Solver
 
-[![Build Status](https://travis-ci.org/mathLab/pi-BEM.svg?branch=master)](https://travis-ci.org/mathLab/pi-BEM)
+[![Build Status](https://github.com/mathLab/pi-BEM/actions/workflows/tests.yml/badge.svg)](https://github.com/mathLab/pi-BEM/actions/workflows/tests.yml)
 
 Copyright (C) 2015 -- 2019 by Nicola Giuliani (1), Andrea Mola (2) and Luca Heltai (2)
 

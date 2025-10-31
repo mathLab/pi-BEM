@@ -642,6 +642,41 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
                                                                   tolerance));
         }
 
+      /////////////////////////////////////////
+      // these lines are placed to fix a problem that deal developers have
+      // created imposing that for each cell/face with a manifold_id,
+      // a manifold must be prescribed.
+
+      // in addition now if I set the manifold_id of a cell, its faces
+      // won't inherit that automatically.so we need to fix that mess too
+      Triangulation<2, 3>::active_cell_iterator cell = tria.begin_active();
+      Triangulation<2, 3>::active_cell_iterator endc = tria.end();
+      std::set<unsigned int> detected_manifold_ids;
+      for (; cell != endc; ++cell)
+      {
+        if (cell->manifold_id() != numbers::flat_manifold_id)
+        {
+          detected_manifold_ids.insert(cell->manifold_id());
+          for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
+            if (cell->face(f)->manifold_id() == numbers::flat_manifold_id)
+              cell->face(f)->set_manifold_id(cell->manifold_id());
+        }
+        for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
+          if (cell->face(f)->manifold_id() != numbers::flat_manifold_id)
+            detected_manifold_ids.insert(cell->face(f)->manifold_id());
+      }
+
+      FlatManifold<2, 3> flat_manifold_default;
+      for (std::set<unsigned int>::iterator it = detected_manifold_ids.begin();
+           it != detected_manifold_ids.end();
+           it++)
+      {
+        pcout << "Manifold_id detected: " << *it << std::endl;
+        tria.set_manifold(*it, flat_manifold_default);
+      }
+      ////////////////////////////////////////
+
+
       for (unsigned int i = 0; i < cad_surfaces.size(); ++i)
         {
           tria.set_manifold(1 + i, *normal_to_mesh_projectors[i]);

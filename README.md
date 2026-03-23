@@ -68,7 +68,9 @@ Just follow the [instructions](https://github.com/dealii/dealii/wiki/deal.II-in-
 
 We provide the possibility of using Docker as a tool to provide a fully operational environment for our library. To use such tool you need to install Docker following the [instructions](https://docs.docker.com/engine/installation/) provided by its authors. Then you can execute the following command line instruction
 
- docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t dealii/dealii:v9.6.0-jammy bash
+```
+docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t dealii/dealii:v9.6.0-jammy bash
+```
 
 to retrieve the environment. In such a shell you can easily compile the pi-BEM library following its own instructions.
 
@@ -95,9 +97,10 @@ Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) 
 
 ### Trilinos Installation procedure
 
-- Download the latest version at [Trilinos](https://trilinos.org/download/)
+- Download the latest version at [Trilinos](https://trilinos.github.io/download.html)
 - This is a possible configuration file
 
+   ```
   cmake -D Trilinos_ENABLE_OPTIONAL_PACKAGES:BOOL=ON \
   -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=ON \
   -D CMAKE_CXX_FLAGS:STRING="-O3" \
@@ -115,27 +118,34 @@ Follow the detailed [instruction](https://www.dealii.org/developer/readme.html) 
   -D BUILD_SHARED_LIBS:BOOL=ON ../
   
   make install
+   ```
 
-- if some packages create conflicts they can be disabled as seen on the Trilinos webpage
+- If some packages create conflicts, they can be disabled as seen on the Trilinos webpage.
 
 ### pi-BEM Installation procedure
 
 Then you can clone the repository and compile it
 
- git clone <https://github.com/mathLab/pi-BEM.git>
- cd pi-BEM
- mkdir build
- cd build
- cmake ../
- make -j4
+```
+git clone <https://github.com/mathLab/pi-BEM.git>
+cd pi-BEM
+mkdir build
+cd build
+cmake ../
+make -j4
+```
 
 After you have compiled your application, you can run
 
- make test
+```
+make test
+```
 
 or
 
- ctest
+```
+ctest
+```
 
 to start the testsuite.
 
@@ -145,11 +155,15 @@ information on how to create tests and add categories of tests.
 
 If you want you can run a preliminary execution in the build library typing
 
- mpirun -np 1 bem_fma_2d
+```
+mpirun -np 1 bem_fma_2d
+```
 
 this will automatically generate the parameter file for the bi-dimensional run while
 
- mpirun -np 1 bem_fma_3d
+```
+mpirun -np 1 bem_fma_3d
+```
 
 will create a proper parameter file for a 3 dimensional simulation.
 
@@ -157,7 +171,9 @@ will create a proper parameter file for a 3 dimensional simulation.
 
 Before making a pull request, please make sure you run the script
 
-    ./scripts/indent
+```
+./scripts/indent
+```
 
 from the base directory of this project, to ensure that no random
 white space changes are inserted in the repository.
@@ -168,9 +184,10 @@ The script requires `clang-format` version 16.0.6 to work properly.
 
 If you use this software, please consider citing the following work:
 
- @article{GiulianiMolaHeltai2018,
+```
+@article{GiulianiMolaHeltai2018,
   doi = {10.1016/j.advengsoft.2018.03.008},
-  url = {<https://doi.org/10.1016/j.advengsoft.2018.03.008}>,
+  url = {https://doi.org/10.1016/j.advengsoft.2018.03.008},
   year  = {2018},
   month = {jul},
   publisher = {Elsevier {BV}},
@@ -180,6 +197,7 @@ If you use this software, please consider citing the following work:
   title = {$\uppi$ - {BEM} : A flexible parallel implementation for adaptive,  geometry aware,  and high order boundary element methods},
   journal = {Advances in Engineering Software}
   }
+```
 
 # Licence
 

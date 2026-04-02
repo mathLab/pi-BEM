@@ -640,7 +640,7 @@ public:
   /// a set of distributed vectors which contain all the entries of the
   /// b_i vector appearing in the hypersingular BIE
   std::vector<TrilinosWrappers::MPI::Vector> b_i;
-  TrilinosWrappers::MPI::Vector      sol;
+
   TrilinosWrappers::MPI::BlockVector sol_blocked, system_rhs_blocked;
 
   mutable TrilinosWrappers::MPI::Vector serv_phi, serv_phi_imag;

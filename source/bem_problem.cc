@@ -11,7 +11,6 @@
 #include "../include/constrained_matrix_complex.h"
 #include "../include/laplace_kernel.h"
 #include "../include/singular_kernel_integral.h"
-#include "../include/preconditioner_complex_schur.h"
 #include "Teuchos_TimeMonitor.hpp"
 
 using Teuchos::RCP;
@@ -3600,7 +3599,8 @@ BEMProblem<dim>::compute_gradients_hypersingular(
     }
 
   vector_hyp_gradients_solution.compress(VectorOperation::insert);
-  vector_gradients_solution = vector_hyp_gradients_solution;
+  // TODO multicomponents solution vectors should be considered here
+  vector_gradients_solutions[0] = vector_hyp_gradients_solution;
   pcout << "done computing gradients with hypersingular integrals" << std::endl;
 }
 

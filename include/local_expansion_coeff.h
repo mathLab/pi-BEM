@@ -32,7 +32,7 @@ public:
       const unsigned int &m,
       const unsigned int &nn,
       const unsigned int &mm,
-<<<<<<< HEAD
+
       const double       &value);
   unsigned int
   getNumberOfElements();

@@ -2,7 +2,7 @@
 
 mkdir -p logs
 
-cad_refine=4
+cad_refine=2
 
 export OMP_THREADS_NUM=4
 
@@ -16,10 +16,10 @@ do
             cp ref_params_sphere_${problem}_${bconds}_${solver}.prm ./parameters_bem_3.prm
             
             #tune the number of refinements
-            set Number of cycles                                                         = 2
+            set Number of cycles                                                         = 0
             sed -i "s/set Number of cycles                                                         = .*/set Number of cycles                                                         = ${cad_refine}/" parameters_bem_3.prm
             
-            perf stat --detailed ./bem_fma_3d > log 2>&1
+            perf stat --detailed mpirun -np 10 ./bem_fma_3d > log 2>&1
             
             mv log logs/sphere_${problem}_${bconds}_${solver}.log
             

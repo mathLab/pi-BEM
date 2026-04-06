@@ -2,7 +2,7 @@
 
 #include "../include/computational_domain.h"
 
-on all combinations of boundary conditions)
+
 #include <deal.II/grid/grid_tools.h>
 
 using namespace std;
@@ -96,7 +96,9 @@ ComputationalDomain<dim>::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Surface curvature adaptive refinement",
                     "false",
                     Patterns::Bool());
-
+  prm.declare_entry("Attach flat manifold to manifold ids with unset manifold",
+                    "true",
+                    Patterns::Bool());
   prm.declare_entry("Cells per circle", "12", Patterns::Double());
 
   prm.declare_entry("Maximum number of curvature adaptive refinement cycles",
@@ -147,6 +149,8 @@ ComputationalDomain<dim>::parse_parameters(ParameterHandler &prm)
   use_cad_surface_and_curves = prm.get_bool("Use iges surfaces and curves");
   surface_curvature_refinement =
     prm.get_bool("Surface curvature adaptive refinement");
+  attach_flat_manifold_to_manifold_ids_with_unset_manifold =
+    prm.get_bool("Attach flat manifold to manifold ids with unset manifold");
   cells_per_circle       = prm.get_double("Cells per circle");
   pre_global_refinements = prm.get_integer(
     "Number of global refinement to be executed before local refinement cycle");
@@ -630,6 +634,60 @@ template <>
 double
 ComputationalDomain<3>::load_cad_objects()
 {
+
+
+
+
+  /////////////////////////////////////////
+  // these lines are placed to fix a problem that deal developers have
+  // created: if I set the manifold_id of a cell, its faces
+  // won't inherit that automatically.so we need to fix that mess too
+  Triangulation<2, 3>::active_cell_iterator cell = tria.begin_active();
+  Triangulation<2, 3>::active_cell_iterator endc = tria.end();
+  std::set<unsigned int> detected_manifold_ids;
+  for (; cell != endc; ++cell)
+  {
+    if (cell->manifold_id() != numbers::flat_manifold_id)
+    {
+      detected_manifold_ids.insert(cell->manifold_id());
+      for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
+        if (cell->face(f)->manifold_id() == numbers::flat_manifold_id)
+          {
+          cell->face(f)->set_manifold_id(cell->manifold_id());
+          if (cell->face(f)->at_boundary())
+             cell->face(f)->set_boundary_id(cell->manifold_id());
+          }
+        else
+          {
+          if (cell->face(f)->at_boundary())
+             cell->face(f)->set_boundary_id(cell->face(f)->manifold_id());
+          }
+    }
+    for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
+      if (cell->face(f)->manifold_id() != numbers::flat_manifold_id)
+        detected_manifold_ids.insert(cell->face(f)->manifold_id());
+  }
+ // in addition they now impose that for each cell/face with a manifold_id,
+ // a manifold must be prescribed.
+ // if we import from AVS UCD format or similar, we can run into trouble
+ // because only a flag can be associated either with material_id or manifold_id
+ // these (optional) lines can fix the problem if needed
+ if (attach_flat_manifold_to_manifold_ids_with_unset_manifold)
+     {
+      FlatManifold<2, 3> flat_manifold_default;
+      for (std::set<unsigned int>::iterator it = detected_manifold_ids.begin();
+           it != detected_manifold_ids.end();
+           it++)
+      {
+        pcout << "Manifold_id detected: " << *it << std::endl;
+        tria.set_manifold(*it, flat_manifold_default);
+      }
+     }
+  ////////////////////////////////////////
+
+
+
+
   double max_tol = 0;
   if (use_cad_surface_and_curves)
     {
@@ -709,6 +767,7 @@ ComputationalDomain<3>::load_cad_objects()
                                                                   tolerance));
         }
 
+
       for (unsigned int i = 0; i < cad_surfaces.size(); ++i)
         {
           tria.set_manifold(1 + i, *normal_to_mesh_projectors[i]);
@@ -719,7 +778,7 @@ ComputationalDomain<3>::load_cad_objects()
           tria.set_manifold(11 + i, *line_projectors[i]);
         }
     }
-
+  
   return max_tol;
 }
 

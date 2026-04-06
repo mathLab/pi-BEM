@@ -218,6 +218,20 @@ public:
   /// maximum cell aspect ratio
   double max_element_aspect_ratio;
 
+
+  // we make frequent use of AVS UCD grids, which only admit a single flag per each cell
+  // so, we can either set a manifold_id or a material_id with it. we make use of both.
+  // the former to refine the grid and the second to apply boundary conditions.
+  // however, it often happens that we have more boundary conditions than manifolds
+  // associated to cad surfaces. In such a case a deal.II exception is triggered,
+  // as manifold_ids are defined but no manifolds are attached to them.
+  // this option can be used to avoid a similar exception. If the option is set to true,
+  // all manifold_ids are scanned, and those with no manifold attached are attached to
+  // a flat manifold. This preserves the possibility of importing AVS UCD grids or similar
+  // (which, however, have not been deprecated by deal.II) 
+ 
+  bool attach_flat_manifold_to_manifold_ids_with_unset_manifold;
+
   // flag to assess if the software will look for cad surfaces (form files
   // Color_*.iges) and curves (from files Curve_*.iges), and use such geometries
   // to refine the grid. the program will import as many curves and surfaces as

@@ -576,13 +576,15 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
         {
           bool is_dirichlet = std::find(comp_dom.dirichlet_boundary_ids.begin(),
                                         comp_dom.dirichlet_boundary_ids.end(),
-                                        cell->boundary_id()) !=
+                                        cell->material_id()) !=
                               comp_dom.dirichlet_boundary_ids.end();
+
           if (is_dirichlet)
             {
               cell->get_dof_indices(dofs);
               for (auto i : dofs)
                 {
+                  
                   non_partitioned_dirichlet_flags(i) = 1;
 
                   // mark dofs on masking vectors
@@ -597,7 +599,7 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
             {
               bool is_neumann = std::find(comp_dom.neumann_boundary_ids.begin(),
                                           comp_dom.neumann_boundary_ids.end(),
-                                          cell->boundary_id()) !=
+                                          cell->material_id()) !=
                                 comp_dom.neumann_boundary_ids.end();
               if (is_neumann)
                 {
@@ -617,7 +619,7 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
 #ifdef DEBUG
                   bool is_robin = std::find(comp_dom.robin_boundary_ids.begin(),
                                             comp_dom.robin_boundary_ids.end(),
-                                            cell->boundary_id()) !=
+                                            cell->material_id()) !=
                                   comp_dom.robin_boundary_ids.end();
                   Assert(is_robin, ExcInternalError());
 #endif

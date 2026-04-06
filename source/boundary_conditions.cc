@@ -99,6 +99,7 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
                                       Utilities::int_to_string(d + 2) + "d";
 
                   prm.enter_subsection(label);
+
                   if (!cond)
                     {
                       // potentials are scalars
@@ -119,13 +120,13 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
                       if (!d)
                         {
                           Functions::ParsedFunction<2>::declare_parameters(prm,
-                                                                           d);
+                                                                           d+2);
                           prm.set("Function expression", defaults_2d[cond]);
                         }
                       else
                         {
                           Functions::ParsedFunction<3>::declare_parameters(prm,
-                                                                           d);
+                                                                           d+3);
                           prm.set("Function expression", defaults_3d[cond]);
                         }
                     }

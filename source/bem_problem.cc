@@ -188,6 +188,7 @@ BEMProblem<dim>::reinit()
   vector_constraints.reinit();
   DoFTools::make_hanging_node_constraints(gradient_dh, vector_constraints);
   vector_constraints.close();
+  
   if (mapping_type == "FE")
     {
       map_vector.reinit(gradient_dh.n_dofs());
@@ -675,10 +676,10 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
   // "<<helper_dirichlet_2<<std::endl;
   if (helper_dirichlet_2 > 0)
     have_dirichlet_bc = true;
-  // std::cout<<this_mpi_process<<" , "<<have_dirichlet_bc<<std::endl;
-  // for (unsigned int i=0; i<dh.n_dofs(); ++i)
-  //    if (this_mpi_process == 1)
-  //       pcout<<i<<" "<<dirichlet_nodes(i)<<" "<<neumann_nodes(i)<<std::endl;
+//   std::cout<<this_mpi_process<<" , "<<have_dirichlet_bc<<std::endl;
+//   for (unsigned int i=0; i<dh.n_dofs(); ++i)
+//      if (this_cpu_set.is_element(i))
+//         pcout<<i<<" "<<dirichlet_nodes(i)<<" "<<neumann_nodes(i)<<std::endl;
 }
 
 template <int dim>
@@ -3014,6 +3015,7 @@ BEMProblem<dim>::compute_normals()
                mass_prec);
 
   vector_constraints.distribute(vector_normals_solution);
+
 }
 
 template <int dim>

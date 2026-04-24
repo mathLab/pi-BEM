@@ -659,7 +659,16 @@ ComputationalDomain<dim>::refine_and_resize(const unsigned int refinement_level)
           detected_manifold_ids.insert(cell->manifold_id());
           for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
             if (cell->face(f)->manifold_id() == numbers::flat_manifold_id)
+              {
               cell->face(f)->set_manifold_id(cell->manifold_id());
+              if (cell->face(f)->at_boundary())
+                 cell->face(f)->set_boundary_id(cell->manifold_id());
+              }
+            else
+              {
+              if (cell->face(f)->at_boundary())
+                 cell->face(f)->set_boundary_id(cell->face(f)->manifold_id());
+              }
         }
         for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
           if (cell->face(f)->manifold_id() != numbers::flat_manifold_id)

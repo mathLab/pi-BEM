@@ -646,7 +646,8 @@ ComputationalDomain<3>::load_cad_objects()
         {
           detected_manifold_ids.insert(cell->manifold_id());
           for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
-            if (cell->face(f)->manifold_id() == dealii::numbers::flat_manifold_id)
+            if (cell->face(f)->manifold_id() ==
+                dealii::numbers::flat_manifold_id)
               {
                 cell->face(f)->set_manifold_id(cell->manifold_id());
                 if (cell->face(f)->at_boundary())

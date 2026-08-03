@@ -1862,7 +1862,8 @@ BEMFMA<dim>::multipole_integrals()
                        StandardExceptions::ExcInvalidIterator());
                 copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j]
                   .AddNormDer(this->quadShapeFunValues[cell][q][j] *
-                                this->quadJxW[cell][q] / 4 / dealii::numbers::PI,
+                                this->quadJxW[cell][q] / 4 /
+                                dealii::numbers::PI,
                               this->quadPoints[cell][q],
                               this->quadNormals[cell][q],
                               cache);

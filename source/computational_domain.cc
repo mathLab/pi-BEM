@@ -642,11 +642,11 @@ ComputationalDomain<3>::load_cad_objects()
   std::set<unsigned int>                    detected_manifold_ids;
   for (; cell != endc; ++cell)
     {
-      if (cell->manifold_id() != numbers::flat_manifold_id)
+      if (cell->manifold_id() != dealii::numbers::flat_manifold_id)
         {
           detected_manifold_ids.insert(cell->manifold_id());
           for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
-            if (cell->face(f)->manifold_id() == numbers::flat_manifold_id)
+            if (cell->face(f)->manifold_id() == dealii::numbers::flat_manifold_id)
               {
                 cell->face(f)->set_manifold_id(cell->manifold_id());
                 if (cell->face(f)->at_boundary())
@@ -659,7 +659,7 @@ ComputationalDomain<3>::load_cad_objects()
               }
         }
       for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
-        if (cell->face(f)->manifold_id() != numbers::flat_manifold_id)
+        if (cell->face(f)->manifold_id() != dealii::numbers::flat_manifold_id)
           detected_manifold_ids.insert(cell->face(f)->manifold_id());
     }
   // in addition they now impose that for each cell/face with a manifold_id,
@@ -924,7 +924,7 @@ ComputationalDomain<3>::refine_and_resize_by_cad_projections(double max_tol)
               // cell
               double cell_size;
               if (cell->manifold_id() &&
-                  (cell->manifold_id() != numbers::flat_manifold_id) &&
+                  (cell->manifold_id() != dealii::numbers::flat_manifold_id) &&
                   (cell->manifold_id() - 1 < cad_surfaces.size()))
                 {
                   // if so, the cad_surface associated with the present
@@ -974,7 +974,7 @@ ComputationalDomain<3>::refine_and_resize_by_cad_projections(double max_tol)
                   // the target cell size is selected so that it corresponds to
                   // a cells_per_circle fraction of the circumference
                   // corresponding to the minimum curvature radius
-                  cell_size = 2 * dealii::numbers::PI / cells_per_circle *
+                  cell_size = 2 * dealii::dealii::numbers::PI / cells_per_circle *
                               curvature_radius;
 
                   // pcout << "Refined succesfully from manifold "
@@ -986,7 +986,7 @@ ComputationalDomain<3>::refine_and_resize_by_cad_projections(double max_tol)
                   // the target cell_size is set to and extremely high value, so
                   // that the cell is never refined
                   cell_size =
-                    2 * dealii::numbers::PI / cells_per_circle / tolerance;
+                    2 * dealii::dealii::numbers::PI / cells_per_circle / tolerance;
 
                   // pcout << "cell rejected for refinement" << std::endl;
                 }

@@ -628,7 +628,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                       const auto  &cellQuadPoints = (*it).second;
                       bool         is_singular    = false;
                       unsigned int singular_index =
-                        numbers::invalid_unsigned_int;
+                        dealii::numbers::invalid_unsigned_int;
 
                       for (unsigned int j = 0;
                            j < this->fma_dh->get_fe().dofs_per_cell;
@@ -711,7 +711,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                           // QUESTO E' IL SOLITO STEP 34, VEDI SE CAMBIARE CON
                           // QUELLO NUOVO PER STOKES
                           Assert(singular_index !=
-                                   numbers::invalid_unsigned_int,
+                                   dealii::numbers::invalid_unsigned_int,
                                  ExcInternalError());
 
                           // TODO: validate
@@ -1433,7 +1433,7 @@ BEMFMA<dim>::direct_integrals_omp()
 
                         bool         is_singular = false;
                         unsigned int singular_index =
-                          numbers::invalid_unsigned_int;
+                          dealii::numbers::invalid_unsigned_int;
                         for (unsigned int j = 0; j < dofs_per_cell; ++j)
                           {
                             // recall const
@@ -1500,7 +1500,7 @@ BEMFMA<dim>::direct_integrals_omp()
                         else
                           {
                             Assert(singular_index !=
-                                     numbers::invalid_unsigned_int,
+                                     dealii::numbers::invalid_unsigned_int,
                                    ExcInternalError());
 
                             const Quadrature<dim - 1> *singular_quadrature =
@@ -1862,13 +1862,13 @@ BEMFMA<dim>::multipole_integrals()
                        StandardExceptions::ExcInvalidIterator());
                 copy_data.myelemMultipoleExpansionsKer1[blockId][cell][j]
                   .AddNormDer(this->quadShapeFunValues[cell][q][j] *
-                                this->quadJxW[cell][q] / 4 / numbers::PI,
+                                this->quadJxW[cell][q] / 4 / dealii::numbers::PI,
                               this->quadPoints[cell][q],
                               this->quadNormals[cell][q],
                               cache);
                 copy_data.myelemMultipoleExpansionsKer2[blockId][cell][j].Add(
                   this->quadShapeFunValues[cell][q][j] *
-                    this->quadJxW[cell][q] / 4 / numbers::PI,
+                    this->quadJxW[cell][q] / 4 / dealii::numbers::PI,
                   this->quadPoints[cell][q],
                   cache);
               }
@@ -2898,7 +2898,7 @@ BEMFMA<dim>::FMA_preconditioner_tbb(
   struct PrecCopy
   {
     PrecCopy()
-      : row(numbers::invalid_unsigned_int)
+      : row(dealii::numbers::invalid_unsigned_int)
       , sparsity_row(0) {};
 
     PrecCopy(const PrecCopy &in_copy)
@@ -3223,7 +3223,7 @@ BEMFMA<dim>::FMA_preconditioner_complex_tbb(
   struct PrecCopy
   {
     PrecCopy()
-      : row(numbers::invalid_unsigned_int)
+      : row(dealii::numbers::invalid_unsigned_int)
       , sparsity_row(0) {};
 
     PrecCopy(const PrecCopy &in_copy)

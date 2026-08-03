@@ -184,16 +184,16 @@ public:
   multipole_matr_vect_products_tbb(
     const TrilinosWrappers::MPI::Vector &phi_values,
     const TrilinosWrappers::MPI::Vector &dphi_dn_values,
-    TrilinosWrappers::MPI::Vector &      matrVectProdN,
-    TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
+    TrilinosWrappers::MPI::Vector       &matrVectProdN,
+    TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 
 #ifdef PBEM_OPENMP
   void
   multipole_matr_vect_products_omp(
     const TrilinosWrappers::MPI::Vector &phi_values,
     const TrilinosWrappers::MPI::Vector &dphi_dn_values,
-    TrilinosWrappers::MPI::Vector &      matrVectProdN,
-    TrilinosWrappers::MPI::Vector &      matrVectProdD) const;
+    TrilinosWrappers::MPI::Vector       &matrVectProdN,
+    TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 #endif
 
   /// this methods creates the adaptive
@@ -229,26 +229,26 @@ public:
 
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_tbb(const TrilinosWrappers::MPI::Vector &alpha,
-                         AffineConstraints<double> &          c);
+                         AffineConstraints<double>           &c);
 
 #ifdef PBEM_OPENMP
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_omp(const TrilinosWrappers::MPI::Vector &alpha,
-                         AffineConstraints<double> &          c);
+                         AffineConstraints<double>           &c);
 #endif
 
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex(const TrilinosWrappers::MPI::Vector &alpha,
-                             AffineConstraints<double> &          c);
+                             AffineConstraints<double>           &c);
 
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex_tbb(const TrilinosWrappers::MPI::Vector &alpha,
-                                 AffineConstraints<double> &          c);
+                                 AffineConstraints<double>           &c);
 
 #ifdef PBEM_OPENMP
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex_omp(const TrilinosWrappers::MPI::Vector &alpha,
-                                 AffineConstraints<double> &          c);
+                                 AffineConstraints<double>           &c);
 #endif
 
 protected:

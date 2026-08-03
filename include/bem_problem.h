@@ -96,7 +96,6 @@
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
 
-
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -144,16 +143,16 @@ public:
 
   void
 
-  solve(TrilinosWrappers::MPI::Vector &      phi,
-        TrilinosWrappers::MPI::Vector &      dphi_dn,
+  solve(TrilinosWrappers::MPI::Vector       &phi,
+        TrilinosWrappers::MPI::Vector       &dphi_dn,
         const TrilinosWrappers::MPI::Vector &tmp_rhs,
         bool                                 reset_matrix = true);
 
   void
-  solve(TrilinosWrappers::MPI::Vector &      phi,
-        TrilinosWrappers::MPI::Vector &      phi_imag,
-        TrilinosWrappers::MPI::Vector &      dphi_dn,
-        TrilinosWrappers::MPI::Vector &      dphi_dn_imag,
+  solve(TrilinosWrappers::MPI::Vector       &phi,
+        TrilinosWrappers::MPI::Vector       &phi_imag,
+        TrilinosWrappers::MPI::Vector       &dphi_dn,
+        TrilinosWrappers::MPI::Vector       &dphi_dn_imag,
         const TrilinosWrappers::MPI::Vector &tmp_rhs,
         const TrilinosWrappers::MPI::Vector &tmp_rhs_imag,
         bool                                 reset_matrix = true);
@@ -235,8 +234,8 @@ public:
         const TrilinosWrappers::MPI::Vector &src) const;
 
   void
-  vmult(TrilinosWrappers::MPI::Vector &      dst,
-        TrilinosWrappers::MPI::Vector &      dst_imag,
+  vmult(TrilinosWrappers::MPI::Vector       &dst,
+        TrilinosWrappers::MPI::Vector       &dst_imag,
         const TrilinosWrappers::MPI::Vector &src,
         const TrilinosWrappers::MPI::Vector &src_imag) const;
 
@@ -248,8 +247,8 @@ public:
               const TrilinosWrappers::MPI::Vector &src) const;
 
   void
-  compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
-              TrilinosWrappers::MPI::Vector &      dst_imag,
+  compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
+              TrilinosWrappers::MPI::Vector       &dst_imag,
               const TrilinosWrappers::MPI::Vector &src,
               const TrilinosWrappers::MPI::Vector &src_imag) const;
 
@@ -289,10 +288,10 @@ public:
                TrilinosWrappers::MPI::Vector       &dphi_dn,
                const TrilinosWrappers::MPI::Vector &tmp_rhs);
   void
-  solve_system(TrilinosWrappers::MPI::Vector &      phi,
-               TrilinosWrappers::MPI::Vector &      phi_imag,
-               TrilinosWrappers::MPI::Vector &      dphi_dn,
-               TrilinosWrappers::MPI::Vector &      dphi_dn_imag,
+  solve_system(TrilinosWrappers::MPI::Vector       &phi,
+               TrilinosWrappers::MPI::Vector       &phi_imag,
+               TrilinosWrappers::MPI::Vector       &dphi_dn,
+               TrilinosWrappers::MPI::Vector       &dphi_dn_imag,
                const TrilinosWrappers::MPI::Vector &tmp_rhs,
                const TrilinosWrappers::MPI::Vector &tmp_rhs_imag);
 
@@ -579,8 +578,8 @@ public:
   ConditionalOStream        pcout;
   ComputationalDomain<dim> &comp_dom;
 
-  std::string                                  scalar_fe_type, vector_fe_type;
-  unsigned int                                 scalar_fe_order, vector_fe_order;
+  std::string  scalar_fe_type, vector_fe_type;
+  unsigned int scalar_fe_order, vector_fe_order;
 
   std::unique_ptr<FiniteElement<dim - 1, dim>> fe;
   std::unique_ptr<FiniteElement<dim - 1, dim>> gradient_fe;

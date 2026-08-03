@@ -34,10 +34,10 @@ template <class VEC, class MATRIX>
 class ConstrainedComplexOperator
 {
 public:
-  ConstrainedComplexOperator(const MATRIX &                   m,
+  ConstrainedComplexOperator(const MATRIX                    &m,
                              const AffineConstraints<double> &c,
                              const AffineConstraints<double> &c_imag,
-                             const IndexSet &                 c_cpu_set,
+                             const IndexSet                  &c_cpu_set,
                              MPI_Comm comm = MPI_COMM_WORLD)
     : constraints(c)
     , constraints_imag(c_imag)
@@ -66,7 +66,7 @@ public:
 
 private:
   const AffineConstraints<double> &constraints, constraints_imag;
-  const MATRIX &                   matrix;
+  const MATRIX                    &matrix;
   IndexSet                         constr_cpu_set, constr_cpu_set_complex;
   // this class is meant to be const when used by GMRES, but these caches are
   // kept allocated
@@ -166,7 +166,7 @@ public:
   {}
 
   virtual void
-  vmult(TrilinosWrappers::MPI::BlockVector &      dst,
+  vmult(TrilinosWrappers::MPI::BlockVector       &dst,
         const TrilinosWrappers::MPI::BlockVector &src) const
   {
     for (unsigned int i = 0; i < src.n_blocks(); ++i)
@@ -176,7 +176,7 @@ public:
   }
 
   virtual void
-  Tvmult(TrilinosWrappers::MPI::BlockVector &      dst,
+  Tvmult(TrilinosWrappers::MPI::BlockVector       &dst,
          const TrilinosWrappers::MPI::BlockVector &src) const
   {
     for (unsigned int i = 0; i < src.n_blocks(); ++i)
@@ -193,10 +193,10 @@ template <class VEC, class MATRIX>
 class BlockConstrainedComplexOperator
 {
 public:
-  BlockConstrainedComplexOperator(const MATRIX &                   m,
+  BlockConstrainedComplexOperator(const MATRIX                    &m,
                                   const AffineConstraints<double> &c,
                                   const AffineConstraints<double> &c_imag,
-                                  const IndexSet &                 c_cpu_set,
+                                  const IndexSet                  &c_cpu_set,
                                   MPI_Comm comm = MPI_COMM_WORLD)
     : constraints(c)
     , constraints_imag(c_imag)
@@ -220,7 +220,7 @@ public:
 
 private:
   const AffineConstraints<double> &constraints, constraints_imag;
-  const MATRIX &                   matrix;
+  const MATRIX                    &matrix;
   IndexSet                         constr_cpu_set, constr_cpu_set_complex;
   MPI_Comm                         mpi_communicator;
   unsigned int                     n_mpi_processes;
@@ -229,7 +229,7 @@ private:
 
 template <class VEC, class MATRIX>
 void
-BlockConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &      dst,
+BlockConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC       &dst,
                                                     const VEC &src) const
 {
   // store localized constrained values

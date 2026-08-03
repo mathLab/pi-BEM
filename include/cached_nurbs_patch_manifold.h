@@ -15,9 +15,9 @@ public:
     // const types::global_dof_index cache_size=100000)
     : OpenCASCADE::NURBSPatchManifold<2, 3>(face, tolerance)
     , tolerance(tolerance)
-    , face(face){
-        // projections_cache.reserve(cache_size);
-      };
+    , face(face) {
+      // projections_cache.reserve(cache_size);
+    };
 
   virtual Point<dim>
   pull_back(const Point<spacedim> &space_point) const override;

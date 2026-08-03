@@ -58,14 +58,14 @@ public:
 
   void
   Add(const double                       strength,
-      const dealii::Point<3> &           point,
+      const dealii::Point<3>            &point,
       std::vector<std::complex<double>> &cache);
 
   void
   Add(const MultipoleExpansion &child);
 
   void
-  Add(const MultipoleExpansion &         child,
+  Add(const MultipoleExpansion          &child,
       std::vector<std::complex<double>> &cache);
 
   void
@@ -75,15 +75,15 @@ public:
 
   void
   AddNormDer(const double                       strength,
-             const dealii::Point<3> &           point,
-             const dealii::Tensor<1, 3> &       normal,
+             const dealii::Point<3>            &point,
+             const dealii::Tensor<1, 3>        &normal,
              std::vector<std::complex<double>> &cache);
 
   double
   Evaluate(const dealii::Point<3> &evalPoint);
 
   double
-  Evaluate(const dealii::Point<3> &           evalPoint,
+  Evaluate(const dealii::Point<3>            &evalPoint,
            std::vector<std::complex<double>> &cache);
 
   inline dealii::Point<3>
@@ -135,10 +135,10 @@ public:
   static void
   spherical_coords(const dealii::Point<3> &center,
                    const dealii::Point<3> &other,
-                   dealii::Point<3> &      blockRelPos,
-                   double &                rho,
-                   double &                cos_alpha,
-                   double &                beta)
+                   dealii::Point<3>       &blockRelPos,
+                   double                 &rho,
+                   double                 &cos_alpha,
+                   double                 &beta)
   {
     blockRelPos = other - center;
     rho         = blockRelPos.norm();

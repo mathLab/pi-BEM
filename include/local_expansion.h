@@ -79,14 +79,14 @@ public:
   Add(const MultipoleExpansion &multipole);
 
   void
-  Add(const MultipoleExpansion &         multipole,
+  Add(const MultipoleExpansion          &multipole,
       std::vector<std::complex<double>> &cache);
 
   double
   Evaluate(const dealii::Point<3> &evalPoint);
 
   double
-  Evaluate(const dealii::Point<3> &           evalPoint,
+  Evaluate(const dealii::Point<3>            &evalPoint,
            std::vector<std::complex<double>> &cache);
 
   inline dealii::Point<3> &

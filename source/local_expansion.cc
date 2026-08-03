@@ -26,7 +26,7 @@ LocalExpansion::LocalExpansion()
 
 LocalExpansion::LocalExpansion(const unsigned int      order,
                                const dealii::Point<3> &center,
-                               const AssLegFunction *  assLegFunction)
+                               const AssLegFunction   *assLegFunction)
   : is_zero(true)
   , p(order)
   , center(center)
@@ -64,7 +64,7 @@ LocalExpansion::Add(const std::vector<double> &real,
 
 void
 LocalExpansion::Add(
-  const LocalExpansion &             other,
+  const LocalExpansion              &other,
   std::vector<std::complex<double>> &cache) // translation of local expansion
 {
   // TODO: argument candidate
@@ -235,7 +235,7 @@ LocalExpansion::Add(
 }
 
 double
-LocalExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
+LocalExpansion::Evaluate(const dealii::Point<3>            &evalPoint,
                          std::vector<std::complex<double>> &cache)
 {
   std::complex<double> fieldValue(0., 0.);

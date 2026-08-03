@@ -394,7 +394,6 @@ BEMProblem<dim>::reinit()
   b_i.resize(dim);
   for (unsigned int i = 0; i < dim; ++i)
     b_i[i].reinit(this_cpu_set, mpi_communicator);
-
 }
 
 template <>
@@ -584,7 +583,6 @@ BEMProblem<dim>::compute_dirichlet_and_neumann_dofs_vectors()
               cell->get_dof_indices(dofs);
               for (auto i : dofs)
                 {
-                  
                   non_partitioned_dirichlet_flags(i) = 1;
 
                   // mark dofs on masking vectors
@@ -930,8 +928,8 @@ BEMProblem<dim>::assemble_system_tbb()
     std::vector<double>                  dirichlet_row_entries;
 
     AssembleScratch(const FiniteElement<dim - 1, dim> &fe,
-                    const Quadrature<dim - 1> &        quadrature,
-                    const Mapping<dim - 1, dim> &      mapping,
+                    const Quadrature<dim - 1>         &quadrature,
+                    const Mapping<dim - 1, dim>       &mapping,
                     const UpdateFlags                  update_flags,
                     types::global_dof_index            n_dofs)
       : fe_v(mapping, fe, quadrature, update_flags)
@@ -960,7 +958,7 @@ BEMProblem<dim>::assemble_system_tbb()
   // lambda for preparing each row
   auto assemble_worker = [this,
                           &support_points](IndexSet::ElementIterator row_iter,
-                                           AssembleScratch &         scratch,
+                                           AssembleScratch          &scratch,
                                            AssembleLocalResult &) {
     Point<dim> D;
     double     s;
@@ -1948,8 +1946,8 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
 
 template <int dim>
 void
-BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
-                       TrilinosWrappers::MPI::Vector &      dst_imag,
+BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector       &dst,
+                       TrilinosWrappers::MPI::Vector       &dst_imag,
                        const TrilinosWrappers::MPI::Vector &src,
                        const TrilinosWrappers::MPI::Vector &src_imag) const
 {
@@ -2095,7 +2093,7 @@ BEMProblem<dim>::vmult(TrilinosWrappers::MPI::Vector &      dst,
 
 template <int dim>
 void
-BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
+BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
                              const TrilinosWrappers::MPI::Vector &src) const
 {
   // the Robin nodes participate with their unknowns carrying phi; the
@@ -2154,8 +2152,8 @@ BEMProblem<dim>::compute_rhs(TrilinosWrappers::MPI::Vector &      dst,
 template <int dim>
 void
 BEMProblem<dim>::compute_rhs(
-  TrilinosWrappers::MPI::Vector &      dst,
-  TrilinosWrappers::MPI::Vector &      dst_imag,
+  TrilinosWrappers::MPI::Vector       &dst,
+  TrilinosWrappers::MPI::Vector       &dst_imag,
   const TrilinosWrappers::MPI::Vector &src,
   const TrilinosWrappers::MPI::Vector &src_imag) const
 {
@@ -2328,10 +2326,10 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
 
 template <int dim>
 void
-BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
-                              TrilinosWrappers::MPI::Vector &      phi_imag,
-                              TrilinosWrappers::MPI::Vector &      dphi_dn,
-                              TrilinosWrappers::MPI::Vector &      dphi_dn_imag,
+BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector       &phi,
+                              TrilinosWrappers::MPI::Vector       &phi_imag,
+                              TrilinosWrappers::MPI::Vector       &dphi_dn,
+                              TrilinosWrappers::MPI::Vector       &dphi_dn_imag,
                               const TrilinosWrappers::MPI::Vector &tmp_rhs,
                               const TrilinosWrappers::MPI::Vector &tmp_rhs_imag)
 {
@@ -2436,8 +2434,8 @@ BEMProblem<dim>::solve_system(TrilinosWrappers::MPI::Vector &      phi,
 // either in a direct or multipole method
 template <int dim>
 void
-BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
-                       TrilinosWrappers::MPI::Vector &      dphi_dn,
+BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector       &phi,
+                       TrilinosWrappers::MPI::Vector       &dphi_dn,
                        const TrilinosWrappers::MPI::Vector &tmp_rhs,
                        bool                                 reset_matrix)
 {
@@ -2469,10 +2467,10 @@ BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
 
 template <int dim>
 void
-BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector &      phi,
-                       TrilinosWrappers::MPI::Vector &      phi_imag,
-                       TrilinosWrappers::MPI::Vector &      dphi_dn,
-                       TrilinosWrappers::MPI::Vector &      dphi_dn_imag,
+BEMProblem<dim>::solve(TrilinosWrappers::MPI::Vector       &phi,
+                       TrilinosWrappers::MPI::Vector       &phi_imag,
+                       TrilinosWrappers::MPI::Vector       &dphi_dn,
+                       TrilinosWrappers::MPI::Vector       &dphi_dn_imag,
                        const TrilinosWrappers::MPI::Vector &tmp_rhs,
                        const TrilinosWrappers::MPI::Vector &tmp_rhs_imag,
                        bool                                 reset_matrix)
@@ -3374,8 +3372,9 @@ BEMProblem<dim>::compute_gradients_hypersingular(
           Tensor<1, dim> b_integral;
           if (this_cpu_set.is_element(i))
             {
-              bool         is_singular    = false;
-              unsigned int singular_index = dealii::numbers::invalid_unsigned_int;
+              bool         is_singular = false;
+              unsigned int singular_index =
+                dealii::numbers::invalid_unsigned_int;
 
               for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
                 // if(local_dof_indices[j] == i)

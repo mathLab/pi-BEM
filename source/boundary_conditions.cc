@@ -6,11 +6,12 @@
 
 
 
+#include "../include/boundary_conditions.h"
+
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/grid/filtered_iterator.h>
 
-#include "../include/boundary_conditions.h"
 #include "../include/vector_tools_integrate_difference.h"
 
 template <int dim, int spacedim>
@@ -41,8 +42,9 @@ public:
       {
         const IteratorFilters::SubdomainEqualTo predicate(subdomain_id);
         return ++(
-          FilteredIterator<typename DataOut<dim, spacedim>::active_cell_iterator>(
-            predicate, old_cell));
+          FilteredIterator<
+            typename DataOut<dim, spacedim>::active_cell_iterator>(predicate,
+                                                                   old_cell));
       }
     else
       {
@@ -120,13 +122,15 @@ BoundaryConditions<dim>::declare_parameters(ParameterHandler &prm)
                       if (!d)
                         {
                           Functions::ParsedFunction<2>::declare_parameters(prm,
-                                                                           d+2);
+                                                                           d +
+                                                                             2);
                           prm.set("Function expression", defaults_2d[cond]);
                         }
                       else
                         {
                           Functions::ParsedFunction<3>::declare_parameters(prm,
-                                                                           d+3);
+                                                                           d +
+                                                                             3);
                           prm.set("Function expression", defaults_3d[cond]);
                         }
                     }
@@ -893,23 +897,23 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
             }
         }
 
-      VectorTools::integrate_difference(*bem.mapping,
-                                        bem.dh,
-                                        dphi_dn_diff_node,
-                                        dealii::Functions::ZeroFunction<dim, double>(1),
-                                        dphi_dn_diff_cell,
-                                        QGauss<(dim - 1)>(
-                                          2 * (2 * bem.fe->degree + 1)),
-                                        VectorTools::L2_norm);
+      VectorTools::integrate_difference(
+        *bem.mapping,
+        bem.dh,
+        dphi_dn_diff_node,
+        dealii::Functions::ZeroFunction<dim, double>(1),
+        dphi_dn_diff_cell,
+        QGauss<(dim - 1)>(2 * (2 * bem.fe->degree + 1)),
+        VectorTools::L2_norm);
 
-      VectorTools::integrate_difference(*bem.mapping,
-                                        bem.dh,
-                                        robin_diff_node,
-                                        dealii::Functions::ZeroFunction<dim, double>(1),
-                                        robin_diff_cell,
-                                        QGauss<(dim - 1)>(
-                                          2 * (2 * bem.fe->degree + 1)),
-                                        VectorTools::L2_norm);
+      VectorTools::integrate_difference(
+        *bem.mapping,
+        bem.dh,
+        robin_diff_node,
+        dealii::Functions::ZeroFunction<dim, double>(1),
+        robin_diff_cell,
+        QGauss<(dim - 1)>(2 * (2 * bem.fe->degree + 1)),
+        VectorTools::L2_norm);
 
       pcout << "   Number of active cells:       "
             << comp_dom.tria.n_active_cells() << std::endl;
@@ -968,22 +972,20 @@ BoundaryConditions<dim>::compute_errors(bool complex, bool current_is_real)
         "_scalar.vtu";
       DataOut<dim - 1, dim> dataout_scalar;
       dataout_scalar.attach_dof_handler(bem.dh);
-      dataout_scalar.add_data_vector(
-        phi_diff_node,
-        std::vector<std::string>(1, "phi_error"),
-        DataOut<dim - 1, dim>::type_dof_data);
-      dataout_scalar.add_data_vector(
-        dphi_dn_diff_node,
-        std::vector<std::string>(1, "dphi_dn_error"),
-        DataOut<dim - 1, dim>::type_dof_data);
-      dataout_scalar.add_data_vector(
-        robin_diff_node,
-        std::vector<std::string>(1, "robin_c_error"),
-        DataOut<dim - 1, dim>::type_dof_data);
-      dataout_scalar.build_patches(
-        *bem.mapping,
-        bem.mapping_degree,
-        DataOut<dim - 1, dim>::curved_inner_cells);
+      dataout_scalar.add_data_vector(phi_diff_node,
+                                     std::vector<std::string>(1, "phi_error"),
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.add_data_vector(dphi_dn_diff_node,
+                                     std::vector<std::string>(1,
+                                                              "dphi_dn_error"),
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.add_data_vector(robin_diff_node,
+                                     std::vector<std::string>(1,
+                                                              "robin_c_error"),
+                                     DataOut<dim - 1, dim>::type_dof_data);
+      dataout_scalar.build_patches(*bem.mapping,
+                                   bem.mapping_degree,
+                                   DataOut<dim - 1, dim>::curved_inner_cells);
 
       std::ofstream file_scalar(filename_scalar.c_str());
       dataout_scalar.write_vtu(file_scalar);

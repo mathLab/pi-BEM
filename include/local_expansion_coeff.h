@@ -33,7 +33,7 @@ public:
       const unsigned int &nn,
       const unsigned int &mm,
 
-      const double       &value);
+      const double &value);
   unsigned int
   getNumberOfElements();
 

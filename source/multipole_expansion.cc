@@ -19,7 +19,7 @@ MultipoleExpansion::MultipoleExpansion()
 
 MultipoleExpansion::MultipoleExpansion(const unsigned int      order,
                                        const dealii::Point<3> &center,
-                                       const AssLegFunction *  assLegFunction)
+                                       const AssLegFunction   *assLegFunction)
   : is_zero(true)
   , p(order)
   , center(center)
@@ -45,7 +45,7 @@ MultipoleExpansion::Add(const MultipoleExpansion &multipole, const double sol)
 
 void
 MultipoleExpansion::Add(const double                       strength,
-                        const dealii::Point<3> &           point,
+                        const dealii::Point<3>            &point,
                         std::vector<std::complex<double>> &cache)
 {
   // TODO: strength testing should use a tolerance
@@ -91,8 +91,8 @@ MultipoleExpansion::Add(const double strength, const dealii::Point<3> &point)
 
 void
 MultipoleExpansion::AddNormDer(const double                       strength,
-                               const dealii::Point<3> &           point,
-                               const dealii::Tensor<1, 3> &       normal,
+                               const dealii::Point<3>            &point,
+                               const dealii::Tensor<1, 3>        &normal,
                                std::vector<std::complex<double>> &cache)
 {
   // TODO: strength testing should use a tolerance
@@ -155,7 +155,7 @@ MultipoleExpansion::AddNormDer(const double                       strength,
 
 void
 MultipoleExpansion::AddNormDer(const double                strength,
-                               const dealii::Point<3> &    point,
+                               const dealii::Point<3>     &point,
                                const dealii::Tensor<1, 3> &normal)
 {
   std::vector<std::complex<double>> cache;
@@ -251,7 +251,7 @@ MultipoleExpansion::Add(
 }
 
 double
-MultipoleExpansion::Evaluate(const dealii::Point<3> &           evalPoint,
+MultipoleExpansion::Evaluate(const dealii::Point<3>            &evalPoint,
                              std::vector<std::complex<double>> &cache)
 {
   std::complex<double> fieldValue(0., 0.);

@@ -88,7 +88,7 @@ public:
   static constexpr unsigned int MAX_CONDITION_SLOTS = 2;
 
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
-                     BEMProblem<dim> &         bem,
+                     BEMProblem<dim>          &bem,
                      const MPI_Comm            comm         = MPI_COMM_WORLD,
                      unsigned int              n_components = 1)
     : n_components(n_components)

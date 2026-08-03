@@ -50,16 +50,16 @@ template <int dim, class InVector, class OutVector, int spacedim>
 void
 do_integrate_difference_based_on_material_id(
   const hp::MappingCollection<dim, spacedim> &mapping,
-  const DoFHandler<dim, spacedim> &           dof,
-  const InVector &                            fe_function,
+  const DoFHandler<dim, spacedim>            &dof,
+  const InVector                             &fe_function,
   // const Function<spacedim, typename InVector::value_type> &exact_solution,
   const std::map<types::material_id,
                  const Function<spacedim, typename InVector::value_type> *>
-    &                                 exact_solutions,
-  OutVector &                         difference,
+                                     &exact_solutions,
+  OutVector                          &difference,
   const dealii::hp::QCollection<dim> &q,
-  const VectorTools::NormType &       norm,
-  const Function<spacedim> *          weight,
+  const VectorTools::NormType        &norm,
+  const Function<spacedim>           *weight,
   const double                        exponent_1)
 {
   using Number = typename InVector::value_type;
@@ -184,17 +184,17 @@ do_integrate_difference_based_on_material_id(
 template <int dim, class InVector, class OutVector, int spacedim>
 void
 integrate_difference_based_on_material_id(
-  const Mapping<dim, spacedim> &   mapping,
+  const Mapping<dim, spacedim>    &mapping,
   const DoFHandler<dim, spacedim> &dof,
-  const InVector &                 fe_function,
+  const InVector                  &fe_function,
   // const Function<spacedim, typename InVector::value_type> &exact_solution,
   const std::map<types::material_id,
                  const Function<spacedim, typename InVector::value_type> *>
-    &                          exact_solutions,
-  OutVector &                  difference,
-  const Quadrature<dim> &      q,
+                              &exact_solutions,
+  OutVector                   &difference,
+  const Quadrature<dim>       &q,
   const VectorTools::NormType &norm,
-  const Function<spacedim> *   weight   = nullptr,
+  const Function<spacedim>    *weight   = nullptr,
   const double                 exponent = 2.0)
 {
   do_integrate_difference_based_on_material_id(

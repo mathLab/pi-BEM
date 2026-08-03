@@ -80,7 +80,6 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-
 #include <cmath>
 #include <fstream>
 #include <iostream>

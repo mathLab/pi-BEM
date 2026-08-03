@@ -830,7 +830,7 @@ BEMProblem<dim>::assemble_system()
           const auto &normals  = fe_v.get_normal_vectors();
 
           bool         is_singular    = false;
-          unsigned int singular_index = numbers::invalid_unsigned_int;
+          unsigned int singular_index = dealii::numbers::invalid_unsigned_int;
 
           // is any dof of the current cell, a duplicate of i?
           for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
@@ -860,7 +860,7 @@ BEMProblem<dim>::assemble_system()
             }
           else
             {
-              Assert(singular_index != numbers::invalid_unsigned_int,
+              Assert(singular_index != dealii::numbers::invalid_unsigned_int,
                      ExcInternalError());
 
               // pointer trick
@@ -982,7 +982,7 @@ BEMProblem<dim>::assemble_system_tbb()
         const auto &normals  = scratch.fe_v.get_normal_vectors();
 
         bool         is_singular    = false;
-        unsigned int singular_index = numbers::invalid_unsigned_int;
+        unsigned int singular_index = dealii::numbers::invalid_unsigned_int;
 
         // is any dof of the current cell, a duplicate of i?
         for (unsigned int j = 0; j < this->fe->dofs_per_cell; ++j)
@@ -1017,7 +1017,7 @@ BEMProblem<dim>::assemble_system_tbb()
           }
         else
           {
-            Assert(singular_index != numbers::invalid_unsigned_int,
+            Assert(singular_index != dealii::numbers::invalid_unsigned_int,
                    ExcInternalError());
 
             // pointer trick
@@ -1207,7 +1207,7 @@ BEMProblem<dim>::assemble_system_singlethread()
                     0);
 
           bool         is_singular    = false;
-          unsigned int singular_index = numbers::invalid_unsigned_int;
+          unsigned int singular_index = dealii::numbers::invalid_unsigned_int;
 
           // is any dof of the current cell, a duplicate of i?
           for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
@@ -1459,7 +1459,7 @@ BEMProblem<dim>::assemble_system_singlethread()
               // pointer. To be sure we can
               // then add a safety check at
               // the end:
-              Assert(singular_index != numbers::invalid_unsigned_int,
+              Assert(singular_index != dealii::numbers::invalid_unsigned_int,
                      ExcInternalError());
 
               // pointer trick
@@ -1716,7 +1716,7 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
             }
           double geom_alpha = 0.5;
 
-          geom_alpha = 2 * numbers::PI;
+          geom_alpha = 2 * dealii::numbers::PI;
           if (unique_ordered_normals.size() > 1)
             {
               for (unsigned int k = 1; k < unique_ordered_normals.size(); ++k)
@@ -1726,7 +1726,7 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
                 acos(unique_ordered_normals[unique_ordered_normals.size() - 1] *
                      unique_ordered_normals[0]);
             }
-          geom_alpha /= 4 * numbers::PI;
+          geom_alpha /= 4 * dealii::numbers::PI;
           hyp_alpha(i) = geom_alpha;
 
           // just in case we need to check the code
@@ -1744,7 +1744,7 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
                 if (dim == 3)
                   {
                     C_matrix -=
-                      1. / 4. / numbers::PI *
+                      1. / 4. / dealii::numbers::PI *
                       outer_product(cross_product_3d(unique_tangents[k + 1] -
                                                        unique_tangents[k],
                                                      unique_ordered_normals[k]),
@@ -1755,7 +1755,7 @@ BEMProblem<dim>::compute_hypersingular_free_coeffs()
                     // cout<<"unique_ordered_normals[k]"<<unique_ordered_normals[k]<<endl;
                   }
                 else if (dim == 2)
-                  C_matrix -= 1 / 2 / numbers::PI *
+                  C_matrix -= 1 / 2 / dealii::numbers::PI *
                               outer_product(unique_tangents[k],
                                             unique_ordered_normals[k]);
             }
@@ -3375,7 +3375,7 @@ BEMProblem<dim>::compute_gradients_hypersingular(
           if (this_cpu_set.is_element(i))
             {
               bool         is_singular    = false;
-              unsigned int singular_index = numbers::invalid_unsigned_int;
+              unsigned int singular_index = dealii::numbers::invalid_unsigned_int;
 
               for (unsigned int j = 0; j < fe->dofs_per_cell; ++j)
                 // if(local_dof_indices[j] == i)

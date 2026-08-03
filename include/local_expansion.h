@@ -12,22 +12,43 @@
 #include "local_expansion_coeff.h"
 #include "multipole_expansion.h"
 
-
 class LocalExpansion
 {
 public:
   static FullMatrix<double> A_n_m;
-
-  // static std::vector <std::vector <std::vector <std::map <int,double > > > >
-  // mExp_to_lExp_Coeff;
 
   static std::vector<std::vector<std::map<int, std::map<int, double>>>>
     lExp_to_lExp_Coeff;
 
   static LocalExpansionCoeff mExp_to_lExp_Coeff;
 
-  mutable bool is_zero;
+  static bool
+  equal(const LocalExpansion &lhs,
+        const LocalExpansion &rhs,
+        double                tolerance = 1e-10)
+  {
+    if (lhs.p != rhs.p)
+      {
+        return false;
+      }
 
+    if (lhs.center.distance_square(rhs.center) > (tolerance * tolerance))
+      {
+        return false;
+      }
+
+    for (unsigned int i = 0; i < (lhs.p + 1) * (lhs.p + 2) / 2; ++i)
+      {
+        if (std::abs(lhs._L_n_m[i] - rhs._L_n_m[i]) > tolerance)
+          {
+            return false;
+          }
+      }
+
+    return true;
+  }
+
+  mutable bool is_zero;
 
 private:
   mutable unsigned int p;
@@ -36,8 +57,7 @@ private:
 
   mutable const AssLegFunction *assLegFunction;
 
-  mutable std::complex<double> *_L_n_m;
-
+  mutable std::vector<std::complex<double>> _L_n_m;
 
 public:
   LocalExpansion();
@@ -46,22 +66,28 @@ public:
                  const dealii::Point<3> &center,
                  const AssLegFunction   *assLegFunction);
 
-  LocalExpansion(const LocalExpansion &other);
-
-  ~LocalExpansion();
-
   void
   Add(const std::vector<double> &real, const std::vector<double> &imag);
-
 
   void
   Add(const LocalExpansion &parent);
 
   void
+  Add(const LocalExpansion &parent, std::vector<std::complex<double>> &cache);
+
+  void
   Add(const MultipoleExpansion &multipole);
+
+  void
+  Add(const MultipoleExpansion          &multipole,
+      std::vector<std::complex<double>> &cache);
 
   double
   Evaluate(const dealii::Point<3> &evalPoint);
+
+  double
+  Evaluate(const dealii::Point<3>            &evalPoint,
+           std::vector<std::complex<double>> &cache);
 
   inline dealii::Point<3> &
   GetCenter() const
@@ -87,7 +113,7 @@ public:
     return this->p;
   }
 
-  inline std::complex<double> *
+  inline const std::vector<std::complex<double>> &
   GetCoeffs() const
   {
     return this->_L_n_m;
@@ -111,78 +137,68 @@ public:
     this->_L_n_m[(n) * (n + 1) / 2 + m] += value;
   }
 
-  LocalExpansion &
-  operator=(const LocalExpansion &other);
-
-
   static FullMatrix<double>
   A_n_m_Matrix(unsigned int dimension)
   {
     FullMatrix<double> A_n_m(dimension + 1, dimension + 1);
     for (unsigned int n = 0; n < dimension + 1; n++)
-
       {
         for (unsigned int m = 0; m < n + 1; m++)
-
           {
             double f1 = 1.;
             double f2 = 1.;
 
             for (int ii = n - m; ii > 0; ii--)
-              f1 *= ii;
+              {
+                f1 *= ii;
+              }
 
             for (int ii = n + m; ii > 0; ii--)
-              f2 *= (ii);
+              {
+                f2 *= (ii);
+              }
 
-            A_n_m(n, m) = pow(-1., double(n)) / sqrt(f1 * f2);
+            A_n_m(n, m) = std::pow(-1., double(n)) / std::sqrt(f1 * f2);
           }
       }
 
     return A_n_m;
   }
 
-  // static  std::vector <std::vector <std::vector <std::map <int,double > > > >
   static LocalExpansionCoeff
   mExp_to_lExp_Coeff_Build(FullMatrix<double> A_n_m, unsigned int p)
   {
-    LocalExpansionCoeff  loc_exp_coeff(p);
-    std::complex<double> imUnit = std::complex<double>(0., 1.);
-    std::vector<std::vector<std::vector<std::map<int, double>>>> realCoeff;
-    realCoeff.resize(p + 1);
+    LocalExpansionCoeff loc_exp_coeff(p);
     for (int n = 0; n < int(p) + 1; n++)
       {
-        realCoeff[n].resize(n + 1);
         for (int m = 0; m < n + 1; m++)
           {
-            realCoeff[n][m].resize(p + 1);
             for (int nn = 0; nn < int(p) + 1; nn++)
               {
                 for (int mm = -1 * nn; mm < nn + 1; mm++)
                   {
-                    // double realFact = (*gsl_matrix_ptr(A_n_m,nn,abs(mm))) /
-                    // (*gsl_matrix_ptr(A_n_m,n+nn,abs(m-mm))) *
-                    // (*gsl_matrix_ptr(A_n_m,n,abs(m)));
-                    double realFact = A_n_m(nn, abs(mm)) /
-                                      A_n_m(n + nn, abs(m - mm)) *
-                                      A_n_m(n, abs(m));
-                    realFact *=
-                      (pow(imUnit, double(abs(m - mm) - abs(m) - abs(mm))))
-                        .real() /
-                      pow(-1., nn);
-                    realCoeff[n][m][nn][mm] = realFact;
+                    double realFact = A_n_m(nn, std::abs(mm)) /
+                                      A_n_m(n + nn, std::abs(m - mm)) *
+                                      A_n_m(n, std::abs(m));
+
+                    // reference implementation
+                    std::complex<double> imUnit(0, 1);
+                    int steps = std::abs(m - mm) - std::abs(m) - std::abs(mm);
+                    realFact *= std::pow(imUnit, double(steps)).real() /
+                                std::pow(-1., nn);
+
                     loc_exp_coeff.set(n, m, nn, mm, realFact);
                   }
               }
           }
       }
+
     return loc_exp_coeff;
-    // return realCoeff;
   }
 
   static std::vector<std::vector<std::map<int, std::map<int, double>>>>
   lExp_to_lExp_Coeff_Build(FullMatrix<double> A_n_m, unsigned int p)
   {
-    std::complex<double> imUnit = std::complex<double>(0., 1.);
     std::vector<std::vector<std::map<int, std::map<int, double>>>> realCoeff;
     realCoeff.resize(p + 1);
     for (int n = 0; n < int(p) + 1; n++)
@@ -194,27 +210,23 @@ public:
               {
                 for (int mm = -1 * nn; mm < nn + 1; mm++)
                   {
-                    // double realFact = (*gsl_matrix_ptr(A_n_m,nn-n,abs(mm-m)))
-                    // / (*gsl_matrix_ptr(A_n_m,nn,abs(mm))) *
-                    // (*gsl_matrix_ptr(A_n_m,n,abs(m)));
-                    double realFact = A_n_m(nn - n, abs(mm - m)) /
-                                      A_n_m(nn, abs(mm)) * A_n_m(n, abs(m));
-                    realFact *=
-                      (pow(imUnit, double(abs(mm) - abs(mm - m) - abs(m))))
-                        .real() *
-                      pow(-1., nn + n);
+                    double realFact = A_n_m(nn - n, std::abs(mm - m)) /
+                                      A_n_m(nn, std::abs(mm)) *
+                                      A_n_m(n, std::abs(m));
+
+                    // reference implementation
+                    std::complex<double> imUnit(0, 1);
+                    int steps = std::abs(mm) - std::abs(mm - m) - std::abs(m);
+                    realFact *= std::pow(imUnit, double(steps)).real() *
+                                std::pow(-1., nn + n);
+
                     realCoeff[n][m][nn][mm] = realFact;
                   }
               }
           }
       }
 
-
-
     return realCoeff;
   }
 };
-
-
-
-#endif /*LOCALEXPANSION_H_*/
+#endif

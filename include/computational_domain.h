@@ -133,10 +133,21 @@ public:
   void
   read_domain();
 
+  double
+  load_cad_objects();
+
+  void
+  refine_and_resize_by_aspect_ratio();
+
+  void
+  refine_and_resize_by_cad_projections(double max_tol);
+
+  void
+  refine_and_resize_wrapup();
+
   /// method to refine the imported mesh
   /// according to the level requested in
   /// the parameters file
-
   void
   refine_and_resize(const unsigned int refinement_level);
 
@@ -191,48 +202,50 @@ public:
 
   void
   compute_double_vertex_cache();
-  // const unsigned int fe_degree;
-  // const unsigned int mapping_degree;
 
   Triangulation<dim - 1, dim> tria;
-
-  /// here we are just renaming the cell
-  /// iterator
-
-
 
   // values to be imported from the
   // parameters file:
 
   /// number of refining cycles
-
   unsigned int n_cycles;
 
   /// number of global refinement to executed before a local refinement cycle;
-
   unsigned int pre_global_refinements;
 
   /// maximum cell aspect ratio
-
   double max_element_aspect_ratio;
+
+
+  // we make frequent use of AVS UCD grids, which only admit a single flag per
+  // each cell so, we can either set a manifold_id or a material_id with it. we
+  // make use of both. the former to refine the grid and the second to apply
+  // boundary conditions. however, it often happens that we have more boundary
+  // conditions than manifolds associated to cad surfaces. In such a case a
+  // deal.II exception is triggered, as manifold_ids are defined but no
+  // manifolds are attached to them. this option can be used to avoid a similar
+  // exception. If the option is set to true, all manifold_ids are scanned, and
+  // those with no manifold attached are attached to a flat manifold. This
+  // preserves the possibility of importing AVS UCD grids or similar (which,
+  // however, have not been deprecated by deal.II)
+
+  bool attach_flat_manifold_to_manifold_ids_with_unset_manifold;
 
   // flag to assess if the software will look for cad surfaces (form files
   // Color_*.iges) and curves (from files Curve_*.iges), and use such geometries
   // to refine the grid. the program will import as many curves and surfaces as
   // there are available in the present folder, and progressively associate them
   // to the manifold IDS available in the mesh file.
-  //
   bool use_cad_surface_and_curves;
 
   // flag to require surface refinement based on CAD surface curvature. Can only
   // be activated if previous flag is true
-  //
   bool surface_curvature_refinement;
 
   // used if curvature adaptive refinement is true. the cells are refined until
   // their size is 1/cells_per_circle of the circumference the radius of which
   // is the local max curvature radius
-  //
   double cells_per_circle;
 
   // maximum number of curvature based refinement cycles
@@ -253,12 +266,14 @@ public:
   /// the material ID numbers in the mesh
   /// input file, for the neumann_nodes
   std::vector<unsigned int> neumann_boundary_ids;
+  std::vector<unsigned int> robin_boundary_ids;
 
+  std::map<unsigned int, unsigned int> manifold2bcondition_map;
+  std::map<unsigned int, unsigned int> manifold2bcondition_slot_map;
 
   MPI_Comm mpi_communicator;
 
   unsigned int n_mpi_processes;
-
   unsigned int this_mpi_process;
 
   // to deal with conformity on edges with double nodes
@@ -276,7 +291,6 @@ public:
   double spheroid_x_axis, spheroid_y_axis, spheroid_z_axis;
 
   ConditionalOStream pcout;
-
 
   /// vectors containing the CAD surfaces and curves to be
   /// (optionally) used for refinement of the triangulation

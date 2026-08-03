@@ -1,16 +1,15 @@
+#ifndef laplace_kernel_h
+#define laplace_kernel_h
 
 #include <deal.II/base/point.h>
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/utilities.h>
 
-// And here are a few C++ standard header
-// files that we will need:
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <set>
 #include <string>
-
 
 namespace LaplaceKernel
 {
@@ -31,8 +30,6 @@ namespace LaplaceKernel
           return 0.;
       }
   }
-
-
 
   template <int dim>
   Point<dim>
@@ -160,3 +157,4 @@ namespace LaplaceKernel
   }
 
 } // namespace LaplaceKernel
+#endif

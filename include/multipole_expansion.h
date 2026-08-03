@@ -27,7 +27,6 @@
 
 using namespace dealii;
 
-
 class MultipoleExpansion
 {
 public:
@@ -42,9 +41,7 @@ private:
 
   mutable const AssLegFunction *assLegFunction;
 
-  mutable std::complex<double> *_M_n_m;
-
-
+  mutable std::vector<std::complex<double>> _M_n_m;
 
 public:
   MultipoleExpansion();
@@ -53,10 +50,6 @@ public:
                      const dealii::Point<3> &center,
                      const AssLegFunction   *assLegFunction);
 
-  MultipoleExpansion(const MultipoleExpansion &other);
-
-  ~MultipoleExpansion();
-
   void
   Add(const MultipoleExpansion &multipole, const double sol);
 
@@ -64,15 +57,34 @@ public:
   Add(const double strength, const dealii::Point<3> &point);
 
   void
+  Add(const double                       strength,
+      const dealii::Point<3>            &point,
+      std::vector<std::complex<double>> &cache);
+
+  void
   Add(const MultipoleExpansion &child);
+
+  void
+  Add(const MultipoleExpansion          &child,
+      std::vector<std::complex<double>> &cache);
 
   void
   AddNormDer(const double                strength,
              const dealii::Point<3>     &point,
              const dealii::Tensor<1, 3> &normal);
 
+  void
+  AddNormDer(const double                       strength,
+             const dealii::Point<3>            &point,
+             const dealii::Tensor<1, 3>        &normal,
+             std::vector<std::complex<double>> &cache);
+
   double
   Evaluate(const dealii::Point<3> &evalPoint);
+
+  double
+  Evaluate(const dealii::Point<3>            &evalPoint,
+           std::vector<std::complex<double>> &cache);
 
   inline dealii::Point<3>
   GetCenter() const
@@ -86,58 +98,74 @@ public:
     this->center = new_center;
   }
 
-  inline FullMatrix<double> &
+  inline const FullMatrix<double> &
   GetA_n_m() const
   {
     return this->A_n_m;
   }
 
-  inline std::complex<double> *
+  inline const std::vector<std::complex<double>> &
   GetCoeffs() const
   {
     return this->_M_n_m;
   }
 
-  inline std::complex<double> &
+  inline const std::complex<double> &
   GetCoeff(unsigned int n, unsigned int m) const
   {
     return this->_M_n_m[(n) * (n + 1) / 2 + m];
   }
 
   inline void
-  SetCoeff(unsigned int n, unsigned int m, std::complex<double> &value) const
+  SetCoeff(unsigned int                n,
+           unsigned int                m,
+           const std::complex<double> &value) const
   {
     this->_M_n_m[(n) * (n + 1) / 2 + m] = value;
   }
 
   inline void
-  AddToCoeff(unsigned int n, unsigned int m, std::complex<double> &value) const
+  AddToCoeff(unsigned int                n,
+             unsigned int                m,
+             const std::complex<double> &value) const
   {
     this->_M_n_m[(n) * (n + 1) / 2 + m] += value;
   }
 
-  MultipoleExpansion &
-  operator=(const MultipoleExpansion &other);
-
+  static void
+  spherical_coords(const dealii::Point<3> &center,
+                   const dealii::Point<3> &other,
+                   dealii::Point<3>       &blockRelPos,
+                   double                 &rho,
+                   double                 &cos_alpha,
+                   double                 &beta)
+  {
+    blockRelPos = other - center;
+    rho         = blockRelPos.norm();
+    cos_alpha   = blockRelPos(2) / rho;
+    beta        = atan2(blockRelPos(1), blockRelPos(0));
+  }
 
   static FullMatrix<double>
   A_n_m_Matrix(unsigned int dim)
   {
     FullMatrix<double> A_n_m(dim + 1, dim + 1);
     for (unsigned int n = 0; n < dim + 1; n++)
-
       {
         for (unsigned int m = 0; m < n + 1; m++)
-
           {
             double f1 = 1.;
             double f2 = 1.;
 
             for (int ii = n - m; ii > 0; ii--)
-              f1 *= ii;
+              {
+                f1 *= ii;
+              }
 
             for (int ii = n + m; ii > 0; ii--)
-              f2 *= (ii);
+              {
+                f2 *= (ii);
+              }
 
             A_n_m(n, m) = pow(-1., double(n)) / sqrt(f1 * f2);
           }
@@ -146,7 +174,4 @@ public:
     return A_n_m;
   }
 };
-
-
-
-#endif /*MULTIPOLE_EXPANSION_H_*/
+#endif

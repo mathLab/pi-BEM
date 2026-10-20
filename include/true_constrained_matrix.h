@@ -90,7 +90,7 @@ private:
   unsigned int                     this_mpi_process;
 };
 
-/*@}*/
+/** @} */
 /*---------------------- Inline functions -----------------------------------*/
 
 

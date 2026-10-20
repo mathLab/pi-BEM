@@ -146,8 +146,9 @@ public:
 
   /// Return a read-only reference to owned triangular coefficient storage,
   /// indexed by n*(n+1)/2+m. Copy the vector to retain an independent snapshot.
-  /// Use SetCoeff()/AddToCoeff() for changes; assignment invalidates
-  /// references.
+  /// Use SetCoeff()/AddToCoeff() for changes. Assignment can invalidate
+  /// references to individual coefficients; the vector object remains owned
+  /// here.
   inline const std::vector<std::complex<double>> &
   GetCoeffs() const
   {

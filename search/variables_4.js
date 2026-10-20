@@ -104,7 +104,7 @@ var searchData=
   ['dirichlet_5fboundary_5fids_101',['dirichlet_boundary_ids',['../class_computational_domain.html#a926205bf7384caceed6278f24062862c',1,'ComputationalDomain']]],
   ['dirichlet_5fflags_102',['dirichlet_flags',['../class_b_e_m_problem.html#a5cc52509da7ae71d52c55fb287e511d1',1,'BEMProblem']]],
   ['dirichlet_5fmatrix_103',['dirichlet_matrix',['../class_b_e_m_problem.html#a47e1eef14c4ce7e33d6dc9dd1c9cb649',1,'BEMProblem']]],
-  ['dirichlet_5fnodes_104',['dirichlet_nodes',['../class_b_e_m_f_m_a.html#a7c52edf11a302257aa6f84570cc292ee',1,'BEMFMA::dirichlet_nodes'],['../class_b_e_m_problem.html#a3d1c647ce32beb17cfa8f975b34270ab',1,'BEMProblem::dirichlet_nodes']]],
+  ['dirichlet_5fnodes_104',['dirichlet_nodes',['../class_b_e_m_f_m_a.html#a14153f9a0ab609cc70f69a4c106e8cbc',1,'BEMFMA::dirichlet_nodes'],['../class_b_e_m_problem.html#a3d1c647ce32beb17cfa8f975b34270ab',1,'BEMProblem::dirichlet_nodes']]],
   ['dirint_105',['DirInt',['../bem__fma_8cc.html#a7b61f467007693c43510dcecfc527bc6',1,'bem_fma.cc']]],
   ['discontinuous_106',['discontinuous',['http://www.dealii.org/developer/doxygen/deal.II/structMatrixOut_1_1Options.html#af12560d3d1a0b0803b427f174cc6d892',1,'MatrixOut::Options']]],
   ['distance_5fbound_107',['distance_bound',['http://www.dealii.org/developer/doxygen/deal.II/structCGALWrappers_1_1AdditionalData_3_012_01_4.html#ab00c1f537e63aaf3a67b347877a74f2e',1,'CGALWrappers::AdditionalData&lt; 2 &gt;']]],

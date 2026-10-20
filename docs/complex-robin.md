@@ -49,6 +49,7 @@ the frozen recipes in [docker-files PR 90](https://github.com/dealii/docker-file
 Until that image is published, hosted CI builds `docker/Dockerfile.ci` with the
 exact deal.II 9.8.0 backports package on Ubuntu 26.04. This supports hosted AMD64
 runners without depending on a tag that currently exists only locally.
+The CI environment uses mold to link the large Debug libraries efficiently.
 The formatting job retains clang-format 16.0.6 from its existing image.
 
 To reproduce the hosted environment locally, build it and substitute

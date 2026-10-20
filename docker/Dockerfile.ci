@@ -13,4 +13,8 @@ RUN apt-get update \
        libdeal.ii-dev=${DEAL_II_PACKAGE_VERSION} \
        build-essential cmake ninja-build git numdiff \
     && rm -rf /var/lib/apt/lists/*
+# Linking Debug deal.II consumers with the default linker dominates test time.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends mold \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace

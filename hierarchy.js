@@ -1,9 +1,18 @@
 var hierarchy =
 [
     [ "AssLegFunction", "class_ass_leg_function.html", null ],
-    [ "BEMProblemAccess&lt; dim &gt;", "class_b_e_m_problem_access.html", null ],
+    [ "BlockConstrainedComplexOperator&lt; VEC, MATRIX &gt;", "class_block_constrained_complex_operator.html", null ],
+    [ "BlockPreconditioner&lt; PreconditionerType &gt;", "class_block_preconditioner.html", null ],
+    [ "ConstrainedComplexOperator&lt; VEC, MATRIX &gt;", "class_constrained_complex_operator.html", null ],
     [ "ConstrainedMatrixBlock&lt; VECTOR &gt;", "class_constrained_matrix_block.html", null ],
     [ "ConstrainedOperator&lt; VEC, MATRIX &gt;", "class_constrained_operator.html", null ],
+    [ "DataOutInterface&lt; int dim, int spacedim &gt;", "http://www.dealii.org/developer/doxygen/deal.II/classDataOutInterface.html", [
+      [ "DataOut_DoFData< int dim, int patch_dim, int spacedim, int patch_spacedim >", "http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html", [
+        [ "DataOut< dim, spacedim >", "http://www.dealii.org/developer/doxygen/deal.II/classDataOut.html", [
+          [ "FilteredDataOut< dim, spacedim >", "class_filtered_data_out.html", null ]
+        ] ]
+      ] ]
+    ] ],
     [ "EnableObserverPointer", "http://www.dealii.org/developer/doxygen/deal.II/classEnableObserverPointer.html", [
       [ "Manifold< int dim, int spacedim >", "http://www.dealii.org/developer/doxygen/deal.II/classManifold.html", [
         [ "ChartManifold< dim, spacedim, 2 >", "http://www.dealii.org/developer/doxygen/deal.II/classChartManifold.html", [
@@ -26,6 +35,6 @@ var hierarchy =
     [ "Operator::MinBEMOperator&lt; dim &gt;", "class_operator_1_1_min_b_e_m_operator.html", null ],
     [ "MultipoleExpansion", "class_multipole_expansion.html", null ],
     [ "OctreeBlock&lt; dim &gt;", "class_octree_block.html", null ],
-    [ "SingularKernelIntegral&lt; dim &gt;", "class_singular_kernel_integral.html", null ],
-    [ "TimeIntegrator", "class_time_integrator.html", null ]
+    [ "QuasiSingularKernelIntegral&lt; dim &gt;", "class_quasi_singular_kernel_integral.html", null ],
+    [ "SingularKernelIntegral&lt; dim &gt;", "class_singular_kernel_integral.html", null ]
 ];

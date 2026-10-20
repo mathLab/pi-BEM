@@ -96,10 +96,12 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('bem__problem_8
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &quot;<a class="el" href="bem__problem_8h_source.html">../include/bem_problem.h</a>&quot;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/arpack__solver_8h.html">deal.II/lac/arpack_solver.h</a>&gt;</code><br />
 <code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/error__estimator_8h.html">deal.II/numerics/error_estimator.h</a>&gt;</code><br />
 <code>#include &lt;iomanip&gt;</code><br />
 <code>#include &lt;iostream&gt;</code><br />
 <code>#include &lt;memory&gt;</code><br />
+<code>#include &quot;<a class="el" href="constrained__matrix__complex_8h_source.html">../include/constrained_matrix_complex.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="laplace__kernel_8h_source.html">../include/laplace_kernel.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="singular__kernel__integral_8h_source.html">../include/singular_kernel_integral.h</a>&quot;</code><br />
 <code>#include &quot;Teuchos_TimeMonitor.hpp&quot;</code><br />
@@ -137,7 +139,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00020">20</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00021">21</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
 </div>
 </div>
@@ -154,9 +156,9 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00047">47</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00051">51</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l00754">BEMProblem&lt; dim &gt;::assemble_system()</a>, and <a class="el" href="bem__problem_8cc_source.html#l02573">BEMProblem&lt; dim &gt;::compute_gradients_hypersingular()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l00774">BEMProblem&lt; dim &gt;::assemble_system()</a>, <a class="el" href="bem__problem_8cc_source.html#l01101">BEMProblem&lt; dim &gt;::assemble_system_singlethread()</a>, <a class="el" href="bem__problem_8cc_source.html#l00912">BEMProblem&lt; dim &gt;::assemble_system_tbb()</a>, and <a class="el" href="bem__problem_8cc_source.html#l03277">BEMProblem&lt; dim &gt;::compute_gradients_hypersingular()</a>.</p>
 
 </div>
 </div>
@@ -174,9 +176,9 @@ Variables</h2></td></tr>
 <b>Initial value:</b><div class="fragment"><div class="line">                  =</div>
 <div class="line">Teuchos::TimeMonitor::getNewTimer(<span class="stringliteral">&quot;Compute Constraints Time&quot;</span>)</div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00045">45</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00049">49</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l01863">BEMProblem&lt; dim &gt;::compute_constraints()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l02506">BEMProblem&lt; dim &gt;::compute_constraints()</a>.</p>
 
 </div>
 </div>
@@ -192,9 +194,9 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00051">51</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00055">55</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l02262">BEMProblem&lt; dim &gt;::compute_gradients()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l02973">BEMProblem&lt; dim &gt;::compute_gradients()</a>.</p>
 
 </div>
 </div>
@@ -210,9 +212,9 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00052">52</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00056">56</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l01701">BEMProblem&lt; dim &gt;::solve_system()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l02252">BEMProblem&lt; dim &gt;::solve_system()</a>, and <a class="el" href="bem__problem_8cc_source.html#l02329">BEMProblem&lt; dim &gt;::solve_system()</a>.</p>
 
 </div>
 </div>
@@ -228,9 +230,9 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00048">48</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00052">52</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l02915">BEMProblem&lt; dim &gt;::compute_normals()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l03621">BEMProblem&lt; dim &gt;::compute_normals()</a>.</p>
 
 </div>
 </div>
@@ -248,9 +250,9 @@ Variables</h2></td></tr>
 <b>Initial value:</b><div class="fragment"><div class="line">             =</div>
 <div class="line">Teuchos::TimeMonitor::getNewTimer(<span class="stringliteral">&quot;BEM Reinitialisation Time&quot;</span>)</div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00053">53</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00057">57</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l00154">BEMProblem&lt; dim &gt;::reinit()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l00168">BEMProblem&lt; dim &gt;::reinit()</a>.</p>
 
 </div>
 </div>
@@ -268,9 +270,9 @@ Variables</h2></td></tr>
 <b>Initial value:</b><div class="fragment"><div class="line">                      =</div>
 <div class="line">Teuchos::TimeMonitor::getNewTimer(<span class="stringliteral">&quot;SurfaceGradientTime Time&quot;</span>)</div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00049">49</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bem__problem_8cc_source.html#l00053">53</a> of file <a class="el" href="bem__problem_8cc_source.html">bem_problem.cc</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l02426">BEMProblem&lt; dim &gt;::compute_surface_gradients()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="bem__problem_8cc_source.html#l03130">BEMProblem&lt; dim &gt;::compute_surface_gradients()</a>.</p>
 
 </div>
 </div>

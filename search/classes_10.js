@@ -53,6 +53,7 @@ var searchData=
   ['quadraturegenerator_50',['QuadratureGenerator',['http://www.dealii.org/developer/doxygen/deal.II/classNonMatching_1_1QuadratureGenerator.html',1,'NonMatching']]],
   ['quadraturegenerator_3c_20dim_20_2d_201_20_3e_51',['QuadratureGenerator&lt; dim - 1 &gt;',['http://www.dealii.org/developer/doxygen/deal.II/classNonMatching_1_1QuadratureGenerator.html',1,'NonMatching']]],
   ['quadratureselector_52',['QuadratureSelector',['http://www.dealii.org/developer/doxygen/deal.II/classQuadratureSelector.html',1,'']]],
-  ['qweddle_53',['QWeddle',['http://www.dealii.org/developer/doxygen/deal.II/classQWeddle.html',1,'']]],
-  ['qwitherdenvincentsimplex_54',['QWitherdenVincentSimplex',['http://www.dealii.org/developer/doxygen/deal.II/classQWitherdenVincentSimplex.html',1,'']]]
+  ['quasisingularkernelintegral_53',['QuasiSingularKernelIntegral',['../class_quasi_singular_kernel_integral.html',1,'']]],
+  ['qweddle_54',['QWeddle',['http://www.dealii.org/developer/doxygen/deal.II/classQWeddle.html',1,'']]],
+  ['qwitherdenvincentsimplex_55',['QWitherdenVincentSimplex',['http://www.dealii.org/developer/doxygen/deal.II/classQWitherdenVincentSimplex.html',1,'']]]
 ];

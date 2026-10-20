@@ -114,15 +114,31 @@ Public Types</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ad80fe6a32b840f105b271aad4218163a" id="r_ad80fe6a32b840f105b271aad4218163a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ad80fe6a32b840f105b271aad4218163a">BoundaryConditions</a> (<a class="el" href="class_computational_domain.html">ComputationalDomain</a>&lt; dim &gt; &amp;comp_dom, <a class="el" href="class_b_e_m_problem.html">BEMProblem</a>&lt; dim &gt; &amp;bem, const MPI_Comm comm=MPI_COMM_WORLD)</td></tr>
+<tr class="memitem:a7d64bdf2fef68be34f65bc5b65f9ee79" id="r_a7d64bdf2fef68be34f65bc5b65f9ee79"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a7d64bdf2fef68be34f65bc5b65f9ee79">BoundaryConditions</a> (<a class="el" href="class_computational_domain.html">ComputationalDomain</a>&lt; dim &gt; &amp;comp_dom, <a class="el" href="class_b_e_m_problem.html">BEMProblem</a>&lt; dim &gt; &amp;bem, const MPI_Comm comm=MPI_COMM_WORLD, unsigned int n_components=1)</td></tr>
 <tr class="memitem:ae55d3c5b542edbf02e9d4a704a9839f4" id="r_ae55d3c5b542edbf02e9d4a704a9839f4"><td class="memItemLeft">virtual void&#160;</td><td class="memItemRight"><a class="el" href="#ae55d3c5b542edbf02e9d4a704a9839f4">declare_parameters</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a> &amp;prm) override</td></tr>
 <tr class="memitem:a1c9a5a1748373f8e198d6941a3dd9c8f" id="r_a1c9a5a1748373f8e198d6941a3dd9c8f"><td class="memItemLeft">virtual void&#160;</td><td class="memItemRight"><a class="el" href="#a1c9a5a1748373f8e198d6941a3dd9c8f">parse_parameters</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a> &amp;prm) override</td></tr>
-<tr class="memitem:ac6e13fb5434aab75f3192586971332f7" id="r_ac6e13fb5434aab75f3192586971332f7"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ac6e13fb5434aab75f3192586971332f7">prepare_bem_vectors</a> ()</td></tr>
-<tr class="memitem:a6017043caf1c433f94314e94c8a033a6" id="r_a6017043caf1c433f94314e94c8a033a6"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a6017043caf1c433f94314e94c8a033a6">solve_problem</a> ()</td></tr>
+<tr class="memitem:ae18643e7ccce117482bcf20ca29c9fc3" id="r_ae18643e7ccce117482bcf20ca29c9fc3"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ae18643e7ccce117482bcf20ca29c9fc3">prepare_bem_vectors</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;rhs)</td></tr>
+<tr class="memitem:aac2387a605c2dc23b46d033a6838d2f4" id="r_aac2387a605c2dc23b46d033a6838d2f4"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aac2387a605c2dc23b46d033a6838d2f4">prepare_robin_datastructs</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;robin_matrix_diagonal, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;robin_rhs)</td></tr>
+<tr class="memitem:a92ddf9f028dd42ad7e7eb65ad33a98fc" id="r_a92ddf9f028dd42ad7e7eb65ad33a98fc"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a92ddf9f028dd42ad7e7eb65ad33a98fc">prepare_robin_datastructs</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;robin_matrix_diagonal, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;robin_matrix_diagonal_imag, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;robin_rhs, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;robin_rhs_imag)</td></tr>
+<tr class="memitem:a4bf8fd1f6e020ab07abf1e920d8a8d20" id="r_a4bf8fd1f6e020ab07abf1e920d8a8d20"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a4bf8fd1f6e020ab07abf1e920d8a8d20">solve_problem</a> (bool reset_matrix=true)</td></tr>
+<tr class="memitem:a694a28c8e64f5820363e05b6545cac2a" id="r_a694a28c8e64f5820363e05b6545cac2a"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a694a28c8e64f5820363e05b6545cac2a">solve_complex_problem</a> (bool reset_matrix=true)</td></tr>
 <tr class="memitem:adede2a512fcad4a27ac8eb501ff67d2a" id="r_adede2a512fcad4a27ac8eb501ff67d2a"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#adede2a512fcad4a27ac8eb501ff67d2a">output_results</a> (const std::string)</td></tr>
-<tr class="memitem:ae9f9a07b460f3301e112004c75083961" id="r_ae9f9a07b460f3301e112004c75083961"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ae9f9a07b460f3301e112004c75083961">compute_errors</a> ()</td></tr>
-<tr class="memitem:a3cde2fb65c0f063e2568a83343b35560" id="r_a3cde2fb65c0f063e2568a83343b35560"><td class="memItemLeft">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a3cde2fb65c0f063e2568a83343b35560">get_phi</a> ()</td></tr>
-<tr class="memitem:a6a4fb32f414faf828728c5b891067548" id="r_a6a4fb32f414faf828728c5b891067548"><td class="memItemLeft">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a6a4fb32f414faf828728c5b891067548">get_dphi_dn</a> ()</td></tr>
+<tr class="memitem:ad45ce31bebb947814f220acca22af827" id="r_ad45ce31bebb947814f220acca22af827"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ad45ce31bebb947814f220acca22af827">compute_errors</a> (bool complex, bool current_is_real)</td></tr>
+<tr class="memitem:aee605f926e30bc64f7e54d91c2ab586c" id="r_aee605f926e30bc64f7e54d91c2ab586c"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#aee605f926e30bc64f7e54d91c2ab586c">n_phi_components</a> () const</td></tr>
+<tr class="memdesc:aee605f926e30bc64f7e54d91c2ab586c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the number of real storage components, counting imaginary parts.  <br /></td></tr>
+<tr class="memitem:a791bcd7b2e6f1861e999e78a6de84e5b" id="r_a791bcd7b2e6f1861e999e78a6de84e5b"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a791bcd7b2e6f1861e999e78a6de84e5b">set_n_phi_components</a> (unsigned int n_components)</td></tr>
+<tr class="memitem:aba810a82a035ea745727fa2dad48bd03" id="r_aba810a82a035ea745727fa2dad48bd03"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#aba810a82a035ea745727fa2dad48bd03">get_current_phi_component</a> () const</td></tr>
+<tr class="memdesc:aba810a82a035ea745727fa2dad48bd03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the zero-based active real storage component.  <br /></td></tr>
+<tr class="memitem:a62ca7c32c3b323b436953c9c0d2ad672" id="r_a62ca7c32c3b323b436953c9c0d2ad672"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a62ca7c32c3b323b436953c9c0d2ad672">set_current_phi_component</a> (unsigned int component)</td></tr>
+<tr class="memitem:af3b920da8e7e6498c185fe2616b2e0e4" id="r_af3b920da8e7e6498c185fe2616b2e0e4"><td class="memItemLeft">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#af3b920da8e7e6498c185fe2616b2e0e4">get_wind</a> (unsigned int component, unsigned int slot) const</td></tr>
+<tr class="memitem:adb08d2905aa12f9ba666e7959c98a046" id="r_adb08d2905aa12f9ba666e7959c98a046"><td class="memItemLeft">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#adb08d2905aa12f9ba666e7959c98a046">get_potential</a> (unsigned int component, unsigned int slot) const</td></tr>
+<tr class="memitem:a2cfd2bf79ff6308542253b44b7ea4add" id="r_a2cfd2bf79ff6308542253b44b7ea4add"><td class="memItemLeft">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a2cfd2bf79ff6308542253b44b7ea4add">get_robin_coeffs</a> (unsigned int component, unsigned int slot) const</td></tr>
+<tr class="memitem:afe879e9735e4b8249ff96c731efa04e3" id="r_afe879e9735e4b8249ff96c731efa04e3"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#afe879e9735e4b8249ff96c731efa04e3">get_phi</a> ()</td></tr>
+<tr class="memitem:a19c7e9b5f4504b8e4ba96a610f4a0a97" id="r_a19c7e9b5f4504b8e4ba96a610f4a0a97"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a19c7e9b5f4504b8e4ba96a610f4a0a97">get_dphi_dn</a> ()</td></tr>
+<tr class="memitem:a3e9a11c2e29d2318bcffe285a5028218" id="r_a3e9a11c2e29d2318bcffe285a5028218"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a3e9a11c2e29d2318bcffe285a5028218">get_phi</a> (unsigned int component)</td></tr>
+<tr class="memitem:a390feb4f7fa16e8039ab012a91783ce5" id="r_a390feb4f7fa16e8039ab012a91783ce5"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a390feb4f7fa16e8039ab012a91783ce5">get_dphi_dn</a> (unsigned int component)</td></tr>
+<tr class="memitem:a8555eec36e450004eb74372010759f55" id="r_a8555eec36e450004eb74372010759f55"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1BlockVector.html">TrilinosWrappers::MPI::BlockVector</a>&#160;</td><td class="memItemRight"><a class="el" href="#a8555eec36e450004eb74372010759f55">get_phi_components</a> (const std::vector&lt; unsigned int &gt; &amp;component_idxs)</td></tr>
+<tr class="memitem:a3387fa96d82e63707aa45d2aab088d23" id="r_a3387fa96d82e63707aa45d2aab088d23"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1BlockVector.html">TrilinosWrappers::MPI::BlockVector</a>&#160;</td><td class="memItemRight"><a class="el" href="#a3387fa96d82e63707aa45d2aab088d23">get_phi_components</a> ()</td></tr>
 <tr class="inherit_header pub_methods_classParameterAcceptor"><td colspan="2">Public Member Functions inherited from <a class="el"  href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html">ParameterAcceptor</a></td></tr>
 <tr class="memitem:a7bf9ccbc4d618a248324748a41f625cf pub_methods_classParameterAcceptor" id="r_a7bf9ccbc4d618a248324748a41f625cf"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a7bf9ccbc4d618a248324748a41f625cf">ParameterAcceptor</a> (const std::string &amp;section_name=&quot;&quot;)</td></tr>
 <tr class="memitem:a3d19fc7fdc6ad3ef4331ff09787397ba pub_methods_classParameterAcceptor" id="r_a3d19fc7fdc6ad3ef4331ff09787397ba"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a3d19fc7fdc6ad3ef4331ff09787397ba">get_acceptor_id</a> () const</td></tr>
@@ -163,10 +179,28 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a1704a7098e692599c254a14c15ab05d2 pub_attribs_classParameterAcceptor" id="r_a1704a7098e692599c254a14c15ab05d2"><td class="memItemLeft">boost::signals2::signal&lt; void()&gt;&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a1704a7098e692599c254a14c15ab05d2">declare_parameters_call_back</a></td></tr>
 <tr class="memitem:ac7ab79c5ce7c43ddcd9277ed2c19f7fe pub_attribs_classParameterAcceptor" id="r_ac7ab79c5ce7c43ddcd9277ed2c19f7fe"><td class="memItemLeft">boost::signals2::signal&lt; void()&gt;&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#ac7ab79c5ce7c43ddcd9277ed2c19f7fe">parse_parameters_call_back</a></td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-static-attribs" class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:a945ccba05a0dac181b41d21be684c7dd" id="r_a945ccba05a0dac181b41d21be684c7dd"><td class="memItemLeft">static constexpr unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a945ccba05a0dac181b41d21be684c7dd">MAX_COMPONENTS</a> = 14</td></tr>
+<tr class="memdesc:a945ccba05a0dac181b41d21be684c7dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of real storage components declared in parameter files.  <br /></td></tr>
+<tr class="memitem:a3fce3f9c72f715a8305b0325d9fd96a8" id="r_a3fce3f9c72f715a8305b0325d9fd96a8"><td class="memItemLeft">static constexpr unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a3fce3f9c72f715a8305b0325d9fd96a8">MAX_CONDITION_SLOTS</a> = 2</td></tr>
+<tr class="memdesc:a3fce3f9c72f715a8305b0325d9fd96a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of alternative boundary functions per component (slots 0 and 1).  <br /></td></tr>
+<tr class="inherit_header pub_static_attribs_classParameterAcceptor"><td colspan="2">Static Public Attributes inherited from <a class="el"  href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html">ParameterAcceptor</a></td></tr>
+<tr class="memitem:a96081d4cc985b722c9841fcf0c0e54ec pub_static_attribs_classParameterAcceptor" id="r_a96081d4cc985b722c9841fcf0c0e54ec"><td class="memItemLeft">static <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a>&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a96081d4cc985b722c9841fcf0c0e54ec">prm</a></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:ae99c43adc2a1c6b423e28a20bbe32d9d" id="r_ae99c43adc2a1c6b423e28a20bbe32d9d"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ae99c43adc2a1c6b423e28a20bbe32d9d">get_wind</a> (unsigned int component, unsigned int slot)</td></tr>
+<tr class="memitem:adaec09c1bfd2c806f73f9c5377392139" id="r_adaec09c1bfd2c806f73f9c5377392139"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#adaec09c1bfd2c806f73f9c5377392139">get_potential</a> (unsigned int component, unsigned int slot)</td></tr>
+<tr class="memitem:af9e436852faabdf8cc7b6f9379f20e14" id="r_af9e436852faabdf8cc7b6f9379f20e14"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#af9e436852faabdf8cc7b6f9379f20e14">get_robin_coeffs</a> (unsigned int component, unsigned int slot)</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-attribs" class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
-<tr class="memitem:a6d5f1079769f54019f2211a52fada743" id="r_a6d5f1079769f54019f2211a52fada743"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a6d5f1079769f54019f2211a52fada743">wind</a></td></tr>
-<tr class="memitem:ad4c3e1ab9c8a432c0d5038a5ca6494d1" id="r_ad4c3e1ab9c8a432c0d5038a5ca6494d1"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt;&#160;</td><td class="memItemRight"><a class="el" href="#ad4c3e1ab9c8a432c0d5038a5ca6494d1">potential</a></td></tr>
+<tr class="memitem:a8109b58b0eb86a5e102c9cbfa4ad3763" id="r_a8109b58b0eb86a5e102c9cbfa4ad3763"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a8109b58b0eb86a5e102c9cbfa4ad3763">n_components</a></td></tr>
+<tr class="memitem:a1c79a5d1c99cc3cc82d6342c543ebbad" id="r_a1c79a5d1c99cc3cc82d6342c543ebbad"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a1c79a5d1c99cc3cc82d6342c543ebbad">current_component</a></td></tr>
+<tr class="memitem:aee35cc6c05c3c931e519e51d290279d0" id="r_aee35cc6c05c3c931e519e51d290279d0"><td class="memItemLeft">std::vector&lt; std::unique_ptr&lt; <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="#aee35cc6c05c3c931e519e51d290279d0">winds</a></td></tr>
+<tr class="memitem:af5cd57bde3e1ac55cf0606f0853a7b2f" id="r_af5cd57bde3e1ac55cf0606f0853a7b2f"><td class="memItemLeft">std::vector&lt; std::unique_ptr&lt; <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="#af5cd57bde3e1ac55cf0606f0853a7b2f">potentials</a></td></tr>
+<tr class="memitem:a74fede8f13f6ac28e51fa7f4c10b09e5" id="r_a74fede8f13f6ac28e51fa7f4c10b09e5"><td class="memItemLeft">std::vector&lt; std::unique_ptr&lt; <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a74fede8f13f6ac28e51fa7f4c10b09e5">robin_coeffs</a></td></tr>
 <tr class="memitem:a5c17309798ab80f1d1e998e83ccb553f" id="r_a5c17309798ab80f1d1e998e83ccb553f"><td class="memItemLeft">std::string&#160;</td><td class="memItemRight"><a class="el" href="#a5c17309798ab80f1d1e998e83ccb553f">node_displacement_type</a></td></tr>
 <tr class="memitem:a83a1867629d0d5e62d0374b28505663a" id="r_a83a1867629d0d5e62d0374b28505663a"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classSolverControl.html">SolverControl</a>&#160;</td><td class="memItemRight"><a class="el" href="#a83a1867629d0d5e62d0374b28505663a">solver_control</a></td></tr>
 <tr class="memitem:a1d8d1281049d4b1d7850489b942d0008" id="r_a1d8d1281049d4b1d7850489b942d0008"><td class="memItemLeft"><a class="el" href="class_computational_domain.html">ComputationalDomain</a>&lt; dim &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a1d8d1281049d4b1d7850489b942d0008">comp_dom</a></td></tr>
@@ -174,12 +208,12 @@ Protected Attributes</h2></td></tr>
 <tr class="memitem:a601141bcf6588edeba4014390b0381ba" id="r_a601141bcf6588edeba4014390b0381ba"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacetypes.html#a3543786f7dc7c57385fc923a6afd5917">types::global_dof_index</a>&#160;</td><td class="memItemRight"><a class="el" href="#a601141bcf6588edeba4014390b0381ba">dofs_number</a></td></tr>
 <tr class="memitem:a28f2d17a5f1ed2a5565bf0b1c2367f2b" id="r_a28f2d17a5f1ed2a5565bf0b1c2367f2b"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a28f2d17a5f1ed2a5565bf0b1c2367f2b">output_frequency</a></td></tr>
 <tr class="memitem:ae0841cb6e7f783946b32258d5b07f28a" id="r_ae0841cb6e7f783946b32258d5b07f28a"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a>&#160;</td><td class="memItemRight"><a class="el" href="#ae0841cb6e7f783946b32258d5b07f28a">tmp_rhs</a></td></tr>
-<tr class="memitem:a55684ea8de6085e5a2b9a2817074f291" id="r_a55684ea8de6085e5a2b9a2817074f291"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a>&#160;</td><td class="memItemRight"><a class="el" href="#a55684ea8de6085e5a2b9a2817074f291">phi</a></td></tr>
-<tr class="memitem:a21a78ac0e4abdef66d5b0910b5a09023" id="r_a21a78ac0e4abdef66d5b0910b5a09023"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a>&#160;</td><td class="memItemRight"><a class="el" href="#a21a78ac0e4abdef66d5b0910b5a09023">dphi_dn</a></td></tr>
+<tr class="memitem:a8bf47f94005e0d25911bb19d915fa453" id="r_a8bf47f94005e0d25911bb19d915fa453"><td class="memItemLeft">std::vector&lt; <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a8bf47f94005e0d25911bb19d915fa453">phis</a></td></tr>
+<tr class="memitem:a3bc8c75147662c627b18dfdba3a40a29" id="r_a3bc8c75147662c627b18dfdba3a40a29"><td class="memItemLeft">std::vector&lt; <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a3bc8c75147662c627b18dfdba3a40a29">dphi_dns</a></td></tr>
 <tr class="memitem:a5dffd928319886b6ff36543e0e122788" id="r_a5dffd928319886b6ff36543e0e122788"><td class="memItemLeft">MPI_Comm&#160;</td><td class="memItemRight"><a class="el" href="#a5dffd928319886b6ff36543e0e122788">mpi_communicator</a></td></tr>
 <tr class="memitem:a40847c4af9a993e473c9ac1ba46d0d85" id="r_a40847c4af9a993e473c9ac1ba46d0d85"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a40847c4af9a993e473c9ac1ba46d0d85">n_mpi_processes</a></td></tr>
 <tr class="memitem:a7e5b0d35131c2d29559afd210a0c56f0" id="r_a7e5b0d35131c2d29559afd210a0c56f0"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a7e5b0d35131c2d29559afd210a0c56f0">this_mpi_process</a></td></tr>
-<tr class="memitem:ab5f6b8f01d369de13bfae064f366bbfe" id="r_ab5f6b8f01d369de13bfae064f366bbfe"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#ab5f6b8f01d369de13bfae064f366bbfe">have_dirichlet_bc</a></td></tr>
+<tr class="memitem:ae122a4db819043fab7017a858ec0b3f7" id="r_ae122a4db819043fab7017a858ec0b3f7"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#ae122a4db819043fab7017a858ec0b3f7">can_determine_phi</a></td></tr>
 <tr class="memitem:a2f3d890e6d90f8c7eb96697283e91c23" id="r_a2f3d890e6d90f8c7eb96697283e91c23"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classIndexSet.html">IndexSet</a>&#160;</td><td class="memItemRight"><a class="el" href="#a2f3d890e6d90f8c7eb96697283e91c23">this_cpu_set</a></td></tr>
 <tr class="memitem:a9271ef6f5de0714e633c80d3adc18d06" id="r_a9271ef6f5de0714e633c80d3adc18d06"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classConditionalOStream.html">ConditionalOStream</a>&#160;</td><td class="memItemRight"><a class="el" href="#a9271ef6f5de0714e633c80d3adc18d06">pcout</a></td></tr>
 <tr class="inherit_header pro_attribs_classParameterAcceptor"><td colspan="2">Protected Attributes inherited from <a class="el"  href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html">ParameterAcceptor</a></td></tr>
@@ -199,8 +233,6 @@ Additional Inherited Members</h2></td></tr>
 <tr class="inherit_header pub_static_methods_classEnableObserverPointer"><td colspan="2">Static Public Member Functions inherited from <a class="el"  href="http://www.dealii.org/developer/doxygen/deal.II/classEnableObserverPointer.html">EnableObserverPointer</a></td></tr>
 <tr class="memitem:gae57e9e979ffaf150d366c6fdbc05ef70 pub_static_methods_classEnableObserverPointer" id="r_gae57e9e979ffaf150d366c6fdbc05ef70"><td class="memItemLeft">static <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classExceptionBase.html">::ExceptionBase</a> &amp;&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/group__Exceptions.html#gae57e9e979ffaf150d366c6fdbc05ef70">ExcInUse</a> (int arg1, std::string arg2, std::string arg3)</td></tr>
 <tr class="memitem:gaaec803c7e01359875f9b9a221809258c pub_static_methods_classEnableObserverPointer" id="r_gaaec803c7e01359875f9b9a221809258c"><td class="memItemLeft">static <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classExceptionBase.html">::ExceptionBase</a> &amp;&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/group__Exceptions.html#gaaec803c7e01359875f9b9a221809258c">ExcNoSubscriber</a> (std::string arg1, std::string arg2)</td></tr>
-<tr class="inherit_header pub_static_attribs_classParameterAcceptor"><td colspan="2">Static Public Attributes inherited from <a class="el"  href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html">ParameterAcceptor</a></td></tr>
-<tr class="memitem:a96081d4cc985b722c9841fcf0c0e54ec pub_static_attribs_classParameterAcceptor" id="r_a96081d4cc985b722c9841fcf0c0e54ec"><td class="memItemLeft">static <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a>&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a96081d4cc985b722c9841fcf0c0e54ec">prm</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;int dim&gt;<br />
@@ -213,7 +245,7 @@ class BoundaryConditions&lt; dim &gt;</div><ul>
 </li>
 </ul>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00076">76</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00086">86</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 </div><a name="doc-typedef-members" id="doc-typedef-members"></a><h2 id="header-doc-typedef-members" class="groupheader">Member Typedef Documentation</h2>
 <a id="a2455d853af048a3a21a7cc16c49b82df" name="a2455d853af048a3a21a7cc16c49b82df"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2455d853af048a3a21a7cc16c49b82df">&#9670;&#160;</a></span>cell_it</h2>
@@ -229,13 +261,13 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00094">94</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00119">119</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
 </div>
 </div>
 <a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ad80fe6a32b840f105b271aad4218163a" name="ad80fe6a32b840f105b271aad4218163a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad80fe6a32b840f105b271aad4218163a">&#9670;&#160;</a></span>BoundaryConditions()</h2>
+<a id="a7d64bdf2fef68be34f65bc5b65f9ee79" name="a7d64bdf2fef68be34f65bc5b65f9ee79"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7d64bdf2fef68be34f65bc5b65f9ee79">&#9670;&#160;</a></span>BoundaryConditions()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -258,7 +290,12 @@ template&lt;int dim&gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const MPI_Comm</td>          <td class="paramname"><span class="paramname"><em>comm</em></span><span class="paramdefsep"> = </span><span class="paramdefval">MPI_COMM_WORLD</span>&#160;)</td>
+          <td class="paramtype">const MPI_Comm</td>          <td class="paramname"><span class="paramname"><em>comm</em></span><span class="paramdefsep"> = </span><span class="paramdefval">MPI_COMM_WORLD</span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>n_components</em></span><span class="paramdefsep"> = </span><span class="paramdefval">1</span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -267,16 +304,17 @@ template&lt;int dim&gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Bind boundary data to comp_dom and bem on comm. n_components counts real storage components; a complex potential uses two consecutive slots in the component array. Parameter functions are initialized during parsing. </p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00079">79</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00098">98</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00134">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00132">comp_dom</a>, <a class="el" href="boundary__conditions_8h_source.html#l00136">dofs_number</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/init__finalize_8h.html#afa0632b171b89c99789b77f976818df0a3b124f211648678733ce66a1b361f06c">MPI</a>, <a class="el" href="boundary__conditions_8h_source.html#l00144">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00146">n_mpi_processes</a>, <a class="el" href="boundary__conditions_8h_source.html#l00138">output_frequency</a>, <a class="el" href="boundary__conditions_8h_source.html#l00154">pcout</a>, <a class="el" href="boundary__conditions_8h_source.html#l00148">this_mpi_process</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00124">wind</a>.</p>
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00388">comp_dom</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="el" href="boundary__conditions_8h_source.html#l00392">dofs_number</a>, <a class="el" href="boundary__conditions_8h_source.html#l00398">dphi_dns</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/init__finalize_8h.html#afa0632b171b89c99789b77f976818df0a3b124f211648678733ce66a1b361f06c">MPI</a>, <a class="el" href="boundary__conditions_8h_source.html#l00400">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, <a class="el" href="boundary__conditions_8h_source.html#l00402">n_mpi_processes</a>, <a class="el" href="boundary__conditions_8h_source.html#l00394">output_frequency</a>, <a class="el" href="boundary__conditions_8h_source.html#l00410">pcout</a>, <a class="el" href="boundary__conditions_8h_source.html#l00397">phis</a>, <a class="el" href="boundary__conditions_8h_source.html#l00381">potentials</a>, <a class="el" href="boundary__conditions_8h_source.html#l00382">robin_coeffs</a>, <a class="el" href="boundary__conditions_8h_source.html#l00404">this_mpi_process</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00380">winds</a>.</p>
 
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
-<a id="ae9f9a07b460f3301e112004c75083961" name="ae9f9a07b460f3301e112004c75083961"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae9f9a07b460f3301e112004c75083961">&#9670;&#160;</a></span>compute_errors()</h2>
+<a id="ad45ce31bebb947814f220acca22af827" name="ad45ce31bebb947814f220acca22af827"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad45ce31bebb947814f220acca22af827">&#9670;&#160;</a></span>compute_errors()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -286,15 +324,20 @@ template&lt;int dim&gt; </div>
         <tr>
           <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::compute_errors </td>
           <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td class="paramtype">bool</td>          <td class="paramname"><span class="paramname"><em>complex</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">bool</td>          <td class="paramname"><span class="paramname"><em>current_is_real</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Compute errors and gradients for the active component. For a real problem pass (false,true). For a complex pair pass (true,true) on the real part and (true,false) on the imaginary part; the neighboring component must exist. </p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00347">347</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00562">562</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
 
-<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classVector.html#a10b0336c485e36c7b4b105dd2a926002">Vector&lt; typename Number &gt;::add()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a6ed7c846331069f406b8c9933c37fda4">DataOut&lt; int dim, int spacedim &gt;::attach_dof_handler()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00134">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00132">comp_dom</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDataComponentInterpretation.html#a0cd2da3afe902f9004c23a73dbcc8ab0aa783915dbc182d5a49e111815fd23fe0">DataComponentInterpretation::component_is_part_of_vector</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut.html#a1303b5d99f10f3fae984e7d406cfeb37ad8379a354d5bd6484471f6bf755cd111">DataOut&lt; int dim, int spacedim &gt;::curved_inner_cells</a>, <a class="el" href="boundary__conditions_8h_source.html#l00142">dphi_dn</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00021">ErrorsTime</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceVectorTools.html#a6cac27efbc9169a5119497cf08463d3b">VectorTools::integrate_difference()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceVectorTools.html#a69967cb7a148a7169963126249213db1aa3903caf348e2d5dc54d1b49e15c1e8e">VectorTools::L2_norm</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classVector.html#a8ee1b8309a7a9ecf109c8a7116733ef8">Vector&lt; typename Number &gt;::l2_norm()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classVector.html#a9f6b7f7afb05aaff7e1ab8f9942b6dae">Vector&lt; typename Number &gt;::linfty_norm()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00154">pcout</a>, <a class="el" href="boundary__conditions_8h_source.html#l00141">phi</a>, <a class="el" href="boundary__conditions_8h_source.html#l00126">potential</a>, <a class="el" href="boundary__conditions_8h_source.html#l00148">this_mpi_process</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a062005bfe37e877e1f44e1c3e8e6cb27a346ed8834d890734537f4dd6dd016ef8">DataOut&lt; int dim, int spacedim &gt;::type_dof_data</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00124">wind</a>.</p>
+<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#ae348f4ef7dd5887ba9c50b03a842950a">std::abs()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a6ed7c846331069f406b8c9933c37fda4">DataOut&lt; int dim, int spacedim &gt;::attach_dof_handler()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00388">comp_dom</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDataComponentInterpretation.html#a0cd2da3afe902f9004c23a73dbcc8ab0aa783915dbc182d5a49e111815fd23fe0">DataComponentInterpretation::component_is_part_of_vector</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut.html#a1303b5d99f10f3fae984e7d406cfeb37ad8379a354d5bd6484471f6bf755cd111">DataOut&lt; int dim, int spacedim &gt;::curved_inner_cells</a>, <a class="el" href="boundary__conditions_8h_source.html#l00070">dirichlet</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00066">ErrorsTime</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceUtilities.html#a6195c5f009ea8c7c536c6ffdf108c32f">Utilities::int_to_string()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceVectorTools.html#a6cac27efbc9169a5119497cf08463d3b">VectorTools::integrate_difference()</a>, <a class="el" href="vector__tools__integrate__difference_8h_source.html#l00198">integrate_difference_based_on_material_id()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceVectorTools.html#a69967cb7a148a7169963126249213db1aa3903caf348e2d5dc54d1b49e15c1e8e">VectorTools::L2_norm</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classVector.html#a8ee1b8309a7a9ecf109c8a7116733ef8">Vector&lt; typename Number &gt;::l2_norm()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classVector.html#a9f6b7f7afb05aaff7e1ab8f9942b6dae">Vector&lt; typename Number &gt;::linfty_norm()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00071">neumann</a>, <a class="el" href="boundary__conditions_8h_source.html#l00410">pcout</a>, <a class="el" href="boundary__conditions_8h_source.html#l00072">robin</a>, <a class="el" href="boundary__conditions_8h_source.html#l00404">this_mpi_process</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a062005bfe37e877e1f44e1c3e8e6cb27a346ed8834d890734537f4dd6dd016ef8">DataOut&lt; int dim, int spacedim &gt;::type_dof_data</a>.</p>
 
 </div>
 </div>
@@ -325,55 +368,495 @@ template&lt;int dim&gt; </div>
 
 <p>Reimplemented from <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#af73d667dd9cdb4614b917a1b9383ae5b">ParameterAcceptor</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00035">35</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00080">80</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
 
-<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a6d65f458be69e23a348221cb67fc411d">ParameterHandler::declare_entry()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html#abcaae756f4a3cb5b5d8d80255dc9ca5c">Functions::ParsedFunction&lt; int dim &gt;::declare_parameters()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a46850e029553589417713db85362c128">ParameterHandler::enter_subsection()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a599462cacd492e2f712bf7369507dcff">ParameterHandler::leave_subsection()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a96081d4cc985b722c9841fcf0c0e54ec">ParameterAcceptor::prm</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#aa6418ea655b1b550b9dcf63513030196">ParameterHandler::set()</a>.</p>
+<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a6d65f458be69e23a348221cb67fc411d">ParameterHandler::declare_entry()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html#abcaae756f4a3cb5b5d8d80255dc9ca5c">Functions::ParsedFunction&lt; int dim &gt;::declare_parameters()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a46850e029553589417713db85362c128">ParameterHandler::enter_subsection()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceUtilities.html#a6195c5f009ea8c7c536c6ffdf108c32f">Utilities::int_to_string()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a599462cacd492e2f712bf7369507dcff">ParameterHandler::leave_subsection()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00090">MAX_COMPONENTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a96081d4cc985b722c9841fcf0c0e54ec">ParameterAcceptor::prm</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#aa6418ea655b1b550b9dcf63513030196">ParameterHandler::set()</a>.</p>
 
 </div>
 </div>
-<a id="a6a4fb32f414faf828728c5b891067548" name="a6a4fb32f414faf828728c5b891067548"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a4fb32f414faf828728c5b891067548">&#9670;&#160;</a></span>get_dphi_dn()</h2>
+<a id="aba810a82a035ea745727fa2dad48bd03" name="aba810a82a035ea745727fa2dad48bd03"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba810a82a035ea745727fa2dad48bd03">&#9670;&#160;</a></span>get_current_phi_component()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_dphi_dn </td>
+          <td class="memname">unsigned int <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_current_phi_component </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
+          <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00210">210</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p>Return the zero-based active real storage component. </p>
 
-<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00142">dphi_dn</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00209">209</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>.</p>
 
 </div>
 </div>
-<a id="a3cde2fb65c0f063e2568a83343b35560" name="a3cde2fb65c0f063e2568a83343b35560"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3cde2fb65c0f063e2568a83343b35560">&#9670;&#160;</a></span>get_phi()</h2>
+<a id="a19c7e9b5f4504b8e4ba96a610f4a0a97" name="a19c7e9b5f4504b8e4ba96a610f4a0a97"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a19c7e9b5f4504b8e4ba96a610f4a0a97">&#9670;&#160;</a></span>get_dphi_dn() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_phi </td>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_dphi_dn </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return mutable normal-derivative storage for the active or explicit component. Resizing component storage invalidates the reference. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00269">269</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00398">dphi_dns</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00997">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="a390feb4f7fa16e8039ab012a91783ce5" name="a390feb4f7fa16e8039ab012a91783ce5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a390feb4f7fa16e8039ab012a91783ce5">&#9670;&#160;</a></span>get_dphi_dn() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_dphi_dn </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return mutable normal-derivative storage for the active or explicit component. Resizing component storage invalidates the reference. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00287">287</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00398">dphi_dns</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>.</p>
+
+</div>
+</div>
+<a id="afe879e9735e4b8249ff96c731efa04e3" name="afe879e9735e4b8249ff96c731efa04e3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe879e9735e4b8249ff96c731efa04e3">&#9670;&#160;</a></span>get_phi() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_phi </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return mutable potential storage for the active or explicit component. Requires a solved/initialized component; resizing invalidates the reference. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00261">261</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00397">phis</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00299">get_phi_components()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00997">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="a3e9a11c2e29d2318bcffe285a5028218" name="a3e9a11c2e29d2318bcffe285a5028218"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3e9a11c2e29d2318bcffe285a5028218">&#9670;&#160;</a></span>get_phi() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_phi </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return mutable potential storage for the active or explicit component. Requires a solved/initialized component; resizing invalidates the reference. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00278">278</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00397">phis</a>.</p>
+
+</div>
+</div>
+<a id="a3387fa96d82e63707aa45d2aab088d23" name="a3387fa96d82e63707aa45d2aab088d23"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3387fa96d82e63707aa45d2aab088d23">&#9670;&#160;</a></span>get_phi_components() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1BlockVector.html">TrilinosWrappers::MPI::BlockVector</a> <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_phi_components </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Build and return a distributed block-vector copy using component indices as block indices; the no-argument overload selects every component. Invoke collectively after solution vectors and ownership are initialized. The result is owned by the caller and is not a view into solution storage. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00332">332</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00299">get_phi_components()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>.</p>
+
+</div>
+</div>
+<a id="a8555eec36e450004eb74372010759f55" name="a8555eec36e450004eb74372010759f55"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8555eec36e450004eb74372010759f55">&#9670;&#160;</a></span>get_phi_components() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1BlockVector.html">TrilinosWrappers::MPI::BlockVector</a> <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_phi_components </td>
+          <td>(</td>
+          <td class="paramtype">const std::vector&lt; unsigned int &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>component_idxs</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>get all components as blocks Build and return a distributed block-vector copy using component indices as block indices; the no-argument overload selects every component. Invoke collectively after solution vectors and ownership are initialized. The result is owned by the caller and is not a view into solution storage. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00299">299</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/structVectorOperation.html#a40c50779cd14ba89bbf0bd9b4561964cae1077e8dbf4afea5d2df8c8b723c0708">VectorOperation::add</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classBlockVectorBase.html#a619e5e1d6e29670f66047913df49459b">TrilinosWrappers::MPI::BlockVector::compress()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00400">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1BlockVector.html#abdb687cfcb191052968efadbfa5a38a1">TrilinosWrappers::MPI::BlockVector::reinit()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00408">this_cpu_set</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00332">get_phi_components()</a>.</p>
+
+</div>
+</div>
+<a id="adaec09c1bfd2c806f73f9c5377392139" name="adaec09c1bfd2c806f73f9c5377392139"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adaec09c1bfd2c806f73f9c5377392139">&#9670;&#160;</a></span>get_potential() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_potential </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>slot</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the parsed scalar potential for component and function slot (0 or 1). Requires parsed functions. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00360">360</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00381">potentials</a>.</p>
+
+</div>
+</div>
+<a id="adb08d2905aa12f9ba666e7959c98a046" name="adb08d2905aa12f9ba666e7959c98a046"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adb08d2905aa12f9ba666e7959c98a046">&#9670;&#160;</a></span>get_potential() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_potential </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>slot</em></span>&#160;) const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the parsed scalar potential for component and function slot (0 or 1). Requires parsed functions. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00239">239</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00381">potentials</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="af9e436852faabdf8cc7b6f9379f20e14" name="af9e436852faabdf8cc7b6f9379f20e14"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af9e436852faabdf8cc7b6f9379f20e14">&#9670;&#160;</a></span>get_robin_coeffs() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_robin_coeffs </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>slot</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the parsed Robin coefficient function for component and slot (0 or 1). In 3D its entries are a, b, g in a*phi+b*dphi_dn=g. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00370">370</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00382">robin_coeffs</a>.</p>
+
+</div>
+</div>
+<a id="a2cfd2bf79ff6308542253b44b7ea4add" name="a2cfd2bf79ff6308542253b44b7ea4add"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2cfd2bf79ff6308542253b44b7ea4add">&#9670;&#160;</a></span>get_robin_coeffs() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_robin_coeffs </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>slot</em></span>&#160;) const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the parsed Robin coefficient function for component and slot (0 or 1). In 3D its entries are a, b, g in a*phi+b*dphi_dn=g. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00249">249</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00382">robin_coeffs</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00500">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="ae99c43adc2a1c6b423e28a20bbe32d9d" name="ae99c43adc2a1c6b423e28a20bbe32d9d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae99c43adc2a1c6b423e28a20bbe32d9d">&#9670;&#160;</a></span>get_wind() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_wind </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>slot</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the parsed vector field for component and function slot (0 or 1). Its normal projection supplies Neumann data. Requires parsed functions. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00350">350</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00380">winds</a>.</p>
+
+</div>
+</div>
+<a id="af3b920da8e7e6498c185fe2616b2e0e4" name="af3b920da8e7e6498c185fe2616b2e0e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af3b920da8e7e6498c185fe2616b2e0e4">&#9670;&#160;</a></span>get_wind() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt; dim &gt; &amp; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::get_wind </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>slot</em></span>&#160;) const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Return the parsed vector field for component and function slot (0 or 1). Its normal projection supplies Neumann data. Requires parsed functions. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00229">229</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00380">winds</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="aee605f926e30bc64f7e54d91c2ab586c" name="aee605f926e30bc64f7e54d91c2ab586c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee605f926e30bc64f7e54d91c2ab586c">&#9670;&#160;</a></span>n_phi_components()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned int <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::n_phi_components </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00203">203</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p>Return the number of real storage components, counting imaginary parts. </p>
 
-<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00141">phi</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00183">183</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>.</p>
 
 </div>
 </div>
@@ -393,10 +876,11 @@ template&lt;int dim&gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Write the active component and its gradient fields using the supplied filename stem. Invoke on all ranks after the solution is available. </p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00546">546</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00997">997</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
 
-<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a6ed7c846331069f406b8c9933c37fda4">DataOut&lt; int dim, int spacedim &gt;::attach_dof_handler()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00134">bem</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDataComponentInterpretation.html#a0cd2da3afe902f9004c23a73dbcc8ab0aa783915dbc182d5a49e111815fd23fe0">DataComponentInterpretation::component_is_part_of_vector</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut.html#a1303b5d99f10f3fae984e7d406cfeb37ad8379a354d5bd6484471f6bf755cd111">DataOut&lt; int dim, int spacedim &gt;::curved_inner_cells</a>, <a class="el" href="boundary__conditions_8h_source.html#l00142">dphi_dn</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00022">OutputTimer</a>, <a class="el" href="boundary__conditions_8h_source.html#l00141">phi</a>, <a class="el" href="boundary__conditions_8h_source.html#l00148">this_mpi_process</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a062005bfe37e877e1f44e1c3e8e6cb27a346ed8834d890734537f4dd6dd016ef8">DataOut&lt; int dim, int spacedim &gt;::type_dof_data</a>.</p>
+<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a6ed7c846331069f406b8c9933c37fda4">DataOut&lt; int dim, int spacedim &gt;::attach_dof_handler()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDataComponentInterpretation.html#a0cd2da3afe902f9004c23a73dbcc8ab0aa783915dbc182d5a49e111815fd23fe0">DataComponentInterpretation::component_is_part_of_vector</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut.html#a1303b5d99f10f3fae984e7d406cfeb37ad8379a354d5bd6484471f6bf755cd111">DataOut&lt; int dim, int spacedim &gt;::curved_inner_cells</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00067">OutputTimer</a>, <a class="el" href="boundary__conditions_8h_source.html#l00404">this_mpi_process</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classDataOut__DoFData.html#a062005bfe37e877e1f44e1c3e8e6cb27a346ed8834d890734537f4dd6dd016ef8">DataOut&lt; int dim, int spacedim &gt;::type_dof_data</a>.</p>
 
 </div>
 </div>
@@ -427,14 +911,14 @@ template&lt;int dim&gt; </div>
 
 <p>Reimplemented from <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#ab3ee6cabf1ff10be362ac65495183c52">ParameterAcceptor</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00071">71</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00146">146</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
 
-<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a46850e029553589417713db85362c128">ParameterHandler::enter_subsection()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a91cfbaca954f444047302446a4e87125">ParameterHandler::get()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceUtilities.html#a6195c5f009ea8c7c536c6ffdf108c32f">Utilities::int_to_string()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a599462cacd492e2f712bf7369507dcff">ParameterHandler::leave_subsection()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00121">output_file_name</a>, <a class="el" href="boundary__conditions_8h_source.html#l00126">potential</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a96081d4cc985b722c9841fcf0c0e54ec">ParameterAcceptor::prm</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00124">wind</a>.</p>
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00070">dirichlet</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a46850e029553589417713db85362c128">ParameterHandler::enter_subsection()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a91cfbaca954f444047302446a4e87125">ParameterHandler::get()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceUtilities.html#a6195c5f009ea8c7c536c6ffdf108c32f">Utilities::int_to_string()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00073">invalid</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a599462cacd492e2f712bf7369507dcff">ParameterHandler::leave_subsection()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, <a class="el" href="boundary__conditions_8h_source.html#l00071">neumann</a>, <a class="el" href="boundary__conditions_8h_source.html#l00343">output_file_name</a>, <a class="el" href="boundary__conditions_8h_source.html#l00381">potentials</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a96081d4cc985b722c9841fcf0c0e54ec">ParameterAcceptor::prm</a>, <a class="el" href="boundary__conditions_8h_source.html#l00072">robin</a>, <a class="el" href="boundary__conditions_8h_source.html#l00382">robin_coeffs</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00380">winds</a>.</p>
 
 </div>
 </div>
-<a id="ac6e13fb5434aab75f3192586971332f7" name="ac6e13fb5434aab75f3192586971332f7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac6e13fb5434aab75f3192586971332f7">&#9670;&#160;</a></span>prepare_bem_vectors()</h2>
+<a id="ae18643e7ccce117482bcf20ca29c9fc3" name="ae18643e7ccce117482bcf20ca29c9fc3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae18643e7ccce117482bcf20ca29c9fc3">&#9670;&#160;</a></span>prepare_bem_vectors()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -444,22 +928,181 @@ template&lt;int dim&gt; </div>
         <tr>
           <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::prepare_bem_vectors </td>
           <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>rhs</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Populate known boundary values and rhs for the active component using the domain boundary types and function-slot map. Requires initialized DoFs, normals, parsed functions and distributed solution vectors. </p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00219">219</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00349">349</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00134">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00132">comp_dom</a>, <a class="el" href="boundary__conditions_8h_source.html#l00142">dphi_dn</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00144">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00141">phi</a>, <a class="el" href="boundary__conditions_8h_source.html#l00126">potential</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00020">PrepareTime</a>, <a class="el" href="boundary__conditions_8h_source.html#l00152">this_cpu_set</a>, <a class="el" href="boundary__conditions_8h_source.html#l00140">tmp_rhs</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00124">wind</a>.</p>
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00388">comp_dom</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="el" href="boundary__conditions_8h_source.html#l00070">dirichlet</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00071">neumann</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00065">PrepareTime</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00408">this_cpu_set</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
-<a id="a6017043caf1c433f94314e94c8a033a6" name="a6017043caf1c433f94314e94c8a033a6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6017043caf1c433f94314e94c8a033a6">&#9670;&#160;</a></span>solve_problem()</h2>
+<a id="a92ddf9f028dd42ad7e7eb65ad33a98fc" name="a92ddf9f028dd42ad7e7eb65ad33a98fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a92ddf9f028dd42ad7e7eb65ad33a98fc">&#9670;&#160;</a></span>prepare_robin_datastructs() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::prepare_robin_datastructs </td>
+          <td>(</td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>robin_matrix_diagonal</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>robin_matrix_diagonal_imag</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>robin_rhs</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>robin_rhs_imag</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Evaluate a*phi+b*dphi_dn=g on Robin nodes and store a/b and g/b. The complex overload reads real coefficients from the active component and imaginary coefficients from the next one. b must be nonzero. Output vectors must be initialized with the problem partitioning. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00500">500</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00388">comp_dom</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00065">PrepareTime</a>, <a class="el" href="boundary__conditions_8h_source.html#l00072">robin</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00408">this_cpu_set</a>.</p>
+
+</div>
+</div>
+<a id="aac2387a605c2dc23b46d033a6838d2f4" name="aac2387a605c2dc23b46d033a6838d2f4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aac2387a605c2dc23b46d033a6838d2f4">&#9670;&#160;</a></span>prepare_robin_datastructs() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::prepare_robin_datastructs </td>
+          <td>(</td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>robin_matrix_diagonal</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>robin_rhs</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Evaluate a*phi+b*dphi_dn=g on Robin nodes and store a/b and g/b. The complex overload reads real coefficients from the active component and imaginary coefficients from the next one. b must be nonzero. Output vectors must be initialized with the problem partitioning. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00453">453</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00388">comp_dom</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00065">PrepareTime</a>, <a class="el" href="boundary__conditions_8h_source.html#l00072">robin</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00408">this_cpu_set</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="a62ca7c32c3b323b436953c9c0d2ad672" name="a62ca7c32c3b323b436953c9c0d2ad672"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a62ca7c32c3b323b436953c9c0d2ad672">&#9670;&#160;</a></span>set_current_phi_component()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::set_current_phi_component </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>component</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Select a component smaller than <a class="el" href="#aee605f926e30bc64f7e54d91c2ab586c" title="Return the number of real storage components, counting imaginary parts.">n_phi_components()</a> and synchronize the active component of the bound <a class="el" href="class_b_e_m_problem.html">BEMProblem</a>. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00217">217</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>.</p>
+
+</div>
+</div>
+<a id="a791bcd7b2e6f1861e999e78a6de84e5b" name="a791bcd7b2e6f1861e999e78a6de84e5b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a791bcd7b2e6f1861e999e78a6de84e5b">&#9670;&#160;</a></span>set_n_phi_components()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::set_n_phi_components </td>
+          <td>(</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>n_components</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Grow solution and function storage; shrinking is unsupported. Parse parameters and initialize distributed vectors before using added components. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00192">192</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00398">dphi_dns</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00377">n_components</a>, <a class="el" href="boundary__conditions_8h_source.html#l00397">phis</a>, <a class="el" href="boundary__conditions_8h_source.html#l00381">potentials</a>, <a class="el" href="boundary__conditions_8h_source.html#l00382">robin_coeffs</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00380">winds</a>.</p>
+
+</div>
+</div>
+<a id="a694a28c8e64f5820363e05b6545cac2a" name="a694a28c8e64f5820363e05b6545cac2a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a694a28c8e64f5820363e05b6545cac2a">&#9670;&#160;</a></span>solve_complex_problem()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::solve_complex_problem </td>
+          <td>(</td>
+          <td class="paramtype">bool</td>          <td class="paramname"><span class="paramname"><em>reset_matrix</em></span><span class="paramdefsep"> = </span><span class="paramdefval">true</span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Prepare and solve the active real component and its following imaginary component collectively; current_component+1 must exist. reset_matrix has the same operator-reuse contract as <a class="el" href="#a4bf8fd1f6e020ab07abf1e920d8a8d20">solve_problem()</a>. </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00251">251</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#a0429b3117b2ab1f5a1fd0d55de26ad81">DoFTools::get_subdomain_association()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00400">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00410">pcout</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html#a38c2d48a865eb577a317895a5d5b7b3f">TrilinosWrappers::MPI::Vector::reinit()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00217">set_current_phi_component()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00408">this_cpu_set</a>, <a class="el" href="boundary__conditions_8h_source.html#l00404">this_mpi_process</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00396">tmp_rhs</a>.</p>
+
+</div>
+</div>
+<a id="a4bf8fd1f6e020ab07abf1e920d8a8d20" name="a4bf8fd1f6e020ab07abf1e920d8a8d20"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4bf8fd1f6e020ab07abf1e920d8a8d20">&#9670;&#160;</a></span>solve_problem()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -469,15 +1112,16 @@ template&lt;int dim&gt; </div>
         <tr>
           <td class="memname">void <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::solve_problem </td>
           <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td class="paramtype">bool</td>          <td class="paramname"><span class="paramname"><em>reset_matrix</em></span><span class="paramdefsep"> = </span><span class="paramdefval">true</span></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Prepare and solve the active real component collectively. Reuse integral operators when reset_matrix=false and geometry/discretization are unchanged. </p>
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00160">160</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8cc_source.html#l00196">196</a> of file <a class="el" href="boundary__conditions_8cc_source.html">boundary_conditions.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00134">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00142">dphi_dn</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#a0429b3117b2ab1f5a1fd0d55de26ad81">DoFTools::get_subdomain_association()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00150">have_dirichlet_bc</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00144">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00154">pcout</a>, <a class="el" href="boundary__conditions_8h_source.html#l00141">phi</a>, <a class="el" href="boundary__conditions_8h_source.html#l00126">potential</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00152">this_cpu_set</a>, <a class="el" href="boundary__conditions_8h_source.html#l00148">this_mpi_process</a>, <a class="el" href="boundary__conditions_8h_source.html#l00140">tmp_rhs</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00124">wind</a>.</p>
+<p class="reference">References <a class="el" href="boundary__conditions_8h_source.html#l00390">bem</a>, <a class="el" href="boundary__conditions_8h_source.html#l00378">current_component</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#a0429b3117b2ab1f5a1fd0d55de26ad81">DoFTools::get_subdomain_association()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html#aca304380231b17d87c4e2e91299038d5">DoFTools::map_dofs_to_support_points()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00092">MAX_CONDITION_SLOTS</a>, <a class="el" href="boundary__conditions_8h_source.html#l00400">mpi_communicator</a>, <a class="el" href="boundary__conditions_8h_source.html#l00410">pcout</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00408">this_cpu_set</a>, <a class="el" href="boundary__conditions_8h_source.html#l00404">this_mpi_process</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00396">tmp_rhs</a>.</p>
 
 </div>
 </div>
@@ -504,9 +1148,35 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00134">134</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00390">390</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00546">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00997">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00500">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00217">set_current_phi_component()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="ae122a4db819043fab7017a858ec0b3f7" name="ae122a4db819043fab7017a858ec0b3f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae122a4db819043fab7017a858ec0b3f7">&#9670;&#160;</a></span>can_determine_phi</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::can_determine_phi</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00406">406</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
 </div>
 </div>
@@ -532,9 +1202,37 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00132">132</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00388">388</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00500">prepare_robin_datastructs()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>.</p>
+
+</div>
+</div>
+<a id="a1c79a5d1c99cc3cc82d6342c543ebbad" name="a1c79a5d1c99cc3cc82d6342c543ebbad"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c79a5d1c99cc3cc82d6342c543ebbad">&#9670;&#160;</a></span>current_component</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned int <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::current_component</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00378">378</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00209">get_current_phi_component()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00500">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00217">set_current_phi_component()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
@@ -560,14 +1258,14 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00136">136</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00392">392</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>.</p>
 
 </div>
 </div>
-<a id="a21a78ac0e4abdef66d5b0910b5a09023" name="a21a78ac0e4abdef66d5b0910b5a09023"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a21a78ac0e4abdef66d5b0910b5a09023">&#9670;&#160;</a></span>dphi_dn</h2>
+<a id="a3bc8c75147662c627b18dfdba3a40a29" name="a3bc8c75147662c627b18dfdba3a40a29"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3bc8c75147662c627b18dfdba3a40a29">&#9670;&#160;</a></span>dphi_dns</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -578,7 +1276,7 @@ template&lt;int dim&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::dphi_dn</td>
+          <td class="memname">std::vector&lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a>&gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::dphi_dns</td>
         </tr>
       </table>
   </td>
@@ -588,14 +1286,14 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00142">142</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00398">398</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00210">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00546">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00269">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00287">get_dphi_dn()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>.</p>
 
 </div>
 </div>
-<a id="ab5f6b8f01d369de13bfae064f366bbfe" name="ab5f6b8f01d369de13bfae064f366bbfe"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab5f6b8f01d369de13bfae064f366bbfe">&#9670;&#160;</a></span>have_dirichlet_bc</h2>
+<a id="a945ccba05a0dac181b41d21be684c7dd" name="a945ccba05a0dac181b41d21be684c7dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a945ccba05a0dac181b41d21be684c7dd">&#9670;&#160;</a></span>MAX_COMPONENTS</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -606,19 +1304,51 @@ template&lt;int dim&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::have_dirichlet_bc</td>
+          <td class="memname">unsigned int <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::MAX_COMPONENTS = 14</td>
         </tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel constexpr">constexpr</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00150">150</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p>Maximum number of real storage components declared in parameter files. </p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00090">90</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00080">declare_parameters()</a>.</p>
+
+</div>
+</div>
+<a id="a3fce3f9c72f715a8305b0325d9fd96a8" name="a3fce3f9c72f715a8305b0325d9fd96a8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3fce3f9c72f715a8305b0325d9fd96a8">&#9670;&#160;</a></span>MAX_CONDITION_SLOTS</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned int <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::MAX_CONDITION_SLOTS = 2</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel constexpr">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Number of alternative boundary functions per component (slots 0 and 1). </p>
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00092">92</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00080">declare_parameters()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00360">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00370">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00350">get_wind()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00146">parse_parameters()</a>, <a class="el" href="computational__domain_8cc_source.html#l00140">ComputationalDomain&lt; dim &gt;::parse_parameters()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
@@ -644,9 +1374,37 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00144">144</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00400">400</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00299">get_phi_components()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
+
+</div>
+</div>
+<a id="a8109b58b0eb86a5e102c9cbfa4ad3763" name="a8109b58b0eb86a5e102c9cbfa4ad3763"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8109b58b0eb86a5e102c9cbfa4ad3763">&#9670;&#160;</a></span>n_components</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned int <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::n_components</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00377">377</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00287">get_dphi_dn()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00278">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00332">get_phi_components()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00299">get_phi_components()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00360">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00370">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00350">get_wind()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00183">n_phi_components()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00146">parse_parameters()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00217">set_current_phi_component()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>.</p>
 
 </div>
 </div>
@@ -672,9 +1430,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00146">146</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00402">402</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>.</p>
 
 </div>
 </div>
@@ -700,7 +1458,7 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00128">128</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00384">384</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
 </div>
 </div>
@@ -718,9 +1476,9 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00121">121</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00343">343</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00071">parse_parameters()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00146">parse_parameters()</a>.</p>
 
 </div>
 </div>
@@ -746,9 +1504,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00138">138</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00394">394</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>.</p>
 
 </div>
 </div>
@@ -774,14 +1532,14 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00154">154</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00410">410</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
-<a id="a55684ea8de6085e5a2b9a2817074f291" name="a55684ea8de6085e5a2b9a2817074f291"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a55684ea8de6085e5a2b9a2817074f291">&#9670;&#160;</a></span>phi</h2>
+<a id="a8bf47f94005e0d25911bb19d915fa453" name="a8bf47f94005e0d25911bb19d915fa453"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8bf47f94005e0d25911bb19d915fa453">&#9670;&#160;</a></span>phis</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -792,7 +1550,7 @@ template&lt;int dim&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a> <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::phi</td>
+          <td class="memname">std::vector&lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classTrilinosWrappers_1_1MPI_1_1Vector.html">TrilinosWrappers::MPI::Vector</a>&gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::phis</td>
         </tr>
       </table>
   </td>
@@ -802,14 +1560,14 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00141">141</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00397">397</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00203">get_phi()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00546">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00261">get_phi()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00278">get_phi()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>.</p>
 
 </div>
 </div>
-<a id="ad4c3e1ab9c8a432c0d5038a5ca6494d1" name="ad4c3e1ab9c8a432c0d5038a5ca6494d1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad4c3e1ab9c8a432c0d5038a5ca6494d1">&#9670;&#160;</a></span>potential</h2>
+<a id="af5cd57bde3e1ac55cf0606f0853a7b2f" name="af5cd57bde3e1ac55cf0606f0853a7b2f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af5cd57bde3e1ac55cf0606f0853a7b2f">&#9670;&#160;</a></span>potentials</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -820,7 +1578,7 @@ template&lt;int dim&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt;dim&gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::potential</td>
+          <td class="memname">std::vector&lt;std::unique_ptr&lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt;dim&gt; &gt; &gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::potentials</td>
         </tr>
       </table>
   </td>
@@ -830,9 +1588,37 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00126">126</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00381">381</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00071">parse_parameters()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00360">get_potential()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00239">get_potential()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00146">parse_parameters()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>.</p>
+
+</div>
+</div>
+<a id="a74fede8f13f6ac28e51fa7f4c10b09e5" name="a74fede8f13f6ac28e51fa7f4c10b09e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a74fede8f13f6ac28e51fa7f4c10b09e5">&#9670;&#160;</a></span>robin_coeffs</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;std::unique_ptr&lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt;dim&gt; &gt; &gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::robin_coeffs</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00382">382</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00370">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00249">get_robin_coeffs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00146">parse_parameters()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>.</p>
 
 </div>
 </div>
@@ -858,7 +1644,7 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00130">130</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00386">386</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
 </div>
 </div>
@@ -884,9 +1670,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00152">152</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00408">408</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00299">get_phi_components()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00349">prepare_bem_vectors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00500">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00453">prepare_robin_datastructs()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
@@ -912,9 +1698,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00148">148</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00404">404</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00546">output_results()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00562">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00997">output_results()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
@@ -940,14 +1726,14 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00140">140</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00396">396</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8cc_source.html#l00251">solve_complex_problem()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00196">solve_problem()</a>.</p>
 
 </div>
 </div>
-<a id="a6d5f1079769f54019f2211a52fada743" name="a6d5f1079769f54019f2211a52fada743"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6d5f1079769f54019f2211a52fada743">&#9670;&#160;</a></span>wind</h2>
+<a id="aee35cc6c05c3c931e519e51d290279d0" name="aee35cc6c05c3c931e519e51d290279d0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee35cc6c05c3c931e519e51d290279d0">&#9670;&#160;</a></span>winds</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -958,7 +1744,7 @@ template&lt;int dim&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt;dim&gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::wind</td>
+          <td class="memname">std::vector&lt;std::unique_ptr&lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFunctions_1_1ParsedFunction.html">Functions::ParsedFunction</a>&lt;dim&gt; &gt; &gt; <a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;::winds</td>
         </tr>
       </table>
   </td>
@@ -968,9 +1754,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00124">124</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="boundary__conditions_8h_source.html#l00380">380</a> of file <a class="el" href="boundary__conditions_8h_source.html">boundary_conditions.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00079">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00347">compute_errors()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00071">parse_parameters()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00219">prepare_bem_vectors()</a>, and <a class="el" href="boundary__conditions_8cc_source.html#l00160">solve_problem()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="boundary__conditions_8h_source.html#l00098">BoundaryConditions()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00350">get_wind()</a>, <a class="el" href="boundary__conditions_8h_source.html#l00229">get_wind()</a>, <a class="el" href="boundary__conditions_8cc_source.html#l00146">parse_parameters()</a>, and <a class="el" href="boundary__conditions_8h_source.html#l00192">set_n_phi_components()</a>.</p>
 
 </div>
 </div>

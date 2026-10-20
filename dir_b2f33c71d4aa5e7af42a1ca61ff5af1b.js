@@ -1,6 +1,7 @@
 var dir_b2f33c71d4aa5e7af42a1ca61ff5af1b =
 [
     [ "ass_leg_function.cc", "ass__leg__function_8cc.html", null ],
+    [ "ass_leg_function_py.cpp", "ass__leg__function__py_8cpp.html", null ],
     [ "bem_fma.cc", "bem__fma_8cc.html", "bem__fma_8cc" ],
     [ "bem_problem.cc", "bem__problem_8cc.html", "bem__problem_8cc" ],
     [ "boundary_conditions.cc", "boundary__conditions_8cc.html", "boundary__conditions_8cc" ],
@@ -12,5 +13,6 @@ var dir_b2f33c71d4aa5e7af42a1ca61ff5af1b =
     [ "main.cc", "main_8cc.html", "main_8cc" ],
     [ "multipole_expansion.cc", "multipole__expansion_8cc.html", "multipole__expansion_8cc" ],
     [ "octree_block.cc", "octree__block_8cc.html", null ],
+    [ "quasi_singular_kernel_integral.cc", "quasi__singular__kernel__integral_8cc.html", null ],
     [ "singular_kernel_integral.cc", "singular__kernel__integral_8cc.html", null ]
 ];

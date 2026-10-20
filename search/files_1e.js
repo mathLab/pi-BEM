@@ -24,7 +24,7 @@ var searchData=
   ['vector_5ftools_5fconstraints_2eh_21',['vector_tools_constraints.h',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__constraints_8h.html',1,'']]],
   ['vector_5ftools_5fevaluate_2eh_22',['vector_tools_evaluate.h',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__evaluate_8h.html',1,'']]],
   ['vector_5ftools_5fintegrate_5fdifference_2ecc_23',['vector_tools_integrate_difference.cc',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__integrate__difference_8cc.html',1,'']]],
-  ['vector_5ftools_5fintegrate_5fdifference_2eh_24',['vector_tools_integrate_difference.h',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__integrate__difference_8h.html',1,'']]],
+  ['vector_5ftools_5fintegrate_5fdifference_2eh_24',['vector_tools_integrate_difference.h',['../vector__tools__integrate__difference_8h.html',1,'(Global Namespace)'],['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__integrate__difference_8h.html',1,'(Global Namespace)']]],
   ['vector_5ftools_5finterpolate_2ecc_25',['vector_tools_interpolate.cc',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__interpolate_8cc.html',1,'']]],
   ['vector_5ftools_5finterpolate_2eh_26',['vector_tools_interpolate.h',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__interpolate_8h.html',1,'']]],
   ['vector_5ftools_5fmean_5fvalue_2ecc_27',['vector_tools_mean_value.cc',['http://www.dealii.org/developer/doxygen/deal.II/vector__tools__mean__value_8cc.html',1,'']]],

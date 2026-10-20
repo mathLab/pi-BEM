@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.18.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>pi-BEM: Parallel BEM Solver: bem_problem_access.h File Reference</title>
+<title>pi-BEM: Parallel BEM Solver: quasi_singular_kernel_integral.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="dynsections.js"></script>
 <script type="text/javascript" src="codefolding.js"></script>
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', codefold.init);
   </div>
 </div>
 <script type="text/javascript">
-document.addEventListener('DOMContentLoaded',() => { initNavTree('bem__problem__access_8h.html','',''); });
+document.addEventListener('DOMContentLoaded',() => { initNavTree('quasi__singular__kernel__integral_8h.html','',''); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -92,16 +92,33 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('bem__problem__
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">bem_problem_access.h File Reference</div></div>
+  <div class="headertitle"><div class="title">quasi_singular_kernel_integral.h File Reference</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &lt;<a class="el" href="bem__problem_8h_source.html">bem_problem.h</a>&gt;</code><br />
+<div class="textblock"><code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/dof__handler_8h.html">deal.II/dofs/dof_handler.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/grid_2tria_8h.html">deal.II/grid/tria.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/grid__generator_8h.html">deal.II/grid/grid_generator.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/fe__dgq_8h.html">deal.II/fe/fe_dgq.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/fe__q_8h.html">deal.II/fe/fe_q.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/dof__tools_8h.html">deal.II/dofs/dof_tools.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/quadrature__lib_8h.html">deal.II/base/quadrature_lib.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/fe__interface__values_8h.html">deal.II/fe/fe_interface_values.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/fe_2fe__values_8h.html">deal.II/fe/fe_values.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/mapping__manifold_8h.html">deal.II/fe/mapping_manifold.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/mapping__q_8h.html">deal.II/fe/mapping_q.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/tria__accessor_8h.html">deal.II/grid/tria_accessor.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/tria__iterator_8h.html">deal.II/grid/tria_iterator.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/grid__tools_8h.html">deal.II/grid/grid_tools.h</a>&gt;</code><br />
+<code>#include &lt;<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/grid__out_8h.html">deal.II/grid/grid_out.h</a>&gt;</code><br />
+<code>#include &lt;fstream&gt;</code><br />
+<code>#include &lt;iostream&gt;</code><br />
+<code>#include &lt;cmath&gt;</code><br />
 </div>
-<p><a href="bem__problem__access_8h_source.html">Go to the source code of this file.</a></p>
+<p><a href="quasi__singular__kernel__integral_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:BEMProblemAccess_3C_20dim_20_3E" id="r_BEMProblemAccess_3C_20dim_20_3E"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="class_b_e_m_problem_access.html">BEMProblemAccess&lt; dim &gt;</a></td></tr>
+<tr class="memitem:QuasiSingularKernelIntegral_3C_20dim_20_3E" id="r_QuasiSingularKernelIntegral_3C_20dim_20_3E"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="class_quasi_singular_kernel_integral.html">QuasiSingularKernelIntegral&lt; dim &gt;</a></td></tr>
 </table>
 </div><!-- contents -->
 </div><!-- doc-content -->
@@ -116,7 +133,7 @@ Classes</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><a href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li><li class="navelem"><a href="bem__problem__access_8h.html">bem_problem_access.h</a></li>
+    <li class="navelem"><a href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li><li class="navelem"><a href="quasi__singular__kernel__integral_8h.html">quasi_singular_kernel_integral.h</a></li>
     <li class="footer">Generated on <span class="timestamp"></span> for pi-BEM: Parallel BEM Solver by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.18.0 </li>
   </ul>
 </div>

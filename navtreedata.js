@@ -231,6 +231,8 @@ var NAVTREE =
         [ "All", "globals.html", null ],
         [ "Functions", "globals_func.html", null ],
         [ "Variables", "globals_vars.html", null ],
+        [ "Enumerations", "globals_enum.html", null ],
+        [ "Enumerator", "globals_eval.html", null ],
         [ "Macros", "globals_defs.html", null ]
       ] ]
     ] ]
@@ -240,24 +242,24 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "CodeGallery.html",
-"class_ass_leg_function.html#a4e003b7ef751c009f0148be6ec16e484",
-"class_ass_leg_function.html#ad621770901fcbf2451003fca7891818d",
-"class_b_e_m_problem_access.html#ae7117efc2b1a82152402b510d93759d8",
-"class_time_integrator.html#a18994009e2b7c6836459581350f7560f",
-"group__Exceptions.html#ga285bd6abc7a28db13830cf85e005cc11",
-"group__Exceptions.html#ga8aa7c679083004dc9fdb0ff2d2433e95",
-"group__Exceptions.html#gae312e96b52f6cfa36c8504f32a6f7ab6",
-"group___matrix2.html#ga00a9f16bb2714537fc2400d5b9d8a1bb",
-"local__expansion_8cc.html",
-"namespaceDoFTools.html#a180d7118ecf27d72afbfecb7978c5e09",
-"namespaceGridGenerator.html#ac61fc98d04baf8b567fe82710e987945",
-"namespaceLinearAlgebra_1_1TpetraWrappers_1_1SparsityPatternImpl.html#a509c105aa0ee77b224a6aa6e5b7c8232",
-"namespacePatterns_1_1Tools_1_1internal.html#a977cf1116509feb6d6578b5f5a0b2f12",
-"namespaceThreads_1_1internal.html#aa8b436b17b44f0ba7c35ba603d489e00",
-"namespaceUtilities_1_1MPI_1_1internal_1_1Tags.html#a1c190e50dabbd9b60e230b843c6caa44a378386a9f53a28eac3a4a18310ecbd25",
-"namespacehp_1_1Refinement.html#aefd3adee5f867c94814028c0949da9de",
-"namespaceinternal_1_1MatrixFreeFunctions.html#ad4f45b97d337745885b8b8b5118c42a3",
-"namespacetypes.html#ae4ea18e3efb31f0312a9e754873d71b8"
+"class_ass_leg_function.html#a4bacab323f7d8c97ba8e4548003a60cd",
+"class_ass_leg_function.html#ad2dd66b7ac8ad612116dd5c4e5f82eb9",
+"class_b_e_m_problem.html#ac8281f47f13f270766a34429218af186",
+"class_local_expansion_coeff.html",
+"group__CPP11.html#ga05713415704536e5b0e967d33c2c77c1",
+"group__Exceptions.html#ga6490e9ffde0af8acfeaf6e86b00f9e28",
+"group__Exceptions.html#gac0c76410b707052b5c797eafcea313fb",
+"group__LAOperators.html#ga76acca911f21089cd3bb385d20ccc995",
+"group__manifold.html#ga5cfbdf7ecbe7b7ad002f3d67bd30a0a5",
+"namespaceDataOutBase.html#aa3cbced9f1d4ae661f13018f4c980aa1ab9c7fdc67b488efaf1b27b02985a40fb",
+"namespaceFETools_1_1Compositing.html#ab130b73d1aa4f570063c4f2903567b00",
+"namespaceGridTools_1_1internal.html",
+"namespaceMeshWorker.html#ac7a9db8b34d398d7d398d1e8809874aaa9396964e7e270fe0a0c5d01474721c24",
+"namespacePolynomials_1_1internal.html",
+"namespaceUtilities_1_1LinearAlgebra.html#a69997c210f5555324bfa16cf09edf389",
+"namespaceVectorTools.html#ac4e531baa71a5183079fd2083aa7d723",
+"namespaceinternal_1_1DoFCellAccessorImplementation.html",
+"namespaceinternals.html"
 ];
 
 const SYNCONMSG = 'click to disable panel synchronization';

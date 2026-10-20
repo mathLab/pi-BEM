@@ -102,24 +102,30 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('class_multipol
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aa84a5f0730d81e6d8f9667d89b5f7cc5" id="r_aa84a5f0730d81e6d8f9667d89b5f7cc5"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#aa84a5f0730d81e6d8f9667d89b5f7cc5">MultipoleExpansion</a> ()</td></tr>
 <tr class="memitem:a746a0fcc3d36a688a8444ecee17574d8" id="r_a746a0fcc3d36a688a8444ecee17574d8"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a746a0fcc3d36a688a8444ecee17574d8">MultipoleExpansion</a> (const unsigned int order, const dealii::Point&lt; 3 &gt; &amp;center, const <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> *assLegFunction)</td></tr>
-<tr class="memitem:a3bced3229bb34641657b8be74720e52f" id="r_a3bced3229bb34641657b8be74720e52f"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a3bced3229bb34641657b8be74720e52f">MultipoleExpansion</a> (const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;other)</td></tr>
-<tr class="memitem:ad5fa185d96938a86c11a9536dea39a44" id="r_ad5fa185d96938a86c11a9536dea39a44"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ad5fa185d96938a86c11a9536dea39a44">~MultipoleExpansion</a> ()</td></tr>
 <tr class="memitem:a81ecd61617561c839be0f152d2746aac" id="r_a81ecd61617561c839be0f152d2746aac"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a81ecd61617561c839be0f152d2746aac">Add</a> (const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;multipole, const double sol)</td></tr>
 <tr class="memitem:ab957b267e7527c6f4d34247f2956e86e" id="r_ab957b267e7527c6f4d34247f2956e86e"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ab957b267e7527c6f4d34247f2956e86e">Add</a> (const double strength, const dealii::Point&lt; 3 &gt; &amp;point)</td></tr>
+<tr class="memitem:a35380a5caacaf95ad83913895cd239a1" id="r_a35380a5caacaf95ad83913895cd239a1"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a35380a5caacaf95ad83913895cd239a1">Add</a> (const double strength, const dealii::Point&lt; 3 &gt; &amp;point, std::vector&lt; std::complex&lt; double &gt; &gt; &amp;cache)</td></tr>
 <tr class="memitem:a0f8395e2addfd55e6fd3bffe622ca8a6" id="r_a0f8395e2addfd55e6fd3bffe622ca8a6"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a0f8395e2addfd55e6fd3bffe622ca8a6">Add</a> (const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;child)</td></tr>
+<tr class="memitem:ab21893eb336c863712fb91894af85bb4" id="r_ab21893eb336c863712fb91894af85bb4"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ab21893eb336c863712fb91894af85bb4">Add</a> (const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;child, std::vector&lt; std::complex&lt; double &gt; &gt; &amp;cache)</td></tr>
 <tr class="memitem:ad8739a9cdda9ada88929659122147dbd" id="r_ad8739a9cdda9ada88929659122147dbd"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ad8739a9cdda9ada88929659122147dbd">AddNormDer</a> (const double strength, const dealii::Point&lt; 3 &gt; &amp;point, const dealii::Tensor&lt; 1, 3 &gt; &amp;normal)</td></tr>
+<tr class="memitem:ac1b6ea15f457d905b688a8b4901dd1de" id="r_ac1b6ea15f457d905b688a8b4901dd1de"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ac1b6ea15f457d905b688a8b4901dd1de">AddNormDer</a> (const double strength, const dealii::Point&lt; 3 &gt; &amp;point, const dealii::Tensor&lt; 1, 3 &gt; &amp;normal, std::vector&lt; std::complex&lt; double &gt; &gt; &amp;cache)</td></tr>
 <tr class="memitem:a40fbc30562b2eca7cc72986cee10bfac" id="r_a40fbc30562b2eca7cc72986cee10bfac"><td class="memItemLeft">double&#160;</td><td class="memItemRight"><a class="el" href="#a40fbc30562b2eca7cc72986cee10bfac">Evaluate</a> (const dealii::Point&lt; 3 &gt; &amp;evalPoint)</td></tr>
+<tr class="memitem:ada33864028655eede8ed40639b8730fe" id="r_ada33864028655eede8ed40639b8730fe"><td class="memItemLeft">double&#160;</td><td class="memItemRight"><a class="el" href="#ada33864028655eede8ed40639b8730fe">Evaluate</a> (const dealii::Point&lt; 3 &gt; &amp;evalPoint, std::vector&lt; std::complex&lt; double &gt; &gt; &amp;cache)</td></tr>
 <tr class="memitem:a00b73bb647563ddac3ecd541ed40e854" id="r_a00b73bb647563ddac3ecd541ed40e854"><td class="memItemLeft">dealii::Point&lt; 3 &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a00b73bb647563ddac3ecd541ed40e854">GetCenter</a> () const</td></tr>
 <tr class="memitem:aa8945a6e9f08cbf1de17c95e6c4f271e" id="r_aa8945a6e9f08cbf1de17c95e6c4f271e"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aa8945a6e9f08cbf1de17c95e6c4f271e">SetCenter</a> (const dealii::Point&lt; 3 &gt; &amp;new_center)</td></tr>
-<tr class="memitem:a17f28f28c5b76d2bddbf0728d90a8d62" id="r_a17f28f28c5b76d2bddbf0728d90a8d62"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFullMatrix.html">FullMatrix</a>&lt; double &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a17f28f28c5b76d2bddbf0728d90a8d62">GetA_n_m</a> () const</td></tr>
-<tr class="memitem:a48a6f378ab9e70333746cbc44d95ddad" id="r_a48a6f378ab9e70333746cbc44d95ddad"><td class="memItemLeft">std::complex&lt; double &gt; *&#160;</td><td class="memItemRight"><a class="el" href="#a48a6f378ab9e70333746cbc44d95ddad">GetCoeffs</a> () const</td></tr>
-<tr class="memitem:af977b60a775e264c931f4c238e0a3716" id="r_af977b60a775e264c931f4c238e0a3716"><td class="memItemLeft">std::complex&lt; double &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#af977b60a775e264c931f4c238e0a3716">GetCoeff</a> (unsigned int n, unsigned int m) const</td></tr>
-<tr class="memitem:a6a9c7614693e0fe19c3b061832b501c6" id="r_a6a9c7614693e0fe19c3b061832b501c6"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a6a9c7614693e0fe19c3b061832b501c6">SetCoeff</a> (unsigned int n, unsigned int m, std::complex&lt; double &gt; &amp;value) const</td></tr>
-<tr class="memitem:a82328f8c2eed7e01043926c968175714" id="r_a82328f8c2eed7e01043926c968175714"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a82328f8c2eed7e01043926c968175714">AddToCoeff</a> (unsigned int n, unsigned int m, std::complex&lt; double &gt; &amp;value) const</td></tr>
-<tr class="memitem:a93d45cb9dcd87a8b5a67408613f9b54d" id="r_a93d45cb9dcd87a8b5a67408613f9b54d"><td class="memItemLeft"><a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a93d45cb9dcd87a8b5a67408613f9b54d">operator=</a> (const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;other)</td></tr>
+<tr class="memitem:ad447afdcea96edd42e437e64e5065d76" id="r_ad447afdcea96edd42e437e64e5065d76"><td class="memItemLeft">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFullMatrix.html">FullMatrix</a>&lt; double &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ad447afdcea96edd42e437e64e5065d76">GetA_n_m</a> () const</td></tr>
+<tr class="memdesc:ad447afdcea96edd42e437e64e5065d76"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a read-only reference to the shared normalization matrix.  <br /></td></tr>
+<tr class="memitem:ad135334fdcac2528009dc27a4fb46b9e" id="r_ad135334fdcac2528009dc27a4fb46b9e"><td class="memItemLeft">const std::vector&lt; std::complex&lt; double &gt; &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#ad135334fdcac2528009dc27a4fb46b9e">GetCoeffs</a> () const</td></tr>
+<tr class="memitem:a4fa6f6f6be7e9865452d73ccf0d10db0" id="r_a4fa6f6f6be7e9865452d73ccf0d10db0"><td class="memItemLeft">const std::complex&lt; double &gt; &amp;&#160;</td><td class="memItemRight"><a class="el" href="#a4fa6f6f6be7e9865452d73ccf0d10db0">GetCoeff</a> (unsigned int n, unsigned int m) const</td></tr>
+<tr class="memdesc:a4fa6f6f6be7e9865452d73ccf0d10db0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a read-only coefficient reference for 0 &lt;= m &lt;= n &lt;= order.  <br /></td></tr>
+<tr class="memitem:a26657b6ca04723e8833cc8e32f0c4599" id="r_a26657b6ca04723e8833cc8e32f0c4599"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a26657b6ca04723e8833cc8e32f0c4599">SetCoeff</a> (unsigned int n, unsigned int m, const std::complex&lt; double &gt; &amp;value) const</td></tr>
+<tr class="memdesc:a26657b6ca04723e8833cc8e32f0c4599"><td class="mdescLeft">&#160;</td><td class="mdescRight">Replace coefficient (n,m), with 0 &lt;= m &lt;= n &lt;= order. The value is copied.  <br /></td></tr>
+<tr class="memitem:a24c7910921166b23d525c1fe8378569b" id="r_a24c7910921166b23d525c1fe8378569b"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a24c7910921166b23d525c1fe8378569b">AddToCoeff</a> (unsigned int n, unsigned int m, const std::complex&lt; double &gt; &amp;value) const</td></tr>
+<tr class="memdesc:a24c7910921166b23d525c1fe8378569b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accumulate a copied value at coefficient (n,m), with 0 &lt;= m &lt;= n &lt;= order.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
+<tr class="memitem:a3c96acc074af1645852a7db36ec1637e" id="r_a3c96acc074af1645852a7db36ec1637e"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#a3c96acc074af1645852a7db36ec1637e">spherical_coords</a> (const dealii::Point&lt; 3 &gt; &amp;center, const dealii::Point&lt; 3 &gt; &amp;other, dealii::Point&lt; 3 &gt; &amp;blockRelPos, double &amp;rho, double &amp;cos_alpha, double &amp;beta)</td></tr>
 <tr class="memitem:acd5cd7d1e4f2b2de4c5481ca3846ca9e" id="r_acd5cd7d1e4f2b2de4c5481ca3846ca9e"><td class="memItemLeft">static <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFullMatrix.html">FullMatrix</a>&lt; double &gt;&#160;</td><td class="memItemRight"><a class="el" href="#acd5cd7d1e4f2b2de4c5481ca3846ca9e">A_n_m_Matrix</a> (unsigned int dim)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
@@ -135,14 +141,14 @@ Private Attributes</h2></td></tr>
 <tr class="memitem:a75201f1a445857ee7b7f3f1b2f591516" id="r_a75201f1a445857ee7b7f3f1b2f591516"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a75201f1a445857ee7b7f3f1b2f591516">p</a></td></tr>
 <tr class="memitem:a12cc0a5b3d1a116a2caeaf4d9a0a460d" id="r_a12cc0a5b3d1a116a2caeaf4d9a0a460d"><td class="memItemLeft">dealii::Point&lt; 3 &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a12cc0a5b3d1a116a2caeaf4d9a0a460d">center</a></td></tr>
 <tr class="memitem:a35eef2e0be27ae2b269a702ccb2c93c5" id="r_a35eef2e0be27ae2b269a702ccb2c93c5"><td class="memItemLeft">const <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> *&#160;</td><td class="memItemRight"><a class="el" href="#a35eef2e0be27ae2b269a702ccb2c93c5">assLegFunction</a></td></tr>
-<tr class="memitem:a3b3728324b3fc526d8c6e33589e1a4d9" id="r_a3b3728324b3fc526d8c6e33589e1a4d9"><td class="memItemLeft">std::complex&lt; double &gt; *&#160;</td><td class="memItemRight"><a class="el" href="#a3b3728324b3fc526d8c6e33589e1a4d9">_M_n_m</a></td></tr>
+<tr class="memitem:aabb010711b98a01a856053b376f7ad00" id="r_aabb010711b98a01a856053b376f7ad00"><td class="memItemLeft">std::vector&lt; std::complex&lt; double &gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="#aabb010711b98a01a856053b376f7ad00">_M_n_m</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00031">31</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00030">30</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="aa84a5f0730d81e6d8f9667d89b5f7cc5" name="aa84a5f0730d81e6d8f9667d89b5f7cc5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa84a5f0730d81e6d8f9667d89b5f7cc5">&#9670;&#160;</a></span>MultipoleExpansion() <span class="overload">[1/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aa84a5f0730d81e6d8f9667d89b5f7cc5">&#9670;&#160;</a></span>MultipoleExpansion() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -158,14 +164,14 @@ Private Attributes</h2></td></tr>
 
 <p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00012">12</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00045">_M_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classPoint.html#a90772f600d22f6e2f580f58111055b49">Point&lt; int dim, typename Number &gt;::Point()</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00044">_M_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00042">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00075">Add()</a>, <a class="el" href="bem__fma_8cc_source.html#l02132">BEMFMA&lt; dim &gt;::generate_multipole_expansions()</a>, <a class="el" href="bem__fma_8cc_source.html#l01752">BEMFMA&lt; dim &gt;::multipole_integrals()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00245">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>, <a class="el" href="bem__fma_8cc_source.html#l01917">BEMFMA&lt; dim &gt;::generate_multipole_expansions()</a>, and <a class="el" href="bem__fma_8cc_source.html#l01724">BEMFMA&lt; dim &gt;::multipole_integrals()</a>.</p>
 
 </div>
 </div>
 <a id="a746a0fcc3d36a688a8444ecee17574d8" name="a746a0fcc3d36a688a8444ecee17574d8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a746a0fcc3d36a688a8444ecee17574d8">&#9670;&#160;</a></span>MultipoleExpansion() <span class="overload">[2/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a746a0fcc3d36a688a8444ecee17574d8">&#9670;&#160;</a></span>MultipoleExpansion() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -188,51 +194,9 @@ Private Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00023">23</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00020">20</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00045">_M_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
-
-</div>
-</div>
-<a id="a3bced3229bb34641657b8be74720e52f" name="a3bced3229bb34641657b8be74720e52f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3bced3229bb34641657b8be74720e52f">&#9670;&#160;</a></span>MultipoleExpansion() <span class="overload">[3/3]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">MultipoleExpansion::MultipoleExpansion </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>other</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00037">37</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
-
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00045">_M_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00096">GetCoeffs()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
-
-</div>
-</div>
-<a id="ad5fa185d96938a86c11a9536dea39a44" name="ad5fa185d96938a86c11a9536dea39a44"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad5fa185d96938a86c11a9536dea39a44">&#9670;&#160;</a></span>~MultipoleExpansion()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">MultipoleExpansion::~MultipoleExpansion </td>
-          <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00068">68</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
-
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00045">_M_n_m</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00044">_M_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00042">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>.</p>
 
 </div>
 </div>
@@ -260,14 +224,14 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00124">124</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00194">194</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00034">A_n_m</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00033">A_n_m</a>.</p>
 
 </div>
 </div>
 <a id="ab957b267e7527c6f4d34247f2956e86e" name="ab957b267e7527c6f4d34247f2956e86e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab957b267e7527c6f4d34247f2956e86e">&#9670;&#160;</a></span>Add() <span class="overload">[1/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ab957b267e7527c6f4d34247f2956e86e">&#9670;&#160;</a></span>Add() <span class="overload">[1/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -284,15 +248,47 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Accumulate the supplied source or expansion. Cache-taking overloads overwrite and resize caller-owned scratch storage; use a separate cache per concurrent operation. Source expansions must have compatible order. The non-owning <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> passed at construction must remain alive. </p>
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00094">94</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00086">86</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00114">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00521">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>.</p>
+
+</div>
+</div>
+<a id="a35380a5caacaf95ad83913895cd239a1" name="a35380a5caacaf95ad83913895cd239a1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a35380a5caacaf95ad83913895cd239a1">&#9670;&#160;</a></span>Add() <span class="overload">[2/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MultipoleExpansion::Add </td>
+          <td>(</td>
+          <td class="paramtype">const double</td>          <td class="paramname"><span class="paramname"><em>strength</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const dealii::Point&lt; 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>point</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::complex&lt; double &gt; &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>cache</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Accumulate the supplied source or expansion. Cache-taking overloads overwrite and resize caller-owned scratch storage; use a separate cache per concurrent operation. Source expansions must have compatible order. The non-owning <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> passed at construction must remain alive. </p>
+
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00047">47</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00170">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00042">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#a16ed70e474cf93ca63776ecb54207ac8">std::exp()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00520">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#aa951f50adf9841cf8def28819c19cc53">std::pow()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00180">spherical_coords()</a>.</p>
 
 </div>
 </div>
 <a id="a0f8395e2addfd55e6fd3bffe622ca8a6" name="a0f8395e2addfd55e6fd3bffe622ca8a6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0f8395e2addfd55e6fd3bffe622ca8a6">&#9670;&#160;</a></span>Add() <span class="overload">[2/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f8395e2addfd55e6fd3bffe622ca8a6">&#9670;&#160;</a></span>Add() <span class="overload">[3/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -305,15 +301,42 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Accumulate the supplied source or expansion. Cache-taking overloads overwrite and resize caller-owned scratch storage; use a separate cache per concurrent operation. Source expansions must have compatible order. The non-owning <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> passed at construction must remain alive. </p>
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00185">185</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00245">245</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00034">A_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00114">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00090">GetA_n_m()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00521">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00102">GetCoeff()</a>, <a class="el" href="local__expansion_8cc_source.html#l00007">GSL_SIGN</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>.</p>
+
+</div>
+</div>
+<a id="ab21893eb336c863712fb91894af85bb4" name="ab21893eb336c863712fb91894af85bb4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab21893eb336c863712fb91894af85bb4">&#9670;&#160;</a></span>Add() <span class="overload">[4/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MultipoleExpansion::Add </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>child</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::complex&lt; double &gt; &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>cache</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Accumulate the supplied source or expansion. Cache-taking overloads overwrite and resize caller-owned scratch storage; use a separate cache per concurrent operation. Source expansions must have compatible order. The non-owning <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> passed at construction must remain alive. </p>
+
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00166">166</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00033">A_n_m</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#ae348f4ef7dd5887ba9c50b03a842950a">std::abs()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00170">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00042">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#a16ed70e474cf93ca63776ecb54207ac8">std::exp()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00137">GetA_n_m()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00520">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00154">GetCoeff()</a>, <a class="el" href="local__expansion_8cc_source.html#l00007">GSL_SIGN</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#aa951f50adf9841cf8def28819c19cc53">std::pow()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00180">spherical_coords()</a>.</p>
 
 </div>
 </div>
 <a id="a81ecd61617561c839be0f152d2746aac" name="a81ecd61617561c839be0f152d2746aac"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a81ecd61617561c839be0f152d2746aac">&#9670;&#160;</a></span>Add() <span class="overload">[3/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a81ecd61617561c839be0f152d2746aac">&#9670;&#160;</a></span>Add() <span class="overload">[5/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -330,15 +353,18 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Accumulate the supplied source or expansion. Cache-taking overloads overwrite and resize caller-owned scratch storage; use a separate cache per concurrent operation. Source expansions must have compatible order. The non-owning <a class="el" href="class_ass_leg_function.html">AssLegFunction</a> passed at construction must remain alive. </p>
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00075">75</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00031">31</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00114">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00102">GetCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00170">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00154">GetCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00086">Add()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00245">Add()</a>.</p>
 
 </div>
 </div>
 <a id="ad8739a9cdda9ada88929659122147dbd" name="ad8739a9cdda9ada88929659122147dbd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad8739a9cdda9ada88929659122147dbd">&#9670;&#160;</a></span>AddNormDer()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ad8739a9cdda9ada88929659122147dbd">&#9670;&#160;</a></span>AddNormDer() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -360,15 +386,54 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Accumulate a normal-derivative source. The cache overload overwrites and resizes caller-owned scratch storage; provide one cache per concurrent call. </p>
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00125">125</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00157">157</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00114">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00521">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00530">AssLegFunction::GetAssLegFunSphDeriv()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8cc_source.html#l00157">AddNormDer()</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00157">AddNormDer()</a>.</p>
 
 </div>
 </div>
-<a id="a82328f8c2eed7e01043926c968175714" name="a82328f8c2eed7e01043926c968175714"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a82328f8c2eed7e01043926c968175714">&#9670;&#160;</a></span>AddToCoeff()</h2>
+<a id="ac1b6ea15f457d905b688a8b4901dd1de" name="ac1b6ea15f457d905b688a8b4901dd1de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac1b6ea15f457d905b688a8b4901dd1de">&#9670;&#160;</a></span>AddNormDer() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MultipoleExpansion::AddNormDer </td>
+          <td>(</td>
+          <td class="paramtype">const double</td>          <td class="paramname"><span class="paramname"><em>strength</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const dealii::Point&lt; 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>point</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const dealii::Tensor&lt; 1, 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>normal</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::complex&lt; double &gt; &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>cache</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Accumulate a normal-derivative source. The cache overload overwrites and resizes caller-owned scratch storage; provide one cache per concurrent call. </p>
+
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00093">93</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00170">AddToCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00042">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#a7feec1948e651b6285311f2ab804435c">std::cos()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#a16ed70e474cf93ca63776ecb54207ac8">std::exp()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00520">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00529">AssLegFunction::GetAssLegFunSphDeriv()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#aa951f50adf9841cf8def28819c19cc53">std::pow()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#a8f997d77755b36a819873b85f9f57375">std::sin()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00180">spherical_coords()</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#aa2def4dc0bd5b6d07af7aff83feba9b2">std::sqrt()</a>.</p>
+
+</div>
+</div>
+<a id="a24c7910921166b23d525c1fe8378569b" name="a24c7910921166b23d525c1fe8378569b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a24c7910921166b23d525c1fe8378569b">&#9670;&#160;</a></span>AddToCoeff()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -389,7 +454,7 @@ Private Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">std::complex&lt; double &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;) const</td>
+          <td class="paramtype">const std::complex&lt; double &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;) const</td>
         </tr>
       </table>
   </td>
@@ -399,14 +464,16 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00114">114</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p>Accumulate a copied value at coefficient (n,m), with 0 &lt;= m &lt;= n &lt;= order. </p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00094">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00075">Add()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00125">AddNormDer()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00170">170</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00047">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00093">AddNormDer()</a>.</p>
 
 </div>
 </div>
 <a id="a40fbc30562b2eca7cc72986cee10bfac" name="a40fbc30562b2eca7cc72986cee10bfac"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a40fbc30562b2eca7cc72986cee10bfac">&#9670;&#160;</a></span>Evaluate()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a40fbc30562b2eca7cc72986cee10bfac">&#9670;&#160;</a></span>Evaluate() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -419,15 +486,44 @@ Private Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Evaluate the expansion at evalPoint. The cache overload reuses mutable caller-owned scratch storage and may overwrite/resize it. Do not share a cache between concurrent calls. Observe the expansion convergence region. </p>
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00265">265</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00296">296</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00521">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00102">GetCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
+<p class="reference">References <a class="el" href="multipole__expansion_8cc_source.html#l00296">Evaluate()</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00296">Evaluate()</a>.</p>
 
 </div>
 </div>
-<a id="a17f28f28c5b76d2bddbf0728d90a8d62" name="a17f28f28c5b76d2bddbf0728d90a8d62"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a17f28f28c5b76d2bddbf0728d90a8d62">&#9670;&#160;</a></span>GetA_n_m()</h2>
+<a id="ada33864028655eede8ed40639b8730fe" name="ada33864028655eede8ed40639b8730fe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ada33864028655eede8ed40639b8730fe">&#9670;&#160;</a></span>Evaluate() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double MultipoleExpansion::Evaluate </td>
+          <td>(</td>
+          <td class="paramtype">const dealii::Point&lt; 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>evalPoint</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; std::complex&lt; double &gt; &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>cache</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Evaluate the expansion at evalPoint. The cache overload reuses mutable caller-owned scratch storage and may overwrite/resize it. Do not share a cache between concurrent calls. Observe the expansion convergence region. </p>
+
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00254">254</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
+
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00042">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#a16ed70e474cf93ca63776ecb54207ac8">std::exp()</a>, <a class="el" href="ass__leg__function_8cc_source.html#l00520">AssLegFunction::GetAssLegFunSph()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00154">GetCoeff()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00035">is_zero</a>, <a class="el" href="multipole__expansion_8h_source.html#l00038">p</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html#aa951f50adf9841cf8def28819c19cc53">std::pow()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00180">spherical_coords()</a>.</p>
+
+</div>
+</div>
+<a id="ad447afdcea96edd42e437e64e5065d76" name="ad447afdcea96edd42e437e64e5065d76"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad447afdcea96edd42e437e64e5065d76">&#9670;&#160;</a></span>GetA_n_m()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -436,7 +532,7 @@ Private Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFullMatrix.html">FullMatrix</a>&lt; double &gt; &amp; MultipoleExpansion::GetA_n_m </td>
+          <td class="memname">const <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classFullMatrix.html">FullMatrix</a>&lt; double &gt; &amp; MultipoleExpansion::GetA_n_m </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td> const</td>
@@ -449,9 +545,11 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00090">90</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p>Return a read-only reference to the shared normalization matrix. </p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00137">137</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>.</p>
 
 </div>
 </div>
@@ -478,14 +576,14 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00078">78</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00124">124</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00180">LocalExpansion::Add()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00151">LocalExpansion::Add()</a>.</p>
 
 </div>
 </div>
-<a id="af977b60a775e264c931f4c238e0a3716" name="af977b60a775e264c931f4c238e0a3716"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af977b60a775e264c931f4c238e0a3716">&#9670;&#160;</a></span>GetCoeff()</h2>
+<a id="a4fa6f6f6be7e9865452d73ccf0d10db0" name="a4fa6f6f6be7e9865452d73ccf0d10db0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4fa6f6f6be7e9865452d73ccf0d10db0">&#9670;&#160;</a></span>GetCoeff()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -494,7 +592,7 @@ Private Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::complex&lt; double &gt; &amp; MultipoleExpansion::GetCoeff </td>
+          <td class="memname">const std::complex&lt; double &gt; &amp; MultipoleExpansion::GetCoeff </td>
           <td>(</td>
           <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>n</em></span>, </td>
         </tr>
@@ -511,14 +609,16 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00102">102</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p>Return a read-only coefficient reference for 0 &lt;= m &lt;= n &lt;= order. </p>
 
-<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00180">LocalExpansion::Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00075">Add()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00265">Evaluate()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00154">154</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00151">LocalExpansion::Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00254">Evaluate()</a>.</p>
 
 </div>
 </div>
-<a id="a48a6f378ab9e70333746cbc44d95ddad" name="a48a6f378ab9e70333746cbc44d95ddad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a48a6f378ab9e70333746cbc44d95ddad">&#9670;&#160;</a></span>GetCoeffs()</h2>
+<a id="ad135334fdcac2528009dc27a4fb46b9e" name="ad135334fdcac2528009dc27a4fb46b9e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad135334fdcac2528009dc27a4fb46b9e">&#9670;&#160;</a></span>GetCoeffs()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -527,7 +627,7 @@ Private Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::complex&lt; double &gt; * MultipoleExpansion::GetCoeffs </td>
+          <td class="memname">const std::vector&lt; std::complex&lt; double &gt; &gt; &amp; MultipoleExpansion::GetCoeffs </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td> const</td>
@@ -539,31 +639,9 @@ Private Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Return a read-only reference to owned triangular coefficient storage, indexed by n*(n+1)/2+m. Copy the vector to retain an independent snapshot. Use <a class="el" href="#a26657b6ca04723e8833cc8e32f0c4599" title="Replace coefficient (n,m), with 0 &lt;= m &lt;= n &lt;= order. The value is copied.">SetCoeff()</a>/AddToCoeff() for changes; assignment invalidates references. </p>
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00096">96</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>.</p>
-
-</div>
-</div>
-<a id="a93d45cb9dcd87a8b5a67408613f9b54d" name="a93d45cb9dcd87a8b5a67408613f9b54d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a93d45cb9dcd87a8b5a67408613f9b54d">&#9670;&#160;</a></span>operator=()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp; MultipoleExpansion::operator= </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="class_multipole_expansion.html">MultipoleExpansion</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>other</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8cc_source.html#l00052">52</a> of file <a class="el" href="multipole__expansion_8cc_source.html">multipole_expansion.cc</a>.</p>
-
-<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00045">_M_n_m</a>, <a class="el" href="multipole__expansion_8h_source.html#l00043">assLegFunction</a>, <a class="el" href="multipole__expansion_8h_source.html#l00041">center</a>, <a class="el" href="multipole__expansion_8h_source.html#l00096">GetCoeffs()</a>, <a class="el" href="multipole__expansion_8h_source.html#l00036">is_zero</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00039">p</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00147">147</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
 </div>
 </div>
@@ -590,14 +668,12 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00084">84</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="bem__fma_8cc_source.html#l02132">BEMFMA&lt; dim &gt;::generate_multipole_expansions()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00130">130</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
 </div>
 </div>
-<a id="a6a9c7614693e0fe19c3b061832b501c6" name="a6a9c7614693e0fe19c3b061832b501c6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a9c7614693e0fe19c3b061832b501c6">&#9670;&#160;</a></span>SetCoeff()</h2>
+<a id="a26657b6ca04723e8833cc8e32f0c4599" name="a26657b6ca04723e8833cc8e32f0c4599"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a26657b6ca04723e8833cc8e32f0c4599">&#9670;&#160;</a></span>SetCoeff()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -618,7 +694,7 @@ Private Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">std::complex&lt; double &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;) const</td>
+          <td class="paramtype">const std::complex&lt; double &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;) const</td>
         </tr>
       </table>
   </td>
@@ -628,13 +704,14 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00108">108</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p>Replace coefficient (n,m), with 0 &lt;= m &lt;= n &lt;= order. The value is copied. </p>
+
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00161">161</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
 </div>
 </div>
-<a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
-<a id="a3b3728324b3fc526d8c6e33589e1a4d9" name="a3b3728324b3fc526d8c6e33589e1a4d9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3b3728324b3fc526d8c6e33589e1a4d9">&#9670;&#160;</a></span>_M_n_m</h2>
+<a id="a3c96acc074af1645852a7db36ec1637e" name="a3c96acc074af1645852a7db36ec1637e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3c96acc074af1645852a7db36ec1637e">&#9670;&#160;</a></span>spherical_coords()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -643,7 +720,64 @@ Private Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::complex&lt;double&gt;* MultipoleExpansion::_M_n_m</td>
+          <td class="memname">void MultipoleExpansion::spherical_coords </td>
+          <td>(</td>
+          <td class="paramtype">const dealii::Point&lt; 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>center</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const dealii::Point&lt; 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>other</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">dealii::Point&lt; 3 &gt; &amp;</td>          <td class="paramname"><span class="paramname"><em>blockRelPos</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double &amp;</td>          <td class="paramname"><span class="paramname"><em>rho</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double &amp;</td>          <td class="paramname"><span class="paramname"><em>cos_alpha</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double &amp;</td>          <td class="paramname"><span class="paramname"><em>beta</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Compute other-center, its length rho, cos(polar angle) and azimuth beta. The points must differ, since cos_alpha divides by rho. </p>
+
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00180">180</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+
+<p class="reference">References <a class="el" href="multipole__expansion_8h_source.html#l00040">center</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00066">LocalExpansion::Add()</a>, <a class="el" href="local__expansion_8cc_source.html#l00151">LocalExpansion::Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00047">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00093">AddNormDer()</a>, <a class="el" href="local__expansion_8cc_source.html#l00238">LocalExpansion::Evaluate()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00254">Evaluate()</a>.</p>
+
+</div>
+</div>
+<a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
+<a id="aabb010711b98a01a856053b376f7ad00" name="aabb010711b98a01a856053b376f7ad00"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aabb010711b98a01a856053b376f7ad00">&#9670;&#160;</a></span>_M_n_m</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;std::complex&lt;double&gt; &gt; MultipoleExpansion::_M_n_m</td>
         </tr>
       </table>
   </td>
@@ -653,9 +787,9 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00045">45</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00044">44</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00023">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00068">~MultipoleExpansion()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00020">MultipoleExpansion()</a>.</p>
 
 </div>
 </div>
@@ -680,11 +814,11 @@ Private Attributes</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">                                   =</div>
 <div class="line"><a class="code hl_function" href="#acd5cd7d1e4f2b2de4c5481ca3846ca9e">MultipoleExpansion::A_n_m_Matrix</a>(20)</div>
-<div class="ttc" id="aclass_multipole_expansion_html_acd5cd7d1e4f2b2de4c5481ca3846ca9e"><div class="ttname"><a href="#acd5cd7d1e4f2b2de4c5481ca3846ca9e">MultipoleExpansion::A_n_m_Matrix</a></div><div class="ttdeci">static FullMatrix&lt; double &gt; A_n_m_Matrix(unsigned int dim)</div><div class="ttdef"><b>Definition</b> <a href="multipole__expansion_8h_source.html#l00124">multipole_expansion.h:124</a></div></div>
+<div class="ttc" id="aclass_multipole_expansion_html_acd5cd7d1e4f2b2de4c5481ca3846ca9e"><div class="ttname"><a href="#acd5cd7d1e4f2b2de4c5481ca3846ca9e">MultipoleExpansion::A_n_m_Matrix</a></div><div class="ttdeci">static FullMatrix&lt; double &gt; A_n_m_Matrix(unsigned int dim)</div><div class="ttdef"><b>Definition</b> <a href="multipole__expansion_8h_source.html#l00194">multipole_expansion.h:194</a></div></div>
 </div><!-- fragment -->
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00034">34</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00033">33</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8h_source.html#l00124">A_n_m_Matrix()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8h_source.html#l00194">A_n_m_Matrix()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>.</p>
 
 </div>
 </div>
@@ -708,9 +842,9 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00043">43</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00042">42</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00094">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00125">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00265">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00023">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00047">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00093">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00254">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00020">MultipoleExpansion()</a>.</p>
 
 </div>
 </div>
@@ -734,9 +868,9 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00041">41</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00040">40</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00094">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00125">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00265">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00023">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00047">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00093">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00254">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00020">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8h_source.html#l00180">spherical_coords()</a>.</p>
 
 </div>
 </div>
@@ -760,9 +894,9 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00036">36</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00035">35</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00180">LocalExpansion::Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00094">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00075">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00125">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00265">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00023">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="local__expansion_8cc_source.html#l00151">LocalExpansion::Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00047">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00093">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00254">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00020">MultipoleExpansion()</a>.</p>
 
 </div>
 </div>
@@ -786,9 +920,9 @@ Private Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00039">39</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="multipole__expansion_8h_source.html#l00038">38</a> of file <a class="el" href="multipole__expansion_8h_source.html">multipole_expansion.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00094">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00185">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00075">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00125">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00265">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00037">MultipoleExpansion()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00023">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00052">operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="multipole__expansion_8cc_source.html#l00047">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00166">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00031">Add()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00093">AddNormDer()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00254">Evaluate()</a>, <a class="el" href="multipole__expansion_8cc_source.html#l00012">MultipoleExpansion()</a>, and <a class="el" href="multipole__expansion_8cc_source.html#l00020">MultipoleExpansion()</a>.</p>
 
 </div>
 </div>

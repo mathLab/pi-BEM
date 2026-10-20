@@ -110,7 +110,7 @@ Inheritance diagram for Driver&lt; dim &gt;:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a36add83dc4167833f5f34c6400b05972" id="r_a36add83dc4167833f5f34c6400b05972"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a36add83dc4167833f5f34c6400b05972">Driver</a> ()</td></tr>
+<tr class="memitem:a4561bdd640fb3b1c936a9406ff0edf68" id="r_a4561bdd640fb3b1c936a9406ff0edf68"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a4561bdd640fb3b1c936a9406ff0edf68">Driver</a> (unsigned int n_components=1)</td></tr>
 <tr class="memitem:ae4e228167da4620fa0f94c1c323623ef" id="r_ae4e228167da4620fa0f94c1c323623ef"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ae4e228167da4620fa0f94c1c323623ef">~Driver</a> ()</td></tr>
 <tr class="memitem:aa447d744eb1ab265e48c8b19c7a617d8" id="r_aa447d744eb1ab265e48c8b19c7a617d8"><td class="memItemLeft">virtual void&#160;</td><td class="memItemRight"><a class="el" href="#aa447d744eb1ab265e48c8b19c7a617d8">declare_parameters</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a> &amp;prm) override</td></tr>
 <tr class="memitem:a0fcb7fac8f26b9fbed062a722ec66a8a" id="r_a0fcb7fac8f26b9fbed062a722ec66a8a"><td class="memItemLeft">virtual void&#160;</td><td class="memItemRight"><a class="el" href="#a0fcb7fac8f26b9fbed062a722ec66a8a">parse_parameters</a> (<a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a> &amp;prm) override</td></tr>
@@ -157,8 +157,10 @@ Protected Attributes</h2></td></tr>
 <tr class="memitem:a3c1a638a8374d362128e7f69ea57bd59" id="r_a3c1a638a8374d362128e7f69ea57bd59"><td class="memItemLeft"><a class="el" href="class_boundary_conditions.html">BoundaryConditions</a>&lt; dim &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a3c1a638a8374d362128e7f69ea57bd59">boundary_conditions</a></td></tr>
 <tr class="memitem:a5a88c6d70ee6d8ecf162a57ec5b0fa53" id="r_a5a88c6d70ee6d8ecf162a57ec5b0fa53"><td class="memItemLeft"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html">ParameterHandler</a>&#160;</td><td class="memItemRight"><a class="el" href="#a5a88c6d70ee6d8ecf162a57ec5b0fa53">prm</a></td></tr>
 <tr class="memitem:ad152a918e6fd9f535b4c43978b6af865" id="r_ad152a918e6fd9f535b4c43978b6af865"><td class="memItemLeft">bool&#160;</td><td class="memItemRight"><a class="el" href="#ad152a918e6fd9f535b4c43978b6af865">global_refinement</a></td></tr>
+<tr class="memitem:a4a4e1194aa11c8f9733717180c9bfa8a" id="r_a4a4e1194aa11c8f9733717180c9bfa8a"><td class="memItemLeft">std::set&lt; unsigned int &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a4a4e1194aa11c8f9733717180c9bfa8a">complex_problems</a></td></tr>
 <tr class="memitem:aae28d69f4fcbe76efe0e5709eaf0f261" id="r_aae28d69f4fcbe76efe0e5709eaf0f261"><td class="memItemLeft">const unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#aae28d69f4fcbe76efe0e5709eaf0f261">n_mpi_processes</a></td></tr>
 <tr class="memitem:aaafe9fd3ff6d1b6354b6238604ad37ee" id="r_aaafe9fd3ff6d1b6354b6238604ad37ee"><td class="memItemLeft">const unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#aaafe9fd3ff6d1b6354b6238604ad37ee">this_mpi_process</a></td></tr>
+<tr class="memitem:a3a9edb50487ee7255892741d8c6aff66" id="r_a3a9edb50487ee7255892741d8c6aff66"><td class="memItemLeft">unsigned int&#160;</td><td class="memItemRight"><a class="el" href="#a3a9edb50487ee7255892741d8c6aff66">n_components</a></td></tr>
 <tr class="inherit_header pro_attribs_classParameterAcceptor"><td colspan="2">Protected Attributes inherited from <a class="el"  href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html">ParameterAcceptor</a></td></tr>
 <tr class="memitem:a52134c59ec98830230c23e080c841705 pro_attribs_classParameterAcceptor" id="r_a52134c59ec98830230c23e080c841705"><td class="memItemLeft">const std::string&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a52134c59ec98830230c23e080c841705">section_name</a></td></tr>
 <tr class="memitem:a7ff0ceba7455971dfbd6cae2c114e0aa pro_attribs_classParameterAcceptor" id="r_a7ff0ceba7455971dfbd6cae2c114e0aa"><td class="memItemLeft">std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight"><a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#a7ff0ceba7455971dfbd6cae2c114e0aa">subsections</a></td></tr>
@@ -186,10 +188,10 @@ Additional Inherited Members</h2></td></tr>
 <div class="textblock"><div class="compoundTemplParams">template&lt;int dim&gt;<br />
 class Driver&lt; dim &gt;</div><p>This class is in charge of organising the overall BEM simulation. It has interfaces with all the other classes in order to have a complete simulation. </p>
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00092">92</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00100">100</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a36add83dc4167833f5f34c6400b05972" name="a36add83dc4167833f5f34c6400b05972"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a36add83dc4167833f5f34c6400b05972">&#9670;&#160;</a></span>Driver()</h2>
+<a id="a4561bdd640fb3b1c936a9406ff0edf68" name="a4561bdd640fb3b1c936a9406ff0edf68"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4561bdd640fb3b1c936a9406ff0edf68">&#9670;&#160;</a></span>Driver()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -199,15 +201,16 @@ template&lt;int dim&gt; </div>
         <tr>
           <td class="memname"><a class="el" href="class_driver.html">Driver</a>&lt; dim &gt;::Driver </td>
           <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td class="paramtype">unsigned int</td>          <td class="paramname"><span class="paramname"><em>n_components</em></span><span class="paramdefsep"> = </span><span class="paramdefval">1</span></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Create the simulation with n_components real storage components. The <a class="el" href="class_driver.html">Driver</a> parameter subsection can grow this count; complex potentials are identified by their real component index in Complex components. </p>
 
 <p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00019">19</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="driver_8h_source.html#l00122">bem_problem</a>, <a class="el" href="driver_8h_source.html#l00124">boundary_conditions</a>, <a class="el" href="driver_8h_source.html#l00120">computational_domain</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/init__finalize_8h.html#afa0632b171b89c99789b77f976818df0a3b124f211648678733ce66a1b361f06c">MPI</a>, <a class="el" href="driver_8h_source.html#l00118">mpi_communicator</a>, <a class="el" href="driver_8h_source.html#l00130">n_mpi_processes</a>, <a class="el" href="driver_8h_source.html#l00116">pcout</a>, <a class="el" href="driver_8h_source.html#l00126">prm</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classConditionalOStream.html#a3f183111c76e0bcb9574237ba082b44f">ConditionalOStream::set_condition()</a>, and <a class="el" href="driver_8h_source.html#l00131">this_mpi_process</a>.</p>
+<p class="reference">References <a class="el" href="driver_8h_source.html#l00134">bem_problem</a>, <a class="el" href="driver_8h_source.html#l00136">boundary_conditions</a>, <a class="el" href="driver_8h_source.html#l00132">computational_domain</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/init__finalize_8h.html#afa0632b171b89c99789b77f976818df0a3b124f211648678733ce66a1b361f06c">MPI</a>, <a class="el" href="driver_8h_source.html#l00130">mpi_communicator</a>, <a class="el" href="driver_8h_source.html#l00145">n_components</a>, <a class="el" href="driver_8h_source.html#l00143">n_mpi_processes</a>, <a class="el" href="driver_8h_source.html#l00128">pcout</a>, <a class="el" href="driver_8h_source.html#l00138">prm</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classConditionalOStream.html#a3f183111c76e0bcb9574237ba082b44f">ConditionalOStream::set_condition()</a>, and <a class="el" href="driver_8h_source.html#l00144">this_mpi_process</a>.</p>
 
 </div>
 </div>
@@ -228,7 +231,7 @@ template&lt;int dim&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00060">60</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00037">37</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
 
 </div>
 </div>
@@ -261,9 +264,9 @@ template&lt;int dim&gt; </div>
 
 <p>Reimplemented from <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#af73d667dd9cdb4614b917a1b9383ae5b">ParameterAcceptor</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00066">66</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00042">42</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
 
-<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a6d65f458be69e23a348221cb67fc411d">ParameterHandler::declare_entry()</a>, and <a class="el" href="driver_8h_source.html#l00126">prm</a>.</p>
+<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a6d65f458be69e23a348221cb67fc411d">ParameterHandler::declare_entry()</a>, <a class="el" href="driver_8h_source.html#l00128">pcout</a>, and <a class="el" href="driver_8h_source.html#l00138">prm</a>.</p>
 
 </div>
 </div>
@@ -295,9 +298,9 @@ template&lt;int dim&gt; </div>
 
 <p>Reimplemented from <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterAcceptor.html#ab3ee6cabf1ff10be362ac65495183c52">ParameterAcceptor</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00073">73</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00056">56</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
 
-<p class="reference">References <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a6bb45dc67787e3fab7882461929b5fbe">ParameterHandler::get_bool()</a>, <a class="el" href="driver_8h_source.html#l00128">global_refinement</a>, and <a class="el" href="driver_8h_source.html#l00126">prm</a>.</p>
+<p class="reference">References <a class="el" href="driver_8h_source.html#l00134">bem_problem</a>, <a class="el" href="driver_8h_source.html#l00136">boundary_conditions</a>, <a class="el" href="driver_8h_source.html#l00141">complex_problems</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a91cfbaca954f444047302446a4e87125">ParameterHandler::get()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a6bb45dc67787e3fab7882461929b5fbe">ParameterHandler::get_bool()</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/classParameterHandler.html#a61fa98fdc0c52980a5b1de0ee1fc5bb2">ParameterHandler::get_integer()</a>, <a class="el" href="driver_8h_source.html#l00140">global_refinement</a>, <a class="el" href="driver_8h_source.html#l00145">n_components</a>, <a class="el" href="driver_8h_source.html#l00128">pcout</a>, <a class="el" href="driver_8h_source.html#l00138">prm</a>, and <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceUtilities.html#a0a2b9ceded96f25b47eccd7c177dc67e">Utilities::split_string_list()</a>.</p>
 
 </div>
 </div>
@@ -317,12 +320,13 @@ template&lt;int dim&gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Read/refine the domain, solve real components and consecutive complex pairs, then compute errors and output each component. Invoke collectively. </p>
 
-<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00081">81</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8cc_source.html#l00095">95</a> of file <a class="el" href="driver_8cc_source.html">driver.cc</a>.</p>
 
-<p class="reference">References <a class="el" href="driver_8h_source.html#l00122">bem_problem</a>, <a class="el" href="driver_8h_source.html#l00124">boundary_conditions</a>, <a class="el" href="driver_8h_source.html#l00120">computational_domain</a>, <a class="el" href="driver_8h_source.html#l00128">global_refinement</a>, <a class="el" href="driver_8cc_source.html#l00014">SolveTime</a>, and <a class="el" href="driver_8cc_source.html#l00011">TotalTime</a>.</p>
+<p class="reference">References <a class="el" href="driver_8h_source.html#l00134">bem_problem</a>, <a class="el" href="driver_8h_source.html#l00136">boundary_conditions</a>, <a class="el" href="driver_8h_source.html#l00141">complex_problems</a>, <a class="el" href="driver_8h_source.html#l00132">computational_domain</a>, <a class="el" href="driver_8h_source.html#l00140">global_refinement</a>, <a class="elRef" href="http://www.dealii.org/developer/doxygen/deal.II/namespaceUtilities.html#a6195c5f009ea8c7c536c6ffdf108c32f">Utilities::int_to_string()</a>, <a class="el" href="driver_8cc_source.html#l00012">MeshTime</a>, <a class="el" href="driver_8h_source.html#l00128">pcout</a>, <a class="el" href="driver_8cc_source.html#l00014">SolveTime</a>, and <a class="el" href="driver_8cc_source.html#l00011">TotalTime</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="main_8cc_source.html#l00006">main()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="main_8cc_source.html#l00007">main()</a>.</p>
 
 </div>
 </div>
@@ -349,9 +353,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00122">122</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00134">134</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00081">run()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>, and <a class="el" href="driver_8cc_source.html#l00095">run()</a>.</p>
 
 </div>
 </div>
@@ -377,9 +381,37 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00124">124</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00136">136</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00081">run()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>, and <a class="el" href="driver_8cc_source.html#l00095">run()</a>.</p>
+
+</div>
+</div>
+<a id="a4a4e1194aa11c8f9733717180c9bfa8a" name="a4a4e1194aa11c8f9733717180c9bfa8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4a4e1194aa11c8f9733717180c9bfa8a">&#9670;&#160;</a></span>complex_problems</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::set&lt;unsigned int&gt; <a class="el" href="class_driver.html">Driver</a>&lt; dim &gt;::complex_problems</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00141">141</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>, and <a class="el" href="driver_8cc_source.html#l00095">run()</a>.</p>
 
 </div>
 </div>
@@ -405,9 +437,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00120">120</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00132">132</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00081">run()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00095">run()</a>.</p>
 
 </div>
 </div>
@@ -433,9 +465,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00128">128</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00140">140</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00073">parse_parameters()</a>, and <a class="el" href="driver_8cc_source.html#l00081">run()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>, and <a class="el" href="driver_8cc_source.html#l00095">run()</a>.</p>
 
 </div>
 </div>
@@ -461,9 +493,37 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00118">118</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00130">130</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>.</p>
+
+</div>
+</div>
+<a id="a3a9edb50487ee7255892741d8c6aff66" name="a3a9edb50487ee7255892741d8c6aff66"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3a9edb50487ee7255892741d8c6aff66">&#9670;&#160;</a></span>n_components</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int dim&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned int <a class="el" href="class_driver.html">Driver</a>&lt; dim &gt;::n_components</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00145">145</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>.</p>
 
 </div>
 </div>
@@ -489,7 +549,7 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00130">130</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00143">143</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>.</p>
 
@@ -517,9 +577,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00116">116</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00128">128</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00042">declare_parameters()</a>, <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>, and <a class="el" href="driver_8cc_source.html#l00095">run()</a>.</p>
 
 </div>
 </div>
@@ -545,9 +605,9 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00126">126</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00138">138</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00066">declare_parameters()</a>, <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00073">parse_parameters()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00042">declare_parameters()</a>, <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>, and <a class="el" href="driver_8cc_source.html#l00056">parse_parameters()</a>.</p>
 
 </div>
 </div>
@@ -573,7 +633,7 @@ template&lt;int dim&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00131">131</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="driver_8h_source.html#l00144">144</a> of file <a class="el" href="driver_8h_source.html">driver.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="driver_8cc_source.html#l00019">Driver()</a>.</p>
 

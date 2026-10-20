@@ -14,6 +14,8 @@ var searchData=
   ['quadrature_5fpoint_5fdata_2eh_11',['quadrature_point_data.h',['http://www.dealii.org/developer/doxygen/deal.II/quadrature__point__data_8h.html',1,'']]],
   ['quadrature_5fselector_2ecc_12',['quadrature_selector.cc',['http://www.dealii.org/developer/doxygen/deal.II/quadrature__selector_8cc.html',1,'']]],
   ['quadrature_5fselector_2eh_13',['quadrature_selector.h',['http://www.dealii.org/developer/doxygen/deal.II/quadrature__selector_8h.html',1,'']]],
-  ['quasi_5fstatic_5ffinite_5fstrain_5fcompressible_5felasticity_2eh_14',['Quasi_static_Finite_strain_Compressible_Elasticity.h',['http://www.dealii.org/developer/doxygen/deal.II/Quasi__static__Finite__strain__Compressible__Elasticity_8h.html',1,'']]],
-  ['quasi_5fstatic_5ffinite_5fstrain_5fquasi_5fincompressible_5fviscoelasticity_2eh_15',['Quasi_static_Finite_strain_Quasi_incompressible_ViscoElasticity.h',['http://www.dealii.org/developer/doxygen/deal.II/Quasi__static__Finite__strain__Quasi__incompressible__ViscoElasticity_8h.html',1,'']]]
+  ['quasi_5fsingular_5fkernel_5fintegral_2ecc_14',['quasi_singular_kernel_integral.cc',['../quasi__singular__kernel__integral_8cc.html',1,'']]],
+  ['quasi_5fsingular_5fkernel_5fintegral_2eh_15',['quasi_singular_kernel_integral.h',['../quasi__singular__kernel__integral_8h.html',1,'']]],
+  ['quasi_5fstatic_5ffinite_5fstrain_5fcompressible_5felasticity_2eh_16',['Quasi_static_Finite_strain_Compressible_Elasticity.h',['http://www.dealii.org/developer/doxygen/deal.II/Quasi__static__Finite__strain__Compressible__Elasticity_8h.html',1,'']]],
+  ['quasi_5fstatic_5ffinite_5fstrain_5fquasi_5fincompressible_5fviscoelasticity_2eh_17',['Quasi_static_Finite_strain_Quasi_incompressible_ViscoElasticity.h',['http://www.dealii.org/developer/doxygen/deal.II/Quasi__static__Finite__strain__Quasi__incompressible__ViscoElasticity_8h.html',1,'']]]
 ];

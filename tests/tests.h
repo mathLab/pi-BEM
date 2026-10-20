@@ -719,6 +719,15 @@ struct EnableFPE
     feenableexcept(FE_DIVBYZERO | FE_INVALID);
 #endif
   }
+
+  ~EnableFPE()
+  {
+#if defined(DEBUG) && defined(DEAL_II_HAVE_FP_EXCEPTIONS)
+    // Restore the startup exception mask before CGAL checks the FPU at exit.
+    // See deal.II commit 5b0d034e0a73a56336301071d23200eef8948fe8.
+    fedisableexcept(FE_DIVBYZERO | FE_INVALID);
+#endif
+  }
 } deal_II_enable_fpe;
 
 

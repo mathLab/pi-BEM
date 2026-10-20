@@ -11,7 +11,7 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
-      image: dealii/dealii:v9.6.0-jammy
+      image: dealii/dealii:v9.7.1-noble
       options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
     steps:
@@ -19,4 +19,4 @@ jobs:
     - name: Check indentation
       run: |
         git config --global --add safe.directory /__w/pi-BEM/pi-BEM
-        ./scripts/check_indentation.sh 
+        ./scripts/check_indentation.sh

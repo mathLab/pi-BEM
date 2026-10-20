@@ -1,16 +1,16 @@
 # Multiple potentials, complex problems and Robin conditions
 
-## Build and run with deal.II 9.6.0
+## Build and run with deal.II 9.7.1
 
 From the repository root, build both configurations in the supplied container:
 
 ```sh
 docker run --rm -v "$PWD:/workspace" -w /workspace \
-  dealii/dealii:v9.6.0-jammy bash -lc '
-    cmake -S . -B build-docker/9.6.0 -GNinja \
+  dealii/dealii:v9.7.1-noble bash -lc '
+    cmake -S . -B build-docker/9.7.1 -GNinja \
       -DCMAKE_BUILD_TYPE=DebugRelease -DCMAKE_CXX_FLAGS=-Werror &&
-    cmake --build build-docker/9.6.0 -j 4 &&
-    cd build-docker/9.6.0 && ctest --output-on-failure
+    cmake --build build-docker/9.7.1 -j 4 &&
+    cd build-docker/9.7.1 && ctest --output-on-failure
   '
 ```
 
@@ -24,13 +24,13 @@ The sphere examples use paths relative to `samples/`. Keep each run's output
 separate, and copy both the parameter file and its grid directory:
 
 ```sh
-mkdir -p build-docker/9.6.0/example-complex
-cp -R samples/grids build-docker/9.6.0/example-complex/
+mkdir -p build-docker/9.7.1/example-complex
+cp -R samples/grids build-docker/9.7.1/example-complex/
 cp samples/ref_params_sphere_complex_DR_direct.prm \
-  build-docker/9.6.0/example-complex/parameters_bem_3.prm
+  build-docker/9.7.1/example-complex/parameters_bem_3.prm
 docker run --rm -v "$PWD:/workspace" \
-  -w /workspace/build-docker/9.6.0/example-complex \
-  dealii/dealii:v9.6.0-jammy bash -lc '
+  -w /workspace/build-docker/9.7.1/example-complex \
+  dealii/dealii:v9.7.1-noble bash -lc '
     mpirun -np 2 ../bem_fma_3d 2
   '
 ```

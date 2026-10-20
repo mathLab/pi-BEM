@@ -3,10 +3,10 @@
 #define __sissa__ass_leg_function_h
 
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/observer_pointer.h>
 #include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
-#include <deal.II/base/smartpointer.h>
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/dofs/dof_accessor.h>

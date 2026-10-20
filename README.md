@@ -69,7 +69,7 @@ Just follow the [instructions](https://github.com/dealii/dealii/wiki/deal.II-in-
 We provide the possibility of using Docker as a tool to provide a fully operational environment for our library. To use such tool you need to install Docker following the [instructions](https://docs.docker.com/engine/installation/) provided by its authors. Then you can execute the following command line instruction
 
 ```
-docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t dealii/dealii:v9.6.0-jammy bash
+docker run -v `pwd`:/pwd_to_your_own_directory/ -i -t dealii/dealii:v9.7.1-noble bash
 ```
 
 to retrieve the environment. In such a shell you can easily compile the pi-BEM library following its own instructions.

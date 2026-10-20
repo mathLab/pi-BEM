@@ -57,6 +57,10 @@ template <int dim>
 class QuasiSingularKernelIntegral
 {
 public:
+  /// For dim=3, find the closest mapped point on in_cell to in_external_point
+  /// and initialize eta/min_distance. The referenced iterator object, finite
+  /// element and mapping must outlive this object. The dim=2 constructor does
+  /// not compute a projection or initialize min_distance.
   QuasiSingularKernelIntegral(
     const typename DoFHandler<dim - 1, dim>::active_cell_iterator &in_cell,
     const FiniteElement<dim - 1, dim>                             &in_fe,
@@ -76,11 +80,16 @@ public:
   // std::vector<Tensor<1, dim>>
   // evaluate_WkNj_integrals();
 
+  /// Find reference coordinates of the closest mapped cell point and update
+  /// min_distance. Implemented for quadrilateral surface cells in 3D, using
+  /// interior, edge and vertex searches; the 2D path is unsupported.
   Point<dim - 1>
   find_closest_reference_cell_point(const Point<dim> &external_point);
 
+  /// Closest reference point computed by the 3D constructor.
   Point<dim - 1> eta;
-  double         min_distance;
+  /// Distance to the mapped closest point; initialized only by the 3D search.
+  double min_distance;
 
 
 private:

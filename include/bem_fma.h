@@ -124,10 +124,13 @@ public:
   void
   direct_integrals();
 
+  /// Compute near-field direct integrals using the TBB backend after octree
+  /// setup. Normally called through direct_integrals().
   void
   direct_integrals_tbb();
 
 #ifdef PBEM_OPENMP
+  /// OpenMP backend for direct_integrals(); available with PBEM_OPENMP.
   void
   direct_integrals_omp();
 #endif
@@ -180,6 +183,8 @@ public:
     TrilinosWrappers::MPI::Vector       &matrVectProdN,
     TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 
+  /// TBB backend applying far-field Neumann/Dirichlet products to the
+  /// supplied real vectors. Requires initialized multipole integrals.
   void
   multipole_matr_vect_products_tbb(
     const TrilinosWrappers::MPI::Vector &phi_values,
@@ -188,6 +193,8 @@ public:
     TrilinosWrappers::MPI::Vector       &matrVectProdD) const;
 
 #ifdef PBEM_OPENMP
+  /// OpenMP backend for the multipole matrix-vector products; available
+  /// with PBEM_OPENMP and requiring initialized multipole integrals.
   void
   multipole_matr_vect_products_omp(
     const TrilinosWrappers::MPI::Vector &phi_values,
@@ -227,25 +234,36 @@ public:
   FMA_preconditioner(const TrilinosWrappers::MPI::Vector &alpha,
                      AffineConstraints<double>           &c);
 
+  /// Build the real near-field ILU preconditioner with TBB. The returned
+  /// reference is owned by this FMA object; alpha and constraints must be
+  /// ready.
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_tbb(const TrilinosWrappers::MPI::Vector &alpha,
                          AffineConstraints<double>           &c);
 
 #ifdef PBEM_OPENMP
+  /// OpenMP backend for the real near-field ILU preconditioner; available
+  /// with PBEM_OPENMP. Return a reference owned by this object.
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_omp(const TrilinosWrappers::MPI::Vector &alpha,
                          AffineConstraints<double>           &c);
 #endif
 
+  /// Build the near-field ILU preconditioner used for each block of a
+  /// complex solve. Dispatch to the selected threading backend and return
+  /// a reference owned by this object. alpha and constraints must be ready.
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex(const TrilinosWrappers::MPI::Vector &alpha,
                              AffineConstraints<double>           &c);
 
+  /// TBB backend for FMA_preconditioner_complex(); return an owned reference.
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex_tbb(const TrilinosWrappers::MPI::Vector &alpha,
                                  AffineConstraints<double>           &c);
 
 #ifdef PBEM_OPENMP
+  /// OpenMP backend for FMA_preconditioner_complex(); available with
+  /// PBEM_OPENMP. The returned reference is owned by this object.
   TrilinosWrappers::PreconditionILU &
   FMA_preconditioner_complex_omp(const TrilinosWrappers::MPI::Vector &alpha,
                                  AffineConstraints<double>           &c);

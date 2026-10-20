@@ -133,15 +133,23 @@ public:
   void
   read_domain();
 
+  /// Load configured CAD surfaces/curves and attach their manifolds. Return
+  /// the largest shape tolerance for subsequent projection-based refinement.
   double
   load_cad_objects();
 
+  /// Refine cells exceeding the configured maximum aspect ratio and repair
+  /// edge conformity. Call after loading the domain and its CAD objects.
   void
   refine_and_resize_by_aspect_ratio();
 
+  /// Apply configured CAD curvature/projection refinement using max_tol
+  /// from load_cad_objects(); honor the configured curvature-cycle limit.
   void
   refine_and_resize_by_cad_projections(double max_tol);
 
+  /// Partition the current triangulation over the communicator and write
+  /// meshResult.inp. This is the final stage of refine_and_resize().
   void
   refine_and_resize_wrapup();
 
@@ -266,9 +274,14 @@ public:
   /// the material ID numbers in the mesh
   /// input file, for the neumann_nodes
   std::vector<unsigned int> neumann_boundary_ids;
+  /// Manifold IDs carrying Robin conditions; disjoint from Dirichlet/Neumann
+  /// IDs.
   std::vector<unsigned int> robin_boundary_ids;
 
+  /// Map mesh manifold IDs to BoundaryConditionType codes.
   std::map<unsigned int, unsigned int> manifold2bcondition_map;
+  /// Map mesh manifold IDs to parsed-function slots (0 or 1), for all
+  /// components.
   std::map<unsigned int, unsigned int> manifold2bcondition_slot_map;
 
   MPI_Comm mpi_communicator;

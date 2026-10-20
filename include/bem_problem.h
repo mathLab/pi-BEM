@@ -137,6 +137,8 @@ class BEMProblem : public ParameterAcceptor
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
 
+  /// Create a problem on comp_dom and comm with n_components real storage
+  /// components. A complex potential occupies two consecutive components.
   BEMProblem(ComputationalDomain<dim> &comp_dom,
              const MPI_Comm            comm         = MPI_COMM_WORLD,
              unsigned int              n_components = 1);
@@ -148,6 +150,12 @@ public:
         const TrilinosWrappers::MPI::Vector &tmp_rhs,
         bool                                 reset_matrix = true);
 
+  /// Solve for potential and normal derivative using real vectors. The overload
+  /// with imaginary vectors solves a complex problem as a two-block real
+  /// system. All ranks in the communicator must participate. With
+  /// reset_matrix=false, reuse previously assembled integral operators; mesh,
+  /// mapping, quadrature and discretization must be unchanged. Boundary data
+  /// must already be prepared.
   void
   solve(TrilinosWrappers::MPI::Vector       &phi,
         TrilinosWrappers::MPI::Vector       &phi_imag,
@@ -215,9 +223,11 @@ public:
   void
   assemble_system();
 
+  /// Assemble the direct boundary integral matrices using TBB workers.
   void
   assemble_system_tbb();
 
+  /// Assemble the direct boundary integral matrices on one thread.
   void
   assemble_system_singlethread();
 
@@ -229,10 +239,14 @@ public:
   /// and Dirichlet matrices) by the
   /// vector src. The result is stored
   /// in the vector dst.
+  /// Apply the current BEM operator collectively. The four-vector overload
+  /// accepts separate real and imaginary inputs and outputs.
   void
   vmult(TrilinosWrappers::MPI::Vector       &dst,
         const TrilinosWrappers::MPI::Vector &src) const;
 
+  /// Apply the current BEM operator collectively. The four-vector overload
+  /// accepts separate real and imaginary inputs and outputs.
   void
   vmult(TrilinosWrappers::MPI::Vector       &dst,
         TrilinosWrappers::MPI::Vector       &dst_imag,
@@ -242,10 +256,14 @@ public:
   /// The second method computes the
   /// right hand side vector of the
   /// system.
+  /// Form the boundary integral right hand side. The four-vector overload
+  /// uses separate real and imaginary parts and the current Robin data.
   void
   compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
               const TrilinosWrappers::MPI::Vector &src) const;
 
+  /// Form the boundary integral right hand side. The four-vector overload
+  /// uses separate real and imaginary parts and the current Robin data.
   void
   compute_rhs(TrilinosWrappers::MPI::Vector       &dst,
               TrilinosWrappers::MPI::Vector       &dst_imag,
@@ -262,9 +280,14 @@ public:
   void
   assemble_preconditioner();
 
+  /// Build the preconditioner for the two-block real representation of the
+  /// complex system, using the current boundary masks and Robin coefficients.
   void
   assemble_preconditioner_complex();
 
+  /// Return the configured ILU or AMG preconditioner. Set complex=true for
+  /// the complex-system preconditioner. The returned object is owned by this
+  /// problem and must have been initialized before use.
   TrilinosWrappers::PreconditionBase &
   get_preconditioner(bool complex)
   {
@@ -283,10 +306,16 @@ public:
   /// This is the function that guides the execution of the BEM problem.
   /// Depending on the resolution stategy we go whether for the direct or fma
   /// strategy.
+  /// Solve the prepared system and recover potential and normal derivative.
+  /// The overload with imaginary vectors uses two real blocks. Integral
+  /// operators and boundary/Robin data must already be initialized.
   void
   solve_system(TrilinosWrappers::MPI::Vector       &phi,
                TrilinosWrappers::MPI::Vector       &dphi_dn,
                const TrilinosWrappers::MPI::Vector &tmp_rhs);
+  /// Solve the prepared system and recover potential and normal derivative.
+  /// The overload with imaginary vectors uses two real blocks. Integral
+  /// operators and boundary/Robin data must already be initialized.
   void
   solve_system(TrilinosWrappers::MPI::Vector       &phi,
                TrilinosWrappers::MPI::Vector       &phi_imag,
@@ -358,12 +387,15 @@ public:
   adaptive_refinement(const TrilinosWrappers::MPI::Vector &error_vector);
 
   // the components are activated one at a time
+  /// Return the number of real storage components, including imaginary parts.
   unsigned int
   n_phi_components() const
   {
     return n_components;
   }
 
+  /// Grow component storage; shrinking is unsupported. Call before reinit()
+  /// to initialize distributed gradient vectors for the new components.
   void
   set_n_phi_components(unsigned int n_components)
   {
@@ -377,12 +409,15 @@ public:
       }
   }
 
+  /// Return the zero-based active real storage component.
   unsigned int
   get_current_phi_component() const
   {
     return current_component;
   }
 
+  /// Select a component smaller than n_phi_components(). This selects gradient
+  /// storage; it does not resize or assemble the problem.
   void
   set_current_phi_component(unsigned int component)
   {
@@ -391,12 +426,17 @@ public:
   }
 
   // accessors to wrap the solution Vectors; non-const&, open borders
+  /// Return mutable gradient storage for the active component, or for the
+  /// explicit component index. The reference remains valid until storage is
+  /// resized.
   TrilinosWrappers::MPI::Vector &
   get_vector_gradients_solution()
   {
     return vector_gradients_solutions[current_component];
   }
 
+  /// Return mutable tangential-gradient storage for the active component, or
+  /// for the explicit component index. Resizing storage invalidates references.
   TrilinosWrappers::MPI::Vector &
   get_vector_surface_gradients_solution()
   {
@@ -404,6 +444,9 @@ public:
   }
 
   // component selection
+  /// Return mutable gradient storage for the active component, or for the
+  /// explicit component index. The reference remains valid until storage is
+  /// resized.
   TrilinosWrappers::MPI::Vector &
   get_vector_gradients_solution(unsigned int component)
   {
@@ -411,6 +454,8 @@ public:
     return vector_gradients_solutions[component];
   }
 
+  /// Return mutable tangential-gradient storage for the active component, or
+  /// for the explicit component index. Resizing storage invalidates references.
   TrilinosWrappers::MPI::Vector &
   get_vector_surface_gradients_solution(unsigned int component)
   {
@@ -418,6 +463,10 @@ public:
     return vector_surface_gradients_solutions[component];
   }
 
+  /// Collect the assembled real operator into a dense N-by-N matrix on each
+  /// participating rank, including boundary masks, alpha and Robin terms.
+  /// Requires direct matrices; this diagnostic incurs quadratic memory per rank
+  /// and does not apply the constrained-operator row replacement.
   FullMatrix<double>
   get_system_matrix() const
   {
@@ -478,6 +527,9 @@ public:
     return ret;
   }
 
+  /// Collect the assembled complex operator as a dense 2N-by-2N real matrix,
+  /// ordered real then imaginary, on every participating rank. Requires direct
+  /// matrices and current Robin data; constraint rows are not replaced here.
   FullMatrix<double>
   get_system_matrix_complex() const
   {

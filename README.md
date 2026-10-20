@@ -181,6 +181,12 @@ If you use this software, please consider citing the following work:
   journal = {Advances in Engineering Software}
   }
 
+## Multiple potentials, complex problems and Robin conditions
+
+See [the usage and API migration guide](docs/complex-robin.md) for runnable
+Docker examples, parameter-file changes, component selection, Robin coefficients
+and the C++ interfaces introduced by the complex/multiple-potential extension.
+
 # Licence
 
 Please see the file [LICENSE](https://github.com/mathLab/pi-BEM/blob/master/LICENSE) for details

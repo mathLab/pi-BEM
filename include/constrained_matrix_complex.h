@@ -30,6 +30,14 @@
 
 DEAL_II_NAMESPACE_OPEN
 
+/**
+ * Constrained complex operator using a flat [real, imaginary] vector of size
+ * 2N. MATRIX supplies this_cpu_set and vmult(dst_re,dst_im,src_re,src_im). Both
+ * constraint objects use unshifted N-vector indices and must constrain the same
+ * rows. Referenced matrix/constraints must outlive this object. Calls are
+ * collective on comm; mutable caches prevent simultaneous vmult calls on one
+ * instance. distribute_rhs() replaces constrained entries with inhomogeneities.
+ */
 template <class VEC, class MATRIX>
 class ConstrainedComplexOperator
 {
@@ -157,6 +165,10 @@ ConstrainedComplexOperator<VEC, MATRIX>::distribute_rhs(VEC &rhs) const
 }
 
 // using BlockVector
+/** Apply one referenced preconditioner independently to every real block.
+ * vmult() and Tvmult() require compatible source/destination block layouts.
+ * The underlying preconditioner must outlive this adapter.
+ */
 template <class PreconditionerType>
 class BlockPreconditioner
 {
@@ -189,6 +201,14 @@ protected:
   PreconditionerType &preconditioner;
 };
 
+/**
+ * Constrained complex operator using block 0 for real and block 1 for
+ * imaginary. MATRIX supplies this_cpu_set and the four-vector vmult overload.
+ * Both constraints use unshifted indices and must constrain the same rows.
+ * Objects referenced by the constructor must outlive this adapter. Invoke
+ * vmult() and distribute_rhs() collectively on comm with compatible distributed
+ * layouts.
+ */
 template <class VEC, class MATRIX>
 class BlockConstrainedComplexOperator
 {

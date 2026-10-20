@@ -100,6 +100,9 @@ template <int dim>
 class Driver : public ParameterAcceptor
 {
 public:
+  /// Create the simulation with n_components real storage components. The
+  /// Driver parameter subsection can grow this count; complex potentials are
+  /// identified by their real component index in Complex components.
   Driver(unsigned int n_components = 1);
 
   ~Driver();
@@ -116,6 +119,8 @@ public:
   virtual void
   parse_parameters(ParameterHandler &prm) override;
 
+  /// Read/refine the domain, solve real components and consecutive complex
+  /// pairs, then compute errors and output each component. Invoke collectively.
   void
   run();
 

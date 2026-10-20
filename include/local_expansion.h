@@ -22,6 +22,9 @@ public:
 
   static LocalExpansionCoeff mExp_to_lExp_Coeff;
 
+  /// Compare order, center distance and absolute coefficient differences with
+  /// tolerance (default 1e-10). This compares stored expansion data, not
+  /// fields.
   static bool
   equal(const LocalExpansion &lhs,
         const LocalExpansion &rhs,
@@ -66,25 +69,53 @@ public:
                  const dealii::Point<3> &center,
                  const AssLegFunction   *assLegFunction);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const std::vector<double> &real, const std::vector<double> &imag);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const LocalExpansion &parent);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const LocalExpansion &parent, std::vector<std::complex<double>> &cache);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const MultipoleExpansion &multipole);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const MultipoleExpansion          &multipole,
       std::vector<std::complex<double>> &cache);
 
+  /// Evaluate the expansion at evalPoint. The cache overload reuses mutable
+  /// caller-owned scratch storage and may overwrite/resize it. Do not share
+  /// a cache between concurrent calls. Observe the expansion convergence
+  /// region.
   double
   Evaluate(const dealii::Point<3> &evalPoint);
 
+  /// Evaluate the expansion at evalPoint. The cache overload reuses mutable
+  /// caller-owned scratch storage and may overwrite/resize it. Do not share
+  /// a cache between concurrent calls. Observe the expansion convergence
+  /// region.
   double
   Evaluate(const dealii::Point<3>            &evalPoint,
            std::vector<std::complex<double>> &cache);
@@ -113,6 +144,10 @@ public:
     return this->p;
   }
 
+  /// Return a read-only reference to owned triangular coefficient storage,
+  /// indexed by n*(n+1)/2+m. Copy the vector to retain an independent snapshot.
+  /// Use SetCoeff()/AddToCoeff() for changes; assignment invalidates
+  /// references.
   inline const std::vector<std::complex<double>> &
   GetCoeffs() const
   {

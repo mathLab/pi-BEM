@@ -68,6 +68,8 @@ class OctreeBlock
 {
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
+  /// Sorted contiguous set of block IDs; replaces std::set in interaction
+  /// lists.
   using small_set = boost::container::flat_set<types::global_dof_index>;
 
 private:
@@ -103,12 +105,16 @@ public:
   void
   AddQuadPoint(cell_it elemPointer, types::global_dof_index quadPointId);
 
+  /// Return a read-only view of node IDs; modifying this block can invalidate
+  /// it.
   const std::vector<types::global_dof_index> &
   GetBlockNodeList() const;
 
   void
   DelNodeList();
 
+  /// Return a read-only view of cell-to-quadrature-index lists owned by this
+  /// block.
   const std::map<cell_it, std::vector<types::global_dof_index>> &
   GetBlockQuadPointsList() const;
 
@@ -136,6 +142,7 @@ public:
   double
   GetDelta() const;
 
+  /// Return the box center, GetPMin()+GetDelta()/2 in every direction.
   Point<dim>
   GetCenter() const
   {
@@ -157,6 +164,9 @@ public:
   unsigned int
   NumNearNeighLevels() const;
 
+  /// Return a read-only flat-set view for the requested sublevel. Use
+  /// NumNearNeighLevels() to check valid sublevels; mutations can invalidate
+  /// iterators.
   const small_set &
   GetNearNeighs(unsigned int sublevel) const;
 
@@ -167,9 +177,13 @@ public:
   types::global_dof_index
   NumIntList(unsigned int sublevel) const;
 
+  /// Return a read-only flat-set view for one sublevel, or the complete
+  /// vector of sublevel sets. The block owns the returned containers.
   const small_set &
   GetIntList(unsigned int sublevel) const;
 
+  /// Return a read-only flat-set view for one sublevel, or the complete
+  /// vector of sublevel sets. The block owns the returned containers.
   const std::vector<small_set> &
   GetIntList() const;
 
@@ -180,6 +194,8 @@ public:
   types::global_dof_index
   NumNonIntList(unsigned int sublevel) const;
 
+  /// Return a read-only flat-set view of non-interacting blocks at sublevel.
+  /// The block owns the container; mutations can invalidate iterators.
   const small_set &
   GetNonIntList(unsigned int sublevel) const;
 

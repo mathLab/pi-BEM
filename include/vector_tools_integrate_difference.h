@@ -46,6 +46,12 @@ using namespace dealii;
 
 // adapted from
 // https://github.com/dealii/dealii/blob/master/include/deal.II/numerics/vector_tools_integrate_difference.templates.h
+/** Compute cellwise errors with hp mappings/quadratures and material-selected
+ * exact solutions. Function pointers are non-owning and must match the finite
+ * element component count. Missing material IDs and non-owned cells contribute
+ * zero. The output is resized to the number of active cells; global norm
+ * reduction remains the caller's responsibility. Uses deal.II internal helpers.
+ */
 template <int dim, class InVector, class OutVector, int spacedim>
 void
 do_integrate_difference_based_on_material_id(
@@ -181,6 +187,12 @@ do_integrate_difference_based_on_material_id(
       difference(cell->active_cell_index()) = 0;
 }
 
+/** Single-mapping/quadrature wrapper for material-selected cellwise errors.
+ * exact_solutions is keyed by cell material_id (not manifold_id). Function
+ * pointers must remain valid throughout the call; absent IDs contribute zero.
+ * Apply VectorTools::compute_global_error() for a global norm. Weight and
+ * exponent follow VectorTools::integrate_difference() conventions.
+ */
 template <int dim, class InVector, class OutVector, int spacedim>
 void
 integrate_difference_based_on_material_id(

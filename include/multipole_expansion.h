@@ -50,38 +50,72 @@ public:
                      const dealii::Point<3> &center,
                      const AssLegFunction   *assLegFunction);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const MultipoleExpansion &multipole, const double sol);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const double strength, const dealii::Point<3> &point);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const double                       strength,
       const dealii::Point<3>            &point,
       std::vector<std::complex<double>> &cache);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const MultipoleExpansion &child);
 
+  /// Accumulate the supplied source or expansion. Cache-taking overloads
+  /// overwrite and resize caller-owned scratch storage; use a separate cache
+  /// per concurrent operation. Source expansions must have compatible order.
+  /// The non-owning AssLegFunction passed at construction must remain alive.
   void
   Add(const MultipoleExpansion          &child,
       std::vector<std::complex<double>> &cache);
 
+  /// Accumulate a normal-derivative source. The cache overload overwrites and
+  /// resizes caller-owned scratch storage; provide one cache per concurrent
+  /// call.
   void
   AddNormDer(const double                strength,
              const dealii::Point<3>     &point,
              const dealii::Tensor<1, 3> &normal);
 
+  /// Accumulate a normal-derivative source. The cache overload overwrites and
+  /// resizes caller-owned scratch storage; provide one cache per concurrent
+  /// call.
   void
   AddNormDer(const double                       strength,
              const dealii::Point<3>            &point,
              const dealii::Tensor<1, 3>        &normal,
              std::vector<std::complex<double>> &cache);
 
+  /// Evaluate the expansion at evalPoint. The cache overload reuses mutable
+  /// caller-owned scratch storage and may overwrite/resize it. Do not share
+  /// a cache between concurrent calls. Observe the expansion convergence
+  /// region.
   double
   Evaluate(const dealii::Point<3> &evalPoint);
 
+  /// Evaluate the expansion at evalPoint. The cache overload reuses mutable
+  /// caller-owned scratch storage and may overwrite/resize it. Do not share
+  /// a cache between concurrent calls. Observe the expansion convergence
+  /// region.
   double
   Evaluate(const dealii::Point<3>            &evalPoint,
            std::vector<std::complex<double>> &cache);
@@ -98,24 +132,31 @@ public:
     this->center = new_center;
   }
 
+  /// Return a read-only reference to the shared normalization matrix.
   inline const FullMatrix<double> &
   GetA_n_m() const
   {
     return this->A_n_m;
   }
 
+  /// Return a read-only reference to owned triangular coefficient storage,
+  /// indexed by n*(n+1)/2+m. Copy the vector to retain an independent snapshot.
+  /// Use SetCoeff()/AddToCoeff() for changes; assignment invalidates
+  /// references.
   inline const std::vector<std::complex<double>> &
   GetCoeffs() const
   {
     return this->_M_n_m;
   }
 
+  /// Return a read-only coefficient reference for 0 <= m <= n <= order.
   inline const std::complex<double> &
   GetCoeff(unsigned int n, unsigned int m) const
   {
     return this->_M_n_m[(n) * (n + 1) / 2 + m];
   }
 
+  /// Replace coefficient (n,m), with 0 <= m <= n <= order. The value is copied.
   inline void
   SetCoeff(unsigned int                n,
            unsigned int                m,
@@ -124,6 +165,7 @@ public:
     this->_M_n_m[(n) * (n + 1) / 2 + m] = value;
   }
 
+  /// Accumulate a copied value at coefficient (n,m), with 0 <= m <= n <= order.
   inline void
   AddToCoeff(unsigned int                n,
              unsigned int                m,
@@ -132,6 +174,8 @@ public:
     this->_M_n_m[(n) * (n + 1) / 2 + m] += value;
   }
 
+  /// Compute other-center, its length rho, cos(polar angle) and azimuth beta.
+  /// The points must differ, since cos_alpha divides by rho.
   static void
   spherical_coords(const dealii::Point<3> &center,
                    const dealii::Point<3> &other,

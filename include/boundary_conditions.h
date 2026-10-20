@@ -63,6 +63,8 @@
 
 using namespace dealii;
 
+/** Boundary type codes used by ComputationalDomain and boundary-data
+ * preparation. */
 enum BoundaryConditionType
 {
   dirichlet,
@@ -84,9 +86,15 @@ template <int dim>
 class BoundaryConditions : public ParameterAcceptor
 {
 public:
-  static constexpr unsigned int MAX_COMPONENTS      = 14;
+  /// Maximum number of real storage components declared in parameter files.
+  static constexpr unsigned int MAX_COMPONENTS = 14;
+  /// Number of alternative boundary functions per component (slots 0 and 1).
   static constexpr unsigned int MAX_CONDITION_SLOTS = 2;
 
+  /// Bind boundary data to comp_dom and bem on comm. n_components counts
+  /// real storage components; a complex potential uses two consecutive slots
+  /// in the component array. Parameter functions are initialized during
+  /// parsing.
   BoundaryConditions(ComputationalDomain<dim> &comp_dom,
                      BEMProblem<dim>          &bem,
                      const MPI_Comm            comm         = MPI_COMM_WORLD,
@@ -116,14 +124,25 @@ public:
   virtual void
   parse_parameters(ParameterHandler &prm) override;
 
+  /// Populate known boundary values and rhs for the active component using
+  /// the domain boundary types and function-slot map. Requires initialized
+  /// DoFs, normals, parsed functions and distributed solution vectors.
   void
   prepare_bem_vectors(TrilinosWrappers::MPI::Vector &rhs);
 
+  /// Evaluate a*phi+b*dphi_dn=g on Robin nodes and store a/b and g/b.
+  /// The complex overload reads real coefficients from the active component
+  /// and imaginary coefficients from the next one. b must be nonzero. Output
+  /// vectors must be initialized with the problem partitioning.
   void
   prepare_robin_datastructs(
     TrilinosWrappers::MPI::Vector &robin_matrix_diagonal,
     TrilinosWrappers::MPI::Vector &robin_rhs);
 
+  /// Evaluate a*phi+b*dphi_dn=g on Robin nodes and store a/b and g/b.
+  /// The complex overload reads real coefficients from the active component
+  /// and imaginary coefficients from the next one. b must be nonzero. Output
+  /// vectors must be initialized with the problem partitioning.
   void
   prepare_robin_datastructs(
     TrilinosWrappers::MPI::Vector &robin_matrix_diagonal,
@@ -131,28 +150,44 @@ public:
     TrilinosWrappers::MPI::Vector &robin_rhs,
     TrilinosWrappers::MPI::Vector &robin_rhs_imag);
 
+  /// Prepare and solve the active real component collectively. Reuse integral
+  /// operators when reset_matrix=false and geometry/discretization are
+  /// unchanged.
   void
   solve_problem(bool reset_matrix = true);
 
   // solves the complex problem where the real parts of b.conditions and Robin
   // coefficients are given by the current component data structs, the imaginary
   // parts from the next component
+  /// Prepare and solve the active real component and its following imaginary
+  /// component collectively; current_component+1 must exist. reset_matrix has
+  /// the same operator-reuse contract as solve_problem().
   void
   solve_complex_problem(bool reset_matrix = true);
 
+  /// Write the active component and its gradient fields using the supplied
+  /// filename stem. Invoke on all ranks after the solution is available.
   void
   output_results(const std::string);
 
+  /// Compute errors and gradients for the active component. For a real problem
+  /// pass (false,true). For a complex pair pass (true,true) on the real part
+  /// and (true,false) on the imaginary part; the neighboring component must
+  /// exist.
   void
   compute_errors(bool complex, bool current_is_real);
 
   // the components are activated one at a time
+  /// Return the number of real storage components, counting imaginary parts.
   unsigned int
   n_phi_components() const
   {
     return n_components;
   }
 
+  /// Grow solution and function storage; shrinking is unsupported. Parse
+  /// parameters and initialize distributed vectors before using added
+  /// components.
   void
   set_n_phi_components(unsigned int n_components)
   {
@@ -169,12 +204,15 @@ public:
       }
   }
 
+  /// Return the zero-based active real storage component.
   unsigned int
   get_current_phi_component() const
   {
     return current_component;
   }
 
+  /// Select a component smaller than n_phi_components() and synchronize the
+  /// active component of the bound BEMProblem.
   void
   set_current_phi_component(unsigned int component)
   {
@@ -185,6 +223,8 @@ public:
 
   // wrap extraction of current component; public interface retrieves const&
   // objects
+  /// Return the parsed vector field for component and function slot (0 or 1).
+  /// Its normal projection supplies Neumann data. Requires parsed functions.
   const Functions::ParsedFunction<dim> &
   get_wind(unsigned int component, unsigned int slot) const
   {
@@ -193,6 +233,8 @@ public:
     return *winds[component * MAX_CONDITION_SLOTS + slot];
   }
 
+  /// Return the parsed scalar potential for component and function slot
+  /// (0 or 1). Requires parsed functions.
   const Functions::ParsedFunction<dim> &
   get_potential(unsigned int component, unsigned int slot) const
   {
@@ -201,6 +243,8 @@ public:
     return *potentials[component * MAX_CONDITION_SLOTS + slot];
   }
 
+  /// Return the parsed Robin coefficient function for component and slot
+  /// (0 or 1). In 3D its entries are a, b, g in a*phi+b*dphi_dn=g.
   const Functions::ParsedFunction<dim> &
   get_robin_coeffs(unsigned int component, unsigned int slot) const
   {
@@ -210,18 +254,26 @@ public:
   }
 
   // same as above, for the Vectors; however, retrieve non-const&
+  /// Return mutable potential storage for the active or explicit component.
+  /// Requires a solved/initialized component; resizing invalidates the
+  /// reference.
   TrilinosWrappers::MPI::Vector &
   get_phi()
   {
     return phis[current_component];
   }
 
+  /// Return mutable normal-derivative storage for the active or explicit
+  /// component. Resizing component storage invalidates the reference.
   TrilinosWrappers::MPI::Vector &
   get_dphi_dn()
   {
     return dphi_dns[current_component];
   }
 
+  /// Return mutable potential storage for the active or explicit component.
+  /// Requires a solved/initialized component; resizing invalidates the
+  /// reference.
   TrilinosWrappers::MPI::Vector &
   get_phi(unsigned int component)
   {
@@ -229,6 +281,8 @@ public:
     return phis[component];
   }
 
+  /// Return mutable normal-derivative storage for the active or explicit
+  /// component. Resizing component storage invalidates the reference.
   TrilinosWrappers::MPI::Vector &
   get_dphi_dn(unsigned int component)
   {
@@ -237,6 +291,10 @@ public:
   }
 
   /// get all components as blocks
+  /// Build and return a distributed block-vector copy using component indices
+  /// as block indices; the no-argument overload selects every component.
+  /// Invoke collectively after solution vectors and ownership are initialized.
+  /// The result is owned by the caller and is not a view into solution storage.
   TrilinosWrappers::MPI::BlockVector
   get_phi_components(const std::vector<unsigned int> &component_idxs)
   {
@@ -266,6 +324,10 @@ public:
     return ret;
   }
 
+  /// Build and return a distributed block-vector copy using component indices
+  /// as block indices; the no-argument overload selects every component.
+  /// Invoke collectively after solution vectors and ownership are initialized.
+  /// The result is owned by the caller and is not a view into solution storage.
   TrilinosWrappers::MPI::BlockVector
   get_phi_components()
   {
@@ -282,6 +344,8 @@ public:
 
 protected:
   // non const extractors: needed for set_time
+  /// Return the parsed vector field for component and function slot (0 or 1).
+  /// Its normal projection supplies Neumann data. Requires parsed functions.
   Functions::ParsedFunction<dim> &
   get_wind(unsigned int component, unsigned int slot)
   {
@@ -290,6 +354,8 @@ protected:
     return *winds[component * MAX_CONDITION_SLOTS + slot];
   }
 
+  /// Return the parsed scalar potential for component and function slot
+  /// (0 or 1). Requires parsed functions.
   Functions::ParsedFunction<dim> &
   get_potential(unsigned int component, unsigned int slot)
   {
@@ -298,6 +364,8 @@ protected:
     return *potentials[component * MAX_CONDITION_SLOTS + slot];
   }
 
+  /// Return the parsed Robin coefficient function for component and slot
+  /// (0 or 1). In 3D its entries are a, b, g in a*phi+b*dphi_dn=g.
   Functions::ParsedFunction<dim> &
   get_robin_coeffs(unsigned int component, unsigned int slot)
   {

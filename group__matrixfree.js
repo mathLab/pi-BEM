@@ -7,6 +7,7 @@ var group__matrixfree =
     [ "internal::MatrixFreeFunctions::flat_faces", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggae024b29b6819e727d47016c6b6b53d8ca4b6c24f012945b366f42a81533bc1c8d", null ],
     [ "internal::MatrixFreeFunctions::general", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggae024b29b6819e727d47016c6b6b53d8caec90e87a9874dab5ed93ed8793c58278", null ],
     [ "internal::MatrixFreeFunctions::tensor_general", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggaee4d2d09d3fd284528a8a9c4a3e36979afeacb1163020b44f26f33b91bf468fe4", null ],
+    [ "internal::MatrixFreeFunctions::tensor_nedelec", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggaee4d2d09d3fd284528a8a9c4a3e36979af7446342d496651f8f7ba92d95fa1a2a", null ],
     [ "internal::MatrixFreeFunctions::tensor_none", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggaee4d2d09d3fd284528a8a9c4a3e36979ab29cf7ec39e8f8fb54833338dcb1db0d", null ],
     [ "internal::MatrixFreeFunctions::tensor_raviart_thomas", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggaee4d2d09d3fd284528a8a9c4a3e36979a28b615135d744ee1de734868aec46bbe", null ],
     [ "internal::MatrixFreeFunctions::tensor_symmetric", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html#ggaee4d2d09d3fd284528a8a9c4a3e36979ab863fe433d49138029548f977f9916be", null ],

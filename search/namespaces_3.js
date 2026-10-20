@@ -19,14 +19,13 @@ var searchData=
   ['differentiation_3a_3asd_3a_3atypes_16',['types',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDifferentiation_1_1SD_1_1types.html',1,'Differentiation::SD']]],
   ['differentiation_3a_3asd_3a_3atypes_3a_3ainternal_17',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDifferentiation_1_1SD_1_1types_1_1internal.html',1,'Differentiation::SD::types']]],
   ['differentiation_3a_3asd_3a_3autilities_18',['Utilities',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDifferentiation_1_1SD_1_1Utilities.html',1,'Differentiation::SD']]],
-  ['dofhandler_19',['DoFHandler',['http://www.dealii.org/developer/doxygen/deal.II/structDoFHandler_1_1ActiveFEIndexTransfer.html',1,'']]],
-  ['dofrenumbering_20',['DoFRenumbering',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering.html',1,'']]],
-  ['dofrenumbering_3a_3aboost_21',['boost',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1boost.html',1,'DoFRenumbering']]],
-  ['dofrenumbering_3a_3aboost_3a_3aboosttypes_22',['boosttypes',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1boost_1_1boosttypes.html',1,'DoFRenumbering::boost']]],
-  ['dofrenumbering_3a_3aboost_3a_3ainternal_23',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1boost_1_1internal.html',1,'DoFRenumbering::boost']]],
-  ['dofrenumbering_3a_3ainternal_24',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1internal.html',1,'DoFRenumbering']]],
-  ['doftools_25',['DoFTools',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html',1,'']]],
-  ['doftools_3a_3ainternal_26',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools_1_1internal.html',1,'DoFTools']]],
-  ['doftools_3a_3ainternal_3a_3aassembler_27',['Assembler',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools_1_1internal_1_1Assembler.html',1,'DoFTools::internal']]],
-  ['dynamicsparsitypatterniterators_28',['DynamicSparsityPatternIterators',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDynamicSparsityPatternIterators.html',1,'']]]
+  ['dofrenumbering_19',['DoFRenumbering',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering.html',1,'']]],
+  ['dofrenumbering_3a_3aboost_20',['boost',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1boost.html',1,'DoFRenumbering']]],
+  ['dofrenumbering_3a_3aboost_3a_3aboosttypes_21',['boosttypes',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1boost_1_1boosttypes.html',1,'DoFRenumbering::boost']]],
+  ['dofrenumbering_3a_3aboost_3a_3ainternal_22',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1boost_1_1internal.html',1,'DoFRenumbering::boost']]],
+  ['dofrenumbering_3a_3ainternal_23',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFRenumbering_1_1internal.html',1,'DoFRenumbering']]],
+  ['doftools_24',['DoFTools',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools.html',1,'']]],
+  ['doftools_3a_3ainternal_25',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools_1_1internal.html',1,'DoFTools']]],
+  ['doftools_3a_3ainternal_3a_3aassembler_26',['Assembler',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDoFTools_1_1internal_1_1Assembler.html',1,'DoFTools::internal']]],
+  ['dynamicsparsitypatterniterators_27',['DynamicSparsityPatternIterators',['http://www.dealii.org/developer/doxygen/deal.II/namespaceDynamicSparsityPatternIterators.html',1,'']]]
 ];

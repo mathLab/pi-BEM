@@ -16,7 +16,7 @@ var topics =
     [ "Linear algebra classes", "http://www.dealii.org/developer/doxygen/deal.II/group__LAC.html", "group__LAC" ],
     [ "Matrix-free infrastructure", "http://www.dealii.org/developer/doxygen/deal.II/group__matrixfree.html", "group__matrixfree" ],
     [ "The MeshWorker interface", "http://www.dealii.org/developer/doxygen/deal.II/group__MeshWorker.html", "group__MeshWorker" ],
-    [ "Multilevel support", "http://www.dealii.org/developer/doxygen/deal.II/group__mg.html", "group__mg" ],
+    [ "Multilevel support", "http://www.dealii.org/developer/doxygen/deal.II/group__mg.html", null ],
     [ "Numerical algorithms", "http://www.dealii.org/developer/doxygen/deal.II/group__numerics.html", null ],
     [ "Parallel computing", "http://www.dealii.org/developer/doxygen/deal.II/group__Parallel.html", "group__Parallel" ],
     [ "PETScWrappers", "http://www.dealii.org/developer/doxygen/deal.II/group__PETScWrappers.html", "group__PETScWrappers" ],

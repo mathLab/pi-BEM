@@ -1,6 +1,6 @@
 var class_b_e_m_problem =
 [
-    [ "cell_it", "class_b_e_m_problem.html#a662393ffe2709def6b4f855bbb3e4796", null ],
+    [ "cell_it", "class_b_e_m_problem.html#a33710ac29f6f0814ae0a8150ef929a55", null ],
     [ "BEMProblem", "class_b_e_m_problem.html#a0668b08e334155717a2f11be492500cd", null ],
     [ "BEMProblem", "class_b_e_m_problem.html#a54d71dc3720591db19c7220413598b54", null ],
     [ "BEMProblem", "class_b_e_m_problem.html#aca65b8b4a7e6e252e000053214982ba0", null ],
@@ -20,8 +20,8 @@ var class_b_e_m_problem =
     [ "compute_surface_gradients", "class_b_e_m_problem.html#ad10a2cbad5d7a3c0899c08dcd4463057", null ],
     [ "declare_parameters", "class_b_e_m_problem.html#a57bf0409ff71307faade6e71bc15a628", null ],
     [ "get_singular_quadrature", "class_b_e_m_problem.html#a716ae2ce4e04b3e699f49952b48775d2", null ],
-    [ "get_singular_quadrature", "class_b_e_m_problem.html#a43747d6b674ae7bddc1a98393955b1e1", null ],
     [ "get_singular_quadrature", "class_b_e_m_problem.html#ae1df401dd1a2e90d38a856e5b7fcb1a6", null ],
+    [ "get_singular_quadrature", "class_b_e_m_problem.html#a43747d6b674ae7bddc1a98393955b1e1", null ],
     [ "output_results", "class_b_e_m_problem.html#a43b1e011fdb1231833f1a3faa13750b3", null ],
     [ "parse_parameters", "class_b_e_m_problem.html#a98b60f5832ddac0595d2fab355f882f7", null ],
     [ "reinit", "class_b_e_m_problem.html#a69ee6e30a24f1112da62ce41e9f81aa0", null ],

@@ -16,6 +16,8 @@ var group__LAOperators =
     [ "BlockLinearOperator::block_operator", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#ga3b78c08372b54dc7bc9a2cf6b497baba", null ],
     [ "condense_schur_rhs", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#ga2c071b6555ac9e2eb543b7da5100889b", null ],
     [ "PackagedOperation::condense_schur_rhs", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#ga2c071b6555ac9e2eb543b7da5100889b", null ],
+    [ "diagonal_operator", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#gab9472fdc33522b0df1ffc3f4f008ddf2", null ],
+    [ "LinearOperator::diagonal_operator", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#gab9472fdc33522b0df1ffc3f4f008ddf2", null ],
     [ "identity_operator", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#gad50e510550627aa8892168f313d18d86", null ],
     [ "identity_operator", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#ga1a0a3fb15266869710e63e78658cfaed", null ],
     [ "LinearOperator::identity_operator", "http://www.dealii.org/developer/doxygen/deal.II/group__LAOperators.html#ga373310de5b48d5a70b9cdd47834da48f", null ],

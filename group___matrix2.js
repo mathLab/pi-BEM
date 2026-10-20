@@ -1,6 +1,6 @@
 var group___matrix2 =
 [
-    [ "ConstrainedOperator< VEC, MATRIX >", "class_constrained_operator.html", [
+    [ "ConstrainedOperator&lt; VEC, MATRIX &gt;", "class_constrained_operator.html", [
       [ "ConstrainedOperator", "group___matrix2.html#ga1c7ced24770b54412b17c1bc3db73595", null ],
       [ "ConstrainedOperator", "class_constrained_operator.html#ga1c7ced24770b54412b17c1bc3db73595", null ],
       [ "constraint_tvmult", "group___matrix2.html#gada6970f06e10dbcb884cdf807a9cc673", null ],

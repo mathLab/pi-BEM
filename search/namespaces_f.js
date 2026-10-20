@@ -1,7 +1,22 @@
 var searchData=
 [
-  ['referencecells_0',['ReferenceCells',['http://www.dealii.org/developer/doxygen/deal.II/namespaceReferenceCells.html',1,'']]],
-  ['relaxationblock_1',['RelaxationBlock',['http://www.dealii.org/developer/doxygen/deal.II/classRelaxationBlock_1_1AdditionalData.html',1,'']]],
-  ['repartitioningpolicytools_2',['RepartitioningPolicyTools',['http://www.dealii.org/developer/doxygen/deal.II/namespaceRepartitioningPolicyTools.html',1,'']]],
-  ['rol_3',['Rol',['http://www.dealii.org/developer/doxygen/deal.II/namespaceRol.html',1,'']]]
+  ['slepcwrappers_0',['SLEPcWrappers',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSLEPcWrappers.html',1,'']]],
+  ['smoothnessestimator_1',['SmoothnessEstimator',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSmoothnessEstimator.html',1,'']]],
+  ['smoothnessestimator_3a_3afourier_2',['Fourier',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSmoothnessEstimator_1_1Fourier.html',1,'SmoothnessEstimator']]],
+  ['smoothnessestimator_3a_3alegendre_3',['Legendre',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSmoothnessEstimator_1_1Legendre.html',1,'SmoothnessEstimator']]],
+  ['sparsematrixiterators_4',['SparseMatrixIterators',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSparseMatrixIterators.html',1,'']]],
+  ['sparsematrixiterators_3a_3aaccessor_5',['Accessor',['http://www.dealii.org/developer/doxygen/deal.II/classSparseMatrixIterators_1_1Accessor_3_01number_00_01false_01_4_1_1Reference.html',1,'SparseMatrixIterators']]],
+  ['sparsematrixtools_6',['SparseMatrixTools',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSparseMatrixTools.html',1,'']]],
+  ['sparsitypatterniterators_7',['SparsityPatternIterators',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSparsityPatternIterators.html',1,'']]],
+  ['sparsitytools_8',['SparsityTools',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSparsityTools.html',1,'']]],
+  ['sparsitytools_3a_3ainternal_9',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSparsityTools_1_1internal.html',1,'SparsityTools']]],
+  ['standardexceptions_10',['StandardExceptions',['http://www.dealii.org/developer/doxygen/deal.II/namespaceStandardExceptions.html',1,'']]],
+  ['std_11',['std',['http://www.dealii.org/developer/doxygen/deal.II/namespacestd.html',1,'']]],
+  ['std_5fcxx17_12',['std_cxx17',['http://www.dealii.org/developer/doxygen/deal.II/namespacestd__cxx17.html',1,'']]],
+  ['std_5fcxx20_13',['std_cxx20',['http://www.dealii.org/developer/doxygen/deal.II/namespacestd__cxx20.html',1,'']]],
+  ['std_5fcxx20_3a_3aranges_14',['ranges',['http://www.dealii.org/developer/doxygen/deal.II/namespacestd__cxx20_1_1ranges.html',1,'std_cxx20']]],
+  ['std_5fcxx26_15',['std_cxx26',['http://www.dealii.org/developer/doxygen/deal.II/namespacestd__cxx26.html',1,'']]],
+  ['sundials_16',['SUNDIALS',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSUNDIALS.html',1,'']]],
+  ['sundials_3a_3ainternal_17',['internal',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSUNDIALS_1_1internal.html',1,'SUNDIALS']]],
+  ['sundials_3a_3autilities_18',['Utilities',['http://www.dealii.org/developer/doxygen/deal.II/namespaceSUNDIALS_1_1Utilities.html',1,'SUNDIALS']]]
 ];

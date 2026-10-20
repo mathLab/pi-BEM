@@ -7,6 +7,5 @@ var searchData=
   ['algorithms_4',['Algorithms',['http://www.dealii.org/developer/doxygen/deal.II/namespaceAlgorithms.html',1,'']]],
   ['algorithms_3a_3aevents_5',['Events',['http://www.dealii.org/developer/doxygen/deal.II/namespaceAlgorithms_1_1Events.html',1,'Algorithms']]],
   ['arborx_6',['ArborX',['http://www.dealii.org/developer/doxygen/deal.II/namespaceArborX.html',1,'']]],
-  ['arborxwrappers_7',['ArborXWrappers',['http://www.dealii.org/developer/doxygen/deal.II/namespaceArborXWrappers.html',1,'']]],
-  ['arpacksolver_8',['ArpackSolver',['http://www.dealii.org/developer/doxygen/deal.II/structArpackSolver_1_1AdditionalData.html',1,'']]]
+  ['arborxwrappers_7',['ArborXWrappers',['http://www.dealii.org/developer/doxygen/deal.II/namespaceArborXWrappers.html',1,'']]]
 ];

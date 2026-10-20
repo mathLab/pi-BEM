@@ -47,7 +47,11 @@ var searchData=
   ['version_209_204_200_20and_209_205_200_44',['Changes between Version 9.4.0 and 9.5.0',['http://www.dealii.org/developer/doxygen/deal.II/changes_between_9_4_0_and_9_5_0.html',1,'']]],
   ['version_209_205_200_20and_209_205_202_45',['Changes between Version 9.5.0 and 9.5.2',['http://www.dealii.org/developer/doxygen/deal.II/changes_between_9_5_0_and_9_5_2.html',1,'']]],
   ['version_209_205_202_20and_209_206_200_46',['Changes between Version 9.5.2 and 9.6.0',['http://www.dealii.org/developer/doxygen/deal.II/changes_between_9_5_2_and_9_6_0.html',1,'']]],
-  ['visco_20elasticity_20code_20gallery_20program_47',['The &apos;Quasi-Static Finite-Strain Quasi-incompressible Visco-elasticity&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_Quasi_static_Finite_strain_Quasi_incompressible_ViscoElasticity.html',1,'']]],
-  ['viscoelasticity_20code_20gallery_20program_48',['The &apos;Nonlinear poro-viscoelasticity&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_Nonlinear_PoroViscoelasticity.html',1,'']]],
-  ['viscoelastoplastic_20topography_20evolution_20code_20gallery_20program_49',['The &apos;Viscoelastoplastic topography evolution&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_CeresFE.html',1,'']]]
+  ['version_209_206_200_20and_209_207_200_47',['Changes between Version 9.6.0 and 9.7.0',['http://www.dealii.org/developer/doxygen/deal.II/changes_between_9_6_0_and_9_7_0.html',1,'']]],
+  ['version_209_207_200_20and_209_207_201_48',['Changes between Version 9.7.0 and 9.7.1',['http://www.dealii.org/developer/doxygen/deal.II/changes_between_9_7_0_and_9_7_1.html',1,'']]],
+  ['version_209_207_201_20and_209_208_200_49',['Changes between Version 9.7.1 and 9.8.0',['http://www.dealii.org/developer/doxygen/deal.II/changes_between_9_7_1_and_9_8_0.html',1,'']]],
+  ['vibroacoustic_20solver_20code_20gallery_20program_50',['The &apos;Parallel Vibroacoustic Solver&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_Parallel_Vibro_Acoustic_Solver.html',1,'']]],
+  ['visco_20elasticity_20code_20gallery_20program_51',['The &apos;Quasi-Static Finite-Strain Quasi-incompressible Visco-elasticity&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_Quasi_static_Finite_strain_Quasi_incompressible_ViscoElasticity.html',1,'']]],
+  ['viscoelasticity_20code_20gallery_20program_52',['The &apos;Nonlinear poro-viscoelasticity&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_Nonlinear_PoroViscoelasticity.html',1,'']]],
+  ['viscoelastoplastic_20topography_20evolution_20code_20gallery_20program_53',['The &apos;Viscoelastoplastic topography evolution&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_CeresFE.html',1,'']]]
 ];

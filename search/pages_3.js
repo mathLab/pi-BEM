@@ -44,5 +44,6 @@ var searchData=
   ['36_20tutorial_20program_41',['The step-36 tutorial program',['http://www.dealii.org/developer/doxygen/deal.II/step_36.html',1,'']]],
   ['37_20tutorial_20program_42',['The step-37 tutorial program',['http://www.dealii.org/developer/doxygen/deal.II/step_37.html',1,'']]],
   ['38_20tutorial_20program_43',['The step-38 tutorial program',['http://www.dealii.org/developer/doxygen/deal.II/step_38.html',1,'']]],
-  ['39_20tutorial_20program_44',['The step-39 tutorial program',['http://www.dealii.org/developer/doxygen/deal.II/step_39.html',1,'']]]
+  ['39_20tutorial_20program_44',['The step-39 tutorial program',['http://www.dealii.org/developer/doxygen/deal.II/step_39.html',1,'']]],
+  ['3d_20code_20gallery_20program_45',['The &apos;Phase-field fracture model in 3D&apos; code gallery program',['http://www.dealii.org/developer/doxygen/deal.II/code_gallery_Phase_field_fracture_model_in_3D.html',1,'']]]
 ];

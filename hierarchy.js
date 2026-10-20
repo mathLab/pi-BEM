@@ -1,9 +1,9 @@
 var hierarchy =
 [
     [ "AssLegFunction", "class_ass_leg_function.html", null ],
-    [ "BEMProblemAccess< dim >", "class_b_e_m_problem_access.html", null ],
-    [ "ConstrainedMatrixBlock< VECTOR >", "class_constrained_matrix_block.html", null ],
-    [ "ConstrainedOperator< VEC, MATRIX >", "class_constrained_operator.html", null ],
+    [ "BEMProblemAccess&lt; dim &gt;", "class_b_e_m_problem_access.html", null ],
+    [ "ConstrainedMatrixBlock&lt; VECTOR &gt;", "class_constrained_matrix_block.html", null ],
+    [ "ConstrainedOperator&lt; VEC, MATRIX &gt;", "class_constrained_operator.html", null ],
     [ "EnableObserverPointer", "http://www.dealii.org/developer/doxygen/deal.II/classEnableObserverPointer.html", [
       [ "Manifold< int dim, int spacedim >", "http://www.dealii.org/developer/doxygen/deal.II/classManifold.html", [
         [ "ChartManifold< dim, spacedim, 2 >", "http://www.dealii.org/developer/doxygen/deal.II/classChartManifold.html", [
@@ -23,9 +23,9 @@ var hierarchy =
     [ "EntryRaiiObject", "struct_entry_raii_object.html", null ],
     [ "LocalExpansion", "class_local_expansion.html", null ],
     [ "LocalExpansionCoeff", "class_local_expansion_coeff.html", null ],
-    [ "Operator::MinBEMOperator< dim >", "class_operator_1_1_min_b_e_m_operator.html", null ],
+    [ "Operator::MinBEMOperator&lt; dim &gt;", "class_operator_1_1_min_b_e_m_operator.html", null ],
     [ "MultipoleExpansion", "class_multipole_expansion.html", null ],
-    [ "OctreeBlock< dim >", "class_octree_block.html", null ],
-    [ "SingularKernelIntegral< dim >", "class_singular_kernel_integral.html", null ],
+    [ "OctreeBlock&lt; dim &gt;", "class_octree_block.html", null ],
+    [ "SingularKernelIntegral&lt; dim &gt;", "class_singular_kernel_integral.html", null ],
     [ "TimeIntegrator", "class_time_integrator.html", null ]
 ];

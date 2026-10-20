@@ -13,5 +13,6 @@ var searchData=
   ['repartitioning_5fpolicy_5ftools_2ecc_10',['repartitioning_policy_tools.cc',['http://www.dealii.org/developer/doxygen/deal.II/repartitioning__policy__tools_8cc.html',1,'']]],
   ['repartitioning_5fpolicy_5ftools_2eh_11',['repartitioning_policy_tools.h',['http://www.dealii.org/developer/doxygen/deal.II/repartitioning__policy__tools_8h.html',1,'']]],
   ['revision_2eh_12',['revision.h',['http://www.dealii.org/developer/doxygen/deal.II/revision_8h.html',1,'']]],
-  ['rtree_2eh_13',['rtree.h',['http://www.dealii.org/developer/doxygen/deal.II/rtree_8h.html',1,'']]]
+  ['rol_5fadaptor_2eh_13',['rol_adaptor.h',['http://www.dealii.org/developer/doxygen/deal.II/rol__adaptor_8h.html',1,'']]],
+  ['rtree_2eh_14',['rtree.h',['http://www.dealii.org/developer/doxygen/deal.II/rtree_8h.html',1,'']]]
 ];

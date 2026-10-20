@@ -76,8 +76,8 @@ main()
   MultipoleExpansion new_new_multipole = new_multipole;
 
   // we get the values of the expensions
-  std::complex<double> *old_multipole_values = multipole.GetCoeffs();
-  std::complex<double> *new_multipole_values = new_new_multipole.GetCoeffs();
+  const auto &old_multipole_values = multipole.GetCoeffs();
+  const auto &new_multipole_values = new_new_multipole.GetCoeffs();
 
   deallog << "Original and copied multipole  are created. " << std::endl;
   std::complex<double> total_difference(0.0, 0.0);

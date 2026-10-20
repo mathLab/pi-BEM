@@ -204,15 +204,6 @@ ConstrainedOperator<VEC, MATRIX>::finalise(VEC &u) const
 {
   cm.distribute(u);
 }
-// template<class VEC, class MATRIX>
-// void ConstrainedOperator<VEC,MATRIX>::distribute_rhs(VEC &rhs) const
-// {
-//   for (unsigned int i=0; i<rhs.size(); ++i)
-//     if ( (constraints.is_constrained(i)) &&
-//          (rhs.locally_owned_elements().is_element(i)) )
-//       rhs(i) = constraints.get_inhomogeneity(i);
-// }
-
 
 DEAL_II_NAMESPACE_CLOSE
 

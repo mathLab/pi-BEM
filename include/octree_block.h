@@ -1,4 +1,3 @@
-
 // ---------------------------------------------------------------------
 //
 // Copyright (C) 2014 - 2020 by the pi-BEM authors.
@@ -24,6 +23,17 @@
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/utilities.h>
 
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_q1_eulerian.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_out.h>
@@ -37,32 +47,19 @@
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/vector.h>
-// #include <deal.II/grid/tria_boundary_lib.h>
-
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/mapping_q1.h>
-#include <deal.II/fe/mapping_q1_eulerian.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-// And here are a few C++ standard header
-// files that we will need:
+#include <boost/container/flat_set.hpp>
+
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <set>
 #include <string>
-
 
 using namespace dealii;
 
@@ -71,22 +68,20 @@ class OctreeBlock
 {
 public:
   typedef typename DoFHandler<dim - 1, dim>::active_cell_iterator cell_it;
-
+  /// Sorted contiguous set of block IDs; replaces std::set in interaction
+  /// lists.
+  using small_set = boost::container::flat_set<types::global_dof_index>;
 
 private:
-  unsigned int level;
-
+  unsigned int            level;
   types::global_dof_index parentId;
-
-  unsigned int numChildren;
-
+  unsigned int            numChildren;
   types::global_dof_index childrenId[8];
 
-  std::vector<std::set<types::global_dof_index>> nearNeigh;
-
-  std::vector<std::set<types::global_dof_index>> intList;
-
-  std::vector<std::set<types::global_dof_index>> nonIntList;
+  /// relevant entities at each level
+  std::vector<small_set> nearNeigh;
+  std::vector<small_set> intList;
+  std::vector<small_set> nonIntList;
 
   Point<dim> pMin;
 
@@ -96,7 +91,6 @@ private:
 
   std::map<cell_it, std::vector<types::global_dof_index>> quadPointsId;
 
-
 public:
   OctreeBlock();
 
@@ -105,26 +99,23 @@ public:
               Point<dim>              pMin,
               double                  delta);
 
-  OctreeBlock(const OctreeBlock<dim> &other);
-
-  ~OctreeBlock();
-
-  void
-  CopyContent(const OctreeBlock *other);
-
   void
   AddNode(types::global_dof_index nodeId);
 
   void
   AddQuadPoint(cell_it elemPointer, types::global_dof_index quadPointId);
 
-  std::vector<types::global_dof_index>
+  /// Return a read-only view of node IDs; modifying this block can invalidate
+  /// it.
+  const std::vector<types::global_dof_index> &
   GetBlockNodeList() const;
 
   void
   DelNodeList();
 
-  std::map<cell_it, std::vector<types::global_dof_index>>
+  /// Return a read-only view of cell-to-quadrature-index lists owned by this
+  /// block.
+  const std::map<cell_it, std::vector<types::global_dof_index>> &
   GetBlockQuadPointsList() const;
 
   void
@@ -151,6 +142,19 @@ public:
   double
   GetDelta() const;
 
+  /// Return the box center, GetPMin()+GetDelta()/2 in every direction.
+  Point<dim>
+  GetCenter() const
+  {
+    auto ret = this->GetPMin();
+    for (unsigned int i = 0; i < dim; ++i)
+      {
+        ret(i) += this->GetDelta() / 2.;
+      }
+
+    return ret;
+  }
+
   void
   AddNearNeigh(unsigned int sublevel, const types::global_dof_index nnBlockId);
 
@@ -160,7 +164,10 @@ public:
   unsigned int
   NumNearNeighLevels() const;
 
-  std::set<types::global_dof_index>
+  /// Return a read-only flat-set view for the requested sublevel. Use
+  /// NumNearNeighLevels() to check valid sublevels; mutations can invalidate
+  /// iterators.
+  const small_set &
   GetNearNeighs(unsigned int sublevel) const;
 
   void
@@ -170,13 +177,14 @@ public:
   types::global_dof_index
   NumIntList(unsigned int sublevel) const;
 
-  unsigned int
-  NumIntListLevels() const;
-
-  std::set<types::global_dof_index>
+  /// Return a read-only flat-set view for one sublevel, or the complete
+  /// vector of sublevel sets. The block owns the returned containers.
+  const small_set &
   GetIntList(unsigned int sublevel) const;
 
-  std::vector<std::set<types::global_dof_index>>
+  /// Return a read-only flat-set view for one sublevel, or the complete
+  /// vector of sublevel sets. The block owns the returned containers.
+  const std::vector<small_set> &
   GetIntList() const;
 
   void
@@ -186,10 +194,9 @@ public:
   types::global_dof_index
   NumNonIntList(unsigned int sublevel) const;
 
-  unsigned int
-  NumNonIntListLevels() const;
-
-  std::set<types::global_dof_index>
+  /// Return a read-only flat-set view of non-interacting blocks at sublevel.
+  /// The block owns the container; mutations can invalidate iterators.
+  const small_set &
   GetNonIntList(unsigned int sublevel) const;
 
   void
@@ -210,6 +217,5 @@ public:
   types::global_dof_index
   GetNonIntListSize() const;
 };
-
 
 #endif

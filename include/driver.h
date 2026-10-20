@@ -62,12 +62,23 @@
 #include <deal.II/fe/mapping_q1.h>
 #include <deal.II/fe/mapping_q1_eulerian.h>
 
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
+
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_control.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/vector.h>
+
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
-
-// And here are a few C++ standard header
-// files that we will need:
 
 #include <cmath>
 #include <fstream>
@@ -81,9 +92,6 @@
 #include "computational_domain.h"
 using namespace dealii;
 
-// using namespace TrilinosWrappers::MPI::Vector;
-// using namespace TrilinosWrappers::MPI::SparseMatrix;
-
 /**
  * This class is in charge of organising the overall BEM simulation. It has
  * interfaces with all the other classes in order to have a complete simulation.
@@ -92,7 +100,10 @@ template <int dim>
 class Driver : public ParameterAcceptor
 {
 public:
-  Driver();
+  /// Create the simulation with n_components real storage components. The
+  /// Driver parameter subsection can grow this count; complex potentials are
+  /// identified by their real component index in Complex components.
+  Driver(unsigned int n_components = 1);
 
   ~Driver();
 
@@ -108,7 +119,8 @@ public:
   virtual void
   parse_parameters(ParameterHandler &prm) override;
 
-
+  /// Read/refine the domain, solve real components and consecutive complex
+  /// pairs, then compute errors and output each component. Invoke collectively.
   void
   run();
 
@@ -125,10 +137,12 @@ protected:
 
   ParameterHandler prm;
 
-  bool global_refinement;
+  bool                   global_refinement;
+  std::set<unsigned int> complex_problems;
 
   const unsigned int n_mpi_processes;
   const unsigned int this_mpi_process;
+  unsigned int       n_components;
 };
 
 #endif

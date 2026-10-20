@@ -88,8 +88,8 @@ main()
   LocalExpansion new_new_local = new_local;
 
   // we get the values of the expensions
-  std::complex<double> *old_local_values = local.GetCoeffs();
-  std::complex<double> *new_local_values = new_new_local.GetCoeffs();
+  const auto &old_local_values = local.GetCoeffs();
+  const auto &new_local_values = new_new_local.GetCoeffs();
 
   deallog << "Original and copied local expansions are created. " << std::endl;
   std::complex<double> total_difference(0.0, 0.0);

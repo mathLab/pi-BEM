@@ -2750,6 +2750,11 @@ template <int dim>
 void
 BEMProblem<dim>::assemble_preconditioner()
 {
+  // Each owned matrix row also contains columns owned by other ranks.
+  // Import column data collectively before the rank-local assembly loops.
+  const Vector<double> column_dirichlet_nodes(dirichlet_nodes);
+  const Vector<double> column_robin_nodes(robin_nodes);
+  const Vector<double> column_robin_diagonal(robin_matrix_diagonal);
   if (!is_preconditioner_initialized)
     {
       for (auto i : this_cpu_set)
@@ -2794,18 +2799,18 @@ BEMProblem<dim>::assemble_preconditioner()
                ++j)
             {
               // if (dirichlet_nodes(i) == 0)
-              if (dirichlet_nodes(j) == 0)
+              if (column_dirichlet_nodes(j) == 0)
                 {
                   // Nodo di Neumann - or Robin
                   band_system.add(i, j, neumann_matrix(i, j));
 
                   // TODO: account for Robin node
-                  if (robin_nodes(j) == 1)
+                  if (column_robin_nodes(j) == 1)
                     {
                       band_system.add(i,
                                       j,
                                       dirichlet_matrix(i, j) *
-                                        robin_matrix_diagonal(j));
+                                        column_robin_diagonal(j));
                     }
 
                   if (i == j)
@@ -2843,6 +2848,12 @@ template <int dim>
 void
 BEMProblem<dim>::assemble_preconditioner_complex()
 {
+  // Each owned matrix row also contains columns owned by other ranks.
+  // Import column data collectively before the rank-local assembly loops.
+  const Vector<double> column_dirichlet_nodes(dirichlet_nodes);
+  const Vector<double> column_robin_nodes(robin_nodes);
+  const Vector<double> column_robin_diagonal(robin_matrix_diagonal);
+  const Vector<double> column_robin_diagonal_imag(robin_matrix_diagonal_imag);
   if (!is_preconditioner_complex_initialized)
     {
       for (auto i : this_cpu_set)
@@ -2890,7 +2901,7 @@ BEMProblem<dim>::assemble_preconditioner_complex()
 
           for (auto j = from; j < to; ++j)
             {
-              if (dirichlet_nodes(j) == 0)
+              if (column_dirichlet_nodes(j) == 0)
                 {
                   // neumann and robin nodes are implicitly merged, here
                   band_system_complex.add(i, j, neumann_matrix(i, j));
@@ -2898,7 +2909,7 @@ BEMProblem<dim>::assemble_preconditioner_complex()
                                           j + this_cpu_set.size(),
                                           neumann_matrix(i, j));
 
-                  if (robin_nodes(j) == 1)
+                  if (column_robin_nodes(j) == 1)
                     {
                       // scale the row from D, using the robin matrix
                       // diagonal
@@ -2906,11 +2917,11 @@ BEMProblem<dim>::assemble_preconditioner_complex()
                       band_system_complex.add(i,
                                               j,
                                               dirichlet_matrix(i, j) *
-                                                robin_matrix_diagonal(j));
+                                                column_robin_diagonal(j));
                       band_system_complex.add(i + this_cpu_set.size(),
                                               j + this_cpu_set.size(),
                                               dirichlet_matrix(i, j) *
-                                                robin_matrix_diagonal(j));
+                                                column_robin_diagonal(j));
 
                       // check for pairing elements
                       if ((robin_nodes(i) == 1) &&
@@ -2922,12 +2933,12 @@ BEMProblem<dim>::assemble_preconditioner_complex()
                           band_system_complex.add(i,
                                                   j + this_cpu_set.size(),
                                                   -dirichlet_matrix(i, j) *
-                                                    robin_matrix_diagonal_imag(
+                                                    column_robin_diagonal_imag(
                                                       j));
                           band_system_complex.add(i + this_cpu_set.size(),
                                                   j,
                                                   dirichlet_matrix(i, j) *
-                                                    robin_matrix_diagonal_imag(
+                                                    column_robin_diagonal_imag(
                                                       j));
                         }
                     }

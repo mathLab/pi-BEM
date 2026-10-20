@@ -18,7 +18,7 @@
 #include <deal.II/base/config.h>
 
 #include <deal.II/base/memory_consumption.h>
-#include <deal.II/base/smartpointer.h>
+#include <deal.II/base/observer_pointer.h>
 #include <deal.II/base/thread_management.h>
 #include <deal.II/base/types.h>
 
@@ -76,7 +76,7 @@ private:
   unsigned int                     this_mpi_process;
 };
 
-/*@}*/
+/** @} */
 /*---------------------- Inline functions -----------------------------------*/
 
 //--------------------------------Iterators--------------------------------------//

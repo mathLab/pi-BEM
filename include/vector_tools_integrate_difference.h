@@ -2,10 +2,10 @@
 #define vector_tools_integrate_difference_h
 
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/observer_pointer.h>
 #include <deal.II/base/parsed_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/quadrature_selector.h>
-#include <deal.II/base/smartpointer.h>
 #include <deal.II/base/types.h>
 #include <deal.II/base/utilities.h>
 

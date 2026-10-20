@@ -272,8 +272,8 @@ public:
 protected:
   /// Three pointers to the problem parameters to be set equal to
   /// the ones in the calling problem through the init function
-  SmartPointer<const DoFHandler<dim - 1, dim>> fma_dh;
-  SmartPointer<const Mapping<dim - 1, dim>>    fma_mapping;
+  ObserverPointer<const DoFHandler<dim - 1, dim>> fma_dh;
+  ObserverPointer<const Mapping<dim - 1, dim>>    fma_mapping;
 
   /// Truncation order for the multipole
   /// and local expansion series: it is
@@ -455,8 +455,8 @@ protected:
   ConditionalOStream pcout;
 
   /// TODO parsed quadrature?
-  std::shared_ptr<Quadrature<dim - 1>> quadrature;
-  SmartPointer<const Vector<double>>   dirichlet_nodes;
+  std::shared_ptr<Quadrature<dim - 1>>  quadrature;
+  ObserverPointer<const Vector<double>> dirichlet_nodes;
   /// This should be erased by the usage of the constraint matrix.
   const std::vector<std::set<types::global_dof_index>> *double_nodes_set;
 

@@ -1,8 +1,8 @@
 #ifndef laplace_kernel_h
 #define laplace_kernel_h
 
+#include <deal.II/base/observer_pointer.h>
 #include <deal.II/base/point.h>
-#include <deal.II/base/smartpointer.h>
 #include <deal.II/base/utilities.h>
 
 #include <cmath>

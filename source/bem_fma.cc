@@ -453,7 +453,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                       }
                   }
               } // end loop over sublevels
-          } // end if: is there any node in the block?
+          }     // end if: is there any node in the block?
       };
 
       // we loop over blocks of each level. We call WorkStream with the same
@@ -499,7 +499,7 @@ BEMFMA<dim>::direct_integrals_tbb()
   // memory.
   struct DirectCopyData
   {
-    DirectCopyData() {
+    DirectCopyData(){
       // each thread will hold a local copy of Multipole expansions. here they
       // are initialized in a very dumb way, but they're always overwritten
       // so...
@@ -517,7 +517,7 @@ BEMFMA<dim>::direct_integrals_tbb()
 
     // The Destructor needs to make foo_fma to point to NULL (for this reason it
     // is mutable const)
-    ~DirectCopyData() {};
+    ~DirectCopyData(){};
 
     // The pointer we use to copy everything back.
     std::vector<Vector<double>> vec_local_neumann_matrix_row_i;
@@ -792,9 +792,9 @@ BEMFMA<dim>::direct_integrals_tbb()
 
                       helper_index += 1;
                     } // end loop on cells of the intList
-                } // end check on this_cpu_set
-            } // end loop over nodes of block1
-        } // end if (nodes in block > 0)
+                }     // end check on this_cpu_set
+            }         // end loop over nodes of block1
+        }             // end if (nodes in block > 0)
     };
 
   // The copier function, it copies the value from the local array to the global
@@ -855,7 +855,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                   }
               } // end loop on everything in the non int list of the node of the
                 // block
-          } // end loop on nodes in block
+          }     // end loop on nodes in block
       }
   };
 
@@ -943,7 +943,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                             }
                         }
                     } // end loop over blocks of a sublevel of nonIntList
-                } // end loop over sublevels
+                }     // end loop over sublevels
 
               for (auto it = directQuadPoints.begin();
                    it != directQuadPoints.end();
@@ -1012,7 +1012,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                                    this->quadJxW[cell][*pos]);
 
                         } // end loop over the dofs in the cell
-                    } // end loop over the quad points in a cell
+                    }     // end loop over the quad points in a cell
 
                   helper_index += 1;
                   // Finally, we need to add
@@ -1021,7 +1021,7 @@ BEMFMA<dim>::direct_integrals_tbb()
                   // global matrix.
 
                 } // end loop over quad points in the direct quad points list
-            } // end check on proc
+            }     // end check on proc
 
         } // end loop over nodes in a block
     };
@@ -1269,7 +1269,7 @@ BEMFMA<dim>::direct_integrals_omp()
               // parent's; again, there's synch when inserting new positions in
               // the sparsity pattern
 #  pragma omp task depend(in : this->blocks[block1->GetParentId()]) \
-    depend(out : this -> blocks[blockId]) firstprivate(blockId, block1, level)
+    depend(out : this->blocks[blockId]) firstprivate(blockId, block1, level)
               {
                 // again, this block is interesting only if it contains dofs of
                 // this mpi proc
@@ -1603,7 +1603,7 @@ BEMFMA<dim>::direct_integrals_omp()
               // parent's; again, there's synch when inserting new positions in
               // the sparsity pattern
 #  pragma omp task depend(in : this->blocks[block1->GetParentId()]) \
-    depend(out : this -> blocks[blockId]) firstprivate(blockId, block1, level)
+    depend(out : this->blocks[blockId]) firstprivate(blockId, block1, level)
               {
                 for (const auto idx : block1->GetBlockNodeList())
                   {
@@ -2069,7 +2069,7 @@ BEMFMA<dim>::generate_multipole_expansions(
 
     // The Destructor needs to make foo_fma to point to NULL (for this reason it
     // is mutable const)
-    ~AscendCopyData() {};
+    ~AscendCopyData(){};
 
     types::global_dof_index start;
     types::global_dof_index parentId;
@@ -2308,7 +2308,7 @@ BEMFMA<dim>::multipole_matr_vect_products_tbb(
 
     // The Destructor needs to make foo_fma to point to NULL (for this reason
     // it is mutable const)
-    ~DescendCopyData() {};
+    ~DescendCopyData(){};
 
     types::global_dof_index              start;
     types::global_dof_index              blockId;
@@ -2447,7 +2447,7 @@ BEMFMA<dim>::multipole_matr_vect_products_tbb(
                     }
                 } // end loop over well separated blocks of smaller size
                   // (level)
-            } // end loop over all sublevels in  nonIntlist
+            }     // end loop over all sublevels in  nonIntlist
         }
     };
 
@@ -2648,7 +2648,7 @@ BEMFMA<dim>::multipole_matr_vect_products_omp(
                 const OctreeBlock<dim> *block1 = this->blocks[blockId];
 
 #  pragma omp task depend(in : this->blocks[block1->GetParentId()]) \
-    depend(out : this -> blocks[blockId])                           \
+    depend(out : this->blocks[blockId])                             \
     firstprivate(blockId, block1, level, startBlockLevel, endBlockLevel)
                 {
                   const auto &nodesBlk1Ids = block1->GetBlockNodeList();
@@ -2900,7 +2900,7 @@ BEMFMA<dim>::FMA_preconditioner_tbb(
   {
     PrecCopy()
       : row(dealii::numbers::invalid_unsigned_int)
-      , sparsity_row(0) {};
+      , sparsity_row(0){};
 
     PrecCopy(const PrecCopy &in_copy)
     {
@@ -3225,7 +3225,7 @@ BEMFMA<dim>::FMA_preconditioner_complex_tbb(
   {
     PrecCopy()
       : row(dealii::numbers::invalid_unsigned_int)
-      , sparsity_row(0) {};
+      , sparsity_row(0){};
 
     PrecCopy(const PrecCopy &in_copy)
     {
@@ -3801,7 +3801,7 @@ BEMFMA<dim>::generate_octree_blocking()
                             }
                         }
                     } // fine assegnazione nodi del padre ai blocchi figli
-                } // fine loop nodi del blocco
+                }     // fine loop nodi del blocco
 
               for (auto it = blockQuadPointsList.begin();
                    it != blockQuadPointsList.end();
@@ -3929,7 +3929,7 @@ BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
                     }
                 } // fine loop sui blocchi figlio appena creati
-            } // fine ramo dim = 3 dell'if
+            }     // fine ramo dim = 3 dell'if
           else
             {
               for (types::global_dof_index i = 0; i < blockNodeList.size(); i++)
@@ -3959,7 +3959,7 @@ BEMFMA<dim>::generate_octree_blocking()
                           children[2]->AddNode(blockNodeList[i]);
                         }
                     } // fine assegnazione blocchi del padre ai blocchi figli
-                } // fine loop nodi del blocco
+                }     // fine loop nodi del blocco
 
               for (auto it = blockQuadPointsList.begin();
                    it != blockQuadPointsList.end();
@@ -4055,8 +4055,8 @@ BEMFMA<dim>::generate_octree_blocking()
                       delete children[j];
                     }
                 } // fine loop sui blocchi figlio appena creati
-            } // fine ramo dim == 2 dell'if
-        } // fine loop blocchi livello precedente
+            }     // fine ramo dim == 2 dell'if
+        }         // fine loop blocchi livello precedente
 
       startLevel[level] = endLevel[level - 1] + 1;
       endLevel[level]   = blocksCount;
@@ -4400,8 +4400,8 @@ BEMFMA<dim>::generate_octree_blocking()
                             }
                         }
                     } // fine caso dim == 2
-                } // fine loop sui figli di un nearest neighbor del padre
-            } // fine loop sui nearest neighbors del padre
+                }     // fine loop sui figli di un nearest neighbor del padre
+            }         // fine loop sui nearest neighbors del padre
 
           if ((block1->GetBlockChildrenNum() ==
                0)) // if the block is childless we must compute now its
@@ -4520,14 +4520,14 @@ BEMFMA<dim>::generate_octree_blocking()
                                     }
                                 }
                             } // fine caso dim == 2
-                        } // fine loop sui figli di ciascun nearest neighbor
-                          // del blocco childless
+                        }     // fine loop sui figli di ciascun nearest neighbor
+                              // del blocco childless
                     } // fine loop sui nearest neighbors del blocco childless
-                } // fine loop sui subLevels (da quello del blocco childless
-                  // all'ultimo)
-            } // fine if (il blocco e' childless?)
-        } // fine loop sui blocchi di un livello
-    } // fine loop sui livelli
+                }     // fine loop sui subLevels (da quello del blocco childless
+                      // all'ultimo)
+            }         // fine if (il blocco e' childless?)
+        }             // fine loop sui blocchi di un livello
+    }                 // fine loop sui livelli
 
   // search for interaction list blocks (NearNeigh + NearNeighOfNearNeigh)
   // and for non interaction list blocks (nonIntList for a block B is composed
@@ -4645,9 +4645,9 @@ BEMFMA<dim>::generate_octree_blocking()
                           // parentIntList
                     }
                 } // loop over blocks in parentIntList
-            } // end loop over subLevels of each block's intList
-        } // end loop over blocks of a level
-    } // end loop over levels
+            }     // end loop over subLevels of each block's intList
+        }         // end loop over blocks of a level
+    }             // end loop over levels
 
   pcout << "Done computing proximity lists for blocks" << std::endl;
 } // end method for octree blocking generation

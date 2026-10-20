@@ -2990,9 +2990,9 @@ BEMProblem<dim>::compute_gradients(
   // We need the solution to be stored on a parallel vector with ghost
   // elements. We let Trilinos take care of it.
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
-  phi.reinit(glob_phi, false, true);
+  phi = glob_phi;
   TrilinosWrappers::MPI::Vector dphi_dn(ghosted_set);
-  dphi_dn.reinit(glob_dphi_dn, false, true);
+  dphi_dn = glob_dphi_dn;
 
   // We reinit the gradient solution
   get_vector_gradients_solution().reinit(vector_this_cpu_set, mpi_communicator);
@@ -3143,7 +3143,7 @@ BEMProblem<dim>::compute_surface_gradients(
 {
   Teuchos::TimeMonitor          LocalTimer(*SurfaceGradientTime);
   TrilinosWrappers::MPI::Vector phi(ghosted_set);
-  phi.reinit(tmp_rhs, false, true);
+  phi = tmp_rhs;
 
   get_vector_surface_gradients_solution().reinit(vector_this_cpu_set,
                                                  mpi_communicator);

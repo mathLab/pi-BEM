@@ -86,7 +86,7 @@ void
 ConstrainedOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
 {
   VEC loc_src(constr_cpu_set);
-  loc_src.reinit(src, false, true);
+  loc_src = src;
 
   matrix.vmult(dst, src);
 

@@ -11,6 +11,7 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
+      # Formatting is pinned to clang-format 16.0.6 independently of deal.II.
       image: dealii/dealii:v9.7.1-noble
       options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 

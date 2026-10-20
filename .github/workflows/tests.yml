@@ -7,42 +7,21 @@ on:
     branches: [ master ]
 
 jobs:
-  debug:
-
+  debug-and-release:
     runs-on: ubuntu-latest
-
-    container:
-      image: dealii/dealii:v9.7.1-noble
-      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Test debug
+    - uses: actions/checkout@v4
+    - name: Build deal.II 9.8.0 CI environment
+      run: docker build -f docker/Dockerfile.ci -t pi-bem-ci:9.8.0 .
+    - name: Test Debug and Release without compiler warnings
       run: |
-         rm -rf build_linux_debug
-         mkdir build_linux_debug
-         cd build_linux_debug
-         cmake .. -GNinja -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_BUILD_TYPE=Debug
-         ninja
-         ctest -N
-         ctest --output-on-failure
-
-  release:
-
-    runs-on: ubuntu-latest
-
-    container:
-      image: dealii/dealii:v9.7.1-noble
-      options: --user root --env OMPI_ALLOW_RUN_AS_ROOT=1 --env OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Test release
-      run: |
-          rm -rf build_linux_release
-          mkdir build_linux_release
-          cd build_linux_release
-          cmake .. -GNinja -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_BUILD_TYPE=Release
-          ninja
-          ctest -N
-          ctest --output-on-failure
+        docker run --rm \
+          -e OMPI_ALLOW_RUN_AS_ROOT=1 -e OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1 \
+          -v "$PWD:/workspace" -w /workspace pi-bem-ci:9.8.0 bash -lc '
+            set -e
+            cmake -S . -B build-docker/9.8.0-ci -GNinja \
+              -DCMAKE_BUILD_TYPE=DebugRelease -DCMAKE_CXX_FLAGS=-Werror
+            cmake --build build-docker/9.8.0-ci -j 2
+            cd build-docker/9.8.0-ci
+            ctest --output-on-failure
+          '

@@ -116,7 +116,7 @@ ConstrainedOperator<VEC, MATRIX>::constraint_vmult(VEC       &dst,
                                                    const VEC &src) const
 {
   VEC loc_src(src.locally_owned_elements(), constr_cpu_set, mpi_communicator);
-  loc_src.reinit(src, false, true);
+  loc_src = src;
 
   for (unsigned int i = 0; i < dst.size(); ++i)
     {

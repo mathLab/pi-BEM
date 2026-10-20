@@ -3261,6 +3261,17 @@ BEMProblem<dim>::compute_surface_gradients(
   vector_constraints.distribute(get_vector_surface_gradients_solution());
 }
 
+// The singular hypersingular kernels are implemented only for surface cells
+// in 3D. Reject the 2D call before entering the three-component algorithm.
+template <>
+void
+BEMProblem<2>::compute_gradients_hypersingular(
+  const TrilinosWrappers::MPI::Vector &,
+  const TrilinosWrappers::MPI::Vector &)
+{
+  AssertThrow(false, ExcNotImplemented());
+}
+
 template <int dim>
 void
 BEMProblem<dim>::compute_gradients_hypersingular(

@@ -6,3 +6,4 @@ build/
 tests_regression/robin_bconditions/parameters_bem_3.prm
 tests_regression/robin_bconditions/used_parameters_bem_3.prm
 
+build-docker/

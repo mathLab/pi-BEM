@@ -46,7 +46,6 @@ QuasiSingularKernelIntegral<dim>::find_closest_reference_cell_point(
       Vector<double> residual(2);
       residual                  = 1.0;
       unsigned int iter_counter = 0;
-      double       min_dist;
       while (residual.l2_norm() > 1e-7 && iter_counter < 30)
         {
           // here's the quadrature rule obtained with the solution point only
@@ -89,8 +88,6 @@ QuasiSingularKernelIntegral<dim>::find_closest_reference_cell_point(
           dist_vect[0] = external_point[0] - sol_q_points_spacedim[0][0];
           dist_vect[1] = external_point[1] - sol_q_points_spacedim[0][1];
           dist_vect[2] = external_point[2] - sol_q_points_spacedim[0][2];
-          min_dist     = dist_vect.l2_norm();
-          // std::cout<<"Min Dist: "<<min_dist<<std::endl;
 
 
           // this is the jacobian of the mapping
@@ -178,7 +175,6 @@ QuasiSingularKernelIntegral<dim>::find_closest_reference_cell_point(
       else
         {
           // std::cout<<"Solved"<<std::endl;
-          // std::cout<<"Min Dist: "<<min_dist<<std::endl;
           eta_sol[0] = solution[0];
           eta_sol[1] = solution[1];
           // std::cout<<"Cell minimum distance point: "<<eta_sol<<std::endl;
@@ -188,8 +184,6 @@ QuasiSingularKernelIntegral<dim>::find_closest_reference_cell_point(
         {
           double minimum_distance_among_faces =
             std::numeric_limits<double>::infinity();
-          unsigned int face_with_minimum_distance =
-            GeometryInfo<2>::faces_per_cell;
           // in this case we must look for the closest point, but on the
           // boundary we'll use bisection in the interval [0,1]
           for (unsigned int f = 0; f < GeometryInfo<2>::faces_per_cell; ++f)
@@ -311,7 +305,6 @@ QuasiSingularKernelIntegral<dim>::find_closest_reference_cell_point(
                     if (min_dist_line < minimum_distance_among_faces)
                       {
                         minimum_distance_among_faces = min_dist_line;
-                        face_with_minimum_distance   = f;
                         switch (f)
                           {
                             case 0:

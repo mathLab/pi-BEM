@@ -351,6 +351,8 @@ public:
   /// We compute the potential gradients also in an alternative way.
   /// Here we make use of the hypersingular integrals computed with the
   /// SingularKernelIntegral class
+  /// Compute hypersingular gradients in 3D. The unsupported 2D case throws
+  /// ExcNotImplemented in both Debug and Release before accessing vectors.
   void
   compute_gradients_hypersingular(const TrilinosWrappers::MPI::Vector &phi,
                                   const TrilinosWrappers::MPI::Vector &dphi_dn);

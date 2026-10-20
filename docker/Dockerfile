@@ -1,4 +1,4 @@
-FROM dealii/dealii:v9.7.1-noble
+FROM dealii/dealii:v9.8.0-resolute-r1-arm64
 
 # pi-BEM master image
 RUN git clone https://github.com/mathLab/pi-BEM/ &&\

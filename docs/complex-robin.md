@@ -1,16 +1,16 @@
 # Multiple potentials, complex problems and Robin conditions
 
-## Build and run with deal.II 9.7.1
+## Build and run with deal.II 9.8.0
 
 From the repository root, build both configurations in the supplied container:
 
 ```sh
 docker run --rm -v "$PWD:/workspace" -w /workspace \
-  dealii/dealii:v9.7.1-noble bash -lc '
-    cmake -S . -B build-docker/9.7.1 -GNinja \
+  dealii/dealii:v9.8.0-resolute-r1-arm64 bash -lc '
+    cmake -S . -B build-docker/9.8.0 -GNinja \
       -DCMAKE_BUILD_TYPE=DebugRelease -DCMAKE_CXX_FLAGS=-Werror &&
-    cmake --build build-docker/9.7.1 -j 4 &&
-    cd build-docker/9.7.1 && ctest --output-on-failure
+    cmake --build build-docker/9.8.0 -j 4 &&
+    cd build-docker/9.8.0 && ctest --output-on-failure
   '
 ```
 
@@ -24,13 +24,13 @@ The sphere examples use paths relative to `samples/`. Keep each run's output
 separate, and copy both the parameter file and its grid directory:
 
 ```sh
-mkdir -p build-docker/9.7.1/example-complex
-cp -R samples/grids build-docker/9.7.1/example-complex/
+mkdir -p build-docker/9.8.0/example-complex
+cp -R samples/grids build-docker/9.8.0/example-complex/
 cp samples/ref_params_sphere_complex_DR_direct.prm \
-  build-docker/9.7.1/example-complex/parameters_bem_3.prm
+  build-docker/9.8.0/example-complex/parameters_bem_3.prm
 docker run --rm -v "$PWD:/workspace" \
-  -w /workspace/build-docker/9.7.1/example-complex \
-  dealii/dealii:v9.7.1-noble bash -lc '
+  -w /workspace/build-docker/9.8.0/example-complex \
+  dealii/dealii:v9.8.0-resolute-r1-arm64 bash -lc '
     mpirun -np 2 ../bem_fma_3d 2
   '
 ```
@@ -41,6 +41,28 @@ The samples cover real/complex potentials, DN (Dirichlet/Neumann), DR
 (Dirichlet/Robin), NR (Neumann/Robin), and `direct`/`fma` methods.
 `Direct` assembles integral matrices and uses an iterative solver; it does not
 mean a dense direct factorization. FMA is supported in 3D only.
+
+## Hosted CI environment
+
+Local validation uses `dealii/dealii:v9.8.0-resolute-r1-arm64`, built from
+the frozen recipes in [docker-files PR 90](https://github.com/dealii/docker-files/pull/90).
+Until that image is published, hosted CI builds `docker/Dockerfile.ci` with the
+exact deal.II 9.8.0 backports package on Ubuntu 26.04. This supports hosted AMD64
+runners without depending on a tag that currently exists only locally.
+The CI environment uses mold to link the large Debug libraries efficiently.
+The formatting job retains clang-format 16.0.6 from its existing image.
+
+To reproduce the hosted environment locally, build it and substitute
+`pi-bem-ci:9.8.0` for the image in the commands above:
+
+```sh
+docker build -f docker/Dockerfile.ci -t pi-bem-ci:9.8.0 .
+```
+
+The deal.II 9.8 update replaces the removed three-argument Trilinos vector
+`reinit(source,false,true)` with assignment into the already initialized
+ghost layout. The assignment imports both locally owned and ghost values;
+it must participate collectively on the vector communicator.
 
 ## Components and boundary-function slots
 

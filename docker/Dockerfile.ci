@@ -1,0 +1,20 @@
+# Bootstrap the exact 9.8.0 release for hosted CI while the versioned
+# docker-files PR 90 image is available locally but not yet in Docker Hub.
+FROM ubuntu:26.04
+
+ARG DEAL_II_PACKAGE_VERSION=9.8.0-1~ubuntu26.04.1~ppa2
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates software-properties-common \
+    && add-apt-repository -y ppa:ginggs/deal.ii-9.8.0-backports \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+       libdeal.ii-dev=${DEAL_II_PACKAGE_VERSION} \
+       build-essential cmake ninja-build git numdiff \
+    && rm -rf /var/lib/apt/lists/*
+# Linking Debug deal.II consumers with the default linker dominates test time.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends mold \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace

@@ -91,7 +91,7 @@ ConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC &dst, const VEC &src) const
   auto offset = matrix.this_cpu_set.size();
   // store localized constrained values
   VEC loc_src(constr_cpu_set_complex);
-  loc_src.reinit(src, false, true);
+  loc_src = src;
 
   // split into real, imag
   c_src      = 0;
@@ -258,7 +258,7 @@ BlockConstrainedComplexOperator<VEC, MATRIX>::vmult(VEC       &dst,
   localized_src.reinit(parallel_partitioning, mpi_communicator);
   for (unsigned int i = 0; i < src.n_blocks(); ++i)
     {
-      localized_src.block(i).reinit(src.block(i), false, true);
+      localized_src.block(i) = src.block(i);
     }
 
   matrix.vmult(dst.block(0), dst.block(1), src.block(0), src.block(1));

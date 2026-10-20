@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('true__constrai
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>                                                   <span class="keyword">const</span> VEC &amp;src)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="keyword"></span>{</div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>  VEC loc_src(src.locally_owned_elements(), <a class="code hl_variable" href="class_constrained_operator.html#a15981be58293800d68cdc38656f5b81a">constr_cpu_set</a>, <a class="code hl_variable" href="class_constrained_operator.html#a33ef4f81cf0eb11ce703279093f71077">mpi_communicator</a>);</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>  loc_src.reinit(src, <span class="keyword">false</span>, <span class="keyword">true</span>);</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>  loc_src = src;</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span> </div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>  <span class="keywordflow">for</span> (<span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> i = 0; i &lt; dst.size(); ++i)</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>    {</div>

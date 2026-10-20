@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('constrained__m
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno"><a class="line" href="class_constrained_operator.html#a00a9f16bb2714537fc2400d5b9d8a1bb">   86</a></span><a class="code hl_function" href="class_constrained_operator.html#a00a9f16bb2714537fc2400d5b9d8a1bb">ConstrainedOperator&lt;VEC, MATRIX&gt;::vmult</a>(VEC &amp;dst, <span class="keyword">const</span> VEC &amp;src)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="keyword"></span>{</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>  VEC loc_src(<a class="code hl_variable" href="class_constrained_operator.html#a15981be58293800d68cdc38656f5b81a">constr_cpu_set</a>);</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  loc_src.reinit(src, <span class="keyword">false</span>, <span class="keyword">true</span>);</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  loc_src = src;</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>  <a class="code hl_variable" href="class_constrained_operator.html#a4093cb540be4ccba1824f120152ee226">matrix</a>.vmult(dst, src);</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
